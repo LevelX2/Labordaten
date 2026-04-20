@@ -27,3 +27,135 @@
   - Git-Repository und neutrales Projektgrundgerüst wurden angelegt.
   - `AGENTS.md` wurde auf wiki-first Wissensarbeit für dieses Projekt ausgerichtet.
   - Eine initiale projektbezogene Wissensbasis für die spätere Aufnahme der Fachkonzepte wurde eingerichtet.
+
+## [2026-04-20] update | Erste fachliche Konzeptvorgabe zur Laboranwendung aufgenommen
+- Anlass oder Quelle: Nutzerquelle `Erste Konzeptvorgabe`
+- Neu angelegte Seiten:
+  - [[../01 Rohquellen/fachkonzepte/2026-04-20 Erste Konzeptvorgabe Laboranwendung]]
+  - [[../02 Wissen/Begriffe und Konzepte/Fachkonzept Laboranwendung Grundstruktur]]
+  - [[../02 Wissen/Risiken und offene Punkte/Erste Konzeptvorgabe Klaerungsbedarf]]
+  - [[../02 Wissen/Begriffe und Konzepte/Planung Erstarchitektur und Umsetzungsphasen]]
+- Geänderte Seiten:
+  - [[../02 Wissen/00 Uebersichten/Index]]
+  - [[../02 Wissen/00 Uebersichten/Aktueller Projektstatus]]
+  - [[../02 Wissen/00 Uebersichten/Quellenlage und Aktualitaet]]
+- Kern der inhaltlichen Anpassung:
+  - Die erste umfassende fachliche Spezifikation der geplanten Laboranwendung wurde als Rohquelle abgelegt.
+  - Das Fachkonzept wurde in eine strukturierte Wissensseite überführt.
+  - Offene Punkte und Präzisierungsbedarf vor der Implementierung wurden als eigene Wissensseite erfasst.
+
+## [2026-04-20] update | V1-Rückfragen geklärt und in Architekturplanung übernommen
+- Anlass oder Quelle: Nutzerquelle `Konzeptklärungen V1 aus Rückfragen`
+- Neu angelegte Seiten:
+  - [[../01 Rohquellen/fachkonzepte/2026-04-20 Konzeptklaerungen V1 aus Rueckfragen]]
+  - [[../02 Wissen/Entscheidungen/V1 Vorentscheidungen Produktform und Kernmodell]]
+- Geänderte Seiten:
+  - [[../02 Wissen/Begriffe und Konzepte/Fachkonzept Laboranwendung Grundstruktur]]
+  - [[../02 Wissen/Risiken und offene Punkte/Erste Konzeptvorgabe Klaerungsbedarf]]
+  - [[../02 Wissen/Begriffe und Konzepte/Planung Erstarchitektur und Umsetzungsphasen]]
+  - [[../02 Wissen/00 Uebersichten/Index]]
+- Kern der inhaltlichen Anpassung:
+  - Produktform, qualitative Messwerte, Labor als Stammdatenobjekt, Zielbereichslogik und Sicherheitsrahmen für V1 wurden präzisiert.
+  - Eine genormte externe Importschnittstelle wurde als wichtige Architekturfolge ergänzt.
+  - Die V1-Berichtsschwerpunkte wurden auf Listenbericht für Arzttermine und Verlaufsbericht mit Zeitachse konkretisiert.
+
+## [2026-04-20] update | Weitere V1-Festlegungen zu Anzeige, Dubletten und Referenzvarianten
+- Anlass oder Quelle: zusätzliche Nutzerantworten zu V1-Rückfragen
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - [[../01 Rohquellen/fachkonzepte/2026-04-20 Konzeptklaerungen V1 aus Rueckfragen]]
+  - [[../02 Wissen/Entscheidungen/V1 Vorentscheidungen Produktform und Kernmodell]]
+  - [[../02 Wissen/Begriffe und Konzepte/Fachkonzept Laboranwendung Grundstruktur]]
+  - [[../02 Wissen/Risiken und offene Punkte/Erste Konzeptvorgabe Klaerungsbedarf]]
+  - [[../02 Wissen/Begriffe und Konzepte/Planung Erstarchitektur und Umsetzungsphasen]]
+- Kern der inhaltlichen Anpassung:
+  - Wissensseiten wurden für V1 auf reine Anzeige eingegrenzt.
+  - Dublettenerkennung wurde als Warnung mit bewusster Übernahmeentscheidung präzisiert.
+  - Berichtsfelder sollen standardmäßig vorbelegt und abwählbar sein.
+  - Alters- und geschlechtsabhängige Referenzvarianten wurden als fachlich notwendige Fähigkeit für V1 ergänzt.
+
+## [2026-04-20] update | Bedeutung qualitativer Messwerte konkretisiert
+- Anlass oder Quelle: Nutzerbestätigung zu qualitativen Befunden
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - [[../01 Rohquellen/fachkonzepte/2026-04-20 Konzeptklaerungen V1 aus Rueckfragen]]
+  - [[../02 Wissen/Entscheidungen/V1 Vorentscheidungen Produktform und Kernmodell]]
+  - [[../02 Wissen/Begriffe und Konzepte/Fachkonzept Laboranwendung Grundstruktur]]
+  - [[../02 Wissen/Begriffe und Konzepte/Planung Erstarchitektur und Umsetzungsphasen]]
+- Kern der inhaltlichen Anpassung:
+  - Qualitative Messwerte wurden als textuelle, kategoriale oder halbquantitative Befunde konkretisiert.
+  - Das Datenmodell für V1 wurde damit eindeutig auf numerische und nichtnumerische Laborbefunde ausgerichtet.
+
+## [2026-04-20] update | V1-Ziel-Datenmodell ausformuliert
+- Anlass oder Quelle: Nutzerauftrag zur verbindlichen Modellierung von Entitäten, Feldern und Beziehungen
+- Neu angelegte Seiten:
+  - [[../02 Wissen/Begriffe und Konzepte/V1 Ziel-Datenmodell]]
+- Geänderte Seiten:
+  - [[../02 Wissen/00 Uebersichten/Index]]
+- Kern der inhaltlichen Anpassung:
+  - Das fachliche V1-Datenmodell wurde mit Entitäten, Pflicht- und Zusatzfeldern, Beziehungen, Prüfregeln und Modellierungsprinzipien konkretisiert.
+  - Messwertmodell, Referenzlogik, Zielbereichsüberschreibungen, Importprüfung und Sperrlogik wurden zu einem konsistenten Gesamtschnitt verdichtet.
+
+## [2026-04-20] update | Technisches V1-Schema und Screenplan ergänzt
+- Anlass oder Quelle: Nutzerauftrag zur Priorisierung und Ausarbeitung der nächsten Schritte
+- Neu angelegte Seiten:
+  - [[../02 Wissen/Begriffe und Konzepte/V1 Technisches Schema]]
+  - [[../02 Wissen/Begriffe und Konzepte/V1 Screenplan und Kernworkflows]]
+- Geänderte Seiten:
+  - [[../02 Wissen/00 Uebersichten/Index]]
+- Kern der inhaltlichen Anpassung:
+  - Das fachliche Datenmodell wurde in eine relationale technische Schemasicht mit Tabellen, Indizes, Checks und Anwendungskontrollen überführt.
+  - Daraus wurde ein arbeitsbereichsorientierter V1-Screenplan mit Hauptseiten, Detailansichten und Kernworkflows abgeleitet.
+
+## [2026-04-20] update | V1-Projektstruktur, Module und Schnittstellen konkretisiert
+- Anlass oder Quelle: Nutzerauftrag zur nächsten Ableitungsebene nach Schema und Screenplan
+- Neu angelegte Seiten:
+  - [[../02 Wissen/Entscheidungen/V1 Empfohlener Technologie-Stack]]
+  - [[../02 Wissen/Begriffe und Konzepte/V1 Projektstruktur, Module und Schnittstellen]]
+- Geänderte Seiten:
+  - [[../02 Wissen/00 Uebersichten/Index]]
+- Kern der inhaltlichen Anpassung:
+  - Für V1 wurde ein konkreter lokaler Technologie-Stack empfohlen.
+  - Die Projektstruktur wurde auf Backend-Module, API-Endpunkte, Frontend-Routen und empfohlene Ordnerstruktur heruntergebrochen.
+
+## [2026-04-20] update | Technisches V1-Scaffold im Workspace angelegt
+- Anlass oder Quelle: Umsetzung des Projektgerüsts nach Architektur-, Schema- und Screenplanableitung
+- Neu angelegte Seiten:
+  - [[../01 Rohquellen/repo-root/2026-04-20 V1 Scaffold Workspace-Stand]]
+- Geänderte Seiten:
+  - [[../02 Wissen/00 Uebersichten/Aktueller Projektstatus]]
+  - [[../02 Wissen/00 Uebersichten/Quellenlage und Aktualitaet]]
+  - [[../02 Wissen/00 Uebersichten/Index]]
+- Kern der inhaltlichen Anpassung:
+  - Im Repository wurden `apps/backend`, `apps/frontend`, `packages/contracts` und erste Beispielstrukturen angelegt.
+  - Das Backend enthält nun API-Grundgerüst, erste Fachmodule, SQLAlchemy-Modelle und eine initiale Alembic-Migration.
+  - Das Frontend enthält eine erste Routen- und Layout-Shell für die sachlichen V1-Hauptbereiche.
+  - Ein erstes versioniertes Import-JSON-Schema wurde als Vertragsgrundlage ergänzt.
+
+## [2026-04-20] update | Erster technischer Durchstich für Kernobjekte umgesetzt
+- Anlass oder Quelle: Nutzerauftrag zur direkten Umsetzung des ersten End-to-End-Flows
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - [[../01 Rohquellen/repo-root/2026-04-20 V1 Scaffold Workspace-Stand]]
+  - [[../02 Wissen/00 Uebersichten/Aktueller Projektstatus]]
+  - [[../02 Wissen/00 Uebersichten/Quellenlage und Aktualitaet]]
+- Kern der inhaltlichen Anpassung:
+  - Personen, Parameter, Befunde und Messwerte wurden im Frontend an echte API-Endpunkte angebunden.
+  - Backend und Frontend wurden technisch verifiziert: Python-Kompilation, Frontend-Build, Alembic-Migration und API-Rauchtest.
+  - Ein erster vollständiger Durchstich von Stammdaten über Befund bis Messwert ist damit nicht mehr nur konzeptionell, sondern lauffähig vorbereitet.
+
+## [2026-04-20] update | Referenzen und Zielbereiche in den Durchstich integriert
+- Anlass oder Quelle: Nutzerauftrag zur nächsten fachlichen Ausbauphase nach dem ersten Durchstich
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - [[../01 Rohquellen/repo-root/2026-04-20 V1 Scaffold Workspace-Stand]]
+  - [[../02 Wissen/00 Uebersichten/Aktueller Projektstatus]]
+  - [[../02 Wissen/00 Uebersichten/Quellenlage und Aktualitaet]]
+- Kern der inhaltlichen Anpassung:
+  - Das Backend wurde um Endpunkte und Datenmodelle für `MesswertReferenz` und `Zielbereich` ergänzt.
+  - Das Frontend erlaubt nun die Pflege von Laborreferenzen zu Messwerten und allgemeinen Zielbereichen zu Parametern.
+  - Migration, Frontend-Build und API-Rauchtests für die neue Logik wurden erfolgreich ausgeführt.
