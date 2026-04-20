@@ -18,6 +18,7 @@
 - Frontend-Grundgerüst mit React, Vite, Routing und sachlicher V1-Navigations-Shell
 - Erste echte Durchstich-UI für Personen, Parameter, Befunde und Messwerte mit API-Anbindung
 - Erweiterung des Durchstichs um Laborreferenzen auf Messwert-Ebene und allgemeine Zielbereiche auf Parameter-Ebene
+- Personenspezifische Zielbereichs-Overrides als Aufbau auf allgemeinen Zielbereichen
 - Planung als echter Durchstich mit zyklischen Kontrollen, Einmalvormerkungen, Fälligkeitslogik und Vorschlagsliste
 - Importprüfung als echter Durchstich mit JSON-Entwurf, Prüfpunkten, Parameter-Mapping und bewusster Übernahme
 - Erstes Importvertragsschema unter `packages/contracts/import-v1.schema.json`
@@ -29,6 +30,7 @@
 - Alembic-Migration lässt sich gegen SQLite ausführen
 - API-Rauchtest für `Person -> Parameter -> Befund -> Messwert -> Liste` war erfolgreich
 - API-Rauchtest für `MesswertReferenz` und `Zielbereich` war erfolgreich
+- API-Rauchtest für `ZielbereichOverride` pro Person war erfolgreich
 - API-Rauchtest für `PlanungZyklisch`, `PlanungEinmalig` und `Fälligkeiten` war erfolgreich
 - API-Rauchtest für `Importentwurf -> Prüfpunkte -> Mapping -> Übernahme` war erfolgreich
 

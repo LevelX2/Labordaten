@@ -105,6 +105,26 @@ export type Zielbereich = {
   geaendert_am: string;
 };
 
+export type ZielbereichOverride = {
+  id: string;
+  person_id: string;
+  zielbereich_id: string;
+  laborparameter_id: string;
+  parameter_anzeigename: string;
+  wert_typ: string;
+  basis_untere_grenze_num?: number | null;
+  basis_obere_grenze_num?: number | null;
+  basis_einheit?: string | null;
+  basis_soll_text?: string | null;
+  untere_grenze_num?: number | null;
+  obere_grenze_num?: number | null;
+  einheit?: string | null;
+  soll_text?: string | null;
+  bemerkung?: string | null;
+  aktiv: boolean;
+  erstellt_am?: string | null;
+};
+
 export type PlanungZyklisch = {
   id: string;
   person_id: string;

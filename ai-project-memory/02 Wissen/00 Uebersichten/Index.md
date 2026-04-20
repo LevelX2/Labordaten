@@ -34,4 +34,4 @@
 - [[../../03 Betrieb/Qualitaetspruefung]]
 
 ## Workspace-Quellen
-- [[../../01 Rohquellen/repo-root/2026-04-20 V1 Scaffold Workspace-Stand]]: Referenz auf den aktuellen technischen Scaffold-Stand im Repository inklusive Durchstich für Referenzen, Zielbereiche, Planung und Importprüfung.
+- [[../../01 Rohquellen/repo-root/2026-04-20 V1 Scaffold Workspace-Stand]]: Referenz auf den aktuellen technischen Scaffold-Stand im Repository inklusive Durchstich für Referenzen, Zielbereiche, Zielbereichs-Overrides, Planung und Importprüfung.

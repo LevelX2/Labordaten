@@ -19,6 +19,7 @@ tags:
 - Ein technisches V1-Scaffold mit lokalem Backend, lokalem Frontend, gemeinsamer Vertragsstruktur und erster Migration ist im Workspace angelegt.
 - Der erste technische Durchstich für Personen, Parameter, Befunde und Messwerte funktioniert über echte API-Endpunkte und Frontend-Formulare.
 - Laborreferenzen pro Messwert und allgemeine Zielbereiche pro Parameter sind ebenfalls als echte Durchstich-Funktionen angebunden.
+- Personenspezifische Zielbereichs-Overrides sind als Erweiterung der Personen- und Zielbereichslogik umgesetzt und verifiziert.
 - Planung mit zyklischen Kontrollen, Einmalvormerkungen, Fälligkeitsberechnung und konsolidierter Vorschlagsliste ist als nächster echter Durchstich umgesetzt und verifiziert.
 - Importprüfung mit JSON-Entwurf, Prüfpunkten, Parameterzuordnung und bewusster Übernahme ist ebenfalls als echter Durchstich umgesetzt und verifiziert.
 
@@ -26,4 +27,4 @@ tags:
 - Das Projekt hat jetzt ein belastbares fachliches Zielbild für die nächste Architektur- und Planungsphase.
 - Das Projekt hat zusätzlich ein reales technisches Startgerüst, auf dem die eigentliche Implementierung der Fachlogik aufbauen kann.
 - Mehrere Kernbereiche sind nicht mehr nur konzeptionell beschrieben, sondern bereits technisch verifiziert.
-- Weitere Arbeit sollte nun den Durchstich auf die nächsten Kernbereiche erweitern: personenspezifische Zielbereichs-Overrides sowie echte Auswertungs- und Berichtsansichten.
+- Weitere Arbeit sollte nun den Durchstich auf die nächsten Kernbereiche erweitern: echte Auswertungs- und Berichtsansichten.

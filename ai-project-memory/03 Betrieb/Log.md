@@ -187,3 +187,17 @@
   - Das Backend wurde um Importentwurf, Prüfpunkte, Parameter-Mapping und bewusste Übernahme erweitert.
   - Das Frontend enthält jetzt eine reale Importseite mit Prüfansicht und Steuerung der Übernahme.
   - Python-Kompilation, Frontend-Build, Alembic-Migration und ein API-Rauchtest für `Importentwurf -> Prüfpunkte -> Mapping -> Übernahme` wurden erfolgreich ausgeführt.
+
+## [2026-04-20] update | Personenspezifische Zielbereichs-Overrides als echter Durchstich umgesetzt
+- Anlass oder Quelle: Nutzerauftrag zum nächsten Ausbau nach Importprüfung
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - [[../01 Rohquellen/repo-root/2026-04-20 V1 Scaffold Workspace-Stand]]
+  - [[../02 Wissen/00 Uebersichten/Aktueller Projektstatus]]
+  - [[../02 Wissen/00 Uebersichten/Quellenlage und Aktualitaet]]
+  - [[../02 Wissen/00 Uebersichten/Index]]
+- Kern der inhaltlichen Anpassung:
+  - Das Backend wurde um Endpunkte und Logik für personenspezifische Überschreibungen allgemeiner Zielbereiche erweitert.
+  - Das Frontend erlaubt nun auf der Personenseite die Anlage und Anzeige solcher Overrides.
+  - Python-Kompilation, Frontend-Build, Alembic-Ausführung und ein API-Rauchtest für `Zielbereich -> Person-Override -> Liste` wurden erfolgreich ausgeführt.
