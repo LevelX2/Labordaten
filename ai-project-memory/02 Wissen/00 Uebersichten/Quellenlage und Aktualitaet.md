@@ -24,14 +24,17 @@ tags:
 - Verifizierter Berichtsdurchstich für Arztbericht- und Verlaufsvorschau
 - Verifizierter lokaler PDF-Export für Arztbericht und Verlaufsbericht
 - Verifizierter Auswertungsbereich mit Zeitreihen und Diagrammen
+- Verifizierter Gruppendurchstich mit Gruppen-Stammdaten, Parameterzuordnung und echter Gruppenverwaltung in der Oberfläche
+- Verifizierte bereichsübergreifende Filter nach Personen, Gruppen, Laboren und Zeitraum für Messwerte, Berichte und Auswertung
+- Verifizierte personenübergreifende Familienansichten in Berichtsvorschau, Verlaufs-PDF und Auswertung
 
 ## Noch ausstehend
 - Detaillierte Entscheidungen zu Datenvalidierung, Änderungsverfolgung und Qualitätsregeln
 - Konkretisierung der technischen Produktform, Architektur und Packaging-Strategie
 - Präzisierung von Importprüfung, qualitativen Messwerten, Backups und Sicherheitsgrenzen
 - Spätere Detailanforderungen an Berichte, Diagrammlogik und Wissensintegration
-- Erweiterung der Berichte auf gruppenbezogene und druckoptimierte Varianten
+- Weitere Verfeinerung gruppenbezogener und druckoptimierter Berichtsausgaben
 - Ausbau der Auswertung mit stärkeren Vergleichsansichten, Mehrparameter-Überlagerungen und Normierungslogik
 
 ## Einordnung
-Der aktuelle Stand umfasst nun eine starke fachliche Grundlage und mehrere echte, verifizierte Durchstiche im technischen Gerüst. Aussagen zur endgültigen Umsetzung bleiben dennoch vorläufig, solange gruppenbezogene Berichte, Wissensintegration und weitere Fachdetails noch nicht vollständig implementiert und erprobt sind.
+Der aktuelle Stand umfasst nun eine starke fachliche Grundlage und mehrere echte, verifizierte Durchstiche im technischen Gerüst. Aussagen zur endgültigen Umsetzung bleiben dennoch vorläufig, solange Wissensintegration, weitere Importstufen, erweiterte Vergleichslogik und Detailverfeinerungen in Berichten und Diagrammen noch nicht vollständig implementiert und erprobt sind.

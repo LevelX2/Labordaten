@@ -25,6 +25,28 @@ export type Parameter = {
   geaendert_am: string;
 };
 
+export type Gruppe = {
+  id: string;
+  name: string;
+  beschreibung?: string | null;
+  sortierschluessel?: string | null;
+  aktiv: boolean;
+  erstellt_am: string;
+  geaendert_am: string;
+  parameter_anzahl: number;
+};
+
+export type GruppenParameter = {
+  id: string;
+  parameter_gruppe_id: string;
+  laborparameter_id: string;
+  parameter_anzeigename: string;
+  interner_schluessel: string;
+  wert_typ_standard: string;
+  standard_einheit?: string | null;
+  sortierung?: number | null;
+};
+
 export type Labor = {
   id: string;
   name: string;
@@ -68,6 +90,12 @@ export type Messwert = {
   bemerkung_lang?: string | null;
   unsicher_flag: boolean;
   pruefbedarf_flag: boolean;
+  person_anzeigename?: string | null;
+  parameter_anzeigename?: string | null;
+  labor_id?: string | null;
+  labor_name?: string | null;
+  entnahmedatum?: string | null;
+  gruppen_namen: string[];
   erstellt_am: string;
   geaendert_am: string;
 };
@@ -241,6 +269,8 @@ export type ImportVorgangDetail = {
 };
 
 export type ArztberichtEintrag = {
+  person_id: string;
+  person_anzeigename: string;
   laborparameter_id: string;
   parameter_anzeigename: string;
   datum?: string | null;
@@ -253,11 +283,13 @@ export type ArztberichtEintrag = {
 };
 
 export type ArztberichtResponse = {
-  person_id: string;
+  person_ids: string[];
   eintraege: ArztberichtEintrag[];
 };
 
 export type VerlaufsberichtPunkt = {
+  person_id: string;
+  person_anzeigename: string;
   laborparameter_id: string;
   parameter_anzeigename: string;
   datum?: string | null;
@@ -270,7 +302,7 @@ export type VerlaufsberichtPunkt = {
 };
 
 export type VerlaufsberichtResponse = {
-  person_id: string;
+  person_ids: string[];
   punkte: VerlaufsberichtPunkt[];
 };
 
@@ -283,6 +315,7 @@ export type AuswertungGesamtzahlen = {
 
 export type AuswertungsStatistik = {
   anzahl_messungen: number;
+  personen_anzahl: number;
   zeitraum_von?: string | null;
   zeitraum_bis?: string | null;
   letzte_messung_datum?: string | null;
@@ -294,6 +327,8 @@ export type AuswertungsStatistik = {
 
 export type AuswertungPunkt = {
   messwert_id: string;
+  person_id: string;
+  person_anzeigename: string;
   datum?: string | null;
   wert_typ: string;
   wert_anzeige: string;
@@ -323,6 +358,6 @@ export type AuswertungsSerie = {
 };
 
 export type AuswertungResponse = {
-  person_id: string;
+  person_ids: string[];
   serien: AuswertungsSerie[];
 };

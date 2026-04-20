@@ -1,17 +1,21 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import { apiFetch, apiFetchBlob } from "../../shared/api/client";
 import type {
   ArztberichtResponse,
+  Gruppe,
+  Labor,
   Parameter,
   Person,
   VerlaufsberichtResponse
 } from "../../shared/types/api";
 
 type BerichtFormState = {
-  person_id: string;
+  person_ids: string[];
   laborparameter_ids: string[];
+  gruppen_ids: string[];
+  labor_ids: string[];
   datum_von: string;
   datum_bis: string;
   include_referenzbereich: boolean;
@@ -21,8 +25,10 @@ type BerichtFormState = {
 };
 
 const initialForm: BerichtFormState = {
-  person_id: "",
+  person_ids: [],
   laborparameter_ids: [],
+  gruppen_ids: [],
+  labor_ids: [],
   datum_von: "",
   datum_bis: "",
   include_referenzbereich: true,
@@ -60,15 +66,20 @@ export function BerichtePage() {
     queryKey: ["parameter"],
     queryFn: () => apiFetch<Parameter[]>("/api/parameter")
   });
-
-  const selectedParameters = useMemo(
-    () => new Set(form.laborparameter_ids),
-    [form.laborparameter_ids]
-  );
+  const gruppenQuery = useQuery({
+    queryKey: ["gruppen"],
+    queryFn: () => apiFetch<Gruppe[]>("/api/gruppen")
+  });
+  const laboreQuery = useQuery({
+    queryKey: ["labore"],
+    queryFn: () => apiFetch<Labor[]>("/api/labore")
+  });
 
   const doctorPayload = {
-    person_id: form.person_id,
+    person_ids: form.person_ids,
     laborparameter_ids: form.laborparameter_ids,
+    gruppen_ids: form.gruppen_ids,
+    labor_ids: form.labor_ids,
     datum_von: form.datum_von || null,
     datum_bis: form.datum_bis || null,
     include_referenzbereich: form.include_referenzbereich,
@@ -78,8 +89,10 @@ export function BerichtePage() {
   };
 
   const trendPayload = {
-    person_id: form.person_id,
+    person_ids: form.person_ids,
     laborparameter_ids: form.laborparameter_ids,
+    gruppen_ids: form.gruppen_ids,
+    labor_ids: form.labor_ids,
     datum_von: form.datum_von || null,
     datum_bis: form.datum_bis || null
   };
@@ -128,8 +141,8 @@ export function BerichtePage() {
         <span className="page__kicker">Berichte</span>
         <h2>Berichte</h2>
         <p>
-          Arztbericht und Verlaufsbericht können jetzt aus echten Messdaten als Vorschau aufgebaut und direkt lokal als
-          PDF erzeugt werden.
+          Arztberichte und Verlaufsberichte lassen sich jetzt auch personenübergreifend sowie nach Gruppen, Laboren und
+          Zeitraum filtern.
         </p>
       </header>
 
@@ -144,20 +157,27 @@ export function BerichtePage() {
               trendReportMutation.mutate();
             }}
           >
-            <label className="field">
-              <span>Person</span>
-              <select
-                required
-                value={form.person_id}
-                onChange={(event) => setForm((current) => ({ ...current, person_id: event.target.value }))}
-              >
-                <option value="">Bitte wählen</option>
+            <label className="field field--full">
+              <span>Personen</span>
+              <div className="checkbox-grid">
                 {personenQuery.data?.map((person) => (
-                  <option key={person.id} value={person.id}>
+                  <label key={person.id}>
+                    <input
+                      type="checkbox"
+                      checked={form.person_ids.includes(person.id)}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          person_ids: event.target.checked
+                            ? [...current.person_ids, person.id]
+                            : current.person_ids.filter((item) => item !== person.id)
+                        }))
+                      }
+                    />
                     {person.anzeigename}
-                  </option>
+                  </label>
                 ))}
-              </select>
+              </div>
             </label>
 
             <label className="field">
@@ -179,13 +199,36 @@ export function BerichtePage() {
             </label>
 
             <label className="field field--full">
+              <span>Gruppen</span>
+              <div className="checkbox-grid">
+                {gruppenQuery.data?.map((gruppe) => (
+                  <label key={gruppe.id}>
+                    <input
+                      type="checkbox"
+                      checked={form.gruppen_ids.includes(gruppe.id)}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          gruppen_ids: event.target.checked
+                            ? [...current.gruppen_ids, gruppe.id]
+                            : current.gruppen_ids.filter((item) => item !== gruppe.id)
+                        }))
+                      }
+                    />
+                    {gruppe.name}
+                  </label>
+                ))}
+              </div>
+            </label>
+
+            <label className="field field--full">
               <span>Parameter</span>
               <div className="checkbox-grid">
                 {parameterQuery.data?.map((parameter) => (
                   <label key={parameter.id}>
                     <input
                       type="checkbox"
-                      checked={selectedParameters.has(parameter.id)}
+                      checked={form.laborparameter_ids.includes(parameter.id)}
                       onChange={(event) =>
                         setForm((current) => ({
                           ...current,
@@ -201,14 +244,35 @@ export function BerichtePage() {
               </div>
             </label>
 
+            <label className="field field--full">
+              <span>Labore</span>
+              <div className="checkbox-grid">
+                {laboreQuery.data?.map((labor) => (
+                  <label key={labor.id}>
+                    <input
+                      type="checkbox"
+                      checked={form.labor_ids.includes(labor.id)}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          labor_ids: event.target.checked
+                            ? [...current.labor_ids, labor.id]
+                            : current.labor_ids.filter((item) => item !== labor.id)
+                        }))
+                      }
+                    />
+                    {labor.name}
+                  </label>
+                ))}
+              </div>
+            </label>
+
             <label className="field">
               <span>Referenzbereich</span>
               <input
                 type="checkbox"
                 checked={form.include_referenzbereich}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, include_referenzbereich: event.target.checked }))
-                }
+                onChange={(event) => setForm((current) => ({ ...current, include_referenzbereich: event.target.checked }))}
               />
             </label>
 
@@ -226,9 +290,7 @@ export function BerichtePage() {
               <input
                 type="checkbox"
                 checked={form.include_befundbemerkung}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, include_befundbemerkung: event.target.checked }))
-                }
+                onChange={(event) => setForm((current) => ({ ...current, include_befundbemerkung: event.target.checked }))}
               />
             </label>
 
@@ -237,35 +299,25 @@ export function BerichtePage() {
               <input
                 type="checkbox"
                 checked={form.include_messwertbemerkung}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, include_messwertbemerkung: event.target.checked }))
-                }
+                onChange={(event) => setForm((current) => ({ ...current, include_messwertbemerkung: event.target.checked }))}
               />
             </label>
 
             <div className="form-actions">
-              <button type="submit" disabled={previewPending || !form.person_id}>
+              <button type="submit" disabled={previewPending || !form.person_ids.length}>
                 {previewPending ? "Lädt..." : "Vorschau laden"}
               </button>
-              <button
-                type="button"
-                disabled={doctorPdfMutation.isPending || !form.person_id}
-                onClick={() => doctorPdfMutation.mutate()}
-              >
+              <button type="button" disabled={doctorPdfMutation.isPending || !form.person_ids.length} onClick={() => doctorPdfMutation.mutate()}>
                 {doctorPdfMutation.isPending ? "PDF wird erstellt..." : "Arztbericht als PDF"}
               </button>
-              <button
-                type="button"
-                disabled={trendPdfMutation.isPending || !form.person_id}
-                onClick={() => trendPdfMutation.mutate()}
-              >
+              <button type="button" disabled={trendPdfMutation.isPending || !form.person_ids.length} onClick={() => trendPdfMutation.mutate()}>
                 {trendPdfMutation.isPending ? "PDF wird erstellt..." : "Verlaufsbericht als PDF"}
               </button>
             </div>
           </form>
         </article>
 
-        <article className="card">
+        <article className="card card--wide">
           <h3>Arztbericht Liste</h3>
           {doctorReportMutation.isError ? <p className="form-error">{doctorReportMutation.error.message}</p> : null}
           {doctorPdfMutation.isError ? <p className="form-error">{doctorPdfMutation.error.message}</p> : null}
@@ -273,6 +325,7 @@ export function BerichtePage() {
             <table className="data-table">
               <thead>
                 <tr>
+                  <th>Person</th>
                   <th>Parameter</th>
                   <th>Datum</th>
                   <th>Wert</th>
@@ -282,7 +335,8 @@ export function BerichtePage() {
               </thead>
               <tbody>
                 {doctorReportMutation.data?.eintraege.map((item) => (
-                  <tr key={item.laborparameter_id}>
+                  <tr key={`${item.person_id}-${item.laborparameter_id}`}>
+                    <td>{item.person_anzeigename}</td>
                     <td>{item.parameter_anzeigename}</td>
                     <td>{formatDate(item.datum)}</td>
                     <td>{[item.wert_anzeige, item.einheit].filter(Boolean).join(" ")}</td>
@@ -292,7 +346,7 @@ export function BerichtePage() {
                 ))}
                 {doctorReportMutation.data && !doctorReportMutation.data.eintraege.length ? (
                   <tr>
-                    <td colSpan={5}>Für die aktuelle Auswahl gibt es noch keine passenden Werte.</td>
+                    <td colSpan={6}>Für die aktuelle Auswahl gibt es noch keine passenden Werte.</td>
                   </tr>
                 ) : null}
               </tbody>
@@ -300,7 +354,7 @@ export function BerichtePage() {
           </div>
         </article>
 
-        <article className="card">
+        <article className="card card--wide">
           <h3>Verlaufsbericht Vorschau</h3>
           {trendReportMutation.isError ? <p className="form-error">{trendReportMutation.error.message}</p> : null}
           {trendPdfMutation.isError ? <p className="form-error">{trendPdfMutation.error.message}</p> : null}
@@ -308,6 +362,7 @@ export function BerichtePage() {
             <table className="data-table">
               <thead>
                 <tr>
+                  <th>Person</th>
                   <th>Parameter</th>
                   <th>Datum</th>
                   <th>Typ</th>
@@ -317,7 +372,8 @@ export function BerichtePage() {
               </thead>
               <tbody>
                 {trendReportMutation.data?.punkte.map((punkt, index) => (
-                  <tr key={`${punkt.laborparameter_id}-${index}`}>
+                  <tr key={`${punkt.person_id}-${punkt.laborparameter_id}-${index}`}>
+                    <td>{punkt.person_anzeigename}</td>
                     <td>{punkt.parameter_anzeigename}</td>
                     <td>{formatDate(punkt.datum)}</td>
                     <td>{punkt.wert_typ}</td>
@@ -327,7 +383,7 @@ export function BerichtePage() {
                 ))}
                 {trendReportMutation.data && !trendReportMutation.data.punkte.length ? (
                   <tr>
-                    <td colSpan={5}>Für die aktuelle Auswahl gibt es noch keinen Verlauf.</td>
+                    <td colSpan={6}>Für die aktuelle Auswahl gibt es noch keinen Verlauf.</td>
                   </tr>
                 ) : null}
               </tbody>

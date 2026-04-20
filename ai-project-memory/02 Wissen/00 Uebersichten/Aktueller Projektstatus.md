@@ -25,9 +25,13 @@ tags:
 - Erste Berichte sind als echte Vorschau umgesetzt: Arztbericht-Liste und Verlaufsbericht auf Basis realer Daten.
 - Der erste lokale PDF-Export für Arztbericht und Verlaufsbericht ist umgesetzt und technisch verifiziert.
 - Die Auswertung ist jetzt als echter Bereich umgesetzt: Filter, Gesamtzahlen, Zeitreihen-Diagramme, Referenzlinien, Zielbereiche und qualitative Ereignisse.
+- Gruppen sind jetzt als echter Stammdatenbereich mit Parameterzuordnung, eigener Verwaltungsseite und persistenter Many-to-Many-Struktur umgesetzt.
+- Messwerte, Berichte und Auswertung unterstützen jetzt bereichsübergreifende Filter nach Person, mehreren Personen, Gruppe, Labor und Zeitraum.
+- Familien- oder personenübergreifende Ansichten sind damit für Listen, Berichte und Verlaufsdiagramme im aktuellen Workspace-Stand bereits möglich.
 
 ## Bedeutung für die weitere Arbeit
 - Das Projekt hat jetzt ein belastbares fachliches Zielbild für die nächste Architektur- und Planungsphase.
 - Das Projekt hat zusätzlich ein reales technisches Startgerüst, auf dem die eigentliche Implementierung der Fachlogik aufbauen kann.
 - Mehrere Kernbereiche sind nicht mehr nur konzeptionell beschrieben, sondern bereits technisch verifiziert.
-- Weitere Arbeit sollte nun den Durchstich auf die nächsten Kernbereiche erweitern: gruppenbezogene Berichte, echte Gruppierung, Wissensbasis-Anbindung und weitere fachliche Verfeinerung der Diagramm- und Berichtsgestaltung.
+- Gruppen funktionieren nicht mehr nur als Konzept, sondern bereits als zentrale Filter- und Organisationslogik für Messwerte, Berichte und Auswertung.
+- Weitere Arbeit sollte nun vor allem Wissensbasis-Anbindung, Einstellungen, Importausbau und weitere fachliche Verfeinerung der Diagramm- und Berichtsgestaltung vertiefen.

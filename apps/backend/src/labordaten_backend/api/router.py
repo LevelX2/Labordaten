@@ -4,6 +4,7 @@ from labordaten_backend.api.routes import (
     auswertung,
     befunde,
     berichte,
+    gruppen,
     importe,
     labore,
     messwerte,
@@ -20,6 +21,7 @@ api_router.include_router(system.router, tags=["system"])
 api_router.include_router(personen.router, prefix="/personen", tags=["personen"])
 api_router.include_router(labore.router, prefix="/labore", tags=["labore"])
 api_router.include_router(parameter.router, prefix="/parameter", tags=["parameter"])
+api_router.include_router(gruppen.router, tags=["gruppen"])
 api_router.include_router(befunde.router, prefix="/befunde", tags=["befunde"])
 api_router.include_router(messwerte.router, prefix="/messwerte", tags=["messwerte"])
 api_router.include_router(auswertung.router, tags=["auswertung"])

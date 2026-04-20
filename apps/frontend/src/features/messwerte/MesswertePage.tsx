@@ -2,7 +2,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 
 import { apiFetch } from "../../shared/api/client";
-import type { Befund, Messwert, MesswertReferenz, Parameter, Person } from "../../shared/types/api";
+import type {
+  Befund,
+  Gruppe,
+  Labor,
+  Messwert,
+  MesswertReferenz,
+  Parameter,
+  Person
+} from "../../shared/types/api";
 
 type MesswertFormState = {
   person_id: string;
@@ -17,6 +25,15 @@ type MesswertFormState = {
   bemerkung_kurz: string;
 };
 
+type ListenFilterState = {
+  person_ids: string[];
+  laborparameter_ids: string[];
+  gruppen_ids: string[];
+  labor_ids: string[];
+  datum_von: string;
+  datum_bis: string;
+};
+
 const initialForm: MesswertFormState = {
   person_id: "",
   befund_id: "",
@@ -28,6 +45,15 @@ const initialForm: MesswertFormState = {
   wert_text: "",
   einheit_original: "",
   bemerkung_kurz: ""
+};
+
+const initialFilter: ListenFilterState = {
+  person_ids: [],
+  laborparameter_ids: [],
+  gruppen_ids: [],
+  labor_ids: [],
+  datum_von: "",
+  datum_bis: ""
 };
 
 type ReferenzFormState = {
@@ -54,9 +80,21 @@ const initialReferenzForm: ReferenzFormState = {
   bemerkung: ""
 };
 
+function appendMany(searchParams: URLSearchParams, key: string, values: string[]) {
+  values.forEach((value) => searchParams.append(key, value));
+}
+
+function formatDate(value?: string | null): string {
+  if (!value) {
+    return "—";
+  }
+  return new Intl.DateTimeFormat("de-DE").format(new Date(value));
+}
+
 export function MesswertePage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<MesswertFormState>(initialForm);
+  const [filter, setFilter] = useState<ListenFilterState>(initialFilter);
   const [referenzForm, setReferenzForm] = useState<ReferenzFormState>(initialReferenzForm);
 
   const personenQuery = useQuery({
@@ -71,14 +109,40 @@ export function MesswertePage() {
     queryKey: ["parameter"],
     queryFn: () => apiFetch<Parameter[]>("/api/parameter")
   });
-  const messwerteQuery = useQuery({
-    queryKey: ["messwerte"],
+  const gruppenQuery = useQuery({
+    queryKey: ["gruppen"],
+    queryFn: () => apiFetch<Gruppe[]>("/api/gruppen")
+  });
+  const laboreQuery = useQuery({
+    queryKey: ["labore"],
+    queryFn: () => apiFetch<Labor[]>("/api/labore")
+  });
+  const messwerteSelectionQuery = useQuery({
+    queryKey: ["messwerte", "alle"],
     queryFn: () => apiFetch<Messwert[]>("/api/messwerte")
+  });
+  const messwerteQuery = useQuery({
+    queryKey: ["messwerte", filter],
+    queryFn: () => {
+      const searchParams = new URLSearchParams();
+      appendMany(searchParams, "person_ids", filter.person_ids);
+      appendMany(searchParams, "laborparameter_ids", filter.laborparameter_ids);
+      appendMany(searchParams, "gruppen_ids", filter.gruppen_ids);
+      appendMany(searchParams, "labor_ids", filter.labor_ids);
+      if (filter.datum_von) {
+        searchParams.set("datum_von", filter.datum_von);
+      }
+      if (filter.datum_bis) {
+        searchParams.set("datum_bis", filter.datum_bis);
+      }
+      const queryString = searchParams.toString();
+      return apiFetch<Messwert[]>(`/api/messwerte${queryString ? `?${queryString}` : ""}`);
+    }
   });
 
   const selectedMesswert = useMemo(
-    () => messwerteQuery.data?.find((messwert) => messwert.id === referenzForm.messwert_id) ?? null,
-    [messwerteQuery.data, referenzForm.messwert_id]
+    () => messwerteSelectionQuery.data?.find((messwert) => messwert.id === referenzForm.messwert_id) ?? null,
+    [messwerteSelectionQuery.data, referenzForm.messwert_id]
   );
 
   const referenzenQuery = useQuery({
@@ -111,7 +175,10 @@ export function MesswertePage() {
       }),
     onSuccess: async () => {
       setForm(initialForm);
-      await queryClient.invalidateQueries({ queryKey: ["messwerte"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["messwerte"] }),
+        queryClient.invalidateQueries({ queryKey: ["befunde"] })
+      ]);
     }
   });
 
@@ -152,10 +219,134 @@ export function MesswertePage() {
   return (
     <section className="page">
       <header className="page__header">
-        <span className="page__kicker">Erster Durchstich</span>
+        <span className="page__kicker">Laborwerte und Filter</span>
         <h2>Messwerte</h2>
-        <p>Messwerte können jetzt gegen reale Personen, Befunde und Parameter erfasst und in der Liste angezeigt werden.</p>
+        <p>
+          Messwerte können jetzt nicht nur erfasst, sondern auch nach Personen, Gruppen, Laboren, Parametern und
+          Zeitraum kombiniert gefiltert werden.
+        </p>
       </header>
+
+      <article className="card">
+        <h3>Listenfilter</h3>
+        <div className="form-grid">
+          <label className="field field--full">
+            <span>Personen</span>
+            <div className="checkbox-grid">
+              {personenQuery.data?.map((person) => (
+                <label key={person.id}>
+                  <input
+                    type="checkbox"
+                    checked={filter.person_ids.includes(person.id)}
+                    onChange={(event) =>
+                      setFilter((current) => ({
+                        ...current,
+                        person_ids: event.target.checked
+                          ? [...current.person_ids, person.id]
+                          : current.person_ids.filter((item) => item !== person.id)
+                      }))
+                    }
+                  />
+                  {person.anzeigename}
+                </label>
+              ))}
+            </div>
+          </label>
+
+          <label className="field field--full">
+            <span>Gruppen</span>
+            <div className="checkbox-grid">
+              {gruppenQuery.data?.map((gruppe) => (
+                <label key={gruppe.id}>
+                  <input
+                    type="checkbox"
+                    checked={filter.gruppen_ids.includes(gruppe.id)}
+                    onChange={(event) =>
+                      setFilter((current) => ({
+                        ...current,
+                        gruppen_ids: event.target.checked
+                          ? [...current.gruppen_ids, gruppe.id]
+                          : current.gruppen_ids.filter((item) => item !== gruppe.id)
+                      }))
+                    }
+                  />
+                  {gruppe.name}
+                </label>
+              ))}
+            </div>
+          </label>
+
+          <label className="field field--full">
+            <span>Parameter</span>
+            <div className="checkbox-grid">
+              {parameterQuery.data?.map((parameter) => (
+                <label key={parameter.id}>
+                  <input
+                    type="checkbox"
+                    checked={filter.laborparameter_ids.includes(parameter.id)}
+                    onChange={(event) =>
+                      setFilter((current) => ({
+                        ...current,
+                        laborparameter_ids: event.target.checked
+                          ? [...current.laborparameter_ids, parameter.id]
+                          : current.laborparameter_ids.filter((item) => item !== parameter.id)
+                      }))
+                    }
+                  />
+                  {parameter.anzeigename}
+                </label>
+              ))}
+            </div>
+          </label>
+
+          <label className="field field--full">
+            <span>Labore</span>
+            <div className="checkbox-grid">
+              {laboreQuery.data?.map((labor) => (
+                <label key={labor.id}>
+                  <input
+                    type="checkbox"
+                    checked={filter.labor_ids.includes(labor.id)}
+                    onChange={(event) =>
+                      setFilter((current) => ({
+                        ...current,
+                        labor_ids: event.target.checked
+                          ? [...current.labor_ids, labor.id]
+                          : current.labor_ids.filter((item) => item !== labor.id)
+                      }))
+                    }
+                  />
+                  {labor.name}
+                </label>
+              ))}
+            </div>
+          </label>
+
+          <label className="field">
+            <span>Datum von</span>
+            <input
+              type="date"
+              value={filter.datum_von}
+              onChange={(event) => setFilter((current) => ({ ...current, datum_von: event.target.value }))}
+            />
+          </label>
+
+          <label className="field">
+            <span>Datum bis</span>
+            <input
+              type="date"
+              value={filter.datum_bis}
+              onChange={(event) => setFilter((current) => ({ ...current, datum_bis: event.target.value }))}
+            />
+          </label>
+
+          <div className="form-actions">
+            <button type="button" onClick={() => setFilter(initialFilter)}>
+              Filter zurücksetzen
+            </button>
+          </div>
+        </div>
+      </article>
 
       <div className="workspace-grid">
         <article className="card">
@@ -317,14 +508,17 @@ export function MesswertePage() {
           </form>
         </article>
 
-        <article className="card">
+        <article className="card card--wide">
           <h3>Vorhandene Messwerte</h3>
           <div className="table-wrap">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Person-ID</th>
-                  <th>Parameter-ID</th>
+                  <th>Person</th>
+                  <th>Parameter</th>
+                  <th>Datum</th>
+                  <th>Labor</th>
+                  <th>Gruppen</th>
                   <th>Rohwert</th>
                   <th>Typ</th>
                   <th>Einheit</th>
@@ -333,8 +527,11 @@ export function MesswertePage() {
               <tbody>
                 {messwerteQuery.data?.map((messwert) => (
                   <tr key={messwert.id}>
-                    <td>{messwert.person_id}</td>
-                    <td>{messwert.laborparameter_id}</td>
+                    <td>{messwert.person_anzeigename || messwert.person_id}</td>
+                    <td>{messwert.parameter_anzeigename || messwert.original_parametername}</td>
+                    <td>{formatDate(messwert.entnahmedatum)}</td>
+                    <td>{messwert.labor_name || "—"}</td>
+                    <td>{messwert.gruppen_namen.length ? messwert.gruppen_namen.join(", ") : "—"}</td>
                     <td>{messwert.wert_roh_text}</td>
                     <td>{messwert.wert_typ}</td>
                     <td>{messwert.einheit_original || "—"}</td>
@@ -342,7 +539,7 @@ export function MesswertePage() {
                 ))}
                 {!messwerteQuery.data?.length ? (
                   <tr>
-                    <td colSpan={5}>Noch keine Messwerte vorhanden.</td>
+                    <td colSpan={8}>Für die aktuelle Filterkombination wurden keine Messwerte gefunden.</td>
                   </tr>
                 ) : null}
               </tbody>
@@ -365,7 +562,7 @@ export function MesswertePage() {
                 required
                 value={referenzForm.messwert_id}
                 onChange={(event) => {
-                  const selected = messwerteQuery.data?.find((item) => item.id === event.target.value);
+                  const selected = messwerteSelectionQuery.data?.find((item) => item.id === event.target.value);
                   setReferenzForm((current) => ({
                     ...current,
                     messwert_id: event.target.value,
@@ -375,9 +572,9 @@ export function MesswertePage() {
                 }}
               >
                 <option value="">Bitte wählen</option>
-                {messwerteQuery.data?.map((messwert) => (
+                {messwerteSelectionQuery.data?.map((messwert) => (
                   <option key={messwert.id} value={messwert.id}>
-                    {`${messwert.original_parametername} · ${messwert.wert_roh_text}`}
+                    {`${messwert.person_anzeigename || messwert.person_id} · ${messwert.original_parametername} · ${messwert.wert_roh_text}`}
                   </option>
                 ))}
               </select>
@@ -485,15 +682,10 @@ export function MesswertePage() {
             </label>
 
             <div className="form-actions">
-              <button
-                type="submit"
-                disabled={createReferenzMutation.isPending || !referenzForm.messwert_id}
-              >
+              <button type="submit" disabled={createReferenzMutation.isPending || !referenzForm.messwert_id}>
                 {createReferenzMutation.isPending ? "Speichert..." : "Referenz anlegen"}
               </button>
-              {createReferenzMutation.isError ? (
-                <p className="form-error">{createReferenzMutation.error.message}</p>
-              ) : null}
+              {createReferenzMutation.isError ? <p className="form-error">{createReferenzMutation.error.message}</p> : null}
             </div>
           </form>
         </article>

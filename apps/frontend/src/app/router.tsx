@@ -4,6 +4,7 @@ import { AppLayout } from "./layout/AppLayout";
 import { AuswertungPage } from "../features/auswertung/AuswertungPage";
 import { BefundePage } from "../features/befunde/BefundePage";
 import { BerichtePage } from "../features/berichte/BerichtePage";
+import { GruppenPage } from "../features/gruppen/GruppenPage";
 import { ImportPage } from "../features/importe/ImportPage";
 import { MesswertePage } from "../features/messwerte/MesswertePage";
 import { ParameterPage } from "../features/parameter/ParameterPage";
@@ -22,20 +23,7 @@ export const router = createBrowserRouter([
       { path: "befunde", element: <BefundePage /> },
       { path: "messwerte", element: <MesswertePage /> },
       { path: "parameter", element: <ParameterPage /> },
-      {
-        path: "gruppen",
-        element: (
-          <FeaturePage
-            title="Gruppen"
-            description="Fachliche Gruppierung von Parametern für Auswertung, Planung und Berichte."
-            highlights={[
-              "Mehrfachzuordnung von Parametern",
-              "Feste Sortierung innerhalb der Gruppe",
-              "Verwendung in Berichten und Auswertungen"
-            ]}
-          />
-        )
-      },
+      { path: "gruppen", element: <GruppenPage /> },
       { path: "planung", element: <PlanungPage /> },
       { path: "auswertung", element: <AuswertungPage /> },
       { path: "berichte", element: <BerichtePage /> },

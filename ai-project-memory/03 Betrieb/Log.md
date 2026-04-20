@@ -241,3 +241,60 @@
   - Das Backend liefert nun Gesamtzahlen und auswertungsfähige Zeitreihen pro Parameter inklusive Laborreferenzen, Zielbereichen und qualitativen Ereignissen.
   - Das Frontend enthält eine echte Auswertungsseite mit Filtern, Kennzahlen, Diagrammen und Ereignistabelle.
   - Backend-Kompilation, Frontend-Build und ein API-Rauchtest für den neuen Auswertungsbereich wurden erfolgreich ausgeführt.
+
+## [2026-04-21] update | Visuelles Systembild und Paketübersicht aus Wiki und Workspace abgeleitet
+- Anlass oder Quelle: Nutzerfrage nach einer verständlichen Architekturübersicht für aktuellen Stand und Zielbild
+- Neu angelegte Seiten:
+  - [[../02 Wissen/Begriffe und Konzepte/Systembild und Paketuebersicht der Anwendung]]
+- Geänderte Seiten:
+  - [[../02 Wissen/00 Uebersichten/Index]]
+- Kern der inhaltlichen Anpassung:
+  - Der aktuelle Workspace-Stand wurde mit der dokumentierten V1-Architektur abgeglichen.
+  - Daraus wurden zwei wiederverwendbare Diagramm-Sichten abgeleitet: Systemkomponenten und Programmpakete.
+  - Unterschiede zwischen heutigem Ist-Stand und geplantem Zielbild wurden explizit kenntlich gemacht.
+
+## [2026-04-21] update | Vereinfachte Managementsicht zur Architektur ergänzt
+- Anlass oder Quelle: Nutzerwunsch nach einer zusätzlichen vereinfachten Überblickssicht
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - [[../02 Wissen/Begriffe und Konzepte/Systembild und Paketuebersicht der Anwendung]]
+- Kern der inhaltlichen Anpassung:
+  - Die bestehende Architekturübersicht wurde um ein drittes, bewusst vereinfachtes Diagramm ergänzt.
+  - Die neue Sicht reduziert die Anwendung auf Nutzer, Oberfläche, Anwendungslogik, Daten, Dokumente, Import, Wissensbasis und optionale externe Helfer.
+
+## [2026-04-21] update | Mermaid-Diagramme für Obsidian schmaler umgebaut
+- Anlass oder Quelle: Nutzerhinweis auf abgeschnittene Diagramme in der Obsidian-Anzeige
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - [[../02 Wissen/Begriffe und Konzepte/Systembild und Paketuebersicht der Anwendung]]
+- Kern der inhaltlichen Anpassung:
+  - Die beiden technischen Diagramme wurden von einer breiten Links-nach-Rechts-Anordnung auf schmalere Top-down-Anordnungen umgestellt.
+  - Lange Knotenbeschriftungen wurden gekürzt, damit die Mermaid-SVGs in Obsidian robuster in die verfügbare Seitenbreite passen.
+
+## [2026-04-21] update | Ist-Stand der Importstrecke gegenüber PDF-Import geklärt
+- Anlass oder Quelle: Nutzerfrage, ob der aktuelle Programmstand schon für PDF-basierte Laborberichtimporte ausreicht
+- Neu angelegte Seiten:
+  - [[../02 Wissen/Begriffe und Konzepte/Ist-Stand Importstrecke und PDF-Grenzen]]
+- Geänderte Seiten:
+  - [[../02 Wissen/00 Uebersichten/Index]]
+- Kern der inhaltlichen Anpassung:
+  - Der aktuelle Importfluss wurde fachlich und technisch präzisiert.
+  - Festgehalten wurde, dass strukturierte JSON-Importe bereits geprüft und übernommen werden können, ein direkter PDF-Upload mit Extraktion aber noch fehlt.
+  - Zusätzlich wurde dokumentiert, dass Labore bei `laborName` im Import automatisch neu angelegt werden können, Personen aber bereits vorhanden sein sollten.
+
+## [2026-04-21] update | Gruppen und bereichsübergreifende Filter als echter Durchstich umgesetzt
+- Anlass oder Quelle: Nutzerauftrag, Gruppen fachlich voll nutzbar zu machen und Ansichten nach Person, Gruppen, Labor und Zeitraum kombinierbar auszubauen
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - [[../01 Rohquellen/repo-root/2026-04-20 V1 Scaffold Workspace-Stand]]
+  - [[../02 Wissen/00 Uebersichten/Aktueller Projektstatus]]
+  - [[../02 Wissen/00 Uebersichten/Quellenlage und Aktualitaet]]
+  - [[../02 Wissen/00 Uebersichten/Index]]
+- Kern der inhaltlichen Anpassung:
+  - Das Backend wurde um `ParameterGruppe`, `GruppenParameter` und passende API-Endpunkte für Gruppenverwaltung und Parameterzuordnung erweitert.
+  - Das Frontend enthält jetzt eine echte Gruppenverwaltung sowie kombinierbare Filter nach Personen, Gruppen, Laboren und Zeitraum in Messwerten, Berichten und Auswertung.
+  - Personenübergreifende Familienansichten sind damit in Listen, Berichtsvorschauen, Verlaufs-PDF und Diagrammen technisch verfügbar.
+  - Backend-Kompilation, Frontend-Build, Alembic-Migration bis `20260421_0005` und ein API-Rauchtest über Gruppen-, Berichts- und Auswertungsflüsse wurden erfolgreich ausgeführt.

@@ -17,13 +17,17 @@ import type {
   AuswertungPunkt,
   AuswertungResponse,
   AuswertungsSerie,
+  Gruppe,
+  Labor,
   Parameter,
   Person
 } from "../../shared/types/api";
 
 type AuswertungFormState = {
-  person_id: string;
+  person_ids: string[];
   laborparameter_ids: string[];
+  gruppen_ids: string[];
+  labor_ids: string[];
   datum_von: string;
   datum_bis: string;
   include_laborreferenz: boolean;
@@ -31,13 +35,17 @@ type AuswertungFormState = {
 };
 
 const initialForm: AuswertungFormState = {
-  person_id: "",
+  person_ids: [],
   laborparameter_ids: [],
+  gruppen_ids: [],
+  labor_ids: [],
   datum_von: "",
   datum_bis: "",
   include_laborreferenz: true,
   include_zielbereich: true
 };
+
+const palette = ["#1f5a92", "#1f6a53", "#d77a2f", "#8d4aa5", "#a34848", "#4d6b1f"];
 
 function formatDate(value?: string | null): string {
   if (!value) {
@@ -63,29 +71,6 @@ function formatTrend(value: string): string {
   return "Unverändert";
 }
 
-function formatTooltipValue(value: unknown): string {
-  if (typeof value === "number") {
-    return formatNumber(value);
-  }
-  if (typeof value === "string") {
-    return value;
-  }
-  return "—";
-}
-
-function buildChartData(points: AuswertungPunkt[]) {
-  return points
-    .filter((point) => point.wert_num !== null && point.wert_num !== undefined)
-    .map((point) => ({
-      datumLabel: formatDate(point.datum),
-      wert: point.wert_num,
-      laborreferenz_unten: point.laborreferenz_untere_num,
-      laborreferenz_oben: point.laborreferenz_obere_num,
-      zielbereich_unten: point.zielbereich_untere_num,
-      zielbereich_oben: point.zielbereich_obere_num
-    }));
-}
-
 function formatTargetRange(point: AuswertungPunkt): string {
   if (point.zielbereich_text) {
     return point.zielbereich_text;
@@ -100,6 +85,52 @@ function formatTargetRange(point: AuswertungPunkt): string {
   return `${lower} bis ${upper}${unit}`;
 }
 
+function buildChartData(points: AuswertungPunkt[]) {
+  const byDate = new Map<string, Record<string, string | number | null>>();
+  for (const point of points) {
+    if (point.wert_num === null || point.wert_num === undefined) {
+      continue;
+    }
+
+    const dateKey = point.datum ?? `unbekannt-${point.messwert_id}`;
+    const row = byDate.get(dateKey) ?? {
+      datumLabel: formatDate(point.datum),
+      laborreferenz_unten: point.laborreferenz_untere_num ?? null,
+      laborreferenz_oben: point.laborreferenz_obere_num ?? null,
+      zielbereich_unten: point.zielbereich_untere_num ?? null,
+      zielbereich_oben: point.zielbereich_obere_num ?? null
+    };
+    row[point.person_anzeigename] = point.wert_num;
+    if (row.laborreferenz_unten === null && point.laborreferenz_untere_num !== null && point.laborreferenz_untere_num !== undefined) {
+      row.laborreferenz_unten = point.laborreferenz_untere_num;
+    }
+    if (row.laborreferenz_oben === null && point.laborreferenz_obere_num !== null && point.laborreferenz_obere_num !== undefined) {
+      row.laborreferenz_oben = point.laborreferenz_obere_num;
+    }
+    if (row.zielbereich_unten === null && point.zielbereich_untere_num !== null && point.zielbereich_untere_num !== undefined) {
+      row.zielbereich_unten = point.zielbereich_untere_num;
+    }
+    if (row.zielbereich_oben === null && point.zielbereich_obere_num !== null && point.zielbereich_obere_num !== undefined) {
+      row.zielbereich_oben = point.zielbereich_obere_num;
+    }
+    byDate.set(dateKey, row);
+  }
+
+  return Array.from(byDate.entries())
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([, value]) => value);
+}
+
+function formatTooltipValue(value: unknown): string {
+  if (typeof value === "number") {
+    return formatNumber(value);
+  }
+  if (typeof value === "string") {
+    return value;
+  }
+  return "—";
+}
+
 function SeriesChart({
   serie,
   includeLaborreferenz,
@@ -110,6 +141,10 @@ function SeriesChart({
   includeZielbereich: boolean;
 }) {
   const chartData = useMemo(() => buildChartData(serie.punkte), [serie.punkte]);
+  const people = useMemo(
+    () => Array.from(new Set(serie.punkte.map((punkt) => punkt.person_anzeigename))),
+    [serie.punkte]
+  );
 
   if (!chartData.length) {
     return <p>Für diesen Parameter gibt es aktuell keine numerischen Punkte für ein Diagramm.</p>;
@@ -117,7 +152,7 @@ function SeriesChart({
 
   return (
     <div className="trend-chart">
-      <ResponsiveContainer width="100%" height={280}>
+      <ResponsiveContainer width="100%" height={300}>
         <LineChart data={chartData} margin={{ top: 16, right: 12, left: 0, bottom: 8 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#d7ccb9" />
           <XAxis dataKey="datumLabel" tick={{ fontSize: 12 }} />
@@ -126,49 +161,27 @@ function SeriesChart({
           <Legend />
           {includeLaborreferenz ? (
             <>
-              <Line
-                type="monotone"
-                dataKey="laborreferenz_unten"
-                name="Laborreferenz unten"
-                stroke="#d77a2f"
-                dot={false}
-                strokeDasharray="4 4"
-                connectNulls
-              />
-              <Line
-                type="monotone"
-                dataKey="laborreferenz_oben"
-                name="Laborreferenz oben"
-                stroke="#d77a2f"
-                dot={false}
-                strokeDasharray="4 4"
-                connectNulls
-              />
+              <Line type="monotone" dataKey="laborreferenz_unten" name="Laborreferenz unten" stroke="#d77a2f" dot={false} strokeDasharray="4 4" connectNulls />
+              <Line type="monotone" dataKey="laborreferenz_oben" name="Laborreferenz oben" stroke="#d77a2f" dot={false} strokeDasharray="4 4" connectNulls />
             </>
           ) : null}
           {includeZielbereich ? (
             <>
-              <Line
-                type="monotone"
-                dataKey="zielbereich_unten"
-                name="Zielbereich unten"
-                stroke="#1f6a53"
-                dot={false}
-                strokeDasharray="2 4"
-                connectNulls
-              />
-              <Line
-                type="monotone"
-                dataKey="zielbereich_oben"
-                name="Zielbereich oben"
-                stroke="#1f6a53"
-                dot={false}
-                strokeDasharray="2 4"
-                connectNulls
-              />
+              <Line type="monotone" dataKey="zielbereich_unten" name="Zielbereich unten" stroke="#1f6a53" dot={false} strokeDasharray="2 4" connectNulls />
+              <Line type="monotone" dataKey="zielbereich_oben" name="Zielbereich oben" stroke="#1f6a53" dot={false} strokeDasharray="2 4" connectNulls />
             </>
           ) : null}
-          <Line type="monotone" dataKey="wert" name="Messwert" stroke="#1f5a92" strokeWidth={3} connectNulls />
+          {people.map((personName, index) => (
+            <Line
+              key={personName}
+              type="monotone"
+              dataKey={personName}
+              name={personName}
+              stroke={palette[index % palette.length]}
+              strokeWidth={3}
+              connectNulls
+            />
+          ))}
         </LineChart>
       </ResponsiveContainer>
     </div>
@@ -186,20 +199,28 @@ export function AuswertungPage() {
     queryKey: ["parameter"],
     queryFn: () => apiFetch<Parameter[]>("/api/parameter")
   });
+  const gruppenQuery = useQuery({
+    queryKey: ["gruppen"],
+    queryFn: () => apiFetch<Gruppe[]>("/api/gruppen")
+  });
+  const laboreQuery = useQuery({
+    queryKey: ["labore"],
+    queryFn: () => apiFetch<Labor[]>("/api/labore")
+  });
   const gesamtzahlenQuery = useQuery({
     queryKey: ["auswertung", "gesamtzahlen"],
     queryFn: () => apiFetch<AuswertungGesamtzahlen>("/api/auswertung/gesamtzahlen")
   });
-
-  const selectedParameters = useMemo(() => new Set(form.laborparameter_ids), [form.laborparameter_ids]);
 
   const auswertungMutation = useMutation({
     mutationFn: () =>
       apiFetch<AuswertungResponse>("/api/auswertung/verlauf", {
         method: "POST",
         body: JSON.stringify({
-          person_id: form.person_id,
+          person_ids: form.person_ids,
           laborparameter_ids: form.laborparameter_ids,
+          gruppen_ids: form.gruppen_ids,
+          labor_ids: form.labor_ids,
           datum_von: form.datum_von || null,
           datum_bis: form.datum_bis || null,
           include_laborreferenz: form.include_laborreferenz,
@@ -236,8 +257,8 @@ export function AuswertungPage() {
         <span className="page__kicker">Auswertung und Verlauf</span>
         <h2>Auswertung</h2>
         <p>
-          Dieser Bereich zeigt jetzt echte Zeitreihen, Laborreferenzen, Zielbereiche und qualitative Ereignisse auf
-          Basis der vorhandenen Messdaten.
+          Die Auswertung kann jetzt Personen zusammenführen und gleichzeitig nach Gruppen, Parametern, Laboren und
+          Zeitraum filtern.
         </p>
       </header>
 
@@ -259,20 +280,27 @@ export function AuswertungPage() {
             auswertungMutation.mutate();
           }}
         >
-          <label className="field">
-            <span>Person</span>
-            <select
-              required
-              value={form.person_id}
-              onChange={(event) => setForm((current) => ({ ...current, person_id: event.target.value }))}
-            >
-              <option value="">Bitte wählen</option>
+          <label className="field field--full">
+            <span>Personen</span>
+            <div className="checkbox-grid">
               {personenQuery.data?.map((person) => (
-                <option key={person.id} value={person.id}>
+                <label key={person.id}>
+                  <input
+                    type="checkbox"
+                    checked={form.person_ids.includes(person.id)}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        person_ids: event.target.checked
+                          ? [...current.person_ids, person.id]
+                          : current.person_ids.filter((item) => item !== person.id)
+                      }))
+                    }
+                  />
                   {person.anzeigename}
-                </option>
+                </label>
               ))}
-            </select>
+            </div>
           </label>
 
           <label className="field">
@@ -294,13 +322,36 @@ export function AuswertungPage() {
           </label>
 
           <label className="field field--full">
+            <span>Gruppen</span>
+            <div className="checkbox-grid">
+              {gruppenQuery.data?.map((gruppe) => (
+                <label key={gruppe.id}>
+                  <input
+                    type="checkbox"
+                    checked={form.gruppen_ids.includes(gruppe.id)}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        gruppen_ids: event.target.checked
+                          ? [...current.gruppen_ids, gruppe.id]
+                          : current.gruppen_ids.filter((item) => item !== gruppe.id)
+                      }))
+                    }
+                  />
+                  {gruppe.name}
+                </label>
+              ))}
+            </div>
+          </label>
+
+          <label className="field field--full">
             <span>Parameter</span>
             <div className="checkbox-grid">
               {parameterQuery.data?.map((parameter) => (
                 <label key={parameter.id}>
                   <input
                     type="checkbox"
-                    checked={selectedParameters.has(parameter.id)}
+                    checked={form.laborparameter_ids.includes(parameter.id)}
                     onChange={(event) =>
                       setForm((current) => ({
                         ...current,
@@ -311,6 +362,29 @@ export function AuswertungPage() {
                     }
                   />
                   {parameter.anzeigename}
+                </label>
+              ))}
+            </div>
+          </label>
+
+          <label className="field field--full">
+            <span>Labore</span>
+            <div className="checkbox-grid">
+              {laboreQuery.data?.map((labor) => (
+                <label key={labor.id}>
+                  <input
+                    type="checkbox"
+                    checked={form.labor_ids.includes(labor.id)}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        labor_ids: event.target.checked
+                          ? [...current.labor_ids, labor.id]
+                          : current.labor_ids.filter((item) => item !== labor.id)
+                      }))
+                    }
+                  />
+                  {labor.name}
                 </label>
               ))}
             </div>
@@ -335,7 +409,7 @@ export function AuswertungPage() {
           </label>
 
           <div className="form-actions">
-            <button type="submit" disabled={auswertungMutation.isPending || !form.person_id}>
+            <button type="submit" disabled={auswertungMutation.isPending || !form.person_ids.length}>
               {auswertungMutation.isPending ? "Lädt..." : "Auswertung laden"}
             </button>
             {auswertungMutation.isError ? <p className="form-error">{auswertungMutation.error.message}</p> : null}
@@ -346,7 +420,7 @@ export function AuswertungPage() {
       {auswertungMutation.data ? (
         <div className="workspace-grid">
           {auswertungMutation.data.serien.map((serie) => (
-            <article className="card" key={serie.laborparameter_id}>
+            <article className="card card--wide" key={serie.laborparameter_id}>
               <div className="trend-card__header">
                 <div>
                   <h3>{serie.parameter_anzeigename}</h3>
@@ -354,8 +428,8 @@ export function AuswertungPage() {
                 </div>
                 <div className="trend-badges">
                   <span className="trend-badge">Messungen: {serie.statistik.anzahl_messungen}</span>
+                  <span className="trend-badge">Personen: {serie.statistik.personen_anzahl}</span>
                   <span className="trend-badge">Trend: {formatTrend(serie.statistik.trendrichtung)}</span>
-                  <span className="trend-badge">Letzter Wert: {serie.statistik.letzter_wert_anzeige ?? "—"}</span>
                 </div>
               </div>
 
@@ -365,6 +439,7 @@ export function AuswertungPage() {
                 </span>
                 <span>Minimum: {formatNumber(serie.statistik.minimum_num)}</span>
                 <span>Maximum: {formatNumber(serie.statistik.maximum_num)}</span>
+                <span>Letzter Wert: {serie.statistik.letzter_wert_anzeige ?? "—"}</span>
               </div>
 
               <SeriesChart
@@ -377,6 +452,7 @@ export function AuswertungPage() {
                 <table className="data-table">
                   <thead>
                     <tr>
+                      <th>Person</th>
                       <th>Datum</th>
                       <th>Wert</th>
                       <th>Laborreferenz</th>
@@ -387,6 +463,7 @@ export function AuswertungPage() {
                   <tbody>
                     {serie.punkte.map((punkt) => (
                       <tr key={punkt.messwert_id}>
+                        <td>{punkt.person_anzeigename}</td>
                         <td>{formatDate(punkt.datum)}</td>
                         <td>{[punkt.wert_anzeige, punkt.einheit].filter(Boolean).join(" ")}</td>
                         <td>{punkt.laborreferenz_text || "—"}</td>
@@ -409,6 +486,7 @@ export function AuswertungPage() {
             <thead>
               <tr>
                 <th>Datum</th>
+                <th>Person</th>
                 <th>Parameter</th>
                 <th>Wert</th>
                 <th>Bemerkung</th>
@@ -419,6 +497,7 @@ export function AuswertungPage() {
               {qualitativeEvents.map((event) => (
                 <tr key={event.messwert_id}>
                   <td>{formatDate(event.datum)}</td>
+                  <td>{event.person_anzeigename}</td>
                   <td>{event.parameter_anzeigename}</td>
                   <td>{[event.wert_anzeige, event.einheit].filter(Boolean).join(" ")}</td>
                   <td>{event.messwertbemerkung || event.befundbemerkung || "—"}</td>
@@ -427,7 +506,7 @@ export function AuswertungPage() {
               ))}
               {!qualitativeEvents.length ? (
                 <tr>
-                  <td colSpan={5}>Noch keine qualitativen Ereignisse für die aktuelle Auswahl.</td>
+                  <td colSpan={6}>Noch keine qualitativen Ereignisse für die aktuelle Auswahl.</td>
                 </tr>
               ) : null}
             </tbody>

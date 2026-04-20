@@ -14,6 +14,8 @@
 - [[../Begriffe und Konzepte/V1 Technisches Schema]]: relationale Tabellen, Constraints, Indizes und Konsistenzregeln für V1.
 - [[../Begriffe und Konzepte/V1 Screenplan und Kernworkflows]]: arbeitsbereichsorientierte V1-Oberfläche und Hauptabläufe.
 - [[../Begriffe und Konzepte/V1 Projektstruktur, Module und Schnittstellen]]: konkreter Zuschnitt für Backend, Frontend, API und Ordnerstruktur.
+- [[../Begriffe und Konzepte/Systembild und Paketuebersicht der Anwendung]]: visuelle Architekturübersicht mit Systemkomponenten, Ist-Zuschnitt und geplantem Paketbild.
+- [[../Begriffe und Konzepte/Ist-Stand Importstrecke und PDF-Grenzen]]: klare Einordnung, was die Importprüfung heute schon kann und was für echten PDF-Import noch fehlt.
 
 ## Projektentscheidungen und Prozesse
 - [[../Prozesse/Arbeitsworkflow Wissenspflege und Projektanfragen]]: Standardablauf für Projektarbeit und Wissenspflege.
@@ -34,4 +36,4 @@
 - [[../../03 Betrieb/Qualitaetspruefung]]
 
 ## Workspace-Quellen
-- [[../../01 Rohquellen/repo-root/2026-04-20 V1 Scaffold Workspace-Stand]]: Referenz auf den aktuellen technischen Scaffold-Stand im Repository inklusive Durchstich für Referenzen, Zielbereiche, Zielbereichs-Overrides, Planung, Importprüfung und erste Berichte.
+- [[../../01 Rohquellen/repo-root/2026-04-20 V1 Scaffold Workspace-Stand]]: Referenz auf den aktuellen technischen Scaffold-Stand im Repository inklusive Durchstich für Referenzen, Zielbereiche, Zielbereichs-Overrides, Planung, Importprüfung, Berichte, Auswertung und echte Gruppenlogik.

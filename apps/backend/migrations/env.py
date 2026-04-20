@@ -9,11 +9,13 @@ from labordaten_backend.core.config import get_settings
 from labordaten_backend.models import (
     Befund,
     Dokument,
+    GruppenParameter,
     Importvorgang,
     Labor,
     Laborparameter,
     Messwert,
     MesswertReferenz,
+    ParameterGruppe,
     Person,
     Wissensseite,
 )
@@ -60,4 +62,3 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
-

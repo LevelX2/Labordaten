@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
@@ -9,11 +11,23 @@ router = APIRouter()
 
 @router.get("", response_model=list[schemas.MesswertRead])
 def list_messwerte(
-    person_id: str | None = Query(default=None),
-    laborparameter_id: str | None = Query(default=None),
+    person_ids: list[str] | None = Query(default=None),
+    laborparameter_ids: list[str] | None = Query(default=None),
+    gruppen_ids: list[str] | None = Query(default=None),
+    labor_ids: list[str] | None = Query(default=None),
+    datum_von: date | None = Query(default=None),
+    datum_bis: date | None = Query(default=None),
     db: Session = Depends(get_db),
 ) -> list[schemas.MesswertRead]:
-    return service.list_messwerte(db, person_id=person_id, laborparameter_id=laborparameter_id)
+    return service.list_messwerte(
+        db,
+        person_ids=person_ids,
+        laborparameter_ids=laborparameter_ids,
+        gruppen_ids=gruppen_ids,
+        labor_ids=labor_ids,
+        datum_von=datum_von,
+        datum_bis=datum_bis,
+    )
 
 
 @router.post("", response_model=schemas.MesswertRead, status_code=status.HTTP_201_CREATED)
@@ -33,4 +47,3 @@ def get_messwert(messwert_id: str, db: Session = Depends(get_db)) -> schemas.Mes
     if messwert is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Messwert nicht gefunden.")
     return messwert
-

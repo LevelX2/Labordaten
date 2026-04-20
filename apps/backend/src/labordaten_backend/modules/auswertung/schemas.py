@@ -11,8 +11,10 @@ class GesamtzahlenResponse(BaseModel):
 
 
 class AuswertungRequest(BaseModel):
-    person_id: str
+    person_ids: list[str]
     laborparameter_ids: list[str] = []
+    gruppen_ids: list[str] = []
+    labor_ids: list[str] = []
     datum_von: date | None = None
     datum_bis: date | None = None
     include_laborreferenz: bool = True
@@ -21,6 +23,7 @@ class AuswertungRequest(BaseModel):
 
 class AuswertungsStatistik(BaseModel):
     anzahl_messungen: int
+    personen_anzahl: int = 0
     zeitraum_von: date | None = None
     zeitraum_bis: date | None = None
     letzte_messung_datum: date | None = None
@@ -32,6 +35,8 @@ class AuswertungsStatistik(BaseModel):
 
 class AuswertungPunkt(BaseModel):
     messwert_id: str
+    person_id: str
+    person_anzeigename: str
     datum: date | None = None
     wert_typ: str
     wert_anzeige: str
@@ -61,5 +66,5 @@ class AuswertungsSerie(BaseModel):
 
 
 class AuswertungResponse(BaseModel):
-    person_id: str
+    person_ids: list[str]
     serien: list[AuswertungsSerie]

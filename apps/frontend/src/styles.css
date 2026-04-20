@@ -151,6 +151,10 @@ a {
   background: var(--panel-soft);
 }
 
+.card--wide {
+  grid-column: 1 / -1;
+}
+
 .stat-card strong {
   display: block;
   margin-top: 8px;
@@ -278,6 +282,22 @@ a {
   border-bottom: 1px solid var(--line);
   text-align: left;
   vertical-align: top;
+}
+
+.data-table tbody tr.row-selected {
+  background: rgba(31, 106, 83, 0.08);
+}
+
+.data-table tbody tr.row-selected td {
+  border-bottom-color: rgba(31, 106, 83, 0.28);
+}
+
+.data-table tbody tr[onClick] {
+  cursor: pointer;
+}
+
+.data-table input[type="number"] {
+  width: 100px;
 }
 
 .data-table thead th {

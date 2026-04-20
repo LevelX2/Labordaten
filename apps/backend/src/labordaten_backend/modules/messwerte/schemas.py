@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class MesswertCreate(BaseModel):
@@ -48,6 +48,11 @@ class MesswertRead(BaseModel):
     bemerkung_lang: str | None = None
     unsicher_flag: bool
     pruefbedarf_flag: bool
+    person_anzeigename: str | None = None
+    parameter_anzeigename: str | None = None
+    labor_id: str | None = None
+    labor_name: str | None = None
+    entnahmedatum: str | None = None
+    gruppen_namen: list[str] = Field(default_factory=list)
     erstellt_am: datetime
     geaendert_am: datetime
-

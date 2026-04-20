@@ -4,8 +4,10 @@ from pydantic import BaseModel
 
 
 class ArztberichtRequest(BaseModel):
-    person_id: str
+    person_ids: list[str]
     laborparameter_ids: list[str] = []
+    gruppen_ids: list[str] = []
+    labor_ids: list[str] = []
     datum_von: date | None = None
     datum_bis: date | None = None
     include_referenzbereich: bool = True
@@ -15,6 +17,8 @@ class ArztberichtRequest(BaseModel):
 
 
 class ArztberichtEintrag(BaseModel):
+    person_id: str
+    person_anzeigename: str
     laborparameter_id: str
     parameter_anzeigename: str
     datum: date | None = None
@@ -27,18 +31,22 @@ class ArztberichtEintrag(BaseModel):
 
 
 class ArztberichtResponse(BaseModel):
-    person_id: str
+    person_ids: list[str]
     eintraege: list[ArztberichtEintrag]
 
 
 class VerlaufsberichtRequest(BaseModel):
-    person_id: str
-    laborparameter_ids: list[str]
+    person_ids: list[str]
+    laborparameter_ids: list[str] = []
+    gruppen_ids: list[str] = []
+    labor_ids: list[str] = []
     datum_von: date | None = None
     datum_bis: date | None = None
 
 
 class VerlaufsberichtPunkt(BaseModel):
+    person_id: str
+    person_anzeigename: str
     laborparameter_id: str
     parameter_anzeigename: str
     datum: date | None = None
@@ -51,5 +59,5 @@ class VerlaufsberichtPunkt(BaseModel):
 
 
 class VerlaufsberichtResponse(BaseModel):
-    person_id: str
+    person_ids: list[str]
     punkte: list[VerlaufsberichtPunkt]
