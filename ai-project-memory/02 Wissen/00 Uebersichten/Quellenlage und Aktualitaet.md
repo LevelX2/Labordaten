@@ -21,13 +21,14 @@ tags:
 - Verifizierter Durchstich für personenspezifische Zielbereichs-Overrides
 - Verifizierter Planungsdurchstich für zyklische Kontrollen, Einmalvormerkungen und Fälligkeiten
 - Verifizierter Importdurchstich für Entwurf, Prüfpunkte, Mapping und bewusste Übernahme
+- Verifizierter Berichtsdurchstich für Arztbericht- und Verlaufsvorschau
 
 ## Noch ausstehend
 - Detaillierte Entscheidungen zu Datenvalidierung, Änderungsverfolgung und Qualitätsregeln
 - Konkretisierung der technischen Produktform, Architektur und Packaging-Strategie
 - Präzisierung von Importprüfung, qualitativen Messwerten, Backups und Sicherheitsgrenzen
 - Spätere Detailanforderungen an Berichte, Diagrammlogik und Wissensintegration
-- Erweiterung des Durchstichs auf Berichte und tiefergehende Auswertung
+- Ausbau der Berichte zu PDF-Export und Erweiterung auf tiefergehende Auswertung
 
 ## Einordnung
-Der aktuelle Stand umfasst nun eine starke fachliche Grundlage und mehrere echte, verifizierte Durchstiche im technischen Gerüst. Aussagen zur endgültigen Umsetzung bleiben dennoch vorläufig, solange Berichte, Auswertung und weitere Fachdetails noch nicht vollständig implementiert und erprobt sind.
+Der aktuelle Stand umfasst nun eine starke fachliche Grundlage und mehrere echte, verifizierte Durchstiche im technischen Gerüst. Aussagen zur endgültigen Umsetzung bleiben dennoch vorläufig, solange PDF-Export, Auswertung und weitere Fachdetails noch nicht vollständig implementiert und erprobt sind.

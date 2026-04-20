@@ -201,3 +201,17 @@
   - Das Backend wurde um Endpunkte und Logik für personenspezifische Überschreibungen allgemeiner Zielbereiche erweitert.
   - Das Frontend erlaubt nun auf der Personenseite die Anlage und Anzeige solcher Overrides.
   - Python-Kompilation, Frontend-Build, Alembic-Ausführung und ein API-Rauchtest für `Zielbereich -> Person-Override -> Liste` wurden erfolgreich ausgeführt.
+
+## [2026-04-20] update | Erste Berichtsansichten als echter Durchstich umgesetzt
+- Anlass oder Quelle: Nutzerauftrag zum nächsten Schritt nach Commit und Zwischenstatus
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - [[../01 Rohquellen/repo-root/2026-04-20 V1 Scaffold Workspace-Stand]]
+  - [[../02 Wissen/00 Uebersichten/Aktueller Projektstatus]]
+  - [[../02 Wissen/00 Uebersichten/Quellenlage und Aktualitaet]]
+  - [[../02 Wissen/00 Uebersichten/Index]]
+- Kern der inhaltlichen Anpassung:
+  - Das Backend liefert nun Vorschauen für Arztbericht und Verlaufsbericht auf Basis realer Messdaten.
+  - Das Frontend enthält eine echte Berichtsseite mit Filtern und Vorschautabellen.
+  - Python-Kompilation, Frontend-Build, Alembic-Ausführung und ein API-Rauchtest für `Arztbericht-Vorschau` und `Verlaufsbericht-Vorschau` wurden erfolgreich ausgeführt.

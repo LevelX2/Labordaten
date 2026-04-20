@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router-dom";
 
 import { AppLayout } from "./layout/AppLayout";
 import { BefundePage } from "../features/befunde/BefundePage";
+import { BerichtePage } from "../features/berichte/BerichtePage";
 import { ImportPage } from "../features/importe/ImportPage";
 import { MesswertePage } from "../features/messwerte/MesswertePage";
 import { ParameterPage } from "../features/parameter/ParameterPage";
@@ -49,20 +50,7 @@ export const router = createBrowserRouter([
           />
         )
       },
-      {
-        path: "berichte",
-        element: (
-          <FeaturePage
-            title="Berichte"
-            description="PDF-Ausgaben für Arzttermine und Zeitverläufe mit standardmäßig aktiven, aber abwählbaren Feldern."
-            highlights={[
-              "Arztbericht als kompakte Liste",
-              "Verlaufsbericht mit Zeitachse",
-              "Filter nach Person, Gruppe, Zeitraum und Labor"
-            ]}
-          />
-        )
-      },
+      { path: "berichte", element: <BerichtePage /> },
       { path: "import", element: <ImportPage /> },
       {
         path: "wissensbasis",

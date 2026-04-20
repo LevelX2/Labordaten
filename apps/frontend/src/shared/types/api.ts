@@ -239,3 +239,37 @@ export type ImportVorgangDetail = {
   messwerte: ImportMesswertPreview[];
   pruefpunkte: ImportPruefpunkt[];
 };
+
+export type ArztberichtEintrag = {
+  laborparameter_id: string;
+  parameter_anzeigename: string;
+  datum?: string | null;
+  wert_anzeige: string;
+  einheit?: string | null;
+  referenzbereich?: string | null;
+  labor_name?: string | null;
+  befundbemerkung?: string | null;
+  messwertbemerkung?: string | null;
+};
+
+export type ArztberichtResponse = {
+  person_id: string;
+  eintraege: ArztberichtEintrag[];
+};
+
+export type VerlaufsberichtPunkt = {
+  laborparameter_id: string;
+  parameter_anzeigename: string;
+  datum?: string | null;
+  wert_typ: string;
+  wert_anzeige: string;
+  wert_num?: number | null;
+  wert_text?: string | null;
+  einheit?: string | null;
+  labor_name?: string | null;
+};
+
+export type VerlaufsberichtResponse = {
+  person_id: string;
+  punkte: VerlaufsberichtPunkt[];
+};

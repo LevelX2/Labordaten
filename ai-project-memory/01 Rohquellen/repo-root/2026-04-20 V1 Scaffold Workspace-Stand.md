@@ -21,6 +21,7 @@
 - Personenspezifische Zielbereichs-Overrides als Aufbau auf allgemeinen Zielbereichen
 - Planung als echter Durchstich mit zyklischen Kontrollen, Einmalvormerkungen, Fälligkeitslogik und Vorschlagsliste
 - Importprüfung als echter Durchstich mit JSON-Entwurf, Prüfpunkten, Parameter-Mapping und bewusster Übernahme
+- Erste Berichtsansichten als echter Durchstich mit Arztbericht-Vorschau und Verlaufsbericht-Vorschau
 - Erstes Importvertragsschema unter `packages/contracts/import-v1.schema.json`
 - Aktualisierte Root-Dokumentation für lokalen Start
 
@@ -33,6 +34,7 @@
 - API-Rauchtest für `ZielbereichOverride` pro Person war erfolgreich
 - API-Rauchtest für `PlanungZyklisch`, `PlanungEinmalig` und `Fälligkeiten` war erfolgreich
 - API-Rauchtest für `Importentwurf -> Prüfpunkte -> Mapping -> Übernahme` war erfolgreich
+- API-Rauchtest für `Arztbericht-Vorschau` und `Verlaufsbericht-Vorschau` war erfolgreich
 
 ## Hinweis
 Dies ist keine vollständige Dateikopie, sondern eine Rohquellen-Referenz auf den aktuellen Workspace-Stand nach dem technischen Projektgerüst und den ersten verifizierten Durchstichen.
