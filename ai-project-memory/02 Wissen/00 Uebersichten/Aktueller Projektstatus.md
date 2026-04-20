@@ -28,10 +28,12 @@ tags:
 - Gruppen sind jetzt als echter Stammdatenbereich mit Parameterzuordnung, eigener Verwaltungsseite und persistenter Many-to-Many-Struktur umgesetzt.
 - Messwerte, Berichte und Auswertung unterstützen jetzt bereichsübergreifende Filter nach Person, mehreren Personen, Gruppe, Labor und Zeitraum.
 - Familien- oder personenübergreifende Ansichten sind damit für Listen, Berichte und Verlaufsdiagramme im aktuellen Workspace-Stand bereits möglich.
+- Die Importstrecke unterstützt jetzt zusätzlich echte CSV- und Excel-Dateien mit Metadaten, optionaler Quelldatei-Ablage und Dokumentverknüpfung zum übernommenen Befund.
 
 ## Bedeutung für die weitere Arbeit
 - Das Projekt hat jetzt ein belastbares fachliches Zielbild für die nächste Architektur- und Planungsphase.
 - Das Projekt hat zusätzlich ein reales technisches Startgerüst, auf dem die eigentliche Implementierung der Fachlogik aufbauen kann.
 - Mehrere Kernbereiche sind nicht mehr nur konzeptionell beschrieben, sondern bereits technisch verifiziert.
 - Gruppen funktionieren nicht mehr nur als Konzept, sondern bereits als zentrale Filter- und Organisationslogik für Messwerte, Berichte und Auswertung.
-- Weitere Arbeit sollte nun vor allem Wissensbasis-Anbindung, Einstellungen, Importausbau und weitere fachliche Verfeinerung der Diagramm- und Berichtsgestaltung vertiefen.
+- Der Import ist nicht mehr auf manuell eingefügtes JSON beschränkt, sondern kann tabellarische Dateien kontrolliert in prüfbare Entwürfe überführen.
+- Weitere Arbeit sollte nun vor allem Wissensbasis-Anbindung, Einstellungen, lokale Betriebslogik und weitere fachliche Verfeinerung der Diagramm- und Berichtsgestaltung vertiefen.

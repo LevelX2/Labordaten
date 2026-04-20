@@ -63,6 +63,7 @@ class ImportPayload(BaseModel):
 class ImportEntwurfCreate(BaseModel):
     payload_json: str
     person_id_override: str | None = None
+    dokument_id: str | None = None
     bemerkung: str | None = None
 
 
@@ -110,6 +111,8 @@ class ImportBefundPreviewRead(BaseModel):
     entnahmedatum: date
     befunddatum: date | None = None
     bemerkung: str | None = None
+    dokument_id: str | None = None
+    dokument_dateiname: str | None = None
     dokument_pfad: str | None = None
 
 
@@ -122,6 +125,8 @@ class ImportvorgangListRead(BaseModel):
     person_id_vorschlag: str | None = None
     schema_version: str | None = None
     bemerkung: str | None = None
+    dokument_id: str | None = None
+    dokument_dateiname: str | None = None
     messwerte_anzahl: int
     fehler_anzahl: int
     warnung_anzahl: int
@@ -138,6 +143,8 @@ class ImportvorgangDetailRead(BaseModel):
     bemerkung: str | None = None
     warnungen_text: str | None = None
     fingerprint: str | None = None
+    dokument_id: str | None = None
+    dokument_dateiname: str | None = None
     erstellt_am: datetime
     geaendert_am: datetime
     messwerte_anzahl: int

@@ -298,3 +298,17 @@
   - Das Frontend enthält jetzt eine echte Gruppenverwaltung sowie kombinierbare Filter nach Personen, Gruppen, Laboren und Zeitraum in Messwerten, Berichten und Auswertung.
   - Personenübergreifende Familienansichten sind damit in Listen, Berichtsvorschauen, Verlaufs-PDF und Diagrammen technisch verfügbar.
   - Backend-Kompilation, Frontend-Build, Alembic-Migration bis `20260421_0005` und ein API-Rauchtest über Gruppen-, Berichts- und Auswertungsflüsse wurden erfolgreich ausgeführt.
+
+## [2026-04-21] update | Dateiimport für CSV und Excel mit Dokumentverknüpfung umgesetzt
+- Anlass oder Quelle: Fortsetzung des V1-Importausbaus nach Gruppen und Auswertungsfiltern
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - [[../01 Rohquellen/repo-root/2026-04-20 V1 Scaffold Workspace-Stand]]
+  - [[../02 Wissen/00 Uebersichten/Aktueller Projektstatus]]
+  - [[../02 Wissen/00 Uebersichten/Quellenlage und Aktualitaet]]
+- Kern der inhaltlichen Anpassung:
+  - Das Backend unterstützt nun Dateiimporte für CSV und Excel als prüfbare Importentwürfe inklusive Metadaten-Ergänzung.
+  - Optional abgelegte Quelldateien werden als `Dokument` gespeichert und beim Übernehmen mit dem erzeugten Befund verknüpft.
+  - Das Frontend enthält dafür eine reale Upload-Oberfläche mit Datei, Person, Labor, Datum, Bemerkungen und Quellablage-Option.
+  - Backend-Kompilation, Frontend-Build, Paketinstallation mit `openpyxl`, Alembic-Ausführung und ein API-Rauchtest für `CSV/XLSX -> Entwurf -> Übernahme -> Dokumentlink` wurden erfolgreich ausgeführt.

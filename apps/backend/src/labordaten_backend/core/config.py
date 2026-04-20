@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     database_url: str = "sqlite:///./labordaten.db"
     frontend_origin: str = "http://localhost:5173"
+    documents_dir: str = "./documents"
 
     model_config = SettingsConfigDict(
         env_prefix="LABORDATEN_",

@@ -1,7 +1,8 @@
 function buildHeaders(init?: RequestInit): Headers {
   const headers = new Headers(init?.headers);
+  const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
 
-  if (init?.body && !headers.has("Content-Type")) {
+  if (init?.body && !isFormData && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 

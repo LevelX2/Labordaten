@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import date
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
 from labordaten_backend.api.deps import get_db
@@ -19,6 +21,38 @@ def create_import_entwurf(
 ) -> schemas.ImportvorgangDetailRead:
     try:
         return service.create_import_entwurf(db, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@router.post("/datei-entwurf", response_model=schemas.ImportvorgangDetailRead, status_code=status.HTTP_201_CREATED)
+async def create_import_entwurf_from_file(
+    file: UploadFile = File(...),
+    person_id_override: str | None = Form(default=None),
+    labor_id_override: str | None = Form(default=None),
+    labor_name_override: str | None = Form(default=None),
+    entnahmedatum_override: date | None = Form(default=None),
+    befunddatum_override: date | None = Form(default=None),
+    befund_bemerkung_override: str | None = Form(default=None),
+    import_bemerkung: str | None = Form(default=None),
+    quelle_behalten: bool = Form(default=False),
+    db: Session = Depends(get_db),
+) -> schemas.ImportvorgangDetailRead:
+    try:
+        return service.create_import_entwurf_from_file(
+            db,
+            filename=file.filename or "import.csv",
+            content_type=file.content_type,
+            content=await file.read(),
+            person_id_override=person_id_override,
+            labor_id_override=labor_id_override,
+            labor_name_override=labor_name_override,
+            entnahmedatum_override=entnahmedatum_override,
+            befunddatum_override=befunddatum_override,
+            befund_bemerkung_override=befund_bemerkung_override,
+            import_bemerkung=import_bemerkung,
+            quelle_behalten=quelle_behalten,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 

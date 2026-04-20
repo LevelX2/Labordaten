@@ -27,14 +27,16 @@ tags:
 - Verifizierter Gruppendurchstich mit Gruppen-Stammdaten, Parameterzuordnung und echter Gruppenverwaltung in der Oberfläche
 - Verifizierte bereichsübergreifende Filter nach Personen, Gruppen, Laboren und Zeitraum für Messwerte, Berichte und Auswertung
 - Verifizierte personenübergreifende Familienansichten in Berichtsvorschau, Verlaufs-PDF und Auswertung
+- Verifizierter Dateiimport für CSV und Excel mit optionaler Quellablage als Dokument und Verknüpfung zum übernommenen Befund
 
 ## Noch ausstehend
 - Detaillierte Entscheidungen zu Datenvalidierung, Änderungsverfolgung und Qualitätsregeln
 - Konkretisierung der technischen Produktform, Architektur und Packaging-Strategie
-- Präzisierung von Importprüfung, qualitativen Messwerten, Backups und Sicherheitsgrenzen
+- Präzisierung weiterer Importstufen für PDF, KI-Extraktion und allgemeine API-gestützte Datenanlage
 - Spätere Detailanforderungen an Berichte, Diagrammlogik und Wissensintegration
 - Weitere Verfeinerung gruppenbezogener und druckoptimierter Berichtsausgaben
 - Ausbau der Auswertung mit stärkeren Vergleichsansichten, Mehrparameter-Überlagerungen und Normierungslogik
+- Einstellungen, lokale Pfadverwaltung und Single-User-Sperrlogik als explizite Betriebsoberfläche
 
 ## Einordnung
-Der aktuelle Stand umfasst nun eine starke fachliche Grundlage und mehrere echte, verifizierte Durchstiche im technischen Gerüst. Aussagen zur endgültigen Umsetzung bleiben dennoch vorläufig, solange Wissensintegration, weitere Importstufen, erweiterte Vergleichslogik und Detailverfeinerungen in Berichten und Diagrammen noch nicht vollständig implementiert und erprobt sind.
+Der aktuelle Stand umfasst nun eine starke fachliche Grundlage und mehrere echte, verifizierte Durchstiche im technischen Gerüst. Aussagen zur endgültigen Umsetzung bleiben dennoch vorläufig, solange Wissensintegration, weitere Importstufen, lokale Betriebslogik und Detailverfeinerungen in Berichten und Diagrammen noch nicht vollständig implementiert und erprobt sind.

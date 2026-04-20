@@ -219,6 +219,8 @@ export type ImportBefundPreview = {
   entnahmedatum: string;
   befunddatum?: string | null;
   bemerkung?: string | null;
+  dokument_id?: string | null;
+  dokument_dateiname?: string | null;
   dokument_pfad?: string | null;
 };
 
@@ -242,6 +244,8 @@ export type ImportVorgangListItem = {
   person_id_vorschlag?: string | null;
   schema_version?: string | null;
   bemerkung?: string | null;
+  dokument_id?: string | null;
+  dokument_dateiname?: string | null;
   messwerte_anzahl: number;
   fehler_anzahl: number;
   warnung_anzahl: number;
@@ -258,6 +262,8 @@ export type ImportVorgangDetail = {
   bemerkung?: string | null;
   warnungen_text?: string | null;
   fingerprint?: string | null;
+  dokument_id?: string | null;
+  dokument_dateiname?: string | null;
   erstellt_am: string;
   geaendert_am: string;
   messwerte_anzahl: number;

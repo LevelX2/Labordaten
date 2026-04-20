@@ -27,6 +27,7 @@
 - Gruppen als echter Stammdatenbereich mit Parameterzuordnung, Sortierung und eigener Verwaltungsoberfläche
 - Bereichsübergreifende Filter nach Personen, Gruppen, Laboren und Zeitraum für Messwertlisten, Berichte und Auswertung
 - Personenübergreifende Familienansichten in Berichtsvorschau, Verlaufsbericht und Auswertungsdiagrammen
+- Dateiimport für CSV und Excel mit tabellarischer Auswertung, Metadaten-Ergänzung, optionaler Quellablage und Dokumentverknüpfung
 - Erstes Importvertragsschema unter `packages/contracts/import-v1.schema.json`
 - Aktualisierte Root-Dokumentation für lokalen Start
 
@@ -45,6 +46,7 @@
 - Frontend-Build mit echter Diagrammbibliothek für den Auswertungsbereich läuft durch
 - Alembic-Migration lässt sich auch mit der neuen Gruppenmigration bis `20260421_0005` ausführen
 - API-Rauchtest für `Gruppen`, `GruppenParameter`, gruppengefilterte Messwertlisten, gruppengefilterte Berichtsvorschau, Verlaufs-PDF und personenübergreifende Auswertung war erfolgreich
+- API-Rauchtest für CSV-Import, Excel-Import, Dokumentablage und Befundverknüpfung war erfolgreich
 
 ## Hinweis
 Dies ist keine vollständige Dateikopie, sondern eine Rohquellen-Referenz auf den aktuellen Workspace-Stand nach dem technischen Projektgerüst und den ersten verifizierten Durchstichen.

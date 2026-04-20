@@ -5,6 +5,7 @@ import { apiFetch } from "../../shared/api/client";
 import type {
   ImportVorgangDetail,
   ImportVorgangListItem,
+  Labor,
   Parameter,
   Person
 } from "../../shared/types/api";
@@ -13,6 +14,18 @@ type ImportFormState = {
   payload_json: string;
   person_id_override: string;
   bemerkung: string;
+};
+
+type DateiImportFormState = {
+  file: File | null;
+  person_id_override: string;
+  labor_id_override: string;
+  labor_name_override: string;
+  entnahmedatum_override: string;
+  befunddatum_override: string;
+  befund_bemerkung_override: string;
+  import_bemerkung: string;
+  quelle_behalten: boolean;
 };
 
 const examplePayload = `{
@@ -38,6 +51,18 @@ const initialForm: ImportFormState = {
   bemerkung: ""
 };
 
+const initialDateiForm: DateiImportFormState = {
+  file: null,
+  person_id_override: "",
+  labor_id_override: "",
+  labor_name_override: "",
+  entnahmedatum_override: "",
+  befunddatum_override: "",
+  befund_bemerkung_override: "",
+  import_bemerkung: "",
+  quelle_behalten: true
+};
+
 function formatDate(value?: string | null): string {
   if (!value) {
     return "—";
@@ -48,6 +73,7 @@ function formatDate(value?: string | null): string {
 export function ImportPage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<ImportFormState>(initialForm);
+  const [dateiForm, setDateiForm] = useState<DateiImportFormState>(initialDateiForm);
   const [selectedImportId, setSelectedImportId] = useState<string | null>(null);
   const [mappingState, setMappingState] = useState<Record<number, string>>({});
   const [warningsConfirmed, setWarningsConfirmed] = useState(false);
@@ -59,6 +85,10 @@ export function ImportPage() {
   const parameterQuery = useQuery({
     queryKey: ["parameter"],
     queryFn: () => apiFetch<Parameter[]>("/api/parameter")
+  });
+  const laboreQuery = useQuery({
+    queryKey: ["labore"],
+    queryFn: () => apiFetch<Labor[]>("/api/labore")
   });
   const importsQuery = useQuery({
     queryKey: ["importe"],
@@ -95,6 +125,10 @@ export function ImportPage() {
     () => new Map((parameterQuery.data ?? []).map((parameter) => [parameter.id, parameter])),
     [parameterQuery.data]
   );
+  const laborById = useMemo(
+    () => new Map((laboreQuery.data ?? []).map((labor) => [labor.id, labor])),
+    [laboreQuery.data]
+  );
 
   const createDraftMutation = useMutation({
     mutationFn: () =>
@@ -108,6 +142,50 @@ export function ImportPage() {
       }),
     onSuccess: async (detail) => {
       setSelectedImportId(detail.id);
+      await queryClient.invalidateQueries({ queryKey: ["importe"] });
+      await queryClient.invalidateQueries({ queryKey: ["importe", detail.id] });
+    }
+  });
+
+  const createFileDraftMutation = useMutation({
+    mutationFn: async () => {
+      if (!dateiForm.file) {
+        throw new Error("Bitte eine CSV- oder Excel-Datei auswählen.");
+      }
+
+      const formData = new FormData();
+      formData.append("file", dateiForm.file);
+      if (dateiForm.person_id_override) {
+        formData.append("person_id_override", dateiForm.person_id_override);
+      }
+      if (dateiForm.labor_id_override) {
+        formData.append("labor_id_override", dateiForm.labor_id_override);
+      }
+      if (dateiForm.labor_name_override) {
+        formData.append("labor_name_override", dateiForm.labor_name_override);
+      }
+      if (dateiForm.entnahmedatum_override) {
+        formData.append("entnahmedatum_override", dateiForm.entnahmedatum_override);
+      }
+      if (dateiForm.befunddatum_override) {
+        formData.append("befunddatum_override", dateiForm.befunddatum_override);
+      }
+      if (dateiForm.befund_bemerkung_override) {
+        formData.append("befund_bemerkung_override", dateiForm.befund_bemerkung_override);
+      }
+      if (dateiForm.import_bemerkung) {
+        formData.append("import_bemerkung", dateiForm.import_bemerkung);
+      }
+      formData.append("quelle_behalten", String(dateiForm.quelle_behalten));
+
+      return apiFetch<ImportVorgangDetail>("/api/importe/datei-entwurf", {
+        method: "POST",
+        body: formData
+      });
+    },
+    onSuccess: async (detail) => {
+      setSelectedImportId(detail.id);
+      setDateiForm((current) => ({ ...initialDateiForm, person_id_override: current.person_id_override }));
       await queryClient.invalidateQueries({ queryKey: ["importe"] });
       await queryClient.invalidateQueries({ queryKey: ["importe", detail.id] });
     }
@@ -157,14 +235,148 @@ export function ImportPage() {
         <span className="page__kicker">Importprüfung</span>
         <h2>Import</h2>
         <p>
-          JSON-Importe können jetzt als Entwurf angelegt, mit Prüfpunkten kontrolliert und erst danach bewusst
-          übernommen werden.
+          JSON-Importe können als Entwurf angelegt werden. Zusätzlich lassen sich jetzt CSV- und Excel-Dateien mit
+          Metadaten ergänzen, prüfen und erst danach bewusst übernehmen.
         </p>
       </header>
 
       <div className="workspace-grid">
+        <article className="card card--wide">
+          <h3>Dateiimport für CSV und Excel</h3>
+          <p>
+            Unterstützt werden tabellarische Dateien mit Spalten wie <code>Parameter</code>, <code>Wert</code>,{" "}
+            <code>Einheit</code>, <code>Referenzuntere</code> und <code>Referenzobere</code>. Entnahmedatum und Person
+            können hier direkt ergänzt oder überschrieben werden.
+          </p>
+          <form
+            className="form-grid"
+            onSubmit={(event) => {
+              event.preventDefault();
+              createFileDraftMutation.mutate();
+            }}
+          >
+            <label className="field field--full">
+              <span>Datei</span>
+              <input
+                type="file"
+                accept=".csv,.xlsx,.xlsm"
+                onChange={(event) =>
+                  setDateiForm((current) => ({ ...current, file: event.target.files?.[0] ?? null }))
+                }
+              />
+            </label>
+
+            <label className="field">
+              <span>Person</span>
+              <select
+                value={dateiForm.person_id_override}
+                onChange={(event) =>
+                  setDateiForm((current) => ({ ...current, person_id_override: event.target.value }))
+                }
+              >
+                <option value="">Aus Datei oder später zuordnen</option>
+                {personenQuery.data?.map((person) => (
+                  <option key={person.id} value={person.id}>
+                    {person.anzeigename}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field">
+              <span>Vorhandenes Labor</span>
+              <select
+                value={dateiForm.labor_id_override}
+                onChange={(event) =>
+                  setDateiForm((current) => ({ ...current, labor_id_override: event.target.value }))
+                }
+              >
+                <option value="">Kein festes Labor</option>
+                {laboreQuery.data?.map((labor) => (
+                  <option key={labor.id} value={labor.id}>
+                    {labor.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field">
+              <span>Laborname neu oder frei</span>
+              <input
+                value={dateiForm.labor_name_override}
+                onChange={(event) =>
+                  setDateiForm((current) => ({ ...current, labor_name_override: event.target.value }))
+                }
+                placeholder="z. B. Labor XY"
+              />
+            </label>
+
+            <label className="field">
+              <span>Entnahmedatum</span>
+              <input
+                type="date"
+                value={dateiForm.entnahmedatum_override}
+                onChange={(event) =>
+                  setDateiForm((current) => ({ ...current, entnahmedatum_override: event.target.value }))
+                }
+              />
+            </label>
+
+            <label className="field">
+              <span>Befunddatum</span>
+              <input
+                type="date"
+                value={dateiForm.befunddatum_override}
+                onChange={(event) =>
+                  setDateiForm((current) => ({ ...current, befunddatum_override: event.target.value }))
+                }
+              />
+            </label>
+
+            <label className="field field--full">
+              <span>Befundbemerkung</span>
+              <input
+                value={dateiForm.befund_bemerkung_override}
+                onChange={(event) =>
+                  setDateiForm((current) => ({ ...current, befund_bemerkung_override: event.target.value }))
+                }
+              />
+            </label>
+
+            <label className="field field--full">
+              <span>Importbemerkung</span>
+              <input
+                value={dateiForm.import_bemerkung}
+                onChange={(event) =>
+                  setDateiForm((current) => ({ ...current, import_bemerkung: event.target.value }))
+                }
+              />
+            </label>
+
+            <label className="field field--full">
+              <span>Quelldatei als Dokument ablegen</span>
+              <input
+                type="checkbox"
+                checked={dateiForm.quelle_behalten}
+                onChange={(event) =>
+                  setDateiForm((current) => ({ ...current, quelle_behalten: event.target.checked }))
+                }
+              />
+            </label>
+
+            <div className="form-actions">
+              <button type="submit" disabled={createFileDraftMutation.isPending}>
+                {createFileDraftMutation.isPending ? "Analysiert..." : "Datei als Entwurf prüfen"}
+              </button>
+              {createFileDraftMutation.isError ? (
+                <p className="form-error">{createFileDraftMutation.error.message}</p>
+              ) : null}
+            </div>
+          </form>
+        </article>
+
         <article className="card">
-          <h3>Importentwurf anlegen</h3>
+          <h3>JSON-Entwurf anlegen</h3>
           <form
             className="form-grid"
             onSubmit={(event) => {
@@ -222,6 +434,7 @@ export function ImportPage() {
                   <th>Status</th>
                   <th>Quelle</th>
                   <th>Person</th>
+                  <th>Datei</th>
                   <th>Messwerte</th>
                   <th>Fehler</th>
                   <th>Warnungen</th>
@@ -232,11 +445,13 @@ export function ImportPage() {
                   <tr
                     key={item.id}
                     onClick={() => setSelectedImportId(item.id)}
-                    style={{ cursor: "pointer", background: item.id === selectedImportId ? "#f3ede4" : undefined }}
+                    className={item.id === selectedImportId ? "row-selected" : undefined}
+                    style={{ cursor: "pointer" }}
                   >
                     <td>{item.status}</td>
                     <td>{item.quelle_typ}</td>
                     <td>{personById.get(item.person_id_vorschlag || "")?.anzeigename ?? "—"}</td>
+                    <td>{item.dokument_dateiname ?? "—"}</td>
                     <td>{item.messwerte_anzahl}</td>
                     <td>{item.fehler_anzahl}</td>
                     <td>{item.warnung_anzahl}</td>
@@ -244,7 +459,7 @@ export function ImportPage() {
                 ))}
                 {!importsQuery.data?.length ? (
                   <tr>
-                    <td colSpan={6}>Noch keine Importentwürfe vorhanden.</td>
+                    <td colSpan={7}>Noch keine Importentwürfe vorhanden.</td>
                   </tr>
                 ) : null}
               </tbody>
@@ -252,7 +467,7 @@ export function ImportPage() {
           </div>
         </article>
 
-        <article className="card">
+        <article className="card card--wide">
           <h3>Prüfansicht</h3>
           {!selectedImport ? <p>Bitte einen Importentwurf auswählen.</p> : null}
           {selectedImport ? (
@@ -264,7 +479,16 @@ export function ImportPage() {
                 Entnahme {formatDate(selectedImport.befund.entnahmedatum)}
               </p>
               <p>
-                Labor: <strong>{selectedImport.befund.labor_name || selectedImport.befund.labor_id || "—"}</strong>
+                Labor:{" "}
+                <strong>
+                  {laborById.get(selectedImport.befund.labor_id || "")?.name ??
+                    selectedImport.befund.labor_name ??
+                    selectedImport.befund.labor_id ??
+                    "—"}
+                </strong>
+              </p>
+              <p>
+                Quelldatei: <strong>{selectedImport.dokument_dateiname ?? selectedImport.befund.dokument_dateiname ?? "—"}</strong>
               </p>
 
               <div className="table-wrap">
@@ -274,6 +498,7 @@ export function ImportPage() {
                       <th>Originalname</th>
                       <th>Rohwert</th>
                       <th>Typ</th>
+                      <th>Einheit</th>
                       <th>Parameter-Zuordnung</th>
                     </tr>
                   </thead>
@@ -283,6 +508,7 @@ export function ImportPage() {
                         <td>{messwert.original_parametername}</td>
                         <td>{messwert.wert_roh_text}</td>
                         <td>{messwert.wert_typ}</td>
+                        <td>{messwert.einheit_original ?? "—"}</td>
                         <td>
                           <select
                             value={mappingState[messwert.messwert_index] ?? ""}
