@@ -19,6 +19,7 @@
 - Erste echte Durchstich-UI für Personen, Parameter, Befunde und Messwerte mit API-Anbindung
 - Erweiterung des Durchstichs um Laborreferenzen auf Messwert-Ebene und allgemeine Zielbereiche auf Parameter-Ebene
 - Planung als echter Durchstich mit zyklischen Kontrollen, Einmalvormerkungen, Fälligkeitslogik und Vorschlagsliste
+- Importprüfung als echter Durchstich mit JSON-Entwurf, Prüfpunkten, Parameter-Mapping und bewusster Übernahme
 - Erstes Importvertragsschema unter `packages/contracts/import-v1.schema.json`
 - Aktualisierte Root-Dokumentation für lokalen Start
 
@@ -29,6 +30,7 @@
 - API-Rauchtest für `Person -> Parameter -> Befund -> Messwert -> Liste` war erfolgreich
 - API-Rauchtest für `MesswertReferenz` und `Zielbereich` war erfolgreich
 - API-Rauchtest für `PlanungZyklisch`, `PlanungEinmalig` und `Fälligkeiten` war erfolgreich
+- API-Rauchtest für `Importentwurf -> Prüfpunkte -> Mapping -> Übernahme` war erfolgreich
 
 ## Hinweis
 Dies ist keine vollständige Dateikopie, sondern eine Rohquellen-Referenz auf den aktuellen Workspace-Stand nach dem technischen Projektgerüst und den ersten verifizierten Durchstichen.

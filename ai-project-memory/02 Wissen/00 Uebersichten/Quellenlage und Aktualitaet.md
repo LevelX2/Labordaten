@@ -19,13 +19,14 @@ tags:
 - Erster verifizierter End-to-End-Durchstich für Kernobjekte über API und UI
 - Erweiterter Durchstich für Laborreferenzen und allgemeine Zielbereiche
 - Verifizierter Planungsdurchstich für zyklische Kontrollen, Einmalvormerkungen und Fälligkeiten
+- Verifizierter Importdurchstich für Entwurf, Prüfpunkte, Mapping und bewusste Übernahme
 
 ## Noch ausstehend
 - Detaillierte Entscheidungen zu Datenvalidierung, Änderungsverfolgung und Qualitätsregeln
 - Konkretisierung der technischen Produktform, Architektur und Packaging-Strategie
 - Präzisierung von Importprüfung, qualitativen Messwerten, Backups und Sicherheitsgrenzen
 - Spätere Detailanforderungen an Berichte, Diagrammlogik und Wissensintegration
-- Erweiterung des Durchstichs auf personenspezifische Zielbereiche, Importprüfung, Berichte und tiefergehende Auswertung
+- Erweiterung des Durchstichs auf personenspezifische Zielbereiche, Berichte und tiefergehende Auswertung
 
 ## Einordnung
-Der aktuelle Stand umfasst nun eine starke fachliche Grundlage und mehrere echte, verifizierte Durchstiche im technischen Gerüst. Aussagen zur endgültigen Umsetzung bleiben dennoch vorläufig, solange Importprüfung, Berichte, Auswertung und weitere Fachdetails noch nicht vollständig implementiert und erprobt sind.
+Der aktuelle Stand umfasst nun eine starke fachliche Grundlage und mehrere echte, verifizierte Durchstiche im technischen Gerüst. Aussagen zur endgültigen Umsetzung bleiben dennoch vorläufig, solange Berichte, Auswertung und weitere Fachdetails noch nicht vollständig implementiert und erprobt sind.

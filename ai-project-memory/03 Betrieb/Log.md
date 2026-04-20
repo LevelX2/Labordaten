@@ -173,3 +173,17 @@
   - Das Backend wurde um Modelle, Migration, Services und API-Endpunkte für `PlanungZyklisch`, `PlanungEinmalig` und `Fälligkeiten` erweitert.
   - Das Frontend enthält jetzt eine reale Planungsseite mit Formularen, Listen und einer konsolidierten Vorschlagsliste.
   - Python-Kompilation, Frontend-Build, Alembic-Migration und ein API-Rauchtest für die Planungslogik wurden erfolgreich ausgeführt.
+
+## [2026-04-20] update | Importprüfung und Prüfansicht als echter Durchstich umgesetzt
+- Anlass oder Quelle: Nutzerauftrag zum nächsten V1-Kernbaustein nach dem Planungsdurchstich
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - [[../01 Rohquellen/repo-root/2026-04-20 V1 Scaffold Workspace-Stand]]
+  - [[../02 Wissen/00 Uebersichten/Aktueller Projektstatus]]
+  - [[../02 Wissen/00 Uebersichten/Quellenlage und Aktualitaet]]
+  - [[../02 Wissen/00 Uebersichten/Index]]
+- Kern der inhaltlichen Anpassung:
+  - Das Backend wurde um Importentwurf, Prüfpunkte, Parameter-Mapping und bewusste Übernahme erweitert.
+  - Das Frontend enthält jetzt eine reale Importseite mit Prüfansicht und Steuerung der Übernahme.
+  - Python-Kompilation, Frontend-Build, Alembic-Migration und ein API-Rauchtest für `Importentwurf -> Prüfpunkte -> Mapping -> Übernahme` wurden erfolgreich ausgeführt.

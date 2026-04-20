@@ -1,5 +1,6 @@
 from labordaten_backend.models.befund import Befund
 from labordaten_backend.models.dokument import Dokument
+from labordaten_backend.models.import_pruefpunkt import ImportPruefpunkt
 from labordaten_backend.models.importvorgang import Importvorgang
 from labordaten_backend.models.labor import Labor
 from labordaten_backend.models.laborparameter import Laborparameter
@@ -15,6 +16,7 @@ from labordaten_backend.models.zielbereich_person_override import ZielbereichPer
 __all__ = [
     "Befund",
     "Dokument",
+    "ImportPruefpunkt",
     "Importvorgang",
     "Labor",
     "Laborparameter",

@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router-dom";
 
 import { AppLayout } from "./layout/AppLayout";
 import { BefundePage } from "../features/befunde/BefundePage";
+import { ImportPage } from "../features/importe/ImportPage";
 import { MesswertePage } from "../features/messwerte/MesswertePage";
 import { ParameterPage } from "../features/parameter/ParameterPage";
 import { PlanungPage } from "../features/planung/PlanungPage";
@@ -62,20 +63,7 @@ export const router = createBrowserRouter([
           />
         )
       },
-      {
-        path: "import",
-        element: (
-          <FeaturePage
-            title="Import"
-            description="Importeingang, Prüfansicht, Mapping und bewusste Übernahme nach Warnungen oder Dublettenerkennung."
-            highlights={[
-              "CSV, Excel, JSON und spätere KI-Importe",
-              "Prüfpunkte und Parameter-Mapping",
-              "Optionale Archivierung von Importquellen"
-            ]}
-          />
-        )
-      },
+      { path: "import", element: <ImportPage /> },
       {
         path: "wissensbasis",
         element: (

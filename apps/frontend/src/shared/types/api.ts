@@ -151,3 +151,71 @@ export type PlanungFaelligkeit = {
   zieltermin_datum?: string | null;
   intervall_label?: string | null;
 };
+
+export type ImportPruefpunkt = {
+  id: string;
+  importvorgang_id: string;
+  objekt_typ: string;
+  objekt_schluessel_temp?: string | null;
+  pruefart: string;
+  status: string;
+  meldung: string;
+  bestaetigt_vom_nutzer: boolean;
+  bestaetigt_am?: string | null;
+};
+
+export type ImportBefundPreview = {
+  person_id?: string | null;
+  labor_id?: string | null;
+  labor_name?: string | null;
+  entnahmedatum: string;
+  befunddatum?: string | null;
+  bemerkung?: string | null;
+  dokument_pfad?: string | null;
+};
+
+export type ImportMesswertPreview = {
+  messwert_index: number;
+  parameter_id?: string | null;
+  original_parametername: string;
+  wert_typ: string;
+  wert_roh_text: string;
+  wert_num?: number | null;
+  wert_text?: string | null;
+  einheit_original?: string | null;
+  bemerkung_kurz?: string | null;
+  referenz_text_original?: string | null;
+};
+
+export type ImportVorgangListItem = {
+  id: string;
+  quelle_typ: string;
+  status: string;
+  person_id_vorschlag?: string | null;
+  schema_version?: string | null;
+  bemerkung?: string | null;
+  messwerte_anzahl: number;
+  fehler_anzahl: number;
+  warnung_anzahl: number;
+  erstellt_am: string;
+  geaendert_am: string;
+};
+
+export type ImportVorgangDetail = {
+  id: string;
+  quelle_typ: string;
+  status: string;
+  person_id_vorschlag?: string | null;
+  schema_version?: string | null;
+  bemerkung?: string | null;
+  warnungen_text?: string | null;
+  fingerprint?: string | null;
+  erstellt_am: string;
+  geaendert_am: string;
+  messwerte_anzahl: number;
+  fehler_anzahl: number;
+  warnung_anzahl: number;
+  befund: ImportBefundPreview;
+  messwerte: ImportMesswertPreview[];
+  pruefpunkte: ImportPruefpunkt[];
+};
