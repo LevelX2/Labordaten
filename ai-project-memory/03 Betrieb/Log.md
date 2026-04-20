@@ -159,3 +159,17 @@
   - Das Backend wurde um Endpunkte und Datenmodelle für `MesswertReferenz` und `Zielbereich` ergänzt.
   - Das Frontend erlaubt nun die Pflege von Laborreferenzen zu Messwerten und allgemeinen Zielbereichen zu Parametern.
   - Migration, Frontend-Build und API-Rauchtests für die neue Logik wurden erfolgreich ausgeführt.
+
+## [2026-04-20] update | Planung, Fälligkeiten und Vorschlagsliste als echter Durchstich umgesetzt
+- Anlass oder Quelle: Nutzerauftrag zur nächsten V1-Kernfunktion nach Referenzen und Zielbereichen
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - [[../01 Rohquellen/repo-root/2026-04-20 V1 Scaffold Workspace-Stand]]
+  - [[../02 Wissen/00 Uebersichten/Aktueller Projektstatus]]
+  - [[../02 Wissen/00 Uebersichten/Quellenlage und Aktualitaet]]
+  - [[../02 Wissen/00 Uebersichten/Index]]
+- Kern der inhaltlichen Anpassung:
+  - Das Backend wurde um Modelle, Migration, Services und API-Endpunkte für `PlanungZyklisch`, `PlanungEinmalig` und `Fälligkeiten` erweitert.
+  - Das Frontend enthält jetzt eine reale Planungsseite mit Formularen, Listen und einer konsolidierten Vorschlagsliste.
+  - Python-Kompilation, Frontend-Build, Alembic-Migration und ein API-Rauchtest für die Planungslogik wurden erfolgreich ausgeführt.

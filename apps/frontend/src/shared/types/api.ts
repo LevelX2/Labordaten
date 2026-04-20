@@ -104,3 +104,50 @@ export type Zielbereich = {
   erstellt_am: string;
   geaendert_am: string;
 };
+
+export type PlanungZyklisch = {
+  id: string;
+  person_id: string;
+  laborparameter_id: string;
+  intervall_wert: number;
+  intervall_typ: string;
+  startdatum: string;
+  enddatum?: string | null;
+  status: string;
+  prioritaet: number;
+  karenz_tage: number;
+  bemerkung?: string | null;
+  letzte_relevante_messung_id?: string | null;
+  letzte_relevante_messung_datum?: string | null;
+  naechste_faelligkeit?: string | null;
+  faelligkeitsstatus: string;
+  erstellt_am: string;
+  geaendert_am: string;
+};
+
+export type PlanungEinmalig = {
+  id: string;
+  person_id: string;
+  laborparameter_id: string;
+  status: string;
+  zieltermin_datum?: string | null;
+  bemerkung?: string | null;
+  erledigt_durch_messwert_id?: string | null;
+  erstellt_am: string;
+  geaendert_am: string;
+};
+
+export type PlanungFaelligkeit = {
+  planung_typ: string;
+  planung_id: string;
+  person_id: string;
+  laborparameter_id: string;
+  status: string;
+  prioritaet?: number | null;
+  bemerkung?: string | null;
+  letzte_relevante_messung_id?: string | null;
+  letzte_relevante_messung_datum?: string | null;
+  naechste_faelligkeit?: string | null;
+  zieltermin_datum?: string | null;
+  intervall_label?: string | null;
+};

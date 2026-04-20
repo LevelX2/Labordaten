@@ -5,6 +5,7 @@ from labordaten_backend.api.routes import (
     labore,
     messwerte,
     parameter,
+    planung,
     personen,
     referenzen,
     system,
@@ -18,5 +19,6 @@ api_router.include_router(labore.router, prefix="/labore", tags=["labore"])
 api_router.include_router(parameter.router, prefix="/parameter", tags=["parameter"])
 api_router.include_router(befunde.router, prefix="/befunde", tags=["befunde"])
 api_router.include_router(messwerte.router, prefix="/messwerte", tags=["messwerte"])
+api_router.include_router(planung.router, tags=["planung"])
 api_router.include_router(referenzen.router, tags=["referenzen"])
 api_router.include_router(zielbereiche.router, tags=["zielbereiche"])

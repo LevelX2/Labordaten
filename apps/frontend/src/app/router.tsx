@@ -4,6 +4,7 @@ import { AppLayout } from "./layout/AppLayout";
 import { BefundePage } from "../features/befunde/BefundePage";
 import { MesswertePage } from "../features/messwerte/MesswertePage";
 import { ParameterPage } from "../features/parameter/ParameterPage";
+import { PlanungPage } from "../features/planung/PlanungPage";
 import { PersonenPage } from "../features/personen/PersonenPage";
 import { FeaturePage } from "../shared/components/FeaturePage";
 import { StartPage } from "../shared/components/StartPage";
@@ -32,20 +33,7 @@ export const router = createBrowserRouter([
           />
         )
       },
-      {
-        path: "planung",
-        element: (
-          <FeaturePage
-            title="Planung"
-            description="Zyklische Kontrollen, Einmalvormerkungen, Fälligkeiten und Vorschläge für den nächsten Termin."
-            highlights={[
-              "Tabs für zyklisch, einmalig und Fälligkeiten",
-              "Berechnung nächster Fälligkeiten",
-              "Vorschlagsliste für den nächsten Termin"
-            ]}
-          />
-        )
-      },
+      { path: "planung", element: <PlanungPage /> },
       {
         path: "auswertung",
         element: (
