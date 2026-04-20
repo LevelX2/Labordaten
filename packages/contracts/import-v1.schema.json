@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://labordaten.local/contracts/import-v1.schema.json",
+  "title": "Labordaten Import V1",
+  "type": "object",
+  "required": ["schemaVersion", "quelleTyp", "befund", "messwerte"],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "quelleTyp": {
+      "type": "string",
+      "enum": ["json", "ki_json", "csv", "excel", "manuell"]
+    },
+    "personHinweis": {
+      "type": "string"
+    },
+    "befund": {
+      "type": "object",
+      "required": ["entnahmedatum"],
+      "properties": {
+        "personId": { "type": "string" },
+        "laborId": { "type": "string" },
+        "laborName": { "type": "string" },
+        "entnahmedatum": { "type": "string", "format": "date" },
+        "befunddatum": { "type": "string", "format": "date" },
+        "bemerkung": { "type": "string" },
+        "dokumentPfad": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "messwerte": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["originalParametername", "wertTyp", "wertRohText"],
+        "properties": {
+          "parameterId": { "type": "string" },
+          "originalParametername": { "type": "string" },
+          "wertTyp": {
+            "type": "string",
+            "enum": ["numerisch", "text"]
+          },
+          "wertOperator": {
+            "type": "string",
+            "enum": ["exakt", "kleiner_als", "kleiner_gleich", "groesser_als", "groesser_gleich", "ungefaehr"]
+          },
+          "wertRohText": { "type": "string" },
+          "wertNum": { "type": "number" },
+          "wertText": { "type": "string" },
+          "einheitOriginal": { "type": "string" },
+          "bemerkungKurz": { "type": "string" },
+          "bemerkungLang": { "type": "string" },
+          "referenzTextOriginal": { "type": "string" },
+          "untereGrenzeNum": { "type": "number" },
+          "obereGrenzeNum": { "type": "number" },
+          "referenzEinheit": { "type": "string" },
+          "unsicherFlag": { "type": "boolean" },
+          "pruefbedarfFlag": { "type": "boolean" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
+

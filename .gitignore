@@ -1,35 +1,30 @@
-# Operating system
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# Editors
-.idea/
-.vscode/
-
-# Logs and temp files
-*.log
-*.tmp
-*.temp
-*.bak
-*.swp
-*.swo
-
-# Dependencies and builds
-node_modules/
-dist/
-build/
-coverage/
-
 # Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 .venv/
 venv/
 
-# Environment files
-.env
-.env.local
+# Node
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+apps/frontend/vite.config.js
+apps/frontend/vite.config.d.ts
 
-# Obsidian local state
-ai-project-memory/.obsidian/workspace.json
+# Local data and builds
+*.sqlite
+*.sqlite3
+*.db
+data/
+tmp/
+
+# Editor and OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

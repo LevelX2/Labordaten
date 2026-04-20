@@ -1,5 +1,9 @@
-# Quellcode
+# Historischer Hinweis
 
-Dieser Ordner ist für die spätere technische Umsetzung der Laboranwendung vorgesehen.
+Die eigentliche technische Umsetzung liegt jetzt unter:
 
-Die konkrete Struktur wird festgelegt, sobald die fachlichen Konzepte und die technische Richtung abgestimmt sind.
+- `apps/backend/`
+- `apps/frontend/`
+- `packages/contracts/`
+
+Dieser Ordner bleibt nur als Hinweis auf die frühere neutrale Startstruktur bestehen.

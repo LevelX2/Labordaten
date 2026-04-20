@@ -1,0 +1,2 @@
+"""Kernkonfiguration und Infrastruktur."""
+
