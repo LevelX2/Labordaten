@@ -1,7 +1,7 @@
 ---
 typ: uebersicht
 status: aktiv
-letzte_aktualisierung: 2026-04-20
+letzte_aktualisierung: 2026-04-21
 quellen:
   - ../../00 Projektstart.md
   - ../../03 Betrieb/Log.md
@@ -23,9 +23,10 @@ tags:
 - Planung mit zyklischen Kontrollen, Einmalvormerkungen, Fälligkeitsberechnung und konsolidierter Vorschlagsliste ist als echter Durchstich umgesetzt und verifiziert.
 - Importprüfung mit JSON-Entwurf, Prüfpunkten, Parameterzuordnung und bewusster Übernahme ist ebenfalls als echter Durchstich umgesetzt und verifiziert.
 - Erste Berichte sind als echte Vorschau umgesetzt: Arztbericht-Liste und Verlaufsbericht auf Basis realer Daten.
+- Der erste lokale PDF-Export für Arztbericht und Verlaufsbericht ist umgesetzt und technisch verifiziert.
 
 ## Bedeutung für die weitere Arbeit
 - Das Projekt hat jetzt ein belastbares fachliches Zielbild für die nächste Architektur- und Planungsphase.
 - Das Projekt hat zusätzlich ein reales technisches Startgerüst, auf dem die eigentliche Implementierung der Fachlogik aufbauen kann.
 - Mehrere Kernbereiche sind nicht mehr nur konzeptionell beschrieben, sondern bereits technisch verifiziert.
-- Weitere Arbeit sollte nun den Durchstich auf die nächsten Kernbereiche erweitern: Auswertungsansichten und den Ausbau der Berichte zu echtem PDF-Export.
+- Weitere Arbeit sollte nun den Durchstich auf die nächsten Kernbereiche erweitern: Auswertungsansichten, gruppenbezogene Berichte und eine fachlich stärkere Diagramm- und Berichtsgestaltung.

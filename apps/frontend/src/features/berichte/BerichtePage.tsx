@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 
-import { apiFetch } from "../../shared/api/client";
+import { apiFetch, apiFetchBlob } from "../../shared/api/client";
 import type {
   ArztberichtResponse,
   Parameter,
@@ -38,6 +38,17 @@ function formatDate(value?: string | null): string {
   return new Intl.DateTimeFormat("de-DE").format(new Date(value));
 }
 
+function downloadBlob(blob: Blob, filename: string) {
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+}
+
 export function BerichtePage() {
   const [form, setForm] = useState<BerichtFormState>(initialForm);
 
@@ -55,20 +66,29 @@ export function BerichtePage() {
     [form.laborparameter_ids]
   );
 
+  const doctorPayload = {
+    person_id: form.person_id,
+    laborparameter_ids: form.laborparameter_ids,
+    datum_von: form.datum_von || null,
+    datum_bis: form.datum_bis || null,
+    include_referenzbereich: form.include_referenzbereich,
+    include_labor: form.include_labor,
+    include_befundbemerkung: form.include_befundbemerkung,
+    include_messwertbemerkung: form.include_messwertbemerkung
+  };
+
+  const trendPayload = {
+    person_id: form.person_id,
+    laborparameter_ids: form.laborparameter_ids,
+    datum_von: form.datum_von || null,
+    datum_bis: form.datum_bis || null
+  };
+
   const doctorReportMutation = useMutation({
     mutationFn: () =>
       apiFetch<ArztberichtResponse>("/api/berichte/arztbericht-vorschau", {
         method: "POST",
-        body: JSON.stringify({
-          person_id: form.person_id,
-          laborparameter_ids: form.laborparameter_ids,
-          datum_von: form.datum_von || null,
-          datum_bis: form.datum_bis || null,
-          include_referenzbereich: form.include_referenzbereich,
-          include_labor: form.include_labor,
-          include_befundbemerkung: form.include_befundbemerkung,
-          include_messwertbemerkung: form.include_messwertbemerkung
-        })
+        body: JSON.stringify(doctorPayload)
       })
   });
 
@@ -76,14 +96,31 @@ export function BerichtePage() {
     mutationFn: () =>
       apiFetch<VerlaufsberichtResponse>("/api/berichte/verlauf-vorschau", {
         method: "POST",
-        body: JSON.stringify({
-          person_id: form.person_id,
-          laborparameter_ids: form.laborparameter_ids,
-          datum_von: form.datum_von || null,
-          datum_bis: form.datum_bis || null
-        })
+        body: JSON.stringify(trendPayload)
       })
   });
+
+  const doctorPdfMutation = useMutation({
+    mutationFn: async () => {
+      const result = await apiFetchBlob("/api/berichte/arztbericht-pdf", {
+        method: "POST",
+        body: JSON.stringify(doctorPayload)
+      });
+      downloadBlob(result.blob, result.filename ?? "arztbericht.pdf");
+    }
+  });
+
+  const trendPdfMutation = useMutation({
+    mutationFn: async () => {
+      const result = await apiFetchBlob("/api/berichte/verlauf-pdf", {
+        method: "POST",
+        body: JSON.stringify(trendPayload)
+      });
+      downloadBlob(result.blob, result.filename ?? "verlauf.pdf");
+    }
+  });
+
+  const previewPending = doctorReportMutation.isPending || trendReportMutation.isPending;
 
   return (
     <section className="page">
@@ -91,8 +128,8 @@ export function BerichtePage() {
         <span className="page__kicker">Berichte</span>
         <h2>Berichte</h2>
         <p>
-          Arztbericht und Verlaufsbericht können jetzt aus echten Messdaten als Vorschau aufgebaut werden. Das ist die
-          belastbare Basis für den späteren PDF-Ausbau.
+          Arztbericht und Verlaufsbericht können jetzt aus echten Messdaten als Vorschau aufgebaut und direkt lokal als
+          PDF erzeugt werden.
         </p>
       </header>
 
@@ -207,11 +244,22 @@ export function BerichtePage() {
             </label>
 
             <div className="form-actions">
+              <button type="submit" disabled={previewPending || !form.person_id}>
+                {previewPending ? "Lädt..." : "Vorschau laden"}
+              </button>
               <button
-                type="submit"
-                disabled={doctorReportMutation.isPending || trendReportMutation.isPending || !form.person_id}
+                type="button"
+                disabled={doctorPdfMutation.isPending || !form.person_id}
+                onClick={() => doctorPdfMutation.mutate()}
               >
-                {doctorReportMutation.isPending || trendReportMutation.isPending ? "Erstellt..." : "Vorschau laden"}
+                {doctorPdfMutation.isPending ? "PDF wird erstellt..." : "Arztbericht als PDF"}
+              </button>
+              <button
+                type="button"
+                disabled={trendPdfMutation.isPending || !form.person_id}
+                onClick={() => trendPdfMutation.mutate()}
+              >
+                {trendPdfMutation.isPending ? "PDF wird erstellt..." : "Verlaufsbericht als PDF"}
               </button>
             </div>
           </form>
@@ -220,6 +268,7 @@ export function BerichtePage() {
         <article className="card">
           <h3>Arztbericht Liste</h3>
           {doctorReportMutation.isError ? <p className="form-error">{doctorReportMutation.error.message}</p> : null}
+          {doctorPdfMutation.isError ? <p className="form-error">{doctorPdfMutation.error.message}</p> : null}
           <div className="table-wrap">
             <table className="data-table">
               <thead>
@@ -254,6 +303,7 @@ export function BerichtePage() {
         <article className="card">
           <h3>Verlaufsbericht Vorschau</h3>
           {trendReportMutation.isError ? <p className="form-error">{trendReportMutation.error.message}</p> : null}
+          {trendPdfMutation.isError ? <p className="form-error">{trendPdfMutation.error.message}</p> : null}
           <div className="table-wrap">
             <table className="data-table">
               <thead>

@@ -1,7 +1,7 @@
 ---
 typ: uebersicht
 status: aktiv
-letzte_aktualisierung: 2026-04-20
+letzte_aktualisierung: 2026-04-21
 quellen:
   - ../../00 Projektstart.md
 tags:
@@ -22,13 +22,15 @@ tags:
 - Verifizierter Planungsdurchstich für zyklische Kontrollen, Einmalvormerkungen und Fälligkeiten
 - Verifizierter Importdurchstich für Entwurf, Prüfpunkte, Mapping und bewusste Übernahme
 - Verifizierter Berichtsdurchstich für Arztbericht- und Verlaufsvorschau
+- Verifizierter lokaler PDF-Export für Arztbericht und Verlaufsbericht
 
 ## Noch ausstehend
 - Detaillierte Entscheidungen zu Datenvalidierung, Änderungsverfolgung und Qualitätsregeln
 - Konkretisierung der technischen Produktform, Architektur und Packaging-Strategie
 - Präzisierung von Importprüfung, qualitativen Messwerten, Backups und Sicherheitsgrenzen
 - Spätere Detailanforderungen an Berichte, Diagrammlogik und Wissensintegration
-- Ausbau der Berichte zu PDF-Export und Erweiterung auf tiefergehende Auswertung
+- Erweiterung der Berichte auf gruppenbezogene und druckoptimierte Varianten
+- Ausbau der Auswertung mit stärkeren Diagrammen und Vergleichsansichten
 
 ## Einordnung
-Der aktuelle Stand umfasst nun eine starke fachliche Grundlage und mehrere echte, verifizierte Durchstiche im technischen Gerüst. Aussagen zur endgültigen Umsetzung bleiben dennoch vorläufig, solange PDF-Export, Auswertung und weitere Fachdetails noch nicht vollständig implementiert und erprobt sind.
+Der aktuelle Stand umfasst nun eine starke fachliche Grundlage und mehrere echte, verifizierte Durchstiche im technischen Gerüst. Aussagen zur endgültigen Umsetzung bleiben dennoch vorläufig, solange Auswertung, gruppenbezogene Berichte und weitere Fachdetails noch nicht vollständig implementiert und erprobt sind.

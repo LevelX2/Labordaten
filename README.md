@@ -15,7 +15,7 @@ Dieses Repository enthält die fachliche Wissensbasis und das technische Grundge
 Das Projekt ist jetzt in zwei Ebenen aufgeteilt:
 
 - fachlich: Konzept, Ziel-Datenmodell, technisches Schema, Screenplan
-- technisch: Scaffold für Backend, Frontend, Verträge und erste Migration
+- technisch: Scaffold für Backend, Frontend, Verträge, erste Migrationen und erste echte Fachdurchstiche
 
 ## Lokaler Start
 
@@ -42,4 +42,5 @@ npm run dev
 
 - Die Datenbank ist für V1 lokal und standardmäßig SQLite-basiert.
 - Dateien wie PDFs und Markdown-Wissensseiten bleiben im Dateisystem.
+- Arztbericht und Verlaufsbericht können bereits lokal als PDF erzeugt werden.
 - Fachentscheidungen und Architekturableitungen werden wiki-first in `ai-project-memory/` gepflegt.

@@ -215,3 +215,16 @@
   - Das Backend liefert nun Vorschauen für Arztbericht und Verlaufsbericht auf Basis realer Messdaten.
   - Das Frontend enthält eine echte Berichtsseite mit Filtern und Vorschautabellen.
   - Python-Kompilation, Frontend-Build, Alembic-Ausführung und ein API-Rauchtest für `Arztbericht-Vorschau` und `Verlaufsbericht-Vorschau` wurden erfolgreich ausgeführt.
+
+## [2026-04-21] update | Erste lokale PDF-Berichte umgesetzt
+- Anlass oder Quelle: Nutzerauftrag zum nächsten Berichts-Ausbauschritt nach den Vorschauen
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - [[../01 Rohquellen/repo-root/2026-04-20 V1 Scaffold Workspace-Stand]]
+  - [[../02 Wissen/00 Uebersichten/Aktueller Projektstatus]]
+  - [[../02 Wissen/00 Uebersichten/Quellenlage und Aktualitaet]]
+- Kern der inhaltlichen Anpassung:
+  - Das Backend erzeugt nun lokale PDF-Dateien für Arztbericht und Verlaufsbericht direkt aus den bestehenden Berichtsdaten.
+  - Das Frontend enthält Download-Aktionen für beide Berichtstypen.
+  - Backend-Kompilation, Frontend-Build und ein API-Rauchtest für Vorschau plus PDF-Ausgabe wurden erfolgreich ausgeführt.
