@@ -273,3 +273,56 @@ export type VerlaufsberichtResponse = {
   person_id: string;
   punkte: VerlaufsberichtPunkt[];
 };
+
+export type AuswertungGesamtzahlen = {
+  personen_anzahl: number;
+  parameter_anzahl: number;
+  messwerte_anzahl: number;
+  befunde_anzahl: number;
+};
+
+export type AuswertungsStatistik = {
+  anzahl_messungen: number;
+  zeitraum_von?: string | null;
+  zeitraum_bis?: string | null;
+  letzte_messung_datum?: string | null;
+  letzter_wert_anzeige?: string | null;
+  minimum_num?: number | null;
+  maximum_num?: number | null;
+  trendrichtung: string;
+};
+
+export type AuswertungPunkt = {
+  messwert_id: string;
+  datum?: string | null;
+  wert_typ: string;
+  wert_anzeige: string;
+  wert_num?: number | null;
+  wert_text?: string | null;
+  einheit?: string | null;
+  labor_name?: string | null;
+  befundbemerkung?: string | null;
+  messwertbemerkung?: string | null;
+  laborreferenz_untere_num?: number | null;
+  laborreferenz_obere_num?: number | null;
+  laborreferenz_einheit?: string | null;
+  laborreferenz_text?: string | null;
+  zielbereich_untere_num?: number | null;
+  zielbereich_obere_num?: number | null;
+  zielbereich_einheit?: string | null;
+  zielbereich_text?: string | null;
+};
+
+export type AuswertungsSerie = {
+  laborparameter_id: string;
+  parameter_anzeigename: string;
+  wert_typ_standard: string;
+  standard_einheit?: string | null;
+  statistik: AuswertungsStatistik;
+  punkte: AuswertungPunkt[];
+};
+
+export type AuswertungResponse = {
+  person_id: string;
+  serien: AuswertungsSerie[];
+};

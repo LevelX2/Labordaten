@@ -228,3 +228,16 @@
   - Das Backend erzeugt nun lokale PDF-Dateien für Arztbericht und Verlaufsbericht direkt aus den bestehenden Berichtsdaten.
   - Das Frontend enthält Download-Aktionen für beide Berichtstypen.
   - Backend-Kompilation, Frontend-Build und ein API-Rauchtest für Vorschau plus PDF-Ausgabe wurden erfolgreich ausgeführt.
+
+## [2026-04-21] update | Auswertung mit echten Diagrammen umgesetzt
+- Anlass oder Quelle: Nutzerauftrag zum nächsten Ausbaupunkt nach dem PDF-Berichtsstand
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - [[../01 Rohquellen/repo-root/2026-04-20 V1 Scaffold Workspace-Stand]]
+  - [[../02 Wissen/00 Uebersichten/Aktueller Projektstatus]]
+  - [[../02 Wissen/00 Uebersichten/Quellenlage und Aktualitaet]]
+- Kern der inhaltlichen Anpassung:
+  - Das Backend liefert nun Gesamtzahlen und auswertungsfähige Zeitreihen pro Parameter inklusive Laborreferenzen, Zielbereichen und qualitativen Ereignissen.
+  - Das Frontend enthält eine echte Auswertungsseite mit Filtern, Kennzahlen, Diagrammen und Ereignistabelle.
+  - Backend-Kompilation, Frontend-Build und ein API-Rauchtest für den neuen Auswertungsbereich wurden erfolgreich ausgeführt.

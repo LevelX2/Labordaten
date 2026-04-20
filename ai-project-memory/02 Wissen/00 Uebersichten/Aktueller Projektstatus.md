@@ -24,9 +24,10 @@ tags:
 - Importprüfung mit JSON-Entwurf, Prüfpunkten, Parameterzuordnung und bewusster Übernahme ist ebenfalls als echter Durchstich umgesetzt und verifiziert.
 - Erste Berichte sind als echte Vorschau umgesetzt: Arztbericht-Liste und Verlaufsbericht auf Basis realer Daten.
 - Der erste lokale PDF-Export für Arztbericht und Verlaufsbericht ist umgesetzt und technisch verifiziert.
+- Die Auswertung ist jetzt als echter Bereich umgesetzt: Filter, Gesamtzahlen, Zeitreihen-Diagramme, Referenzlinien, Zielbereiche und qualitative Ereignisse.
 
 ## Bedeutung für die weitere Arbeit
 - Das Projekt hat jetzt ein belastbares fachliches Zielbild für die nächste Architektur- und Planungsphase.
 - Das Projekt hat zusätzlich ein reales technisches Startgerüst, auf dem die eigentliche Implementierung der Fachlogik aufbauen kann.
 - Mehrere Kernbereiche sind nicht mehr nur konzeptionell beschrieben, sondern bereits technisch verifiziert.
-- Weitere Arbeit sollte nun den Durchstich auf die nächsten Kernbereiche erweitern: Auswertungsansichten, gruppenbezogene Berichte und eine fachlich stärkere Diagramm- und Berichtsgestaltung.
+- Weitere Arbeit sollte nun den Durchstich auf die nächsten Kernbereiche erweitern: gruppenbezogene Berichte, echte Gruppierung, Wissensbasis-Anbindung und weitere fachliche Verfeinerung der Diagramm- und Berichtsgestaltung.

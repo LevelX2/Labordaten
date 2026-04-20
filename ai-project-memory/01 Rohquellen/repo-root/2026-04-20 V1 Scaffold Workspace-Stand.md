@@ -23,6 +23,7 @@
 - Importprüfung als echter Durchstich mit JSON-Entwurf, Prüfpunkten, Parameter-Mapping und bewusster Übernahme
 - Erste Berichtsansichten als echter Durchstich mit Arztbericht-Vorschau und Verlaufsbericht-Vorschau
 - Berichtsausgabe als echter lokaler PDF-Export für Arztbericht und Verlaufsbericht
+- Auswertung als echter Arbeitsbereich mit Zeitreihen, Kennzahlen, Referenzlinien, Zielbereichen und qualitativen Ereignissen
 - Erstes Importvertragsschema unter `packages/contracts/import-v1.schema.json`
 - Aktualisierte Root-Dokumentation für lokalen Start
 
@@ -37,6 +38,8 @@
 - API-Rauchtest für `Importentwurf -> Prüfpunkte -> Mapping -> Übernahme` war erfolgreich
 - API-Rauchtest für `Arztbericht-Vorschau` und `Verlaufsbericht-Vorschau` war erfolgreich
 - API-Rauchtest für `Arztbericht-PDF` und `Verlaufsbericht-PDF` war erfolgreich
+- API-Rauchtest für `Auswertung Gesamtzahlen` und `Auswertung Verlauf` war erfolgreich
+- Frontend-Build mit echter Diagrammbibliothek für den Auswertungsbereich läuft durch
 
 ## Hinweis
 Dies ist keine vollständige Dateikopie, sondern eine Rohquellen-Referenz auf den aktuellen Workspace-Stand nach dem technischen Projektgerüst und den ersten verifizierten Durchstichen.

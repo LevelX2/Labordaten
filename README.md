@@ -43,4 +43,5 @@ npm run dev
 - Die Datenbank ist für V1 lokal und standardmäßig SQLite-basiert.
 - Dateien wie PDFs und Markdown-Wissensseiten bleiben im Dateisystem.
 - Arztbericht und Verlaufsbericht können bereits lokal als PDF erzeugt werden.
+- Der Bereich `Auswertung` zeigt bereits echte Zeitreihen und Diagramme auf Basis vorhandener Messwerte.
 - Fachentscheidungen und Architekturableitungen werden wiki-first in `ai-project-memory/` gepflegt.

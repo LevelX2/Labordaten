@@ -23,6 +23,7 @@ tags:
 - Verifizierter Importdurchstich für Entwurf, Prüfpunkte, Mapping und bewusste Übernahme
 - Verifizierter Berichtsdurchstich für Arztbericht- und Verlaufsvorschau
 - Verifizierter lokaler PDF-Export für Arztbericht und Verlaufsbericht
+- Verifizierter Auswertungsbereich mit Zeitreihen und Diagrammen
 
 ## Noch ausstehend
 - Detaillierte Entscheidungen zu Datenvalidierung, Änderungsverfolgung und Qualitätsregeln
@@ -30,7 +31,7 @@ tags:
 - Präzisierung von Importprüfung, qualitativen Messwerten, Backups und Sicherheitsgrenzen
 - Spätere Detailanforderungen an Berichte, Diagrammlogik und Wissensintegration
 - Erweiterung der Berichte auf gruppenbezogene und druckoptimierte Varianten
-- Ausbau der Auswertung mit stärkeren Diagrammen und Vergleichsansichten
+- Ausbau der Auswertung mit stärkeren Vergleichsansichten, Mehrparameter-Überlagerungen und Normierungslogik
 
 ## Einordnung
-Der aktuelle Stand umfasst nun eine starke fachliche Grundlage und mehrere echte, verifizierte Durchstiche im technischen Gerüst. Aussagen zur endgültigen Umsetzung bleiben dennoch vorläufig, solange Auswertung, gruppenbezogene Berichte und weitere Fachdetails noch nicht vollständig implementiert und erprobt sind.
+Der aktuelle Stand umfasst nun eine starke fachliche Grundlage und mehrere echte, verifizierte Durchstiche im technischen Gerüst. Aussagen zur endgültigen Umsetzung bleiben dennoch vorläufig, solange gruppenbezogene Berichte, Wissensintegration und weitere Fachdetails noch nicht vollständig implementiert und erprobt sind.

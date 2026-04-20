@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 
 import { AppLayout } from "./layout/AppLayout";
+import { AuswertungPage } from "../features/auswertung/AuswertungPage";
 import { BefundePage } from "../features/befunde/BefundePage";
 import { BerichtePage } from "../features/berichte/BerichtePage";
 import { ImportPage } from "../features/importe/ImportPage";
@@ -36,20 +37,7 @@ export const router = createBrowserRouter([
         )
       },
       { path: "planung", element: <PlanungPage /> },
-      {
-        path: "auswertung",
-        element: (
-          <FeaturePage
-            title="Auswertung"
-            description="Verläufe, Kennzahlen, Referenzanzeige und qualitative Ereignisse neben numerischen Kurven."
-            highlights={[
-              "Einzel- und Mehrparameter-Verläufe",
-              "Labor- und Zielreferenzen",
-              "Qualitative Ereignisliste im Verlauf"
-            ]}
-          />
-        )
-      },
+      { path: "auswertung", element: <AuswertungPage /> },
       { path: "berichte", element: <BerichtePage /> },
       { path: "import", element: <ImportPage /> },
       {

@@ -184,6 +184,23 @@ a {
   gap: 18px;
 }
 
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.checkbox-grid label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--text);
+}
+
 .form-grid {
   display: grid;
   gap: 14px;
@@ -270,6 +287,44 @@ a {
   color: var(--muted);
 }
 
+.trend-card__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.trend-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.trend-badge {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.trend-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin-bottom: 14px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.trend-chart {
+  margin-bottom: 16px;
+  padding: 8px 4px 0;
+  border-top: 1px solid rgba(215, 204, 185, 0.6);
+}
+
 @media (max-width: 960px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -284,5 +339,9 @@ a {
 
   .hero {
     grid-template-columns: 1fr;
+  }
+
+  .trend-card__header {
+    flex-direction: column;
   }
 }
