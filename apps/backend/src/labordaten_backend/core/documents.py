@@ -6,14 +6,14 @@ from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
 
-from labordaten_backend.core.config import get_settings
+from labordaten_backend.core.runtime_settings import get_runtime_settings_store
 from labordaten_backend.models.base import utcnow
 from labordaten_backend.models.dokument import Dokument
 
 
 def get_documents_root() -> Path:
-    settings = get_settings()
-    root = Path(settings.documents_dir).expanduser().resolve()
+    runtime_settings = get_runtime_settings_store().get()
+    root = Path(runtime_settings.documents_path).expanduser().resolve()
     root.mkdir(parents=True, exist_ok=True)
     return root
 

@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./labordaten.db"
     frontend_origin: str = "http://localhost:5173"
     documents_dir: str = "./documents"
+    runtime_settings_file: str = "./labordaten.runtime.json"
+    knowledge_dir: str = "./ai-project-memory"
 
     model_config = SettingsConfigDict(
         env_prefix="LABORDATEN_",

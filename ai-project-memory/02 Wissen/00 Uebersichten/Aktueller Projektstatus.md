@@ -29,6 +29,7 @@ tags:
 - Messwerte, Berichte und Auswertung unterstützen jetzt bereichsübergreifende Filter nach Person, mehreren Personen, Gruppe, Labor und Zeitraum.
 - Familien- oder personenübergreifende Ansichten sind damit für Listen, Berichte und Verlaufsdiagramme im aktuellen Workspace-Stand bereits möglich.
 - Die Importstrecke unterstützt jetzt zusätzlich echte CSV- und Excel-Dateien mit Metadaten, optionaler Quelldatei-Ablage und Dokumentverknüpfung zum übernommenen Befund.
+- Die Anwendung besitzt jetzt echte Laufzeit-Einstellungen für Datenpfad, Dokumentenpfad, Wissensordner und Betriebsoptionen sowie eine lokale Single-User-Sperrlogik mit Status- und Reset-Endpunkten.
 
 ## Bedeutung für die weitere Arbeit
 - Das Projekt hat jetzt ein belastbares fachliches Zielbild für die nächste Architektur- und Planungsphase.
@@ -36,4 +37,5 @@ tags:
 - Mehrere Kernbereiche sind nicht mehr nur konzeptionell beschrieben, sondern bereits technisch verifiziert.
 - Gruppen funktionieren nicht mehr nur als Konzept, sondern bereits als zentrale Filter- und Organisationslogik für Messwerte, Berichte und Auswertung.
 - Der Import ist nicht mehr auf manuell eingefügtes JSON beschränkt, sondern kann tabellarische Dateien kontrolliert in prüfbare Entwürfe überführen.
-- Weitere Arbeit sollte nun vor allem Wissensbasis-Anbindung, Einstellungen, lokale Betriebslogik und weitere fachliche Verfeinerung der Diagramm- und Berichtsgestaltung vertiefen.
+- Die lokale Betriebslogik ist sichtbar geworden: Pfade und Sperrstatus sind nicht mehr nur Hintergrundannahmen, sondern echte Systemfunktionen.
+- Weitere Arbeit sollte nun vor allem Wissensbasis-Anbindung, weitere Importstufen, fachliche Berichtsverfeinerung und vertiefte Wissensverknüpfung vorantreiben.

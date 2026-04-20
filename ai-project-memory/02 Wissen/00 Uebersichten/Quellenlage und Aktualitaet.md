@@ -28,6 +28,7 @@ tags:
 - Verifizierte bereichsübergreifende Filter nach Personen, Gruppen, Laboren und Zeitraum für Messwerte, Berichte und Auswertung
 - Verifizierte personenübergreifende Familienansichten in Berichtsvorschau, Verlaufs-PDF und Auswertung
 - Verifizierter Dateiimport für CSV und Excel mit optionaler Quellablage als Dokument und Verknüpfung zum übernommenen Befund
+- Verifizierter Betriebsblock für Laufzeit-Einstellungen, Sperrstatus und kontrollierten Reset der lokalen Datenbasis-Sperre
 
 ## Noch ausstehend
 - Detaillierte Entscheidungen zu Datenvalidierung, Änderungsverfolgung und Qualitätsregeln
@@ -36,7 +37,7 @@ tags:
 - Spätere Detailanforderungen an Berichte, Diagrammlogik und Wissensintegration
 - Weitere Verfeinerung gruppenbezogener und druckoptimierter Berichtsausgaben
 - Ausbau der Auswertung mit stärkeren Vergleichsansichten, Mehrparameter-Überlagerungen und Normierungslogik
-- Einstellungen, lokale Pfadverwaltung und Single-User-Sperrlogik als explizite Betriebsoberfläche
+- Reale Wissensbasis-Anzeige und spätere Dateisystem-/Obsidian-Anbindung in der Oberfläche
 
 ## Einordnung
-Der aktuelle Stand umfasst nun eine starke fachliche Grundlage und mehrere echte, verifizierte Durchstiche im technischen Gerüst. Aussagen zur endgültigen Umsetzung bleiben dennoch vorläufig, solange Wissensintegration, weitere Importstufen, lokale Betriebslogik und Detailverfeinerungen in Berichten und Diagrammen noch nicht vollständig implementiert und erprobt sind.
+Der aktuelle Stand umfasst nun eine starke fachliche Grundlage und mehrere echte, verifizierte Durchstiche im technischen Gerüst. Aussagen zur endgültigen Umsetzung bleiben dennoch vorläufig, solange Wissensintegration, weitere Importstufen, tieferer Berichtsfeinschliff und zusätzliche Komfortschichten noch nicht vollständig implementiert und erprobt sind.

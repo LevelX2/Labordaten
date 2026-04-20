@@ -4,6 +4,7 @@ import { AppLayout } from "./layout/AppLayout";
 import { AuswertungPage } from "../features/auswertung/AuswertungPage";
 import { BefundePage } from "../features/befunde/BefundePage";
 import { BerichtePage } from "../features/berichte/BerichtePage";
+import { EinstellungenPage } from "../features/einstellungen/EinstellungenPage";
 import { GruppenPage } from "../features/gruppen/GruppenPage";
 import { ImportPage } from "../features/importe/ImportPage";
 import { MesswertePage } from "../features/messwerte/MesswertePage";
@@ -44,17 +45,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "einstellungen",
-        element: (
-          <FeaturePage
-            title="Einstellungen"
-            description="Pfadkonfiguration, Berichtsoptionen, spätere KI-Einstellungen und Systemstatus der Datenbasis."
-            highlights={[
-              "Datenpfad, Dokumentenpfad und Wissensordner",
-              "Berichts- und Anzeigevorgaben",
-              "Datenbasis-Sperre und kontrollierte Freigabe"
-            ]}
-          />
-        )
+        element: <EinstellungenPage />
       }
     ]
   }

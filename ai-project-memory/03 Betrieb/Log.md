@@ -312,3 +312,17 @@
   - Optional abgelegte Quelldateien werden als `Dokument` gespeichert und beim Übernehmen mit dem erzeugten Befund verknüpft.
   - Das Frontend enthält dafür eine reale Upload-Oberfläche mit Datei, Person, Labor, Datum, Bemerkungen und Quellablage-Option.
   - Backend-Kompilation, Frontend-Build, Paketinstallation mit `openpyxl`, Alembic-Ausführung und ein API-Rauchtest für `CSV/XLSX -> Entwurf -> Übernahme -> Dokumentlink` wurden erfolgreich ausgeführt.
+
+## [2026-04-21] update | Laufzeit-Einstellungen und lokale Sperrlogik als echte Betriebsfunktion umgesetzt
+- Anlass oder Quelle: Fortsetzung der lokalen V1-Betriebslogik nach Dateiimport und Dokumentverknüpfung
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - [[../01 Rohquellen/repo-root/2026-04-20 V1 Scaffold Workspace-Stand]]
+  - [[../02 Wissen/00 Uebersichten/Aktueller Projektstatus]]
+  - [[../02 Wissen/00 Uebersichten/Quellenlage und Aktualitaet]]
+- Kern der inhaltlichen Anpassung:
+  - Das Backend besitzt nun persistente Laufzeit-Einstellungen für Datenpfad, Dokumentenpfad, Wissensordner und mehrere Betriebsoptionen.
+  - Zusätzlich wurde eine filebasierte Single-User-Sperrlogik mit Heartbeat, Konflikterkennung, Statusabfrage und kontrolliertem Reset umgesetzt.
+  - Das Frontend enthält jetzt eine echte Einstellungsseite mit Systemstatus, Sperrinformationen und speicherbaren Laufzeitoptionen.
+  - Backend-Kompilation, Frontend-Build und ein API-Rauchtest für `Settings -> Lock aktiv -> Konflikt zweite Instanz -> Reset` wurden erfolgreich ausgeführt.

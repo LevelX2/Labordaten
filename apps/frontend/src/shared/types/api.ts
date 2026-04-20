@@ -367,3 +367,37 @@ export type AuswertungResponse = {
   person_ids: string[];
   serien: AuswertungsSerie[];
 };
+
+export type SystemHealth = {
+  status: string;
+  app: string;
+  environment: string;
+  lock_status: string;
+  lock_message: string;
+};
+
+export type RuntimeSettings = {
+  data_path: string;
+  documents_path: string;
+  knowledge_path: string;
+  import_store_source_files_default: boolean;
+  report_include_labor_default: boolean;
+  report_include_reference_default: boolean;
+  allow_api_key_usage: boolean;
+  import_auto_create_lab_default: boolean;
+  darstellung_normierte_vergleiche: boolean;
+  bericht_standardvorlage?: string | null;
+  bemerkung?: string | null;
+};
+
+export type LockStatus = {
+  status: string;
+  message: string;
+  instance_id: string;
+  lock_path: string;
+  owner_hostname?: string | null;
+  owner_pid?: number | null;
+  acquired_at?: string | null;
+  heartbeat_at?: string | null;
+  stale: boolean;
+};
