@@ -326,3 +326,16 @@
   - Zusätzlich wurde eine filebasierte Single-User-Sperrlogik mit Heartbeat, Konflikterkennung, Statusabfrage und kontrolliertem Reset umgesetzt.
   - Das Frontend enthält jetzt eine echte Einstellungsseite mit Systemstatus, Sperrinformationen und speicherbaren Laufzeitoptionen.
   - Backend-Kompilation, Frontend-Build und ein API-Rauchtest für `Settings -> Lock aktiv -> Konflikt zweite Instanz -> Reset` wurden erfolgreich ausgeführt.
+
+## [2026-04-21] update | Wissensbasis als lesender Arbeitsbereich umgesetzt
+- Anlass oder Quelle: nächster Ausbaupunkt nach Einstellungen und lokaler Betriebslogik
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - [[../01 Rohquellen/repo-root/2026-04-20 V1 Scaffold Workspace-Stand]]
+  - [[../02 Wissen/00 Uebersichten/Aktueller Projektstatus]]
+  - [[../02 Wissen/00 Uebersichten/Quellenlage und Aktualitaet]]
+- Kern der inhaltlichen Anpassung:
+  - Das Backend liest jetzt Markdown-Seiten aus dem konfigurierten Wissensordner, extrahiert einfache Frontmatter-Metadaten und stellt Liste sowie Detailansicht per API bereit.
+  - Das Frontend enthält eine echte Wissensbasis-Seite mit Suche, Seitenauswahl, Frontmatter-Anzeige und Markdown-Detailansicht.
+  - Backend-Kompilation, Frontend-Build und ein Rauchtest für `Wissensseiten-Liste -> Detailansicht` wurden erfolgreich ausgeführt.

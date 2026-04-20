@@ -401,3 +401,17 @@ export type LockStatus = {
   heartbeat_at?: string | null;
   stale: boolean;
 };
+
+export type WissensseiteListItem = {
+  pfad_relativ: string;
+  pfad_absolut: string;
+  titel: string;
+  aliases: string[];
+  excerpt?: string | null;
+  geaendert_am: string;
+};
+
+export type WissensseiteDetail = WissensseiteListItem & {
+  frontmatter: Record<string, unknown>;
+  inhalt_markdown: string;
+};

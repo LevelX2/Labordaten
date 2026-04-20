@@ -29,6 +29,7 @@
 - Personenübergreifende Familienansichten in Berichtsvorschau, Verlaufsbericht und Auswertungsdiagrammen
 - Dateiimport für CSV und Excel mit tabellarischer Auswertung, Metadaten-Ergänzung, optionaler Quellablage und Dokumentverknüpfung
 - Laufzeit-Einstellungen mit Pfadverwaltung, lokalen Betriebsoptionen und sichtbarer Single-User-Sperrlogik
+- Wissensbasis-Anzeige für Markdown-Seiten inklusive Suche, Frontmatter-Lesung und Detailansicht
 - Erstes Importvertragsschema unter `packages/contracts/import-v1.schema.json`
 - Aktualisierte Root-Dokumentation für lokalen Start
 
@@ -49,6 +50,7 @@
 - API-Rauchtest für `Gruppen`, `GruppenParameter`, gruppengefilterte Messwertlisten, gruppengefilterte Berichtsvorschau, Verlaufs-PDF und personenübergreifende Auswertung war erfolgreich
 - API-Rauchtest für CSV-Import, Excel-Import, Dokumentablage und Befundverknüpfung war erfolgreich
 - API-Rauchtest für Einstellungen, aktive Sperre, Sperrkonflikt und kontrollierten Reset war erfolgreich
+- API-Rauchtest für Wissensseiten-Liste und Wissensseiten-Detail auf Basis echter Markdown-Dateien war erfolgreich
 
 ## Hinweis
 Dies ist keine vollständige Dateikopie, sondern eine Rohquellen-Referenz auf den aktuellen Workspace-Stand nach dem technischen Projektgerüst und den ersten verifizierten Durchstichen.

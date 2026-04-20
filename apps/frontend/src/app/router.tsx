@@ -11,7 +11,7 @@ import { MesswertePage } from "../features/messwerte/MesswertePage";
 import { ParameterPage } from "../features/parameter/ParameterPage";
 import { PlanungPage } from "../features/planung/PlanungPage";
 import { PersonenPage } from "../features/personen/PersonenPage";
-import { FeaturePage } from "../shared/components/FeaturePage";
+import { WissensbasisPage } from "../features/wissensbasis/WissensbasisPage";
 import { StartPage } from "../shared/components/StartPage";
 
 export const router = createBrowserRouter([
@@ -29,24 +29,8 @@ export const router = createBrowserRouter([
       { path: "auswertung", element: <AuswertungPage /> },
       { path: "berichte", element: <BerichtePage /> },
       { path: "import", element: <ImportPage /> },
-      {
-        path: "wissensbasis",
-        element: (
-          <FeaturePage
-            title="Wissensbasis"
-            description="Verknüpfte Markdown-Seiten anzeigen und im Dateisystem öffnen."
-            highlights={[
-              "Anzeige verknüpfter Wissensseiten",
-              "Filter nach Parameter und Gruppenbezug",
-              "Spätere Erweiterung für strukturierte Metadaten"
-            ]}
-          />
-        )
-      },
-      {
-        path: "einstellungen",
-        element: <EinstellungenPage />
-      }
+      { path: "wissensbasis", element: <WissensbasisPage /> },
+      { path: "einstellungen", element: <EinstellungenPage /> }
     ]
   }
 ]);

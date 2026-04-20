@@ -29,6 +29,7 @@ tags:
 - Verifizierte personenübergreifende Familienansichten in Berichtsvorschau, Verlaufs-PDF und Auswertung
 - Verifizierter Dateiimport für CSV und Excel mit optionaler Quellablage als Dokument und Verknüpfung zum übernommenen Befund
 - Verifizierter Betriebsblock für Laufzeit-Einstellungen, Sperrstatus und kontrollierten Reset der lokalen Datenbasis-Sperre
+- Verifizierte Wissensbasis-Anzeige für Markdown-Seiten aus dem konfigurierten Wissensordner
 
 ## Noch ausstehend
 - Detaillierte Entscheidungen zu Datenvalidierung, Änderungsverfolgung und Qualitätsregeln
@@ -37,7 +38,7 @@ tags:
 - Spätere Detailanforderungen an Berichte, Diagrammlogik und Wissensintegration
 - Weitere Verfeinerung gruppenbezogener und druckoptimierter Berichtsausgaben
 - Ausbau der Auswertung mit stärkeren Vergleichsansichten, Mehrparameter-Überlagerungen und Normierungslogik
-- Reale Wissensbasis-Anzeige und spätere Dateisystem-/Obsidian-Anbindung in der Oberfläche
+- Tiefere Verknüpfung von Wissensseiten mit Parametern, Gruppen und Dateisystem-Aktionen
 
 ## Einordnung
-Der aktuelle Stand umfasst nun eine starke fachliche Grundlage und mehrere echte, verifizierte Durchstiche im technischen Gerüst. Aussagen zur endgültigen Umsetzung bleiben dennoch vorläufig, solange Wissensintegration, weitere Importstufen, tieferer Berichtsfeinschliff und zusätzliche Komfortschichten noch nicht vollständig implementiert und erprobt sind.
+Der aktuelle Stand umfasst nun eine starke fachliche Grundlage und mehrere echte, verifizierte Durchstiche im technischen Gerüst. Aussagen zur endgültigen Umsetzung bleiben dennoch vorläufig, solange tiefere Wissensintegration, weitere Importstufen, Berichtsfeinschliff und zusätzliche Komfortschichten noch nicht vollständig implementiert und erprobt sind.

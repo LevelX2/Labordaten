@@ -30,6 +30,7 @@ tags:
 - Familien- oder personenübergreifende Ansichten sind damit für Listen, Berichte und Verlaufsdiagramme im aktuellen Workspace-Stand bereits möglich.
 - Die Importstrecke unterstützt jetzt zusätzlich echte CSV- und Excel-Dateien mit Metadaten, optionaler Quelldatei-Ablage und Dokumentverknüpfung zum übernommenen Befund.
 - Die Anwendung besitzt jetzt echte Laufzeit-Einstellungen für Datenpfad, Dokumentenpfad, Wissensordner und Betriebsoptionen sowie eine lokale Single-User-Sperrlogik mit Status- und Reset-Endpunkten.
+- Die Wissensbasis ist jetzt auch als echter Arbeitsbereich umgesetzt: Markdown-Seiten aus dem konfigurierten Wissensordner können gelistet, durchsucht und im Detail angezeigt werden.
 
 ## Bedeutung für die weitere Arbeit
 - Das Projekt hat jetzt ein belastbares fachliches Zielbild für die nächste Architektur- und Planungsphase.
@@ -38,4 +39,5 @@ tags:
 - Gruppen funktionieren nicht mehr nur als Konzept, sondern bereits als zentrale Filter- und Organisationslogik für Messwerte, Berichte und Auswertung.
 - Der Import ist nicht mehr auf manuell eingefügtes JSON beschränkt, sondern kann tabellarische Dateien kontrolliert in prüfbare Entwürfe überführen.
 - Die lokale Betriebslogik ist sichtbar geworden: Pfade und Sperrstatus sind nicht mehr nur Hintergrundannahmen, sondern echte Systemfunktionen.
-- Weitere Arbeit sollte nun vor allem Wissensbasis-Anbindung, weitere Importstufen, fachliche Berichtsverfeinerung und vertiefte Wissensverknüpfung vorantreiben.
+- Die Wissensverknüpfung ist noch nicht tief in Parameter- und Gruppenansichten integriert, aber der lesende Kernbereich dafür steht jetzt.
+- Weitere Arbeit sollte nun vor allem vertiefte Wissensverknüpfung, weitere Importstufen, fachliche Berichtsverfeinerung und Komfortausbau vorantreiben.
