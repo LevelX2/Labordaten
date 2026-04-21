@@ -52,6 +52,8 @@ Diese Wissensbasis dient der dauerhaften, strukturierten und verlinkten Dokument
 ## Betriebsdateien
 - `Index.md` ist ein inhaltsorientierter Katalog der wichtigsten Wissensseiten. Jeder Eintrag soll mindestens Link und Kurzbeschreibung tragen.
 - `Log.md` ist chronologisch und append-only. Einträge sollen mit parsebarem Präfix beginnen, bevorzugt `## [YYYY-MM-DD] typ | titel`.
+- `Aktueller Projektstatus.md` ist eine verdichtete Zustandsübersicht des aktuellen Stands und kein Changelog. Die Seite soll den Projektstand als Snapshot zeigen, nicht die zeitliche Abfolge der Änderungen nacherzählen.
+- Für `Aktueller Projektstatus.md` sind kompakte Rubriken wie `Umgesetzt`, `Teilweise umgesetzt`, `Offen` und `Wichtige Grenzen` zu bevorzugen. Detailverlauf, Verifikationen und einzelne Umsetzungsschritte gehören stattdessen ins `Log.md`.
 - Für externe Webquellen soll nach Möglichkeit ein lokaler Snapshot in `01 Rohquellen` abgelegt werden. Wenn das nicht möglich ist, wird mindestens eine Rohquellen-Referenz mit URL und Abrufdatum angelegt.
 
 ## Lint-Regeln

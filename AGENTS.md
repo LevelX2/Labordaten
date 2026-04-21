@@ -102,6 +102,14 @@ Ausnahmen:
 - Log: `ai-project-memory/03 Betrieb/Log.md`
 - Qualitätsprüfung: `ai-project-memory/03 Betrieb/Qualitaetspruefung.md`
 
+## Einordnung von Status und Log
+
+- `ai-project-memory/02 Wissen/00 Uebersichten/Aktueller Projektstatus.md` ist eine verdichtete Zustandsübersicht und kein Änderungsprotokoll.
+- Diese Seite soll den aktuellen Stand als Snapshot zeigen, zum Beispiel gegliedert in `Umgesetzt`, `Teilweise umgesetzt`, `Offen` und `Wichtige Grenzen`.
+- Einzelne Schritte, Entscheidungen, Verifikationen und zeitliche Abfolgen gehören nicht als Erzählung in diese Statusseite, sondern in `ai-project-memory/03 Betrieb/Log.md`.
+- `ai-project-memory/03 Betrieb/Log.md` bleibt chronologisch und append-only und beantwortet primär, was wann passiert ist.
+- Wenn sich Statusseite und Log inhaltlich überschneiden, ist die Statusseite zu verdichten statt das Log auszudünnen.
+
 ## Abschluss-Kommandos
 
 Wenn der Nutzer sinngemäß `Abschluss`, `abschließen`, `Thread abschließen`, `Dialog beenden` oder `Thread beenden` schreibt, löst das eine Abschlussprüfung aus.
@@ -110,14 +118,17 @@ Dabei gilt:
 
 1. Prüfen, ob noch fachliche, technische oder organisatorische Punkte offen sind, die geklärt werden sollten.
 2. Prüfen, ob neue belastbare Erkenntnisse noch in die Wissensbasis zurückgeführt werden sollten.
-3. Falls noch offene Klärpunkte oder sinnvolle Wissenspflege bestehen, diese dem Nutzer kompakt und konkret als Vorschlag nennen.
-4. Danach aktiv fragen, ob der aktuelle Stand committed werden soll, sofern für diesen Stand noch kein Commit erfolgt ist.
+3. Prüfen, ob alle zum Abschluss gehörenden Änderungen committed sind oder noch in einen konsistenten Abschlussstand überführt werden müssen.
+4. Falls noch offene Klärpunkte, ungeklärte Probleme oder uncommittete Abschlussänderungen bestehen, diese zuerst kompakt und konkret benennen und den Thread noch nicht als abgeschlossen behandeln.
+5. `Abschluss` bedeutet grundsätzlich, dass der am Ende verbleibende erfolgreiche Abschlussstand committed ist. Ein bloß teilweise bereinigter oder bewusst offen gelassener Stand gilt nicht als Abschluss.
+6. Wenn der Stand erfolgreich abgeschlossen ist, soll der Thread danach als archivierungsreif behandelt werden.
 
 Wenn der Nutzer sinngemäß `Abschluss mit Commit` schreibt, gilt zusätzlich:
 
 1. Dieselbe Abschlussprüfung wird durchgeführt.
 2. Offene letzte Punkte sollen nach Möglichkeit direkt abgearbeitet werden, sofern sie im aktuellen Rahmen sinnvoll lösbar sind.
-3. Danach soll automatisch ein Commit erstellt werden, sobald der Stand konsistent ist und keine ungeklärten Rückfragen mehr offen sind.
+3. Danach sollen alle zum Abschluss gehörenden Änderungen automatisch committed werden, sobald der Stand konsistent ist und keine ungeklärten Rückfragen mehr offen sind.
 4. Wenn im Verlauf des Dialogs mehrere klar trennbare Funktionalitäten umgesetzt wurden, sollen Commits nach Möglichkeit sinnvoll aufgeteilt werden, statt alles in einen Sammel-Commit zu legen.
+5. Nach erfolgreichem Abschluss mit Commit ist der Thread als archivierungsreif zu behandeln.
 
 Wenn nach der Abschlussprüfung noch relevante Unsicherheiten, Konflikte oder bewusste Entscheidungsfragen offen sind, soll der Agent nicht blind committen, sondern diese kurz benennen und auf den ausstehenden Klärbedarf hinweisen.

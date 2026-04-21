@@ -1,47 +1,51 @@
 ---
 typ: uebersicht
 status: aktiv
-letzte_aktualisierung: 2026-04-21
+letzte_aktualisierung: 2026-04-22
 quellen:
   - ../../00 Projektstart.md
   - ../../03 Betrieb/Log.md
-  - ../../01 Rohquellen/fachkonzepte/2026-04-21 Rueckmeldung Berichte und Import UX.md
+  - ../Begriffe und Konzepte/Ist-Stand Importstrecke und PDF-Grenzen.md
+  - ../Begriffe und Konzepte/Ist-Stand Einheiten, Normeinheiten und Umrechnung.md
+  - ../Begriffe und Konzepte/Ist-Stand Alias-Vorschlaege und Berichtseinheiten.md
+  - ../Begriffe und Konzepte/Ist-Stand Parameter-Dubletten und Zusammenfuehrung.md
 tags:
   - status
 ---
 
 # Aktueller Projektstatus
 
-## Stand
-- Git-Repository ist initialisiert.
-- Grundlegende Projektdateien sind angelegt.
-- Die projektbezogene Wissensbasis `ai-project-memory/` ist eingerichtet.
-- Eine erste umfassende fachliche Konzeptvorgabe zur eigentlichen Laboranwendung liegt als Rohquelle und Wissensableitung vor.
-- Ein technisches V1-Scaffold mit lokalem Backend, lokalem Frontend, gemeinsamer Vertragsstruktur und erster Migration ist im Workspace angelegt.
-- Der erste technische Durchstich für Personen, Parameter, Befunde und Messwerte funktioniert über echte API-Endpunkte und Frontend-Formulare.
-- Laborreferenzen pro Messwert und allgemeine Zielbereiche pro Parameter sind ebenfalls als echte Durchstich-Funktionen angebunden.
-- Personenspezifische Zielbereichs-Overrides sind als Erweiterung der Personen- und Zielbereichslogik umgesetzt und verifiziert.
-- Planung mit zyklischen Kontrollen, Einmalvormerkungen, Fälligkeitsberechnung und konsolidierter Vorschlagsliste ist als echter Durchstich umgesetzt und verifiziert.
-- Importprüfung mit JSON-Entwurf, Prüfpunkten, Parameterzuordnung und bewusster Übernahme ist ebenfalls als echter Durchstich umgesetzt und verifiziert.
-- Erste Berichte sind als echte Vorschau umgesetzt: Arztbericht-Liste und Verlaufsbericht auf Basis realer Daten.
-- Die Berichtsoberfläche wurde zusätzlich im Komfort ausgebaut: kompaktere Mehrfachauswahl mit `Alle auswählen` und `Alle abwählen`, Kennzahlen und Kurzbeschreibung in der Vorschau sowie direkte Messwertdetails mit Referenzen aus der Berichts- und Messwertliste.
-- Der erste lokale PDF-Export für Arztbericht und Verlaufsbericht ist umgesetzt und technisch verifiziert.
-- Die Auswertung ist jetzt als echter Bereich umgesetzt: Filter, Gesamtzahlen, Zeitreihen-Diagramme, Referenzlinien, Zielbereiche und qualitative Ereignisse.
-- Gruppen sind jetzt als echter Stammdatenbereich mit Parameterzuordnung, eigener Verwaltungsseite und persistenter Many-to-Many-Struktur umgesetzt.
-- Messwerte, Berichte und Auswertung unterstützen jetzt bereichsübergreifende Filter nach Person, mehreren Personen, Gruppe, Labor und Zeitraum.
-- Familien- oder personenübergreifende Ansichten sind damit für Listen, Berichte und Verlaufsdiagramme im aktuellen Workspace-Stand bereits möglich.
-- Die Importstrecke unterstützt jetzt zusätzlich echte CSV- und Excel-Dateien mit Metadaten, optionaler Quelldatei-Ablage und Dokumentverknüpfung zum übernommenen Befund.
-- Der Dateiimport legt Importbemerkungen jetzt sinnvoll vorbelegt an, bevor sie im Prüfschritt noch manuell angepasst werden können.
-- Die Anwendung besitzt jetzt echte Laufzeit-Einstellungen für Datenpfad, Dokumentenpfad, Wissensordner und Betriebsoptionen sowie eine lokale Single-User-Sperrlogik mit Status- und Reset-Endpunkten.
-- Die Wissensbasis ist jetzt auch als echter Arbeitsbereich umgesetzt: Markdown-Seiten aus dem konfigurierten Wissensordner können gelistet, durchsucht und im Detail angezeigt werden.
+## Einordnung
+Diese Seite beschreibt den aktuellen Projektstand als Snapshot. Zeitliche Abfolgen, einzelne Umsetzungsschritte und Verifikationen werden im [[../../03 Betrieb/Log]] geführt.
 
-## Bedeutung für die weitere Arbeit
-- Das Projekt hat jetzt ein belastbares fachliches Zielbild für die nächste Architektur- und Planungsphase.
-- Das Projekt hat zusätzlich ein reales technisches Startgerüst, auf dem die eigentliche Implementierung der Fachlogik aufbauen kann.
-- Mehrere Kernbereiche sind nicht mehr nur konzeptionell beschrieben, sondern bereits technisch verifiziert.
-- Gruppen funktionieren nicht mehr nur als Konzept, sondern bereits als zentrale Filter- und Organisationslogik für Messwerte, Berichte und Auswertung.
-- Der Import ist nicht mehr auf manuell eingefügtes JSON beschränkt, sondern kann tabellarische Dateien kontrolliert in prüfbare Entwürfe überführen.
-- Die lokale Betriebslogik ist sichtbar geworden: Pfade und Sperrstatus sind nicht mehr nur Hintergrundannahmen, sondern echte Systemfunktionen.
-- Die Wissensverknüpfung ist noch nicht tief in Parameter- und Gruppenansichten integriert, aber der lesende Kernbereich dafür steht jetzt.
-- Weitere Arbeit sollte nun vor allem vertiefte Wissensverknüpfung, weitere Importstufen, fachliche Berichtsverfeinerung und Komfortausbau vorantreiben.
-- Für Berichte ist der nächste sinnvolle Feinschliff nun eher fachlich als technisch: bessere Gruppensemantik, echte Zielbereichsauswertung und noch präzisere Berichtskurztexte.
+## Umgesetzt
+- Das lokale V1-Grundgerüst mit Backend, Frontend, Vertragsdateien, Migrationen und projektbezogener Wissensbasis ist vorhanden.
+- Personen, Parameter, Befunde und Messwerte funktionieren als echte API- und UI-Durchstiche.
+- Referenzen, Zielbereiche und personenspezifische Zielbereichs-Overrides sind umgesetzt.
+- Planung mit zyklischen Kontrollen, Einmalvormerkungen, Fälligkeitsberechnung und konsolidierter Vorschlagsliste ist umgesetzt.
+- Gruppen sind als echter Stammdatenbereich mit Parameterzuordnung, Many-to-Many-Struktur und bereichsübergreifender Filterlogik umgesetzt.
+- Berichte und Auswertung sind als echte Arbeitsbereiche vorhanden, einschließlich PDF-Erzeugung, Diagrammen, Referenzlinien und gruppenbezogenen Filtern.
+- Zentrale Einheitenstammdaten, Einheiten-Aliase und parameterbezogene Umrechnungsregeln sind im Workspace vorhanden.
+- Der Import unterstützt strukturierte JSON-Entwürfe sowie CSV- und Excel-Dateien mit Metadaten, Dokumentverknüpfung und bewusster Übernahme.
+- Der Import kann bestehende Parameter über Anzeigename, Schlüssel oder Alias zuordnen und beim bestätigten Mapping neue Aliase aus Berichtsschreibweisen anlegen.
+- Referenzoperatoren wie `<`, `>`, `<=` und `>=` werden strukturiert geführt.
+- Berichtsblöcke können im Import als Gruppenvorschläge vorbereitet und nach der Übernahme auf neue oder bestehende Gruppen angewendet werden.
+- Neue Parameter erhalten ihren internen Schlüssel automatisch aus dem Anzeigenamen; Dublettenprüfung, Zusammenführung und Alias-Vorschläge sind in der Parameterpflege vorhanden.
+- Die Wissensbasis ist als lesender Arbeitsbereich in der Anwendung eingebunden.
+
+## Teilweise umgesetzt
+- Der Import produktivisiert bereits einen assistierten Laborbericht-Workflow, setzt für gescannte PDFs aber weiterhin eine externe Extraktion oder manuelle Aufbereitung voraus.
+- Die Berichts- und Auswertungslogik nutzt bereits normierte Werte und Anzeigeeinheiten in passenden Fällen, ist aber noch nicht in allen fachlichen Darstellungen gleich tief ausgebaut.
+- Die Wissensverknüpfung ist als eigener Arbeitsbereich vorhanden, aber noch nicht tief in Parameter-, Gruppen- und Importansichten integriert.
+
+## Offen
+- Direkter PDF-Upload mit OCR- oder Parser-Stufe in die Importprüfung.
+- Vorschlags-Workflow für handschriftliche persönliche Referenzen.
+- Mehrstufige Übernahme von `Vorwerten` aus Berichten.
+- Weitere fachliche Verfeinerung von Berichten, insbesondere bei Gruppensemantik, Zielbereichsauswertung und präziseren Kurztexten.
+- Weitere Vertiefung der Wissensverknüpfung in fachliche Arbeitsbereiche.
+
+## Wichtige Grenzen
+- Der aktuelle Importfluss ist stark, aber noch kein Vollautomat für gescannte Laborberichte.
+- Fachgleiches Mapping und Alias-Anlage müssen weiterhin bewusst getrennt von Einheitenumrechnung und fachlicher Transformation behandelt werden.
+- Historische oder fremde Dokumentbestände können widersprüchliche Stammdaten, technische Problemdateien oder nicht importgeeignete Dateiklassen enthalten und brauchen deshalb weiterhin Vorprüfung oder assistierte Klassifikation.

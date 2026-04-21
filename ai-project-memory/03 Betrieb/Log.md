@@ -617,3 +617,27 @@
   - Die Ist-Stand-Seite zur Importstrecke beschreibt jetzt ausdruecklich, dass neben JSON auch CSV- und Excel-Dateien in Importentwuerfe ueberfuehrt werden koennen.
   - Zusaetzlich wurde festgehalten, dass die Importstrecke Gruppenvorschlaege aus Importdaten ableiten, aehnliche vorhandene Gruppen anzeigen und diese nach der Uebernahme auf neue oder bestehende Gruppen anwenden kann.
   - Veraltete Aussagen, nach denen CSV- und Excel-Dateiimporte noch fehlen, wurden entsprechend korrigiert.
+
+## [2026-04-22] update | Projektstatus und Log in der Wissenspflege klar getrennt
+- Anlass oder Quelle: Nutzerentscheidung, `Aktueller Projektstatus` als Snapshot und `Log` als Chronik sauber zu trennen
+- Neu angelegte Seiten:
+  - keine
+- Geaenderte Seiten:
+  - [[../00 Steuerung/Regeldatei KI-Wissenspflege]]
+  - [[../02 Wissen/Prozesse/Arbeitsworkflow Wissenspflege und Projektanfragen]]
+  - [[../02 Wissen/00 Uebersichten/Aktueller Projektstatus]]
+- Kern der inhaltlichen Anpassung:
+  - Die Wissenspflege-Regeln beschreiben jetzt ausdruecklich, dass `Aktueller Projektstatus` eine verdichtete Zustandsuebersicht und kein Aenderungsprotokoll ist.
+  - Das `Log` bleibt die chronologische, append-only gefuehrte Stelle fuer Verlauf, Verifikation und einzelne Umsetzungsschritte.
+  - Die Statusseite wurde entsprechend auf kompakte Rubriken wie `Umgesetzt`, `Teilweise umgesetzt`, `Offen` und `Wichtige Grenzen` umgebaut.
+
+## [2026-04-22] update | Generische Regel fuer arbeitsorientierte Stammdatenseiten ergaenzt
+- Anlass oder Quelle: Nutzerauftrag, den umgestellten Seitenaufbau von Parameter- und Gruppenseite als generische UI-Regel festzuhalten
+- Neu angelegte Seiten:
+  - keine
+- Geaenderte Seiten:
+  - [[Generische Entwicklungsvorgaben]]
+- Kern der inhaltlichen Anpassung:
+  - Fuer vergleichbare Stammdatenseiten wurde als generische Leitlinie festgehalten, dass links die filterbare Liste der fuehrenden Datensaetze und rechts der Detailbereich des ausgewaehlten Eintrags stehen soll.
+  - Werkzeuge sollen als kompakte Leiste direkt unter dem Detailkopf liegen und nur bei Bedarf geoeffnet werden, statt als dauerhaft offene Zusatzspalten viel Raum zu verbrauchen.
+  - Zugeordnete oder abhaengige Daten sollen unterhalb des Detailbereichs in einem eigenen Bereich erscheinen und bei breiteren Inhalten bevorzugt gestapelt und einklappbar dargestellt werden.
