@@ -122,6 +122,8 @@ Dabei gilt:
 4. Falls noch offene Klärpunkte, ungeklärte Probleme oder uncommittete Abschlussänderungen bestehen, diese zuerst kompakt und konkret benennen und den Thread noch nicht als abgeschlossen behandeln.
 5. `Abschluss` bedeutet grundsätzlich, dass der am Ende verbleibende erfolgreiche Abschlussstand committed ist. Ein bloß teilweise bereinigter oder bewusst offen gelassener Stand gilt nicht als Abschluss.
 6. Wenn der Stand erfolgreich abgeschlossen ist, soll der Thread danach als archivierungsreif behandelt werden.
+7. Offene Änderungen oder uncommittete Dateien, die erkennbar nicht zu diesem Thread oder Abschlussstand gehören, sind dabei nicht automatisch ein Blocker. In solchen Fällen soll der Agent sie am Ende kurz als Hinweis nennen, aber den Abschluss dieses Threads nicht unnötig verzögern.
+8. Relevant blockernd sind vor allem offene Änderungen, Konflikte oder ungeklärte Risiken, die zum aktuellen Thread, zu dessen Commit-Stand oder zu unmittelbar betroffenen Dateien gehören.
 
 Wenn der Nutzer sinngemäß `Abschluss mit Commit` schreibt, gilt zusätzlich:
 
@@ -130,5 +132,6 @@ Wenn der Nutzer sinngemäß `Abschluss mit Commit` schreibt, gilt zusätzlich:
 3. Danach sollen alle zum Abschluss gehörenden Änderungen automatisch committed werden, sobald der Stand konsistent ist und keine ungeklärten Rückfragen mehr offen sind.
 4. Wenn im Verlauf des Dialogs mehrere klar trennbare Funktionalitäten umgesetzt wurden, sollen Commits nach Möglichkeit sinnvoll aufgeteilt werden, statt alles in einen Sammel-Commit zu legen.
 5. Nach erfolgreichem Abschluss mit Commit ist der Thread als archivierungsreif zu behandeln.
+6. Andere noch offene Änderungen aus parallelen Threads dürfen dabei als Statushinweis erwähnt werden, sollen aber nicht als Vorwand dienen, den Abschluss dieses Threads künstlich offen zu halten.
 
 Wenn nach der Abschlussprüfung noch relevante Unsicherheiten, Konflikte oder bewusste Entscheidungsfragen offen sind, soll der Agent nicht blind committen, sondern diese kurz benennen und auf den ausstehenden Klärbedarf hinweisen.
