@@ -14,6 +14,7 @@ export type ReferenzGrenzOperator =
   | "groesser_gleich";
 export type ReferenzTyp = "labor" | "ziel_allgemein" | "ziel_person";
 export type BefundQuelleTyp = "manuell" | "import" | "ki_import";
+export type UmrechnungsregelTyp = "faktor" | "faktor_plus_offset" | "formel";
 
 export type PersonCreatePayload = {
   anzeigename: string;
@@ -32,6 +33,22 @@ export type ParameterCreatePayload = {
   standard_einheit?: string | null;
   wert_typ_standard: WertTyp;
   sortierschluessel?: string | null;
+};
+
+export type ParameterStandardEinheitUpdatePayload = {
+  standard_einheit?: string | null;
+};
+
+export type ParameterUmrechnungsregelCreatePayload = {
+  von_einheit: string;
+  nach_einheit: string;
+  regel_typ: UmrechnungsregelTyp;
+  faktor?: number | null;
+  offset?: number | null;
+  formel_text?: string | null;
+  rundung_stellen?: number | null;
+  quelle_beschreibung?: string | null;
+  bemerkung?: string | null;
 };
 
 export type EinheitCreatePayload = {
@@ -115,6 +132,13 @@ export type Parameter = {
   geaendert_am: string;
 };
 
+export type ParameterStandardEinheitUpdateResult = {
+  parameter_id: string;
+  parameter_anzeigename: string;
+  standard_einheit?: string | null;
+  neu_berechnete_messwerte: number;
+};
+
 export type Einheit = {
   id: string;
   kuerzel: string;
@@ -151,6 +175,23 @@ export type ParameterAliasSuggestion = {
   alias_normalisiert: string;
   vorkommen_anzahl: number;
   letzte_verwendung_am?: string | null;
+};
+
+export type ParameterUmrechnungsregel = {
+  id: string;
+  laborparameter_id: string;
+  von_einheit: string;
+  nach_einheit: string;
+  regel_typ: UmrechnungsregelTyp;
+  faktor?: number | null;
+  offset?: number | null;
+  formel_text?: string | null;
+  rundung_stellen?: number | null;
+  quelle_beschreibung?: string | null;
+  bemerkung?: string | null;
+  aktiv: boolean;
+  erstellt_am: string;
+  geaendert_am: string;
 };
 
 export type ParameterUsageSummary = {
@@ -268,6 +309,7 @@ export type Messwert = {
   einheit_original?: string | null;
   wert_normiert_num?: number | null;
   einheit_normiert?: string | null;
+  umrechnungsregel_id?: string | null;
   bemerkung_kurz?: string | null;
   bemerkung_lang?: string | null;
   unsicher_flag: boolean;
@@ -434,6 +476,28 @@ export type ImportMesswertPreview = {
   referenz_bemerkung?: string | null;
 };
 
+export type ImportAehnlicheGruppe = {
+  gruppe_id: string;
+  name: string;
+  parameter_anzahl: number;
+  gemeinsame_parameter_anzahl: number;
+  gemeinsame_parameter_namen: string[];
+  namensaehnlich: boolean;
+};
+
+export type ImportGruppenvorschlag = {
+  index: number;
+  name: string;
+  beschreibung?: string | null;
+  sortierschluessel?: string | null;
+  messwert_indizes: number[];
+  parameter_ids: string[];
+  parameter_namen: string[];
+  fehlende_messwert_indizes: number[];
+  aehnliche_gruppen: ImportAehnlicheGruppe[];
+  anwendbar: boolean;
+};
+
 export type ImportVorgangListItem = {
   id: string;
   quelle_typ: string;
@@ -468,7 +532,25 @@ export type ImportVorgangDetail = {
   warnung_anzahl: number;
   befund: ImportBefundPreview;
   messwerte: ImportMesswertPreview[];
+  gruppenvorschlaege: ImportGruppenvorschlag[];
   pruefpunkte: ImportPruefpunkt[];
+};
+
+export type ImportGruppenvorschlagAnwendenPayload = {
+  vorschlag_index: number;
+  aktion: "neu" | "vorhanden" | "ignorieren";
+  gruppe_id?: string | null;
+  gruppenname?: string | null;
+};
+
+export type ImportGruppenvorschlaegeAnwendenResponse = {
+  ergebnisse: Array<{
+    vorschlag_index: number;
+    aktion: string;
+    gruppe_id?: string | null;
+    gruppenname?: string | null;
+    zugeordnete_parameter_anzahl: number;
+  }>;
 };
 
 export type ArztberichtEintrag = {
