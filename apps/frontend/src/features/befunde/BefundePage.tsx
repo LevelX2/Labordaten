@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { apiFetch } from "../../shared/api/client";
+import { BefundDetailCard } from "../../shared/components/BefundDetailCard";
 import type { Befund, Labor, Person } from "../../shared/types/api";
 
 type BefundFormState = {
@@ -20,9 +21,22 @@ const initialForm: BefundFormState = {
   bemerkung: ""
 };
 
+function formatDate(value?: string | null): string {
+  if (!value) {
+    return "—";
+  }
+  return new Intl.DateTimeFormat("de-DE").format(new Date(value));
+}
+
+function toFileUrl(path: string): string {
+  const normalizedPath = path.replace(/\\/g, "/");
+  return normalizedPath.startsWith("/") ? `file://${normalizedPath}` : `file:///${normalizedPath}`;
+}
+
 export function BefundePage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<BefundFormState>(initialForm);
+  const [selectedBefundId, setSelectedBefundId] = useState<string | null>(null);
 
   const personenQuery = useQuery({
     queryKey: ["personen"],
@@ -51,8 +65,9 @@ export function BefundePage() {
           bemerkung: form.bemerkung || null
         })
       }),
-    onSuccess: async () => {
+    onSuccess: async (befund) => {
       setForm(initialForm);
+      setSelectedBefundId(befund.id);
       await queryClient.invalidateQueries({ queryKey: ["befunde"] });
     }
   });
@@ -60,9 +75,12 @@ export function BefundePage() {
   return (
     <section className="page">
       <header className="page__header">
-        <span className="page__kicker">Erster Durchstich</span>
+        <span className="page__kicker">Befunde und Herkunft</span>
         <h2>Befunde</h2>
-        <p>Ein Befundkopf kann jetzt für eine Person angelegt und direkt wieder in der Liste angezeigt werden.</p>
+        <p>
+          Die Übersicht zeigt jetzt pro Befund auch die Anzahl enthaltener Messwerte. Dokumente und Detailinfos lassen
+          sich direkt aus der Liste heraus öffnen.
+        </p>
       </header>
 
       <div className="workspace-grid">
@@ -142,38 +160,67 @@ export function BefundePage() {
           </form>
         </article>
 
-        <article className="card">
+        <article className="card card--wide">
           <h3>Vorhandene Befunde</h3>
+          <p>Zeilen markieren einen Befund für die Detailansicht darunter.</p>
           <div className="table-wrap">
             <table className="data-table">
               <thead>
                 <tr>
                   <th>Entnahme</th>
                   <th>Befund</th>
-                  <th>Person-ID</th>
-                  <th>Labor-ID</th>
+                  <th>Person</th>
+                  <th>Labor</th>
+                  <th>Werte</th>
+                  <th>Dokument</th>
                 </tr>
               </thead>
               <tbody>
                 {befundeQuery.data?.map((befund) => (
-                  <tr key={befund.id}>
-                    <td>{befund.entnahmedatum || "—"}</td>
-                    <td>{befund.befunddatum || "—"}</td>
-                    <td>{befund.person_id}</td>
-                    <td>{befund.labor_id || "—"}</td>
+                  <tr
+                    key={befund.id}
+                    onClick={() => setSelectedBefundId(befund.id)}
+                    className={befund.id === selectedBefundId ? "row-selected" : undefined}
+                  >
+                    <td>{formatDate(befund.entnahmedatum)}</td>
+                    <td>{formatDate(befund.befunddatum)}</td>
+                    <td>{befund.person_anzeigename || befund.person_id}</td>
+                    <td>{befund.labor_name || "—"}</td>
+                    <td>{befund.messwerte_anzahl}</td>
+                    <td>
+                      {befund.dokument_pfad ? (
+                        <a
+                          className="inline-button"
+                          href={toFileUrl(befund.dokument_pfad)}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          {befund.dokument_dateiname || "Dokument öffnen"}
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                   </tr>
                 ))}
                 {!befundeQuery.data?.length ? (
                   <tr>
-                    <td colSpan={4}>Noch keine Befunde vorhanden.</td>
+                    <td colSpan={6}>Noch keine Befunde vorhanden.</td>
                   </tr>
                 ) : null}
               </tbody>
             </table>
           </div>
         </article>
+
+        <BefundDetailCard
+          befundId={selectedBefundId}
+          title="Ausgewählter Befund"
+          emptyText="Bitte in der Befundliste einen Eintrag auswählen."
+          className="card card--wide"
+        />
       </div>
     </section>
   );
 }
-

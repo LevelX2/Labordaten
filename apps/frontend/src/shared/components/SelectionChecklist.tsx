@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 type SelectionOption = {
   id: string;
   label: string;
@@ -10,6 +12,8 @@ type SelectionChecklistProps = {
   selectedIds: string[];
   onChange: (nextIds: string[]) => void;
   emptyText?: string;
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
 };
 
 export function SelectionChecklist({
@@ -17,9 +21,12 @@ export function SelectionChecklist({
   options,
   selectedIds,
   onChange,
-  emptyText = "Noch keine Einträge vorhanden."
+  emptyText = "Noch keine Einträge vorhanden.",
+  collapsible = false,
+  defaultExpanded = true
 }: SelectionChecklistProps) {
   const selectedCount = selectedIds.filter((id) => options.some((option) => option.id === id)).length;
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded || selectedCount > 0);
 
   return (
     <div className="field field--full">
@@ -30,6 +37,11 @@ export function SelectionChecklist({
             {selectedCount} von {options.length} ausgewählt
           </p>
           <div className="selection-checklist__actions">
+            {collapsible ? (
+              <button type="button" onClick={() => setIsExpanded((current) => !current)}>
+                {isExpanded ? "Liste einklappen" : "Liste aufklappen"}
+              </button>
+            ) : null}
             <button type="button" onClick={() => onChange(options.map((option) => option.id))} disabled={!options.length}>
               Alle auswählen
             </button>
@@ -39,7 +51,7 @@ export function SelectionChecklist({
           </div>
         </div>
 
-        {options.length ? (
+        {options.length && isExpanded ? (
           <div className="selection-checklist__options">
             {options.map((option) => {
               const checked = selectedIds.includes(option.id);
@@ -67,6 +79,8 @@ export function SelectionChecklist({
               );
             })}
           </div>
+        ) : options.length ? (
+          <p className="selection-checklist__empty">Liste eingeklappt. Bei Bedarf aufklappen.</p>
         ) : (
           <p className="selection-checklist__empty">{emptyText}</p>
         )}

@@ -12,6 +12,8 @@ import {
 } from "recharts";
 
 import { apiFetch } from "../../shared/api/client";
+import { SelectionChecklist } from "../../shared/components/SelectionChecklist";
+import { getDefaultDateRange } from "../../shared/utils/dateRangeDefaults";
 import type {
   AuswertungGesamtzahlen,
   AuswertungPunkt,
@@ -22,6 +24,8 @@ import type {
   Parameter,
   Person
 } from "../../shared/types/api";
+
+const defaultDateRange = getDefaultDateRange();
 
 type AuswertungFormState = {
   person_ids: string[];
@@ -39,8 +43,8 @@ const initialForm: AuswertungFormState = {
   laborparameter_ids: [],
   gruppen_ids: [],
   labor_ids: [],
-  datum_von: "",
-  datum_bis: "",
+  datum_von: defaultDateRange.datum_von,
+  datum_bis: defaultDateRange.datum_bis,
   include_laborreferenz: true,
   include_zielbereich: true
 };
@@ -280,28 +284,16 @@ export function AuswertungPage() {
             auswertungMutation.mutate();
           }}
         >
-          <label className="field field--full">
-            <span>Personen</span>
-            <div className="checkbox-grid">
-              {personenQuery.data?.map((person) => (
-                <label key={person.id}>
-                  <input
-                    type="checkbox"
-                    checked={form.person_ids.includes(person.id)}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        person_ids: event.target.checked
-                          ? [...current.person_ids, person.id]
-                          : current.person_ids.filter((item) => item !== person.id)
-                      }))
-                    }
-                  />
-                  {person.anzeigename}
-                </label>
-              ))}
-            </div>
-          </label>
+          <SelectionChecklist
+            label="Personen"
+            options={(personenQuery.data ?? []).map((person) => ({
+              id: person.id,
+              label: person.anzeigename
+            }))}
+            selectedIds={form.person_ids}
+            onChange={(person_ids) => setForm((current) => ({ ...current, person_ids }))}
+            emptyText="Noch keine Personen vorhanden."
+          />
 
           <label className="field">
             <span>Datum von</span>
@@ -321,74 +313,42 @@ export function AuswertungPage() {
             />
           </label>
 
-          <label className="field field--full">
-            <span>Gruppen</span>
-            <div className="checkbox-grid">
-              {gruppenQuery.data?.map((gruppe) => (
-                <label key={gruppe.id}>
-                  <input
-                    type="checkbox"
-                    checked={form.gruppen_ids.includes(gruppe.id)}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        gruppen_ids: event.target.checked
-                          ? [...current.gruppen_ids, gruppe.id]
-                          : current.gruppen_ids.filter((item) => item !== gruppe.id)
-                      }))
-                    }
-                  />
-                  {gruppe.name}
-                </label>
-              ))}
-            </div>
-          </label>
+          <SelectionChecklist
+            label="Gruppen"
+            options={(gruppenQuery.data ?? []).map((gruppe) => ({
+              id: gruppe.id,
+              label: gruppe.name,
+              meta: gruppe.beschreibung
+            }))}
+            selectedIds={form.gruppen_ids}
+            onChange={(gruppen_ids) => setForm((current) => ({ ...current, gruppen_ids }))}
+            emptyText="Noch keine Gruppen vorhanden."
+          />
 
-          <label className="field field--full">
-            <span>Parameter</span>
-            <div className="checkbox-grid">
-              {parameterQuery.data?.map((parameter) => (
-                <label key={parameter.id}>
-                  <input
-                    type="checkbox"
-                    checked={form.laborparameter_ids.includes(parameter.id)}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        laborparameter_ids: event.target.checked
-                          ? [...current.laborparameter_ids, parameter.id]
-                          : current.laborparameter_ids.filter((item) => item !== parameter.id)
-                      }))
-                    }
-                  />
-                  {parameter.anzeigename}
-                </label>
-              ))}
-            </div>
-          </label>
+          <SelectionChecklist
+            label="Parameter"
+            options={(parameterQuery.data ?? []).map((parameter) => ({
+              id: parameter.id,
+              label: parameter.anzeigename,
+              meta: parameter.standard_einheit
+            }))}
+            selectedIds={form.laborparameter_ids}
+            onChange={(laborparameter_ids) => setForm((current) => ({ ...current, laborparameter_ids }))}
+            emptyText="Noch keine Parameter vorhanden."
+            collapsible
+            defaultExpanded={false}
+          />
 
-          <label className="field field--full">
-            <span>Labore</span>
-            <div className="checkbox-grid">
-              {laboreQuery.data?.map((labor) => (
-                <label key={labor.id}>
-                  <input
-                    type="checkbox"
-                    checked={form.labor_ids.includes(labor.id)}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        labor_ids: event.target.checked
-                          ? [...current.labor_ids, labor.id]
-                          : current.labor_ids.filter((item) => item !== labor.id)
-                      }))
-                    }
-                  />
-                  {labor.name}
-                </label>
-              ))}
-            </div>
-          </label>
+          <SelectionChecklist
+            label="Labore"
+            options={(laboreQuery.data ?? []).map((labor) => ({
+              id: labor.id,
+              label: labor.name
+            }))}
+            selectedIds={form.labor_ids}
+            onChange={(labor_ids) => setForm((current) => ({ ...current, labor_ids }))}
+            emptyText="Noch keine Labore vorhanden."
+          />
 
           <label className="field">
             <span>Laborreferenzen anzeigen</span>

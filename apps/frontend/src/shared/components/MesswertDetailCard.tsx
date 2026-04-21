@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { apiFetch } from "../api/client";
+import { BefundDetailCard } from "./BefundDetailCard";
 import type { Messwert, MesswertReferenz } from "../types/api";
 
 type MesswertDetailCardProps = {
@@ -42,6 +44,7 @@ export function MesswertDetailCard({
   emptyText = "Bitte zuerst einen Messwert auswählen.",
   className = "card card--wide"
 }: MesswertDetailCardProps) {
+  const [showBefund, setShowBefund] = useState(false);
   const messwertQuery = useQuery({
     queryKey: ["messwert", messwertId],
     queryFn: () => apiFetch<Messwert>(`/api/messwerte/${messwertId}`),
@@ -118,6 +121,24 @@ export function MesswertDetailCard({
               </strong>
             </div>
           </div>
+
+          <div className="inline-actions">
+            <span className="inline-actions__label">
+              Befund: <strong>{messwert.befund_id.slice(0, 8)}</strong>
+            </span>
+            <button type="button" className="inline-button" onClick={() => setShowBefund((current) => !current)}>
+              {showBefund ? "Befund ausblenden" : "Befund anzeigen"}
+            </button>
+          </div>
+
+          {showBefund ? (
+            <BefundDetailCard
+              befundId={messwert.befund_id}
+              title="Zugehöriger Befund"
+              emptyText="Kein Befund ausgewählt."
+              className="card card--soft"
+            />
+          ) : null}
 
           <h4>Referenzwerte</h4>
           <div className="table-wrap">

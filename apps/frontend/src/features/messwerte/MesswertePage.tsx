@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { apiFetch } from "../../shared/api/client";
 import { MesswertDetailCard } from "../../shared/components/MesswertDetailCard";
 import { SelectionChecklist } from "../../shared/components/SelectionChecklist";
+import { getDefaultDateRange } from "../../shared/utils/dateRangeDefaults";
 import type {
   Befund,
   Gruppe,
@@ -13,6 +14,8 @@ import type {
   Parameter,
   Person
 } from "../../shared/types/api";
+
+const defaultDateRange = getDefaultDateRange();
 
 type MesswertFormState = {
   person_id: string;
@@ -54,8 +57,8 @@ const initialFilter: ListenFilterState = {
   laborparameter_ids: [],
   gruppen_ids: [],
   labor_ids: [],
-  datum_von: "",
-  datum_bis: ""
+  datum_von: defaultDateRange.datum_von,
+  datum_bis: defaultDateRange.datum_bis
 };
 
 type ReferenzFormState = {
@@ -266,6 +269,8 @@ export function MesswertePage() {
             selectedIds={filter.laborparameter_ids}
             onChange={(laborparameter_ids) => setFilter((current) => ({ ...current, laborparameter_ids }))}
             emptyText="Noch keine Parameter vorhanden."
+            collapsible
+            defaultExpanded={false}
           />
 
           <SelectionChecklist

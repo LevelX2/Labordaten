@@ -247,6 +247,33 @@ a {
   cursor: pointer;
 }
 
+.inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  align-items: center;
+  margin: 10px 0 16px;
+}
+
+.inline-actions__label {
+  color: var(--muted);
+}
+
+.inline-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .selection-checklist__actions button:disabled {
   opacity: 0.55;
   cursor: default;

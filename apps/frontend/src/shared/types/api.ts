@@ -35,6 +35,15 @@ export type ParameterAlias = {
   geaendert_am: string;
 };
 
+export type ParameterAliasSuggestion = {
+  laborparameter_id: string;
+  parameter_anzeigename: string;
+  alias_text: string;
+  alias_normalisiert: string;
+  vorkommen_anzahl: number;
+  letzte_verwendung_am?: string | null;
+};
+
 export type Gruppe = {
   id: string;
   name: string;
@@ -70,14 +79,19 @@ export type Labor = {
 export type Befund = {
   id: string;
   person_id: string;
+  person_anzeigename?: string | null;
   labor_id?: string | null;
+  labor_name?: string | null;
   dokument_id?: string | null;
+  dokument_dateiname?: string | null;
+  dokument_pfad?: string | null;
   entnahmedatum?: string | null;
   befunddatum?: string | null;
   eingangsdatum?: string | null;
   bemerkung?: string | null;
   quelle_typ: string;
   duplikat_warnung: boolean;
+  messwerte_anzahl: number;
   erstellt_am: string;
   geaendert_am: string;
 };
@@ -304,6 +318,10 @@ export type ArztberichtEintrag = {
   wert_anzeige: string;
   wert_num?: number | null;
   einheit?: string | null;
+  wert_original_num?: number | null;
+  einheit_original?: string | null;
+  wert_normiert_num?: number | null;
+  einheit_normiert?: string | null;
   referenzbereich?: string | null;
   labor_name?: string | null;
   befundbemerkung?: string | null;
@@ -329,6 +347,10 @@ export type VerlaufsberichtPunkt = {
   wert_num?: number | null;
   wert_text?: string | null;
   einheit?: string | null;
+  wert_original_num?: number | null;
+  einheit_original?: string | null;
+  wert_normiert_num?: number | null;
+  einheit_normiert?: string | null;
   labor_name?: string | null;
   gruppen_namen: string[];
   ausserhalb_referenzbereich?: boolean | null;
