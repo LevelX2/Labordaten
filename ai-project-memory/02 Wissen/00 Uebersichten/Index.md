@@ -17,9 +17,15 @@
 - [[../Begriffe und Konzepte/V1 Projektstruktur, Module und Schnittstellen]]: konkreter Zuschnitt für Backend, Frontend, API und Ordnerstruktur.
 - [[../Begriffe und Konzepte/Systembild und Paketuebersicht der Anwendung]]: visuelle Architekturübersicht mit Systemkomponenten, Ist-Zuschnitt und geplantem Paketbild.
 - [[../Begriffe und Konzepte/Ist-Stand Importstrecke und PDF-Grenzen]]: klare Einordnung, was die Importprüfung heute schon kann und was für echten PDF-Import noch fehlt.
+- [[../Begriffe und Konzepte/Ist-Stand Alias-Vorschlaege und Berichtseinheiten]]: aktueller Stand der sicheren Alias-Vorschlagslogik und der steuerbaren Berichtseinheiten auf Basis vorhandener normierter Werte.
+- [[../Begriffe und Konzepte/Ist-Stand Einheiten, Normeinheiten und Umrechnung]]: aktueller Stand der zentralen Einheitenstammdaten, Einheiten-Aliase, parameterbezogenen Umrechnungsregeln und der pflegbaren führenden Normeinheit.
+- [[../Begriffe und Konzepte/Ist-Stand Parameter-Dubletten und Zusammenfuehrung]]: aktueller Stand der Dublettenprüfung für vorhandene Parameter und der bestätigten Zusammenführung mit Alias-Rückfall.
+- [[../Begriffe und Konzepte/Ist-Stand PDF-Seitenumbrueche in Berichten]]: aktueller Stand der Block- und Fortsetzungslogik für drucktaugliche Seitenumbrüche in PDF-Berichten.
+- [[../Begriffe und Konzepte/Ist-Stand Automatische interne Parameterschluessel]]: aktueller Stand der automatischen technischen Schlüsselvergabe bei neuer Parameter-Stammdatenpflege.
 
 ## Projektentscheidungen und Prozesse
 - [[../Prozesse/Arbeitsworkflow Wissenspflege und Projektanfragen]]: Standardablauf für Projektarbeit und Wissenspflege.
+- [[../Prozesse/Lokaler Start von Backend und Frontend]]: Erstinstallation, täglicher Start und erreichbare Standard-URLs für den lokalen Betrieb.
 - [[../Prozesse/Quellenverarbeitung in dieser Wissensbasis]]: wie neue Rohquellen in belastbares Wissen überführt werden.
 - [[../Prozesse/Wiki-first Query und Linting]]: Reihenfolge für Antworten, Rückführung und Health-Checks.
 - [[../Entscheidungen/V1 Vorentscheidungen Produktform und Kernmodell]]: bisher geklärte Leitentscheidungen für V1.
@@ -35,6 +41,7 @@
 ## Betrieb
 - [[../../03 Betrieb/Log]]
 - [[../../03 Betrieb/Qualitaetspruefung]]
+- [[../../03 Betrieb/Generische Entwicklungsvorgaben]]: wiederverwendbare Entwicklungsregeln und generische Leitplanken für neue Funktionen und ähnliche Bereiche im Projekt.
 
 ## Workspace-Quellen
 - [[../../01 Rohquellen/repo-root/2026-04-20 V1 Scaffold Workspace-Stand]]: Referenz auf den aktuellen technischen Scaffold-Stand im Repository inklusive Durchstich für Referenzen, Zielbereiche, Zielbereichs-Overrides, Planung, Importprüfung, Berichte, Auswertung und echte Gruppenlogik.

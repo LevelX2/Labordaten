@@ -582,3 +582,27 @@
   - Fuer technologisch getrennte Frontend- und Backend-Zuschnitte wurde festgehalten, dass reine Backend-Tests nicht genuegen, um den tatsaechlich produzierten Request-Vertrag abzusichern.
   - Als wiederverwendbare Empfehlung wurden dafuer Backend-Validierungstests, Frontend-nahe Payload- oder Formularlogiktests und einige API- oder Integrationspfade fuer kritische Eingaben benannt.
   - Die Erkenntnis wurde bewusst an die Voraussetzung geknuepft, dass das System ueber getrennte Eingabeformung, Serialisierung oder API-Payloads verfuegt und solche Vertragstests dort echten Nutzen stiften.
+
+## [2026-04-21] update | Generische Entwicklungsvorgaben als Projektregelbasis eingeordnet
+- Anlass oder Quelle: Nutzerauftrag, die bisherige Sammlung fuer ein naechstes Projekt in generische Entwicklungsvorgaben fuer das aktuelle Projekt umzubauen
+- Neu angelegte Seiten:
+  - [[Generische Entwicklungsvorgaben]]
+- Geaenderte Seiten:
+  - [[../02 Wissen/00 Uebersichten/Index]]
+  - [[erkenntnisse-fuer-naechstes-projekt]]
+- Kern der inhaltlichen Anpassung:
+  - Die bisherige Sammlung `erkenntnisse-fuer-naechstes-projekt` wurde fachlich in eine allgemeine Regelbasis fuer dieses Projekt ueberfuehrt.
+  - Generische, wiederverwendbare Regeln sollen kuenftig dort gesammelt werden, waehrend einzelfallbezogene Entscheidungen weiter in thematisch passende Wissensseiten gehoeren.
+  - Als neue generische Regel wurde zusaetzlich festgehalten, dass Seitenkopftexte in der Anwendung aus Anwendersicht formuliert sein sollen und die Nutzung einer Seite erklaeren statt die Implementierung zu kommentieren.
+
+## [2026-04-22] update | Generische und projektspezifische Regeln zu Einheiten und Normeinheiten getrennt dokumentiert
+- Anlass oder Quelle: Nutzerauftrag, die bisherigen Erkenntnisse sauber in generische Regeln und projektspezifisches Fachwissen fuer dieses Themenfeld aufzuteilen
+- Neu angelegte Seiten:
+  - [[../02 Wissen/Begriffe und Konzepte/Ist-Stand Einheiten, Normeinheiten und Umrechnung]]
+- Geaenderte Seiten:
+  - [[Generische Entwicklungsvorgaben]]
+  - [[../02 Wissen/00 Uebersichten/Index]]
+- Kern der inhaltlichen Anpassung:
+  - In den generischen Entwicklungsvorgaben wurden neue wiederverwendbare Regeln zu Lesefeldern, Original- versus Vergleichsdaten, explizit gepflegten Zielauspraegungen, konsistenter Neuberechnung und der Trennung von Alias und fachlicher Transformation ergaenzt.
+  - Fuer das Projekt `Labordaten` wurde zusaetzlich eine eigene Fachseite angelegt, die den aktuellen Zuschnitt fuer zentrale Einheitenstammdaten, Einheiten-Aliase, parameterbezogene Umrechnungsregeln und die fuehrende Normeinheit beschreibt.
+  - Der Index verweist nun explizit auf diese Trennung zwischen allgemeinem Regelwissen und projektspezifischer Einheitenlogik.
