@@ -19,6 +19,24 @@ Das Projekt ist jetzt in zwei Ebenen aufgeteilt:
 
 ## Lokaler Start
 
+### Beide Prozesse mit einem Aufruf starten
+
+```powershell
+.\scripts\start-dev.ps1
+```
+
+Optional mit Migrationen vor dem Backend-Start:
+
+```powershell
+.\scripts\start-dev.ps1 -RunMigrations
+```
+
+Optional zusätzlich mit automatischem Öffnen des Frontends im Browser:
+
+```powershell
+.\scripts\start-dev.ps1 -OpenFrontend
+```
+
 ### Backend
 
 ```powershell
