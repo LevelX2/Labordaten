@@ -1,6 +1,12 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from labordaten_backend.core.field_options import (
+    WERT_OPERATOREN,
+    WERT_TYPEN,
+    validate_required_code,
+)
 
 
 class MesswertCreate(BaseModel):
@@ -18,6 +24,16 @@ class MesswertCreate(BaseModel):
     bemerkung_lang: str | None = None
     unsicher_flag: bool = False
     pruefbedarf_flag: bool = False
+
+    @field_validator("wert_typ")
+    @classmethod
+    def validate_wert_typ(cls, value: str) -> str:
+        return validate_required_code(value, valid_values=WERT_TYPEN, field_label="Werttyp")
+
+    @field_validator("wert_operator")
+    @classmethod
+    def validate_wert_operator(cls, value: str) -> str:
+        return validate_required_code(value, valid_values=WERT_OPERATOREN, field_label="Wertoperator")
 
     @model_validator(mode="after")
     def validate_value_fields(self) -> "MesswertCreate":

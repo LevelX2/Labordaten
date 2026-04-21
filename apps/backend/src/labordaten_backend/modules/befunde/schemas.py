@@ -1,6 +1,8 @@
 from datetime import date, datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
+
+from labordaten_backend.core.field_options import BEFUND_QUELLE_TYPEN, validate_required_code
 
 
 class BefundCreate(BaseModel):
@@ -12,6 +14,11 @@ class BefundCreate(BaseModel):
     eingangsdatum: date | None = None
     bemerkung: str | None = None
     quelle_typ: str = "manuell"
+
+    @field_validator("quelle_typ")
+    @classmethod
+    def validate_quelle_typ(cls, value: str) -> str:
+        return validate_required_code(value, valid_values=BEFUND_QUELLE_TYPEN, field_label="Befundquelle")
 
 
 class BefundRead(BaseModel):

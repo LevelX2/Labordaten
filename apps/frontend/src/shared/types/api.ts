@@ -1,9 +1,83 @@
+export type GeschlechtCode = "w" | "m" | "d";
+export type WertTyp = "numerisch" | "text";
+export type WertOperator =
+  | "exakt"
+  | "kleiner_als"
+  | "kleiner_gleich"
+  | "groesser_als"
+  | "groesser_gleich"
+  | "ungefaehr";
+export type ReferenzTyp = "labor" | "ziel_allgemein" | "ziel_person";
+export type BefundQuelleTyp = "manuell" | "import" | "ki_import";
+
+export type PersonCreatePayload = {
+  anzeigename: string;
+  vollname?: string | null;
+  geburtsdatum: string;
+  geschlecht_code?: GeschlechtCode | null;
+  blutgruppe?: string | null;
+  rhesusfaktor?: string | null;
+  hinweise_allgemein?: string | null;
+};
+
+export type ParameterCreatePayload = {
+  interner_schluessel?: string | null;
+  anzeigename: string;
+  beschreibung?: string | null;
+  standard_einheit?: string | null;
+  wert_typ_standard: WertTyp;
+  sortierschluessel?: string | null;
+};
+
+export type MesswertCreatePayload = {
+  person_id: string;
+  befund_id: string;
+  laborparameter_id: string;
+  original_parametername: string;
+  wert_typ: WertTyp;
+  wert_operator?: WertOperator;
+  wert_roh_text: string;
+  wert_num?: number | null;
+  wert_text?: string | null;
+  einheit_original?: string | null;
+  bemerkung_kurz?: string | null;
+  bemerkung_lang?: string | null;
+  unsicher_flag?: boolean;
+  pruefbedarf_flag?: boolean;
+};
+
+export type MesswertReferenzCreatePayload = {
+  referenz_typ: ReferenzTyp;
+  wert_typ: WertTyp;
+  referenz_text_original?: string | null;
+  untere_grenze_num?: number | null;
+  obere_grenze_num?: number | null;
+  einheit?: string | null;
+  soll_text?: string | null;
+  geschlecht_code?: GeschlechtCode | null;
+  alter_min_tage?: number | null;
+  alter_max_tage?: number | null;
+  bemerkung?: string | null;
+};
+
+export type ZielbereichCreatePayload = {
+  wert_typ: WertTyp;
+  untere_grenze_num?: number | null;
+  obere_grenze_num?: number | null;
+  einheit?: string | null;
+  soll_text?: string | null;
+  geschlecht_code?: GeschlechtCode | null;
+  alter_min_tage?: number | null;
+  alter_max_tage?: number | null;
+  bemerkung?: string | null;
+};
+
 export type Person = {
   id: string;
   anzeigename: string;
   vollname?: string | null;
   geburtsdatum: string;
-  geschlecht_code?: string | null;
+  geschlecht_code?: GeschlechtCode | null;
   blutgruppe?: string | null;
   rhesusfaktor?: string | null;
   hinweise_allgemein?: string | null;
@@ -18,7 +92,7 @@ export type Parameter = {
   anzeigename: string;
   beschreibung?: string | null;
   standard_einheit?: string | null;
-  wert_typ_standard: string;
+  wert_typ_standard: WertTyp;
   sortierschluessel?: string | null;
   aktiv: boolean;
   erstellt_am: string;
@@ -44,6 +118,55 @@ export type ParameterAliasSuggestion = {
   letzte_verwendung_am?: string | null;
 };
 
+export type ParameterUsageSummary = {
+  parameter_id: string;
+  anzeigename: string;
+  interner_schluessel: string;
+  standard_einheit?: string | null;
+  wert_typ_standard: WertTyp;
+  messwerte_anzahl: number;
+  gruppen_anzahl: number;
+  zielbereiche_anzahl: number;
+  planung_zyklisch_anzahl: number;
+  planung_einmalig_anzahl: number;
+  alias_anzahl: number;
+};
+
+export type ParameterDuplicateSuggestion = {
+  ziel_parameter_id: string;
+  ziel_parameter_anzeigename: string;
+  quell_parameter_id: string;
+  quell_parameter_anzeigename: string;
+  gemeinsamer_name_vorschlag: string;
+  begruendung: string;
+  aehnlichkeit: number;
+  einheiten_hinweis?: string | null;
+  ziel_parameter: ParameterUsageSummary;
+  quell_parameter: ParameterUsageSummary;
+};
+
+export type ParameterMergeResult = {
+  ziel_parameter_id: string;
+  geloeschter_parameter_id: string;
+  gemeinsamer_name: string;
+  angelegte_aliase: string[];
+  uebersprungene_aliase: string[];
+  verschobene_messwerte: number;
+  verschobene_zielbereiche: number;
+  verschobene_planung_zyklisch: number;
+  verschobene_planung_einmalig: number;
+  verschobene_gruppenzuordnungen: number;
+  entfernte_doppelte_gruppenzuordnungen: number;
+};
+
+export type ParameterRenameResult = {
+  parameter_id: string;
+  neuer_name: string;
+  alter_name: string;
+  alias_angelegt: boolean;
+  alias_name?: string | null;
+};
+
 export type Gruppe = {
   id: string;
   name: string;
@@ -61,7 +184,7 @@ export type GruppenParameter = {
   laborparameter_id: string;
   parameter_anzeigename: string;
   interner_schluessel: string;
-  wert_typ_standard: string;
+  wert_typ_standard: WertTyp;
   standard_einheit?: string | null;
   sortierung?: number | null;
 };
@@ -89,7 +212,7 @@ export type Befund = {
   befunddatum?: string | null;
   eingangsdatum?: string | null;
   bemerkung?: string | null;
-  quelle_typ: string;
+  quelle_typ: BefundQuelleTyp;
   duplikat_warnung: boolean;
   messwerte_anzahl: number;
   erstellt_am: string;
@@ -102,8 +225,8 @@ export type Messwert = {
   befund_id: string;
   laborparameter_id: string;
   original_parametername: string;
-  wert_typ: string;
-  wert_operator: string;
+  wert_typ: WertTyp;
+  wert_operator: WertOperator;
   wert_roh_text: string;
   wert_num?: number | null;
   wert_text?: string | null;
@@ -127,14 +250,14 @@ export type Messwert = {
 export type MesswertReferenz = {
   id: string;
   messwert_id: string;
-  referenz_typ: string;
+  referenz_typ: ReferenzTyp;
   referenz_text_original?: string | null;
-  wert_typ: string;
+  wert_typ: WertTyp;
   untere_grenze_num?: number | null;
   obere_grenze_num?: number | null;
   einheit?: string | null;
   soll_text?: string | null;
-  geschlecht_code?: string | null;
+  geschlecht_code?: GeschlechtCode | null;
   alter_min_tage?: number | null;
   alter_max_tage?: number | null;
   bemerkung?: string | null;
@@ -143,12 +266,12 @@ export type MesswertReferenz = {
 export type Zielbereich = {
   id: string;
   laborparameter_id: string;
-  wert_typ: string;
+  wert_typ: WertTyp;
   untere_grenze_num?: number | null;
   obere_grenze_num?: number | null;
   einheit?: string | null;
   soll_text?: string | null;
-  geschlecht_code?: string | null;
+  geschlecht_code?: GeschlechtCode | null;
   alter_min_tage?: number | null;
   alter_max_tage?: number | null;
   bemerkung?: string | null;
@@ -163,7 +286,7 @@ export type ZielbereichOverride = {
   zielbereich_id: string;
   laborparameter_id: string;
   parameter_anzeigename: string;
-  wert_typ: string;
+  wert_typ: WertTyp;
   basis_untere_grenze_num?: number | null;
   basis_obere_grenze_num?: number | null;
   basis_einheit?: string | null;
@@ -253,8 +376,9 @@ export type ImportMesswertPreview = {
   parameter_id?: string | null;
   parameter_mapping_herkunft?: string | null;
   parameter_mapping_hinweis?: string | null;
+  alias_uebernehmen: boolean;
   original_parametername: string;
-  wert_typ: string;
+  wert_typ: WertTyp;
   wert_roh_text: string;
   wert_num?: number | null;
   wert_text?: string | null;
@@ -264,7 +388,7 @@ export type ImportMesswertPreview = {
   untere_grenze_num?: number | null;
   obere_grenze_num?: number | null;
   referenz_einheit?: string | null;
-  referenz_geschlecht_code?: string | null;
+  referenz_geschlecht_code?: GeschlechtCode | null;
   referenz_alter_min_tage?: number | null;
   referenz_alter_max_tage?: number | null;
   referenz_bemerkung?: string | null;
@@ -314,7 +438,7 @@ export type ArztberichtEintrag = {
   laborparameter_id: string;
   parameter_anzeigename: string;
   datum?: string | null;
-  wert_typ: string;
+  wert_typ: WertTyp;
   wert_anzeige: string;
   wert_num?: number | null;
   einheit?: string | null;
@@ -342,7 +466,7 @@ export type VerlaufsberichtPunkt = {
   laborparameter_id: string;
   parameter_anzeigename: string;
   datum?: string | null;
-  wert_typ: string;
+  wert_typ: WertTyp;
   wert_anzeige: string;
   wert_num?: number | null;
   wert_text?: string | null;
@@ -385,7 +509,7 @@ export type AuswertungPunkt = {
   person_id: string;
   person_anzeigename: string;
   datum?: string | null;
-  wert_typ: string;
+  wert_typ: WertTyp;
   wert_anzeige: string;
   wert_num?: number | null;
   wert_text?: string | null;
@@ -406,7 +530,7 @@ export type AuswertungPunkt = {
 export type AuswertungsSerie = {
   laborparameter_id: string;
   parameter_anzeigename: string;
-  wert_typ_standard: string;
+  wert_typ_standard: WertTyp;
   standard_einheit?: string | null;
   statistik: AuswertungsStatistik;
   punkte: AuswertungPunkt[];

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { apiFetch } from "../api/client";
+import { formatBefundQuelleTyp } from "../constants/fieldOptions";
 import type { Befund } from "../types/api";
 
 type BefundDetailCardProps = {
@@ -67,7 +68,7 @@ export function BefundDetailCard({
             </div>
             <div className="detail-grid__item">
               <span>Quelle</span>
-              <strong>{befund.quelle_typ}</strong>
+              <strong>{formatBefundQuelleTyp(befund.quelle_typ)}</strong>
             </div>
             <div className="detail-grid__item detail-grid__item--full">
               <span>Bemerkung</span>

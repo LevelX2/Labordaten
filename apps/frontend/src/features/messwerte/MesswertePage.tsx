@@ -1,10 +1,25 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { apiFetch } from "../../shared/api/client";
+import {
+  buildMesswertCreatePayload,
+  buildMesswertReferenzCreatePayload
+} from "../../shared/api/payloadBuilders";
 import { MesswertDetailCard } from "../../shared/components/MesswertDetailCard";
 import { SelectionChecklist } from "../../shared/components/SelectionChecklist";
+import {
+  KONTEXT_GESCHLECHT_OPTIONS,
+  WERT_TYP_OPTIONS,
+  formatGeschlechtCode,
+  formatWertTyp
+} from "../../shared/constants/fieldOptions";
 import { getDefaultDateRange } from "../../shared/utils/dateRangeDefaults";
+import {
+  applySharedFilterSearchParams,
+  buildSharedFilterSearchParams
+} from "../../shared/utils/filterNavigation";
 import type {
   Befund,
   Gruppe,
@@ -12,7 +27,8 @@ import type {
   Messwert,
   MesswertReferenz,
   Parameter,
-  Person
+  Person,
+  WertTyp
 } from "../../shared/types/api";
 
 const defaultDateRange = getDefaultDateRange();
@@ -22,7 +38,7 @@ type MesswertFormState = {
   befund_id: string;
   laborparameter_id: string;
   original_parametername: string;
-  wert_typ: "numerisch" | "text";
+  wert_typ: WertTyp;
   wert_roh_text: string;
   wert_num: string;
   wert_text: string;
@@ -63,7 +79,7 @@ const initialFilter: ListenFilterState = {
 
 type ReferenzFormState = {
   messwert_id: string;
-  wert_typ: "numerisch" | "text";
+  wert_typ: WertTyp;
   referenz_text_original: string;
   untere_grenze_num: string;
   obere_grenze_num: string;
@@ -98,8 +114,12 @@ function formatDate(value?: string | null): string {
 
 export function MesswertePage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [form, setForm] = useState<MesswertFormState>(initialForm);
-  const [filter, setFilter] = useState<ListenFilterState>(initialFilter);
+  const [filter, setFilter] = useState<ListenFilterState>(() =>
+    applySharedFilterSearchParams(initialFilter, searchParams)
+  );
   const [referenzForm, setReferenzForm] = useState<ReferenzFormState>(initialReferenzForm);
   const [selectedMesswertId, setSelectedMesswertId] = useState<string | null>(null);
 
@@ -130,18 +150,18 @@ export function MesswertePage() {
   const messwerteQuery = useQuery({
     queryKey: ["messwerte", filter],
     queryFn: () => {
-      const searchParams = new URLSearchParams();
-      appendMany(searchParams, "person_ids", filter.person_ids);
-      appendMany(searchParams, "laborparameter_ids", filter.laborparameter_ids);
-      appendMany(searchParams, "gruppen_ids", filter.gruppen_ids);
-      appendMany(searchParams, "labor_ids", filter.labor_ids);
+      const nextSearchParams = new URLSearchParams();
+      appendMany(nextSearchParams, "person_ids", filter.person_ids);
+      appendMany(nextSearchParams, "laborparameter_ids", filter.laborparameter_ids);
+      appendMany(nextSearchParams, "gruppen_ids", filter.gruppen_ids);
+      appendMany(nextSearchParams, "labor_ids", filter.labor_ids);
       if (filter.datum_von) {
-        searchParams.set("datum_von", filter.datum_von);
+        nextSearchParams.set("datum_von", filter.datum_von);
       }
       if (filter.datum_bis) {
-        searchParams.set("datum_bis", filter.datum_bis);
+        nextSearchParams.set("datum_bis", filter.datum_bis);
       }
-      const queryString = searchParams.toString();
+      const queryString = nextSearchParams.toString();
       return apiFetch<Messwert[]>(`/api/messwerte${queryString ? `?${queryString}` : ""}`);
     }
   });
@@ -166,18 +186,7 @@ export function MesswertePage() {
     mutationFn: () =>
       apiFetch<Messwert>("/api/messwerte", {
         method: "POST",
-        body: JSON.stringify({
-          person_id: form.person_id,
-          befund_id: form.befund_id,
-          laborparameter_id: form.laborparameter_id,
-          original_parametername: form.original_parametername,
-          wert_typ: form.wert_typ,
-          wert_roh_text: form.wert_roh_text,
-          wert_num: form.wert_typ === "numerisch" && form.wert_num ? Number(form.wert_num) : null,
-          wert_text: form.wert_typ === "text" ? form.wert_text || form.wert_roh_text : null,
-          einheit_original: form.wert_typ === "numerisch" ? form.einheit_original || null : null,
-          bemerkung_kurz: form.bemerkung_kurz || null
-        })
+        body: JSON.stringify(buildMesswertCreatePayload(form))
       }),
     onSuccess: async () => {
       setForm(initialForm);
@@ -192,26 +201,9 @@ export function MesswertePage() {
     mutationFn: () =>
       apiFetch<MesswertReferenz>(`/api/messwerte/${referenzForm.messwert_id}/referenzen`, {
         method: "POST",
-        body: JSON.stringify({
-          referenz_typ: "labor",
-          wert_typ: referenzForm.wert_typ,
-          referenz_text_original: referenzForm.referenz_text_original || null,
-          untere_grenze_num:
-            referenzForm.wert_typ === "numerisch" && referenzForm.untere_grenze_num
-              ? Number(referenzForm.untere_grenze_num)
-              : null,
-          obere_grenze_num:
-            referenzForm.wert_typ === "numerisch" && referenzForm.obere_grenze_num
-              ? Number(referenzForm.obere_grenze_num)
-              : null,
-          einheit:
-            referenzForm.wert_typ === "numerisch"
-              ? referenzForm.einheit || selectedMesswert?.einheit_original || null
-              : null,
-          soll_text: referenzForm.wert_typ === "text" ? referenzForm.soll_text || null : null,
-          geschlecht_code: referenzForm.geschlecht_code || null,
-          bemerkung: referenzForm.bemerkung || null
-        })
+        body: JSON.stringify(
+          buildMesswertReferenzCreatePayload(referenzForm, selectedMesswert?.einheit_original)
+        )
       }),
     onSuccess: async () => {
       setReferenzForm((current) => ({
@@ -369,7 +361,7 @@ export function MesswertePage() {
                     ...current,
                     laborparameter_id: event.target.value,
                     original_parametername: selected?.anzeigename ?? current.original_parametername,
-                    wert_typ: (selected?.wert_typ_standard as "numerisch" | "text") ?? current.wert_typ,
+                    wert_typ: selected?.wert_typ_standard ?? current.wert_typ,
                     einheit_original: selected?.standard_einheit ?? current.einheit_original
                   }));
                 }}
@@ -401,14 +393,17 @@ export function MesswertePage() {
                 onChange={(event) =>
                   setForm((current) => ({
                     ...current,
-                    wert_typ: event.target.value as "numerisch" | "text",
+                    wert_typ: event.target.value as WertTyp,
                     wert_num: "",
                     wert_text: ""
                   }))
                 }
               >
-                <option value="numerisch">numerisch</option>
-                <option value="text">text</option>
+                {WERT_TYP_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </label>
 
@@ -473,6 +468,23 @@ export function MesswertePage() {
         <article className="card card--wide">
           <h3>Vorhandene Messwerte</h3>
           <p>Zeilen können angeklickt werden, um alle Details und Referenzwerte direkt darunter zu sehen.</p>
+          <div className="inline-actions">
+            <span className="inline-actions__label">Aktuelle Auswahl weiterverwenden</span>
+            <button
+              type="button"
+              className="inline-button"
+              onClick={() => navigate(`/berichte?${buildSharedFilterSearchParams(filter).toString()}`)}
+            >
+              Zu Berichten
+            </button>
+            <button
+              type="button"
+              className="inline-button"
+              onClick={() => navigate(`/auswertung?${buildSharedFilterSearchParams(filter).toString()}`)}
+            >
+              Zur Auswertung
+            </button>
+          </div>
           <div className="table-wrap">
             <table className="data-table">
               <thead>
@@ -500,7 +512,7 @@ export function MesswertePage() {
                     <td>{messwert.labor_name || "—"}</td>
                     <td>{messwert.gruppen_namen.length ? messwert.gruppen_namen.join(", ") : "—"}</td>
                     <td>{messwert.wert_roh_text}</td>
-                    <td>{messwert.wert_typ}</td>
+                    <td>{formatWertTyp(messwert.wert_typ)}</td>
                     <td>{messwert.einheit_original || "—"}</td>
                   </tr>
                 ))}
@@ -539,7 +551,7 @@ export function MesswertePage() {
                   setReferenzForm((current) => ({
                     ...current,
                     messwert_id: event.target.value,
-                    wert_typ: (selected?.wert_typ as "numerisch" | "text") ?? current.wert_typ,
+                    wert_typ: selected?.wert_typ ?? current.wert_typ,
                     einheit: selected?.einheit_original ?? current.einheit
                   }));
                 }}
@@ -562,15 +574,18 @@ export function MesswertePage() {
                 onChange={(event) =>
                   setReferenzForm((current) => ({
                     ...current,
-                    wert_typ: event.target.value as "numerisch" | "text",
+                    wert_typ: event.target.value as WertTyp,
                     untere_grenze_num: "",
                     obere_grenze_num: "",
                     soll_text: ""
                   }))
                 }
               >
-                <option value="numerisch">numerisch</option>
-                <option value="text">text</option>
+                {WERT_TYP_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </label>
 
@@ -637,12 +652,18 @@ export function MesswertePage() {
 
             <label className="field">
               <span>Geschlecht</span>
-              <input
+              <select
                 value={referenzForm.geschlecht_code}
                 onChange={(event) =>
                   setReferenzForm((current) => ({ ...current, geschlecht_code: event.target.value }))
                 }
-              />
+              >
+                {KONTEXT_GESCHLECHT_OPTIONS.map((option) => (
+                  <option key={option.value || "empty"} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </label>
 
             <label className="field field--full">
@@ -683,14 +704,14 @@ export function MesswertePage() {
               <tbody>
                 {referenzenQuery.data?.map((referenz) => (
                   <tr key={referenz.id}>
-                    <td>{referenz.wert_typ}</td>
+                    <td>{formatWertTyp(referenz.wert_typ)}</td>
                     <td>
                       {referenz.wert_typ === "numerisch"
                         ? `${referenz.untere_grenze_num ?? "—"} bis ${referenz.obere_grenze_num ?? "—"}`
                         : referenz.soll_text || referenz.referenz_text_original || "—"}
                     </td>
                     <td>{referenz.einheit || "—"}</td>
-                    <td>{referenz.geschlecht_code || "alle"}</td>
+                    <td>{formatGeschlechtCode(referenz.geschlecht_code, "Alle Geschlechter")}</td>
                     <td>
                       {referenz.alter_min_tage !== null && referenz.alter_min_tage !== undefined
                         ? `${(referenz.alter_min_tage / 365.25).toFixed(1)} bis ${

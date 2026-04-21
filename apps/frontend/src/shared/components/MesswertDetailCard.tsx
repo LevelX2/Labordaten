@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { apiFetch } from "../api/client";
+import { formatGeschlechtCode, formatWertTyp } from "../constants/fieldOptions";
 import { BefundDetailCard } from "./BefundDetailCard";
 import type { Messwert, MesswertReferenz } from "../types/api";
 
@@ -91,7 +92,7 @@ export function MesswertDetailCard({
             </div>
             <div className="detail-grid__item">
               <span>Typ</span>
-              <strong>{messwert.wert_typ}</strong>
+              <strong>{formatWertTyp(messwert.wert_typ)}</strong>
             </div>
             <div className="detail-grid__item">
               <span>Originalname</span>
@@ -156,10 +157,10 @@ export function MesswertDetailCard({
               <tbody>
                 {referenzenQuery.data?.map((referenz) => (
                   <tr key={referenz.id}>
-                    <td>{referenz.wert_typ}</td>
+                    <td>{formatWertTyp(referenz.wert_typ)}</td>
                     <td>{formatReference(referenz)}</td>
                     <td>{referenz.einheit || "—"}</td>
-                    <td>{referenz.geschlecht_code || "alle"}</td>
+                    <td>{formatGeschlechtCode(referenz.geschlecht_code, "Alle Geschlechter")}</td>
                     <td>
                       {referenz.alter_min_tage !== null && referenz.alter_min_tage !== undefined
                         ? `${(referenz.alter_min_tage / 365.25).toFixed(1)} bis ${

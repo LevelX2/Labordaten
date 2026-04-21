@@ -1,6 +1,13 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+
+from labordaten_backend.core.field_options import (
+    GESCHLECHT_CODES,
+    WERT_TYPEN,
+    validate_optional_code,
+    validate_required_code,
+)
 
 
 class ZielbereichCreate(BaseModel):
@@ -13,6 +20,16 @@ class ZielbereichCreate(BaseModel):
     alter_min_tage: int | None = None
     alter_max_tage: int | None = None
     bemerkung: str | None = None
+
+    @field_validator("wert_typ")
+    @classmethod
+    def validate_wert_typ(cls, value: str) -> str:
+        return validate_required_code(value, valid_values=WERT_TYPEN, field_label="Werttyp")
+
+    @field_validator("geschlecht_code")
+    @classmethod
+    def validate_geschlecht_code(cls, value: str | None) -> str | None:
+        return validate_optional_code(value, valid_values=GESCHLECHT_CODES, field_label="Geschlecht")
 
     @model_validator(mode="after")
     def validate_target(self) -> "ZielbereichCreate":
@@ -40,4 +57,3 @@ class ZielbereichRead(BaseModel):
     aktiv: bool
     erstellt_am: datetime
     geaendert_am: datetime
-

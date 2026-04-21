@@ -2,7 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 
 import { apiFetch } from "../../shared/api/client";
-import type { Parameter, Person, Zielbereich, ZielbereichOverride } from "../../shared/types/api";
+import { buildPersonCreatePayload } from "../../shared/api/payloadBuilders";
+import {
+  PERSON_GESCHLECHT_OPTIONS,
+  formatGeschlechtCode
+} from "../../shared/constants/fieldOptions";
+import type { Parameter, Person, WertTyp, Zielbereich, ZielbereichOverride } from "../../shared/types/api";
 
 type PersonFormState = {
   anzeigename: string;
@@ -24,7 +29,7 @@ type OverrideFormState = {
   person_id: string;
   parameter_id: string;
   zielbereich_id: string;
-  wert_typ: "numerisch" | "text";
+  wert_typ: WertTyp;
   untere_grenze_num: string;
   obere_grenze_num: string;
   einheit: string;
@@ -79,13 +84,7 @@ export function PersonenPage() {
     mutationFn: () =>
       apiFetch<Person>("/api/personen", {
         method: "POST",
-        body: JSON.stringify({
-          anzeigename: form.anzeigename,
-          vollname: form.vollname || null,
-          geburtsdatum: form.geburtsdatum,
-          geschlecht_code: form.geschlecht_code || null,
-          hinweise_allgemein: form.hinweise_allgemein || null
-        })
+        body: JSON.stringify(buildPersonCreatePayload(form))
       }),
     onSuccess: async () => {
       setForm(initialForm);
@@ -172,12 +171,18 @@ export function PersonenPage() {
 
             <label className="field">
               <span>Geschlecht</span>
-              <input
+              <select
                 value={form.geschlecht_code}
                 onChange={(event) =>
                   setForm((current) => ({ ...current, geschlecht_code: event.target.value }))
                 }
-              />
+              >
+                {PERSON_GESCHLECHT_OPTIONS.map((option) => (
+                  <option key={option.value || "empty"} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </label>
 
             <label className="field field--full">
@@ -218,7 +223,7 @@ export function PersonenPage() {
                   <tr key={person.id}>
                     <td>{person.anzeigename}</td>
                     <td>{person.geburtsdatum}</td>
-                    <td>{person.geschlecht_code || "—"}</td>
+                    <td>{formatGeschlechtCode(person.geschlecht_code, "Nicht angegeben")}</td>
                   </tr>
                 ))}
                 {!personenQuery.data?.length ? (
@@ -298,7 +303,7 @@ export function PersonenPage() {
                   setOverrideForm((current) => ({
                     ...current,
                     zielbereich_id: event.target.value,
-                    wert_typ: (selected?.wert_typ as "numerisch" | "text") ?? current.wert_typ,
+                    wert_typ: selected?.wert_typ ?? current.wert_typ,
                     einheit: selected?.einheit ?? "",
                     soll_text: selected?.soll_text ?? ""
                   }));

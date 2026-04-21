@@ -1,6 +1,8 @@
 from datetime import date, datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
+
+from labordaten_backend.core.field_options import GESCHLECHT_CODES, validate_optional_code
 
 
 class PersonCreate(BaseModel):
@@ -11,6 +13,11 @@ class PersonCreate(BaseModel):
     blutgruppe: str | None = None
     rhesusfaktor: str | None = None
     hinweise_allgemein: str | None = None
+
+    @field_validator("geschlecht_code")
+    @classmethod
+    def validate_geschlecht_code(cls, value: str | None) -> str | None:
+        return validate_optional_code(value, valid_values=GESCHLECHT_CODES, field_label="Geschlecht")
 
 
 class PersonRead(BaseModel):

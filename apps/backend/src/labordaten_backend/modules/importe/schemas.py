@@ -2,6 +2,14 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from labordaten_backend.core.field_options import (
+    GESCHLECHT_CODES,
+    WERT_OPERATOREN,
+    WERT_TYPEN,
+    validate_optional_code,
+    validate_required_code,
+)
+
 
 class ImportBefundPayload(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -36,15 +44,24 @@ class ImportMesswertPayload(BaseModel):
     referenz_alter_min_tage: int | None = Field(default=None, alias="referenzAlterMinTage")
     referenz_alter_max_tage: int | None = Field(default=None, alias="referenzAlterMaxTage")
     referenz_bemerkung: str | None = Field(default=None, alias="referenzBemerkung")
+    alias_uebernehmen: bool = Field(default=False, alias="aliasUebernehmen")
     unsicher_flag: bool = Field(default=False, alias="unsicherFlag")
     pruefbedarf_flag: bool = Field(default=False, alias="pruefbedarfFlag")
 
     @field_validator("wert_typ")
     @classmethod
     def validate_wert_typ(cls, value: str) -> str:
-        if value not in {"numerisch", "text"}:
-            raise ValueError("Nur numerische oder textuelle Messwerte sind erlaubt.")
-        return value
+        return validate_required_code(value, valid_values=WERT_TYPEN, field_label="Werttyp")
+
+    @field_validator("wert_operator")
+    @classmethod
+    def validate_wert_operator(cls, value: str) -> str:
+        return validate_required_code(value, valid_values=WERT_OPERATOREN, field_label="Wertoperator")
+
+    @field_validator("referenz_geschlecht_code")
+    @classmethod
+    def validate_referenz_geschlecht_code(cls, value: str | None) -> str | None:
+        return validate_optional_code(value, valid_values=GESCHLECHT_CODES, field_label="Geschlecht")
 
 
 class ImportPayload(BaseModel):
@@ -74,6 +91,7 @@ class ImportEntwurfCreate(BaseModel):
 class ImportParameterMapping(BaseModel):
     messwert_index: int
     laborparameter_id: str
+    alias_uebernehmen: bool = False
 
 
 class ImportUebernehmenRequest(BaseModel):
@@ -100,6 +118,7 @@ class ImportMesswertPreviewRead(BaseModel):
     parameter_id: str | None = None
     parameter_mapping_herkunft: str | None = None
     parameter_mapping_hinweis: str | None = None
+    alias_uebernehmen: bool = False
     original_parametername: str
     wert_typ: str
     wert_roh_text: str

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
 import { apiFetch } from "../../shared/api/client";
+import { formatGeschlechtCode, formatWertTyp } from "../../shared/constants/fieldOptions";
 import type {
   ImportVorgangDetail,
   ImportMesswertPreview,
@@ -162,6 +163,7 @@ export function ImportPage() {
   const [dateiForm, setDateiForm] = useState<DateiImportFormState>(initialDateiForm);
   const [selectedImportId, setSelectedImportId] = useState<string | null>(null);
   const [mappingState, setMappingState] = useState<Record<number, string>>({});
+  const [aliasState, setAliasState] = useState<Record<number, boolean>>({});
   const [warningsConfirmed, setWarningsConfirmed] = useState(false);
 
   const personenQuery = useQuery({
@@ -194,12 +196,17 @@ export function ImportPage() {
 
   useEffect(() => {
     const nextMappings: Record<number, string> = {};
+    const nextAliases: Record<number, boolean> = {};
     selectedImportQuery.data?.messwerte.forEach((messwert) => {
       if (messwert.parameter_id) {
         nextMappings[messwert.messwert_index] = messwert.parameter_id;
       }
+      if (messwert.alias_uebernehmen) {
+        nextAliases[messwert.messwert_index] = true;
+      }
     });
     setMappingState(nextMappings);
+    setAliasState(nextAliases);
     setWarningsConfirmed(false);
   }, [selectedImportQuery.data]);
 
@@ -306,7 +313,8 @@ export function ImportPage() {
           bestaetige_warnungen: warningsConfirmed,
           parameter_mappings: Object.entries(mappingState).map(([messwert_index, laborparameter_id]) => ({
             messwert_index: Number(messwert_index),
-            laborparameter_id
+            laborparameter_id,
+            alias_uebernehmen: Boolean(aliasState[Number(messwert_index)])
           }))
         })
       }),
@@ -613,6 +621,7 @@ export function ImportPage() {
                       <th>Kontext</th>
                       <th>Zuordnungsweg</th>
                       <th>Parameter-Zuordnung</th>
+                      <th>Alias</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -620,12 +629,14 @@ export function ImportPage() {
                       <tr key={messwert.messwert_index}>
                         <td>{messwert.original_parametername}</td>
                         <td>{messwert.wert_roh_text}</td>
-                        <td>{messwert.wert_typ}</td>
+                        <td>{formatWertTyp(messwert.wert_typ)}</td>
                         <td>{messwert.einheit_original ?? "—"}</td>
                         <td>{formatImportReference(messwert)}</td>
                         <td>
                           {[
-                            messwert.referenz_geschlecht_code ? `Geschlecht: ${messwert.referenz_geschlecht_code}` : null,
+                            messwert.referenz_geschlecht_code
+                              ? `Geschlecht: ${formatGeschlechtCode(messwert.referenz_geschlecht_code)}`
+                              : null,
                             messwert.referenz_alter_min_tage || messwert.referenz_alter_max_tage
                               ? `Alter: ${formatAgeRange(messwert.referenz_alter_min_tage, messwert.referenz_alter_max_tage)}`
                               : null,
@@ -639,10 +650,22 @@ export function ImportPage() {
                           <select
                             value={mappingState[messwert.messwert_index] ?? ""}
                             onChange={(event) =>
-                              setMappingState((current) => ({
-                                ...current,
-                                [messwert.messwert_index]: event.target.value
-                              }))
+                              {
+                                const nextValue = event.target.value;
+                                setMappingState((current) => ({
+                                  ...current,
+                                  [messwert.messwert_index]: nextValue
+                                }));
+                                setAliasState((current) => {
+                                  if (!nextValue) {
+                                    return { ...current, [messwert.messwert_index]: false };
+                                  }
+                                  if (current[messwert.messwert_index] !== undefined) {
+                                    return current;
+                                  }
+                                  return { ...current, [messwert.messwert_index]: !messwert.parameter_id };
+                                });
+                              }
                             }
                           >
                             <option value="">Bitte wählen</option>
@@ -655,6 +678,22 @@ export function ImportPage() {
                           {mappingState[messwert.messwert_index]
                             ? ` (${parameterById.get(mappingState[messwert.messwert_index])?.anzeigename ?? "zugeordnet"})`
                             : ""}
+                        </td>
+                        <td>
+                          <label className="field" style={{ minWidth: 0 }}>
+                            <span>Originalnamen als Alias übernehmen</span>
+                            <input
+                              type="checkbox"
+                              checked={Boolean(aliasState[messwert.messwert_index])}
+                              disabled={!mappingState[messwert.messwert_index]}
+                              onChange={(event) =>
+                                setAliasState((current) => ({
+                                  ...current,
+                                  [messwert.messwert_index]: event.target.checked
+                                }))
+                              }
+                            />
+                          </label>
                         </td>
                       </tr>
                     ))}
