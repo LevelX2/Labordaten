@@ -60,6 +60,7 @@ class MesswertRead(BaseModel):
     einheit_original: str | None = None
     wert_normiert_num: float | None = None
     einheit_normiert: str | None = None
+    umrechnungsregel_id: str | None = None
     bemerkung_kurz: str | None = None
     bemerkung_lang: str | None = None
     unsicher_flag: bool

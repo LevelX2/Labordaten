@@ -39,6 +39,7 @@ class AuswertungPunkt(BaseModel):
     person_anzeigename: str
     datum: date | None = None
     wert_typ: str
+    wert_operator: str = "exakt"
     wert_anzeige: str
     wert_num: float | None = None
     wert_text: str | None = None

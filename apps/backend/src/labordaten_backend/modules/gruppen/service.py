@@ -9,6 +9,7 @@ from labordaten_backend.models.laborparameter import Laborparameter
 from labordaten_backend.models.parameter_gruppe import ParameterGruppe
 from labordaten_backend.modules.gruppen.schemas import (
     GruppeCreate,
+    GruppenParameterAssignItem,
     GruppenParameterAssignRequest,
     GruppenParameterRead,
     GruppeRead,
@@ -99,3 +100,31 @@ def replace_gruppen_parameter(
 
     db.commit()
     return list_gruppen_parameter(db, gruppe_id)
+
+
+def merge_gruppen_parameter(
+    db: Session,
+    gruppe_id: str,
+    payload: GruppenParameterAssignRequest,
+) -> list[GruppenParameterRead]:
+    gruppe = db.get(ParameterGruppe, gruppe_id)
+    if gruppe is None or not gruppe.aktiv:
+        raise ValueError("Die gewählte Gruppe existiert nicht.")
+
+    existing_entries = list_gruppen_parameter(db, gruppe_id)
+    merged_by_parameter_id = {
+        item.laborparameter_id: GruppenParameterAssignItem(
+            laborparameter_id=item.laborparameter_id,
+            sortierung=item.sortierung,
+        )
+        for item in existing_entries
+    }
+
+    for eintrag in payload.eintraege:
+        merged_by_parameter_id[eintrag.laborparameter_id] = eintrag
+
+    return replace_gruppen_parameter(
+        db,
+        gruppe_id,
+        GruppenParameterAssignRequest(eintraege=list(merged_by_parameter_id.values())),
+    )

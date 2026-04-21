@@ -2,9 +2,10 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { apiFetch } from "../api/client";
-import { formatGeschlechtCode, formatWertTyp } from "../constants/fieldOptions";
+import { formatGeschlechtCode, formatWertOperator, formatWertTyp } from "../constants/fieldOptions";
 import { BefundDetailCard } from "./BefundDetailCard";
 import type { Messwert, MesswertReferenz } from "../types/api";
+import { formatMesswertAnzeige, formatReferenzAnzeige } from "../utils/laborFormatting";
 
 type MesswertDetailCardProps = {
   messwertId: string | null;
@@ -21,22 +22,11 @@ function formatDate(value?: string | null): string {
 }
 
 function formatReference(referenz: MesswertReferenz): string {
-  if (referenz.wert_typ === "text") {
-    return referenz.soll_text || referenz.referenz_text_original || "—";
-  }
-
-  const lower = referenz.untere_grenze_num ?? "—";
-  const upper = referenz.obere_grenze_num ?? "—";
-  return `${lower} bis ${upper}`;
+  return formatReferenzAnzeige(referenz);
 }
 
 function formatValue(messwert: Messwert): string {
-  if (messwert.wert_typ === "text") {
-    return messwert.wert_text || messwert.wert_roh_text;
-  }
-  return messwert.wert_num !== null && messwert.wert_num !== undefined
-    ? String(messwert.wert_num)
-    : messwert.wert_roh_text;
+  return formatMesswertAnzeige(messwert);
 }
 
 export function MesswertDetailCard({
@@ -93,6 +83,10 @@ export function MesswertDetailCard({
             <div className="detail-grid__item">
               <span>Typ</span>
               <strong>{formatWertTyp(messwert.wert_typ)}</strong>
+            </div>
+            <div className="detail-grid__item">
+              <span>Operator</span>
+              <strong>{formatWertOperator(messwert.wert_operator)}</strong>
             </div>
             <div className="detail-grid__item">
               <span>Originalname</span>

@@ -11,6 +11,7 @@ from labordaten_backend.models.gruppen_parameter import GruppenParameter
 from labordaten_backend.models.messwert import Messwert
 from labordaten_backend.models.messwert_referenz import MesswertReferenz
 from labordaten_backend.models.parameter_gruppe import ParameterGruppe
+from labordaten_backend.models.parameter_umrechnungsregel import ParameterUmrechnungsregel
 from labordaten_backend.models.person import Person
 from labordaten_backend.models.planung_einmalig import PlanungEinmalig
 from labordaten_backend.models.planung_zyklisch import PlanungZyklisch
@@ -32,6 +33,7 @@ __all__ = [
     "Messwert",
     "MesswertReferenz",
     "ParameterGruppe",
+    "ParameterUmrechnungsregel",
     "Person",
     "PlanungEinmalig",
     "PlanungZyklisch",

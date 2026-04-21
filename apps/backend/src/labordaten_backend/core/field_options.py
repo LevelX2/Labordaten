@@ -3,8 +3,10 @@ from collections.abc import Collection
 GESCHLECHT_CODES = ("w", "m", "d")
 WERT_TYPEN = ("numerisch", "text")
 WERT_OPERATOREN = ("exakt", "kleiner_als", "kleiner_gleich", "groesser_als", "groesser_gleich", "ungefaehr")
+REFERENZ_GRENZ_OPERATOREN = ("kleiner_als", "kleiner_gleich", "groesser_als", "groesser_gleich")
 REFERENZ_TYPEN = ("labor", "ziel_allgemein", "ziel_person")
 BEFUND_QUELLE_TYPEN = ("manuell", "import", "ki_import")
+UMRECHNUNGSREGEL_TYPEN = ("faktor", "faktor_plus_offset", "formel")
 
 
 def _allowed_values_text(valid_values: Collection[str]) -> str:

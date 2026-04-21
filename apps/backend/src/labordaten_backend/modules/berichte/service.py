@@ -13,10 +13,15 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import CondPageBreak, KeepTogether, LongTable, Paragraph, SimpleDocTemplate, Spacer, TableStyle
 from sqlalchemy import Select, select
 from sqlalchemy.orm import Session
 
+from labordaten_backend.core.labor_value_formatting import (
+    format_numeric_measurement_value,
+    format_numeric_reference_range,
+    is_numeric_value_outside_reference,
+)
 from labordaten_backend.models.befund import Befund
 from labordaten_backend.models.gruppen_parameter import GruppenParameter
 from labordaten_backend.models.labor import Labor
@@ -34,10 +39,17 @@ from labordaten_backend.modules.berichte.schemas import (
     VerlaufsberichtResponse,
 )
 
+PDF_LEFT_MARGIN = 1.5 * cm
+PDF_RIGHT_MARGIN = 1.5 * cm
+PDF_TOP_MARGIN = 1.4 * cm
+PDF_BOTTOM_MARGIN = 1.4 * cm
+
 
 def build_arztbericht(db: Session, payload: ArztberichtRequest) -> ArztberichtResponse:
     persons = _load_persons_or_raise(db, payload.person_ids)
     rows = list(_execute_measurement_query(db, payload))
+    supported_display_units = _collect_supported_display_units(rows)
+    _validate_requested_display_units(rows, payload.einheit_auswahl, supported_display_units)
     latest_by_key: dict[tuple[str, str], tuple[Messwert, Befund, Laborparameter, Labor | None, Person]] = {}
 
     for messwert, befund, parameter, labor, person in rows:
@@ -56,6 +68,7 @@ def build_arztbericht(db: Session, payload: ArztberichtRequest) -> ArztberichtRe
         key=lambda item: (item[1][4].anzeigename.lower(), item[1][2].anzeigename.lower()),
     ):
         referenz = referenzen.get(messwert.id)
+        display_value = _resolve_measurement_display(messwert, payload.einheit_auswahl.get(parameter_id))
         eintraege.append(
             ArztberichtEintrag(
                 messwert_id=messwert.id,
@@ -65,10 +78,14 @@ def build_arztbericht(db: Session, payload: ArztberichtRequest) -> ArztberichtRe
                 parameter_anzeigename=parameter.anzeigename,
                 datum=_effective_date(befund, messwert),
                 wert_typ=messwert.wert_typ,
-                wert_anzeige=_format_measurement_value(messwert),
-                wert_num=messwert.wert_num,
-                einheit=messwert.einheit_original,
-                referenzbereich=_format_reference(referenz) if payload.include_referenzbereich else None,
+                wert_anzeige=display_value["wert_anzeige"],
+                wert_num=display_value["wert_num"],
+                einheit=display_value["einheit"],
+                wert_original_num=messwert.wert_num,
+                einheit_original=messwert.einheit_original,
+                wert_normiert_num=messwert.wert_normiert_num,
+                einheit_normiert=messwert.einheit_normiert,
+                referenzbereich=_format_reference(referenz, display_value["einheit"]) if payload.include_referenzbereich else None,
                 labor_name=labor.name if payload.include_labor and labor is not None else None,
                 befundbemerkung=befund.bemerkung if payload.include_befundbemerkung else None,
                 messwertbemerkung=messwert.bemerkung_kurz if payload.include_messwertbemerkung else None,
@@ -83,12 +100,15 @@ def build_arztbericht(db: Session, payload: ArztberichtRequest) -> ArztberichtRe
 def build_verlaufsbericht(db: Session, payload: VerlaufsberichtRequest) -> VerlaufsberichtResponse:
     persons = _load_persons_or_raise(db, payload.person_ids)
     rows = list(_execute_measurement_query(db, payload))
+    supported_display_units = _collect_supported_display_units(rows)
+    _validate_requested_display_units(rows, payload.einheit_auswahl, supported_display_units)
     referenzen = _load_reference_map(db, [messwert.id for messwert, _, _, _, _ in rows])
     gruppen_map = _load_group_names(db, [parameter.id for _, _, parameter, _, _ in rows])
     punkte: list[VerlaufsberichtPunkt] = []
 
     for messwert, befund, parameter, labor, person in rows:
         referenz = referenzen.get(messwert.id)
+        display_value = _resolve_measurement_display(messwert, payload.einheit_auswahl.get(parameter.id))
         punkte.append(
             VerlaufsberichtPunkt(
                 messwert_id=messwert.id,
@@ -98,10 +118,14 @@ def build_verlaufsbericht(db: Session, payload: VerlaufsberichtRequest) -> Verla
                 parameter_anzeigename=parameter.anzeigename,
                 datum=_effective_date(befund, messwert),
                 wert_typ=messwert.wert_typ,
-                wert_anzeige=_format_measurement_value(messwert),
-                wert_num=messwert.wert_num,
+                wert_anzeige=display_value["wert_anzeige"],
+                wert_num=display_value["wert_num"],
                 wert_text=messwert.wert_text,
-                einheit=messwert.einheit_original,
+                einheit=display_value["einheit"],
+                wert_original_num=messwert.wert_num,
+                einheit_original=messwert.einheit_original,
+                wert_normiert_num=messwert.wert_normiert_num,
+                einheit_normiert=messwert.einheit_normiert,
                 labor_name=labor.name if labor is not None else None,
                 gruppen_namen=gruppen_map.get(parameter.id, []),
                 ausserhalb_referenzbereich=_is_outside_reference(messwert, referenz),
@@ -152,7 +176,7 @@ def render_arztbericht_pdf(db: Session, payload: ArztberichtRequest) -> tuple[st
                 table_rows.append(note_row)
 
         col_widths = [3.2 * cm, 4.2 * cm, 2.3 * cm, 3.7 * cm, 3.6 * cm, 2.6 * cm] if include_person_column else [4.8 * cm, 2.6 * cm, 4.0 * cm, 4.0 * cm, 3.2 * cm]
-        table = Table(table_rows, colWidths=col_widths, repeatRows=1)
+        table = LongTable(table_rows, colWidths=col_widths, repeatRows=1)
         table.setStyle(_build_table_style())
         elements.append(table)
     else:
@@ -165,6 +189,8 @@ def render_verlaufsbericht_pdf(db: Session, payload: VerlaufsberichtRequest) -> 
     persons = _load_persons_or_raise(db, payload.person_ids)
     bericht = build_verlaufsbericht(db, payload)
     styles = _build_pdf_styles()
+    report_pagesize = landscape(A4)
+    frame_width, frame_height = _page_frame_size(report_pagesize)
     elements: list[object] = [
         Paragraph("Verlaufsbericht", styles["title"]),
         Paragraph(_build_people_line(persons), styles["subtitle"]),
@@ -181,40 +207,52 @@ def render_verlaufsbericht_pdf(db: Session, payload: VerlaufsberichtRequest) -> 
         elements.append(Paragraph("Für die aktuelle Auswahl gibt es noch keinen Verlauf.", styles["body"]))
     else:
         for parameter_name in sorted(grouped):
-            elements.append(Paragraph(escape(parameter_name), styles["section"]))
             points_by_person: dict[str, list[VerlaufsberichtPunkt]] = defaultdict(list)
             for punkt in grouped[parameter_name]:
                 points_by_person[punkt.person_anzeigename].append(punkt)
 
+            section_rendered = False
             for person_name, points in sorted(points_by_person.items()):
-                if len(points_by_person) > 1:
-                    elements.append(Paragraph(escape(person_name), styles["subsection"]))
                 sorted_points = sorted(points, key=lambda item: item.datum or date.min)
                 numeric_points = [punkt for punkt in sorted_points if punkt.wert_typ == "numerisch" and punkt.wert_num is not None]
-                if numeric_points:
-                    chart = _build_numeric_chart(f"{parameter_name} · {person_name}", numeric_points)
-                    if chart is not None:
-                        elements.append(chart)
-                        elements.append(Spacer(1, 0.2 * cm))
+                if not numeric_points:
+                    continue
 
-                    numeric_rows: list[list[object]] = [["Datum", "Wert", "Einheit", "Labor"]]
-                    for punkt in numeric_points:
-                        numeric_rows.append(
-                            [
-                                _paragraph(_format_date(punkt.datum), styles["table"]),
-                                _paragraph(punkt.wert_anzeige, styles["table"]),
-                                _paragraph(punkt.einheit or "—", styles["table"]),
-                                _paragraph(punkt.labor_name or "—", styles["table"]),
-                            ]
-                        )
-                    numeric_table = Table(numeric_rows, colWidths=[3.0 * cm, 4.0 * cm, 3.0 * cm, 6.0 * cm], repeatRows=1)
-                    numeric_table.setStyle(_build_table_style())
-                    elements.append(numeric_table)
-                    elements.append(Spacer(1, 0.3 * cm))
+                block: list[object] = []
+                if not section_rendered:
+                    block.append(Paragraph(escape(parameter_name), styles["section"]))
+                    section_rendered = True
+                if len(points_by_person) > 1:
+                    block.append(Paragraph(escape(person_name), styles["subsection"]))
+
+                chart = _build_numeric_chart(f"{parameter_name} · {person_name}", numeric_points)
+                if chart is not None:
+                    block.append(chart)
+                    block.append(Spacer(1, 0.2 * cm))
+
+                numeric_rows: list[list[object]] = [["Datum", "Wert", "Einheit", "Labor"]]
+                for punkt in numeric_points:
+                    numeric_rows.append(
+                        [
+                            _paragraph(_format_date(punkt.datum), styles["table"]),
+                            _paragraph(punkt.wert_anzeige, styles["table"]),
+                            _paragraph(punkt.einheit or "—", styles["table"]),
+                            _paragraph(punkt.labor_name or "—", styles["table"]),
+                        ]
+                    )
+                numeric_table = LongTable(numeric_rows, colWidths=[3.0 * cm, 4.0 * cm, 3.0 * cm, 6.0 * cm], repeatRows=1)
+                numeric_table.setStyle(_build_table_style())
+                block.append(numeric_table)
+                block.append(Spacer(1, 0.3 * cm))
+                _append_report_block(elements, block, frame_width, frame_height)
 
             text_points = [punkt for punkt in grouped[parameter_name] if punkt.wert_typ != "numerisch" or punkt.wert_num is None]
             if text_points:
-                elements.append(Paragraph("Qualitative oder textuelle Einträge", styles["subsection"]))
+                block = []
+                if not section_rendered:
+                    block.append(Paragraph(escape(parameter_name), styles["section"]))
+                    section_rendered = True
+                block.append(Paragraph("Qualitative oder textuelle Einträge", styles["subsection"]))
                 include_person_column = len(persons) > 1
                 header = ["Person", "Datum", "Typ", "Wert", "Labor"] if include_person_column else ["Datum", "Typ", "Wert", "Labor"]
                 text_rows: list[list[object]] = [header]
@@ -228,16 +266,17 @@ def render_verlaufsbericht_pdf(db: Session, payload: VerlaufsberichtRequest) -> 
                     if include_person_column:
                         row.insert(0, _paragraph(punkt.person_anzeigename, styles["table"]))
                     text_rows.append(row)
-                text_table = Table(
+                text_table = LongTable(
                     text_rows,
                     colWidths=[3.0 * cm, 3.0 * cm, 8.2 * cm, 4.0 * cm, 3.2 * cm] if include_person_column else [3.0 * cm, 3.0 * cm, 8.2 * cm, 4.0 * cm],
                     repeatRows=1,
                 )
                 text_table.setStyle(_build_table_style())
-                elements.append(text_table)
-                elements.append(Spacer(1, 0.45 * cm))
+                block.append(text_table)
+                block.append(Spacer(1, 0.45 * cm))
+                _append_report_block(elements, block, frame_width, frame_height)
 
-    return _build_report_filename("verlauf", persons), _build_pdf(elements, pagesize=landscape(A4))
+    return _build_report_filename("verlauf", persons), _build_pdf(elements, pagesize=report_pagesize)
 
 
 def _execute_measurement_query(db: Session, payload: ArztberichtRequest | VerlaufsberichtRequest):
@@ -305,44 +344,80 @@ def _load_group_names(db: Session, laborparameter_ids: list[str]) -> dict[str, l
 def _format_measurement_value(messwert: Messwert) -> str:
     if messwert.wert_typ == "text":
         return messwert.wert_text or messwert.wert_roh_text
-    operator_prefix = {
-        "exakt": "",
-        "kleiner_als": "< ",
-        "kleiner_gleich": "<= ",
-        "groesser_als": "> ",
-        "groesser_gleich": ">= ",
-        "ungefaehr": "~ ",
-    }.get(messwert.wert_operator, "")
-    if messwert.wert_num is not None:
-        return f"{operator_prefix}{messwert.wert_num}"
-    return f"{operator_prefix}{messwert.wert_roh_text}"
+    return _format_numeric_measurement_value(messwert.wert_num, messwert.wert_operator, messwert.wert_roh_text)
 
 
-def _format_reference(referenz: MesswertReferenz | None) -> str | None:
+def _format_numeric_measurement_value(
+    value: float | None,
+    operator: str,
+    raw_value: str | None,
+) -> str:
+    return format_numeric_measurement_value(value, operator, raw_value)
+
+
+def _resolve_measurement_display(messwert: Messwert, target_unit: str | None) -> dict[str, str | float | None]:
+    if messwert.wert_typ == "text":
+        return {
+            "wert_anzeige": messwert.wert_text or messwert.wert_roh_text,
+            "wert_num": None,
+            "einheit": messwert.einheit_original,
+        }
+
+    if target_unit and target_unit != "original":
+        if messwert.einheit_original == target_unit and messwert.wert_num is not None:
+            return {
+                "wert_anzeige": _format_numeric_measurement_value(messwert.wert_num, messwert.wert_operator, messwert.wert_roh_text),
+                "wert_num": messwert.wert_num,
+                "einheit": messwert.einheit_original,
+            }
+        if messwert.einheit_normiert == target_unit and messwert.wert_normiert_num is not None:
+            return {
+                "wert_anzeige": _format_numeric_measurement_value(
+                    messwert.wert_normiert_num,
+                    messwert.wert_operator,
+                    messwert.wert_roh_text,
+                ),
+                "wert_num": messwert.wert_normiert_num,
+                "einheit": messwert.einheit_normiert,
+            }
+
+    return {
+        "wert_anzeige": _format_measurement_value(messwert),
+        "wert_num": messwert.wert_num,
+        "einheit": messwert.einheit_original,
+    }
+
+
+def _format_reference(referenz: MesswertReferenz | None, display_unit: str | None = None) -> str | None:
     if referenz is None:
         return None
     if referenz.wert_typ == "text":
         return referenz.soll_text or referenz.referenz_text_original
-    lower = "—" if referenz.untere_grenze_num is None else str(referenz.untere_grenze_num)
-    upper = "—" if referenz.obere_grenze_num is None else str(referenz.obere_grenze_num)
-    einheit = f" {referenz.einheit}" if referenz.einheit else ""
+    prefix = "Originalreferenz: " if display_unit and referenz.einheit and referenz.einheit != display_unit else ""
+    range_text = format_numeric_reference_range(
+        lower_value=referenz.untere_grenze_num,
+        upper_value=referenz.obere_grenze_num,
+        lower_operator=referenz.untere_grenze_operator,
+        upper_operator=referenz.obere_grenze_operator,
+        unit=referenz.einheit,
+    )
     if referenz.referenz_text_original:
-        return f"{lower} bis {upper}{einheit} ({referenz.referenz_text_original})"
-    return f"{lower} bis {upper}{einheit}"
+        if range_text:
+            return f"{prefix}{range_text} ({referenz.referenz_text_original})"
+        return f"{prefix}{referenz.referenz_text_original}"
+    return f"{prefix}{range_text}" if range_text else None
 
 
 def _is_outside_reference(messwert: Messwert, referenz: MesswertReferenz | None) -> bool | None:
     if referenz is None or messwert.wert_typ != "numerisch" or referenz.wert_typ != "numerisch":
         return None
-    if messwert.wert_num is None:
-        return None
-    if referenz.untere_grenze_num is not None and messwert.wert_num < referenz.untere_grenze_num:
-        return True
-    if referenz.obere_grenze_num is not None and messwert.wert_num > referenz.obere_grenze_num:
-        return True
-    if referenz.untere_grenze_num is None and referenz.obere_grenze_num is None:
-        return None
-    return False
+    return is_numeric_value_outside_reference(
+        value=messwert.wert_num,
+        lower_value=referenz.untere_grenze_num,
+        upper_value=referenz.obere_grenze_num,
+        lower_operator=referenz.untere_grenze_operator,
+        upper_operator=referenz.obere_grenze_operator,
+    )
 
 
 def _effective_date(befund: Befund, messwert: Messwert):
@@ -356,6 +431,63 @@ def _load_persons_or_raise(db: Session, person_ids: list[str]) -> list[Person]:
     if len(persons) != len(set(person_ids)):
         raise ValueError("Mindestens eine ausgewählte Person existiert nicht.")
     return persons
+
+
+def _collect_supported_display_units(
+    rows: list[tuple[Messwert, Befund, Laborparameter, Labor | None, Person]],
+) -> dict[str, set[str]]:
+    per_parameter_units: dict[str, list[set[str]]] = defaultdict(list)
+
+    for messwert, _, parameter, _, _ in rows:
+        if messwert.wert_typ != "numerisch" or messwert.wert_num is None:
+            continue
+
+        available_units = _available_display_units(messwert)
+        if available_units:
+            per_parameter_units[parameter.id].append(available_units)
+
+    supported_units: dict[str, set[str]] = {}
+    for parameter_id, unit_sets in per_parameter_units.items():
+        if not unit_sets:
+            supported_units[parameter_id] = set()
+            continue
+        common_units = set(unit_sets[0])
+        for unit_set in unit_sets[1:]:
+            common_units &= unit_set
+        supported_units[parameter_id] = common_units
+
+    return supported_units
+
+
+def _available_display_units(messwert: Messwert) -> set[str]:
+    available_units: set[str] = set()
+    if messwert.wert_num is not None and messwert.einheit_original:
+        available_units.add(messwert.einheit_original)
+    if messwert.wert_normiert_num is not None and messwert.einheit_normiert:
+        available_units.add(messwert.einheit_normiert)
+    return available_units
+
+
+def _validate_requested_display_units(
+    rows: list[tuple[Messwert, Befund, Laborparameter, Labor | None, Person]],
+    requested_units: dict[str, str],
+    supported_units: dict[str, set[str]],
+) -> None:
+    if not requested_units:
+        return
+
+    parameter_names = {parameter.id: parameter.anzeigename for _, _, parameter, _, _ in rows}
+    for parameter_id, requested_unit in requested_units.items():
+        if not requested_unit or requested_unit == "original":
+            continue
+        if parameter_id not in parameter_names:
+            continue
+
+        if requested_unit not in supported_units.get(parameter_id, set()):
+            parameter_name = parameter_names.get(parameter_id, "Unbekannter Parameter")
+            raise ValueError(
+                f"Die Einheit '{requested_unit}' kann für '{parameter_name}' mit der aktuellen Auswahl nicht sauber dargestellt werden."
+            )
 
 
 def _build_pdf_styles() -> dict[str, ParagraphStyle]:
@@ -446,9 +578,57 @@ def _determine_value_step(value_min: float, value_max: float) -> float:
     return round(rough_step, 1)
 
 
+def _page_frame_size(pagesize: tuple[float, float]) -> tuple[float, float]:
+    return (
+        pagesize[0] - PDF_LEFT_MARGIN - PDF_RIGHT_MARGIN,
+        pagesize[1] - PDF_TOP_MARGIN - PDF_BOTTOM_MARGIN,
+    )
+
+
+def _append_report_block(
+    elements: list[object],
+    block: list[object],
+    frame_width: float,
+    frame_height: float,
+) -> None:
+    cleaned_block = [flowable for flowable in block if flowable is not None]
+    if not cleaned_block:
+        return
+
+    estimated_height = _estimate_flowables_height(cleaned_block, frame_width, frame_height)
+    required_height = min(estimated_height, frame_height * 0.95)
+    if required_height > 0:
+        elements.append(CondPageBreak(required_height))
+
+    if estimated_height <= frame_height * 0.95:
+        elements.append(KeepTogether(cleaned_block))
+        return
+
+    elements.extend(cleaned_block)
+
+
+def _estimate_flowables_height(flowables: list[object], frame_width: float, frame_height: float) -> float:
+    total_height = 0.0
+    for flowable in flowables:
+        wrap = getattr(flowable, "wrap", None)
+        if wrap is None:
+            continue
+        _, height = wrap(frame_width, frame_height)
+        total_height += height
+    return total_height
+
+
 def _build_pdf(elements: list[object], pagesize) -> bytes:
     buffer = BytesIO()
-    document = SimpleDocTemplate(buffer, pagesize=pagesize, leftMargin=1.5 * cm, rightMargin=1.5 * cm, topMargin=1.4 * cm, bottomMargin=1.4 * cm, title="Labordaten Bericht")
+    document = SimpleDocTemplate(
+        buffer,
+        pagesize=pagesize,
+        leftMargin=PDF_LEFT_MARGIN,
+        rightMargin=PDF_RIGHT_MARGIN,
+        topMargin=PDF_TOP_MARGIN,
+        bottomMargin=PDF_BOTTOM_MARGIN,
+        title="Labordaten Bericht",
+    )
     document.build(elements)
     return buffer.getvalue()
 

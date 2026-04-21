@@ -13,10 +13,15 @@ from openpyxl import load_workbook
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from labordaten_backend.core.labor_value_formatting import (
+    DEFAULT_LOWER_REFERENCE_OPERATOR,
+    DEFAULT_UPPER_REFERENCE_OPERATOR,
+)
 from labordaten_backend.core.documents import store_document_file, store_existing_document_path
 from labordaten_backend.models.base import utcnow
 from labordaten_backend.models.befund import Befund
 from labordaten_backend.models.dokument import Dokument
+from labordaten_backend.models.gruppen_parameter import GruppenParameter
 from labordaten_backend.models.import_pruefpunkt import ImportPruefpunkt
 from labordaten_backend.models.importvorgang import Importvorgang
 from labordaten_backend.models.labor import Labor
@@ -24,10 +29,18 @@ from labordaten_backend.models.laborparameter import Laborparameter
 from labordaten_backend.models.laborparameter_alias import LaborparameterAlias
 from labordaten_backend.models.messwert import Messwert
 from labordaten_backend.models.messwert_referenz import MesswertReferenz
+from labordaten_backend.models.parameter_gruppe import ParameterGruppe
 from labordaten_backend.models.person import Person
+from labordaten_backend.modules.einheiten import service as einheiten_service
+from labordaten_backend.modules.gruppen import schemas as gruppen_schemas
+from labordaten_backend.modules.gruppen import service as gruppen_service
 from labordaten_backend.modules.importe.schemas import (
+    ImportAehnlicheGruppeRead,
     ImportBefundPreviewRead,
     ImportEntwurfCreate,
+    ImportGruppenvorschlaegeAnwendenRequest,
+    ImportGruppenvorschlaegeAnwendenResponse,
+    ImportGruppenvorschlagErgebnisRead,
     ImportMesswertPayload,
     ImportMesswertPreviewRead,
     ImportParameterMapping,
@@ -36,8 +49,10 @@ from labordaten_backend.modules.importe.schemas import (
     ImportUebernehmenRequest,
     ImportvorgangDetailRead,
     ImportvorgangListRead,
+    ImportGruppenvorschlagRead,
 )
 from labordaten_backend.modules.parameter.normalization import normalize_parameter_name
+from labordaten_backend.modules.parameter import conversions as parameter_conversions
 
 
 HEADER_ALIASES: dict[str, set[str]] = {
@@ -47,6 +62,9 @@ HEADER_ALIASES: dict[str, set[str]] = {
     "entnahmedatum": {"entnahmedatum", "entnahme", "sampledate", "datum"},
     "befunddatum": {"befunddatum", "reportdate"},
     "befund_bemerkung": {"befundbemerkung", "befund_bemerkung", "berichtsbemerkung"},
+    "gruppe_name": {"gruppe", "gruppenname", "gruppe_name", "block", "blockname", "kategorie"},
+    "gruppe_beschreibung": {"gruppenbeschreibung", "gruppe_beschreibung", "blockbeschreibung"},
+    "gruppe_sortierschluessel": {"gruppesortierung", "gruppe_sortierschluessel", "blocksortierung"},
     "parameter_id": {"parameterid", "parameter_id"},
     "original_parametername": {
         "originalparametername",
@@ -66,12 +84,15 @@ HEADER_ALIASES: dict[str, set[str]] = {
     "bemerkung_lang": {"bemerkunglang", "bemerkung_lang"},
     "referenz_text_original": {"referenztextoriginal", "referenztext", "referenz"},
     "untere_grenze_num": {"unteregrenzenum", "untere_grenze_num", "referenzuntere", "untergrenze"},
+    "untere_grenze_operator": {"unteregrenzeoperator", "untere_grenze_operator", "referenzuntereoperator"},
     "obere_grenze_num": {"oberegrenzenum", "obere_grenze_num", "referenzobere", "obergrenze"},
+    "obere_grenze_operator": {"oberegrenzeoperator", "obere_grenze_operator", "referenzobereoperator"},
     "referenz_einheit": {"referenzeinheit", "referenz_einheit"},
     "referenz_geschlecht_code": {"referenzgeschlechtcode", "referenz_geschlecht_code", "geschlechtreferenz"},
     "referenz_alter_min_tage": {"referenzaltermintage", "referenz_alter_min_tage"},
     "referenz_alter_max_tage": {"referenzaltermaxtage", "referenz_alter_max_tage"},
     "referenz_bemerkung": {"referenzbemerkung", "referenz_bemerkung"},
+    "alias_uebernehmen": {"aliasuebernehmen", "alias_uebernehmen", "aliasanlegen"},
     "unsicher_flag": {"unsicherflag", "unsicher_flag", "unsicher"},
     "pruefbedarf_flag": {"pruefbedarfflag", "pruefbedarf_flag", "pruefbedarf"},
 }
@@ -92,6 +113,22 @@ class ParameterResolution:
     herkunft: str | None
     hinweis: str | None = None
     mehrdeutig: bool = False
+
+
+@dataclass
+class AliasResolution:
+    requested: bool
+    alias_text: str | None
+    conflict_message: str | None = None
+    already_present: bool = False
+
+
+@dataclass
+class ExistingGroupContext:
+    gruppe_id: str
+    name: str
+    parameter_ids: set[str]
+    parameter_names_by_id: dict[str, str]
 
 
 class ParameterResolver:
@@ -306,7 +343,8 @@ def uebernehmen_import(
     fehler = [item for item in pruefregeln if item.status == "fehler"]
     warnungen = [item for item in pruefregeln if item.status == "warnung"]
     if fehler:
-        raise ValueError("Der Import enthält noch Fehler und kann noch nicht übernommen werden.")
+        detail = " ".join(item.meldung for item in fehler[:3])
+        raise ValueError(f"Der Import enthält noch Fehler und kann noch nicht übernommen werden. {detail}")
     if warnungen and not payload.bestaetige_warnungen:
         raise ValueError("Bitte Warnungen bewusst bestätigen, bevor der Import übernommen wird.")
 
@@ -329,19 +367,54 @@ def uebernehmen_import(
     db.add(befund)
     db.flush()
 
-    mapping_lookup = {item.messwert_index: item.laborparameter_id for item in mappings}
+    mapping_lookup = {item.messwert_index: item for item in mappings}
     parameter_resolver = ParameterResolver(db)
     created_measurements: list[Messwert] = []
 
     for index, item in enumerate(import_payload.messwerte):
+        mapping_request = mapping_lookup.get(index)
         resolution = parameter_resolver.resolve(
             original_name=item.original_parametername,
             explicit_parameter_id=item.parameter_id,
-            manual_parameter_id=mapping_lookup.get(index),
+            manual_parameter_id=mapping_request.laborparameter_id if mapping_request is not None else None,
         )
         parameter_id = resolution.parameter_id
         if parameter_id is None:
             raise ValueError("Es fehlt noch mindestens eine Parameterzuordnung.")
+
+        alias_resolution = _resolve_alias_request(
+            db,
+            parameter_id=parameter_id,
+            original_name=item.original_parametername,
+            alias_requested=item.alias_uebernehmen or bool(mapping_request and mapping_request.alias_uebernehmen),
+        )
+        if alias_resolution.conflict_message:
+            raise ValueError(alias_resolution.conflict_message)
+        if alias_resolution.requested and alias_resolution.alias_text and not alias_resolution.already_present:
+            _create_import_alias(
+                db,
+                parameter_id=parameter_id,
+                alias_text=alias_resolution.alias_text,
+                bemerkung="Bei Import-Zuordnung übernommen",
+            )
+
+        measurement_unit = (
+            einheiten_service.ensure_einheit_exists(db, item.einheit_original)
+            if item.wert_typ == "numerisch"
+            else None
+        )
+        reference_unit = (
+            einheiten_service.ensure_einheit_exists(db, item.referenz_einheit)
+            if item.wert_typ == "numerisch"
+            else None
+        )
+        normalized = parameter_conversions.resolve_measurement_normalization(
+            db,
+            laborparameter_id=parameter_id,
+            wert_typ=item.wert_typ,
+            wert_num=item.wert_num,
+            einheit_original=measurement_unit,
+        )
 
         messwert = Messwert(
             person_id=person_id,
@@ -353,7 +426,10 @@ def uebernehmen_import(
             wert_roh_text=item.wert_roh_text,
             wert_num=item.wert_num,
             wert_text=item.wert_text if item.wert_typ == "text" else None,
-            einheit_original=item.einheit_original,
+            einheit_original=measurement_unit,
+            wert_normiert_num=normalized.wert_normiert_num,
+            einheit_normiert=normalized.einheit_normiert,
+            umrechnungsregel_id=normalized.umrechnungsregel_id,
             bemerkung_kurz=item.bemerkung_kurz,
             bemerkung_lang=item.bemerkung_lang,
             unsicher_flag=item.unsicher_flag,
@@ -377,8 +453,10 @@ def uebernehmen_import(
                     referenz_text_original=item.referenz_text_original,
                     wert_typ=item.wert_typ,
                     untere_grenze_num=item.untere_grenze_num if item.wert_typ == "numerisch" else None,
+                    untere_grenze_operator=item.untere_grenze_operator if item.wert_typ == "numerisch" else None,
                     obere_grenze_num=item.obere_grenze_num if item.wert_typ == "numerisch" else None,
-                    einheit=item.referenz_einheit if item.wert_typ == "numerisch" else None,
+                    obere_grenze_operator=item.obere_grenze_operator if item.wert_typ == "numerisch" else None,
+                    einheit=reference_unit,
                     soll_text=item.referenz_text_original if item.wert_typ == "text" else None,
                     geschlecht_code=item.referenz_geschlecht_code,
                     alter_min_tage=item.referenz_alter_min_tage,
@@ -406,6 +484,105 @@ def verwerfen_import(db: Session, import_id: str) -> ImportvorgangDetailRead:
     db.commit()
     db.refresh(importvorgang)
     return _build_detail(db, importvorgang)
+
+
+def anwenden_gruppenvorschlaege(
+    db: Session,
+    import_id: str,
+    payload: ImportGruppenvorschlaegeAnwendenRequest,
+) -> ImportGruppenvorschlaegeAnwendenResponse:
+    importvorgang = db.get(Importvorgang, import_id)
+    if importvorgang is None:
+        raise ValueError("Importvorgang nicht gefunden.")
+    if importvorgang.status != "uebernommen":
+        raise ValueError("Gruppenvorschläge können erst nach der Übernahme des Imports angewendet werden.")
+
+    import_payload = _parse_payload(importvorgang.roh_payload_text or "")
+    if not import_payload.gruppen_vorschlaege:
+        raise ValueError("Für diesen Import sind keine Gruppenvorschläge vorhanden.")
+
+    imported_measurements = list(
+        db.scalars(
+            select(Messwert)
+            .where(Messwert.importvorgang_id == import_id)
+            .order_by(Messwert.erstellt_am.asc())
+        )
+    )
+
+    results: list[ImportGruppenvorschlagErgebnisRead] = []
+    for item in payload.vorschlaege:
+        if item.vorschlag_index < 0 or item.vorschlag_index >= len(import_payload.gruppen_vorschlaege):
+            raise ValueError(f"Der Gruppenvorschlag mit Index {item.vorschlag_index} existiert nicht.")
+
+        suggestion = import_payload.gruppen_vorschlaege[item.vorschlag_index]
+        parameter_ids, _ = _resolve_group_suggestion_parameters(
+            payload=import_payload,
+            suggestion_index=item.vorschlag_index,
+            imported_measurements=imported_measurements,
+            parameter_resolver=ParameterResolver(db),
+        )
+
+        if item.aktion == "ignorieren":
+            results.append(
+                ImportGruppenvorschlagErgebnisRead(
+                    vorschlag_index=item.vorschlag_index,
+                    aktion=item.aktion,
+                )
+            )
+            continue
+
+        if not parameter_ids:
+            raise ValueError(
+                f"Der Gruppenvorschlag '{suggestion.name}' kann nicht angewendet werden, weil noch keine Parameter zugeordnet sind."
+            )
+
+        if item.aktion == "vorhanden":
+            if not item.gruppe_id:
+                raise ValueError(f"Für den Gruppenvorschlag '{suggestion.name}' fehlt die Zielgruppe.")
+            gruppe = gruppen_service.get_gruppe(db, item.gruppe_id)
+            if gruppe is None or not gruppe.aktiv:
+                raise ValueError(f"Die Zielgruppe für '{suggestion.name}' existiert nicht.")
+        elif item.aktion == "neu":
+            zielname = (item.gruppenname or suggestion.name).strip()
+            if not zielname:
+                raise ValueError("Neue Gruppen brauchen einen Namen.")
+            gruppe = _find_active_group_by_name(db, zielname)
+            if gruppe is None:
+                gruppe = gruppen_service.create_gruppe(
+                    db,
+                    gruppen_schemas.GruppeCreate(
+                        name=zielname,
+                        beschreibung=suggestion.beschreibung,
+                        sortierschluessel=suggestion.sortierschluessel,
+                    ),
+                )
+        else:
+            raise ValueError(f"Die Aktion '{item.aktion}' wird nicht unterstützt.")
+
+        gruppen_service.merge_gruppen_parameter(
+            db,
+            gruppe.id,
+            gruppen_schemas.GruppenParameterAssignRequest(
+                eintraege=[
+                    gruppen_schemas.GruppenParameterAssignItem(
+                        laborparameter_id=parameter_id,
+                        sortierung=sortierung,
+                    )
+                    for sortierung, parameter_id in enumerate(parameter_ids, start=1)
+                ]
+            ),
+        )
+        results.append(
+            ImportGruppenvorschlagErgebnisRead(
+                vorschlag_index=item.vorschlag_index,
+                aktion=item.aktion,
+                gruppe_id=gruppe.id,
+                gruppenname=gruppe.name,
+                zugeordnete_parameter_anzahl=len(parameter_ids),
+            )
+        )
+
+    return ImportGruppenvorschlaegeAnwendenResponse(ergebnisse=results)
 
 
 def _create_import_entwurf_record(
@@ -479,6 +656,12 @@ def _build_detail(db: Session, importvorgang: Importvorgang) -> ImportvorgangDet
     )
     dokument_id = imported_befund.dokument_id if imported_befund is not None else importvorgang.dokument_id
     dokument = db.get(Dokument, dokument_id) if dokument_id else None
+    gruppenvorschlaege = _build_group_suggestion_previews(
+        db,
+        payload=payload,
+        imported_measurements=imported_measurements,
+        parameter_resolver=parameter_resolver,
+    )
 
     return ImportvorgangDetailRead(
         id=importvorgang.id,
@@ -520,6 +703,7 @@ def _build_detail(db: Session, importvorgang: Importvorgang) -> ImportvorgangDet
             )
             for index, item in enumerate(payload.messwerte)
         ],
+        gruppenvorschlaege=gruppenvorschlaege,
         pruefpunkte=[ImportPruefpunktRead.model_validate(item) for item in checks],
     )
 
@@ -552,8 +736,10 @@ def _build_measurement_preview(
         parameter_id=parameter_id,
         parameter_mapping_herkunft=mapping_herkunft,
         parameter_mapping_hinweis=mapping_hinweis,
+        alias_uebernehmen=item.alias_uebernehmen,
         original_parametername=item.original_parametername,
         wert_typ=item.wert_typ,
+        wert_operator=item.wert_operator,
         wert_roh_text=item.wert_roh_text,
         wert_num=item.wert_num,
         wert_text=item.wert_text,
@@ -561,12 +747,171 @@ def _build_measurement_preview(
         bemerkung_kurz=item.bemerkung_kurz,
         referenz_text_original=item.referenz_text_original,
         untere_grenze_num=item.untere_grenze_num,
+        untere_grenze_operator=item.untere_grenze_operator,
         obere_grenze_num=item.obere_grenze_num,
+        obere_grenze_operator=item.obere_grenze_operator,
         referenz_einheit=item.referenz_einheit,
         referenz_geschlecht_code=item.referenz_geschlecht_code,
         referenz_alter_min_tage=item.referenz_alter_min_tage,
         referenz_alter_max_tage=item.referenz_alter_max_tage,
         referenz_bemerkung=item.referenz_bemerkung,
+    )
+
+
+def _build_group_suggestion_previews(
+    db: Session,
+    *,
+    payload: ImportPayload,
+    imported_measurements: list[Messwert],
+    parameter_resolver: ParameterResolver,
+) -> list[ImportGruppenvorschlagRead]:
+    existing_groups = _load_existing_group_contexts(db)
+    previews: list[ImportGruppenvorschlagRead] = []
+
+    for index, suggestion in enumerate(payload.gruppen_vorschlaege):
+        parameter_ids, missing_indices = _resolve_group_suggestion_parameters(
+            payload=payload,
+            suggestion_index=index,
+            imported_measurements=imported_measurements,
+            parameter_resolver=parameter_resolver,
+        )
+        parameter_names = [
+            parameter_resolver.get_parameter_name(parameter_id) or parameter_id
+            for parameter_id in parameter_ids
+        ]
+        previews.append(
+            ImportGruppenvorschlagRead(
+                index=index,
+                name=suggestion.name,
+                beschreibung=suggestion.beschreibung,
+                sortierschluessel=suggestion.sortierschluessel,
+                messwert_indizes=suggestion.messwert_indizes,
+                parameter_ids=parameter_ids,
+                parameter_namen=parameter_names,
+                fehlende_messwert_indizes=missing_indices,
+                aehnliche_gruppen=_find_similar_groups(
+                    suggestion_name=suggestion.name,
+                    resolved_parameter_ids=parameter_ids,
+                    existing_groups=existing_groups,
+                ),
+                anwendbar=bool(parameter_ids) and not missing_indices,
+            )
+        )
+
+    return previews
+
+
+def _resolve_group_suggestion_parameters(
+    *,
+    payload: ImportPayload,
+    suggestion_index: int,
+    imported_measurements: list[Messwert],
+    parameter_resolver: ParameterResolver,
+) -> tuple[list[str], list[int]]:
+    suggestion = payload.gruppen_vorschlaege[suggestion_index]
+    resolved_parameter_ids: list[str] = []
+    missing_indices: list[int] = []
+
+    for messwert_index in suggestion.messwert_indizes:
+        imported_parameter_id = (
+            imported_measurements[messwert_index].laborparameter_id
+            if 0 <= messwert_index < len(imported_measurements)
+            else None
+        )
+        payload_item = payload.messwerte[messwert_index] if 0 <= messwert_index < len(payload.messwerte) else None
+        if payload_item is None:
+            missing_indices.append(messwert_index)
+            continue
+
+        if imported_parameter_id is not None:
+            parameter_id = imported_parameter_id
+        else:
+            resolution = parameter_resolver.resolve(
+                original_name=payload_item.original_parametername,
+                explicit_parameter_id=payload_item.parameter_id,
+                manual_parameter_id=None,
+            )
+            parameter_id = resolution.parameter_id
+
+        if parameter_id is None:
+            missing_indices.append(messwert_index)
+            continue
+        if parameter_id not in resolved_parameter_ids:
+            resolved_parameter_ids.append(parameter_id)
+
+    return resolved_parameter_ids, missing_indices
+
+
+def _load_existing_group_contexts(db: Session) -> list[ExistingGroupContext]:
+    stmt = (
+        select(ParameterGruppe, GruppenParameter, Laborparameter)
+        .outerjoin(GruppenParameter, GruppenParameter.parameter_gruppe_id == ParameterGruppe.id)
+        .outerjoin(Laborparameter, GruppenParameter.laborparameter_id == Laborparameter.id)
+        .where(ParameterGruppe.aktiv.is_(True))
+        .order_by(ParameterGruppe.name.asc())
+    )
+
+    grouped: dict[str, ExistingGroupContext] = {}
+    for gruppe, zuordnung, parameter in db.execute(stmt):
+        context = grouped.setdefault(
+            gruppe.id,
+            ExistingGroupContext(
+                gruppe_id=gruppe.id,
+                name=gruppe.name,
+                parameter_ids=set(),
+                parameter_names_by_id={},
+            ),
+        )
+        if zuordnung is not None and parameter is not None:
+            context.parameter_ids.add(parameter.id)
+            context.parameter_names_by_id[parameter.id] = parameter.anzeigename
+    return list(grouped.values())
+
+
+def _find_similar_groups(
+    *,
+    suggestion_name: str,
+    resolved_parameter_ids: list[str],
+    existing_groups: list[ExistingGroupContext],
+) -> list[ImportAehnlicheGruppeRead]:
+    normalized_name = normalize_parameter_name(suggestion_name)
+    results: list[ImportAehnlicheGruppeRead] = []
+
+    for group in existing_groups:
+        overlap_ids = [parameter_id for parameter_id in resolved_parameter_ids if parameter_id in group.parameter_ids]
+        name_match = normalized_name == normalize_parameter_name(group.name)
+        if not overlap_ids and not name_match:
+            continue
+
+        results.append(
+            ImportAehnlicheGruppeRead(
+                gruppe_id=group.gruppe_id,
+                name=group.name,
+                parameter_anzahl=len(group.parameter_ids),
+                gemeinsame_parameter_anzahl=len(overlap_ids),
+                gemeinsame_parameter_namen=[group.parameter_names_by_id[parameter_id] for parameter_id in overlap_ids],
+                namensaehnlich=name_match,
+            )
+        )
+
+    results.sort(
+        key=lambda item: (
+            not item.namensaehnlich,
+            -item.gemeinsame_parameter_anzahl,
+            item.name.lower(),
+        )
+    )
+    return results
+
+
+def _find_active_group_by_name(db: Session, name: str) -> ParameterGruppe | None:
+    normalized_name = name.strip().lower()
+    if not normalized_name:
+        return None
+    return db.scalar(
+        select(ParameterGruppe)
+        .where(func.lower(ParameterGruppe.name) == normalized_name)
+        .where(ParameterGruppe.aktiv.is_(True))
     )
 
 
@@ -577,7 +922,7 @@ def _generate_checks(
     mappings: list[ImportParameterMapping],
 ) -> list[Pruefregel]:
     del importvorgang_id
-    mapping_lookup = {item.messwert_index: item.laborparameter_id for item in mappings}
+    mapping_lookup = {item.messwert_index: item for item in mappings}
     checks: list[Pruefregel] = []
     parameter_resolver = ParameterResolver(db)
 
@@ -609,10 +954,11 @@ def _generate_checks(
         )
 
     for index, item in enumerate(payload.messwerte):
+        mapping_request = mapping_lookup.get(index)
         resolution = parameter_resolver.resolve(
             original_name=item.original_parametername,
             explicit_parameter_id=item.parameter_id,
-            manual_parameter_id=mapping_lookup.get(index),
+            manual_parameter_id=mapping_request.laborparameter_id if mapping_request is not None else None,
         )
         parameter_id = resolution.parameter_id
         key = f"messwert:{index}"
@@ -646,6 +992,23 @@ def _generate_checks(
                         f"Der Werttyp von '{item.original_parametername}' passt nicht zum erwarteten Parametertyp.",
                     )
                 )
+
+        alias_resolution = _resolve_alias_request(
+            db,
+            parameter_id=parameter_id,
+            original_name=item.original_parametername,
+            alias_requested=item.alias_uebernehmen or bool(mapping_request and mapping_request.alias_uebernehmen),
+        )
+        if alias_resolution.conflict_message:
+            checks.append(
+                Pruefregel(
+                    "messwert",
+                    key,
+                    "alias_anlage",
+                    "fehler",
+                    alias_resolution.conflict_message,
+                )
+            )
 
         if item.wert_typ == "numerisch" and item.wert_num is None and not item.pruefbedarf_flag:
             checks.append(
@@ -682,6 +1045,95 @@ def _has_duplicate_measurement(db: Session, person_id: str, entnahmedatum, param
     )
     count = db.scalar(stmt) or 0
     return count > 0
+
+
+def _resolve_alias_request(
+    db: Session,
+    *,
+    parameter_id: str | None,
+    original_name: str,
+    alias_requested: bool,
+) -> AliasResolution:
+    alias_text = original_name.strip()
+    if not alias_requested or parameter_id is None or not alias_text:
+        return AliasResolution(requested=False, alias_text=alias_text or None)
+
+    parameter = db.get(Laborparameter, parameter_id)
+    if parameter is None:
+        return AliasResolution(
+            requested=True,
+            alias_text=alias_text,
+            conflict_message=f"Der Zielparameter für den Alias '{alias_text}' existiert nicht.",
+        )
+
+    alias_normalized = normalize_parameter_name(alias_text)
+    if not alias_normalized:
+        return AliasResolution(requested=True, alias_text=alias_text)
+
+    if alias_normalized in {
+        normalize_parameter_name(parameter.anzeigename),
+        normalize_parameter_name(parameter.interner_schluessel),
+    }:
+        return AliasResolution(requested=True, alias_text=alias_text, already_present=True)
+
+    existing_alias = db.scalar(
+        select(LaborparameterAlias).where(LaborparameterAlias.alias_normalisiert == alias_normalized)
+    )
+    if existing_alias is not None:
+        if existing_alias.laborparameter_id == parameter.id:
+            return AliasResolution(requested=True, alias_text=alias_text, already_present=True)
+        other_parameter = db.get(Laborparameter, existing_alias.laborparameter_id)
+        other_name = other_parameter.anzeigename if other_parameter is not None else "einem anderen Parameter"
+        return AliasResolution(
+            requested=True,
+            alias_text=alias_text,
+            conflict_message=f"Der Alias '{alias_text}' ist bereits dem Parameter '{other_name}' zugeordnet.",
+        )
+
+    for other_parameter in db.scalars(select(Laborparameter)):
+        if other_parameter.id == parameter.id:
+            continue
+        if alias_normalized == normalize_parameter_name(other_parameter.anzeigename):
+            return AliasResolution(
+                requested=True,
+                alias_text=alias_text,
+                conflict_message=(
+                    f"Der Alias '{alias_text}' kollidiert mit dem Anzeigenamen '{other_parameter.anzeigename}'."
+                ),
+            )
+        if alias_normalized == normalize_parameter_name(other_parameter.interner_schluessel):
+            return AliasResolution(
+                requested=True,
+                alias_text=alias_text,
+                conflict_message=(
+                    f"Der Alias '{alias_text}' kollidiert mit dem internen Schlüssel "
+                    f"'{other_parameter.interner_schluessel}'."
+                ),
+            )
+
+    return AliasResolution(requested=True, alias_text=alias_text)
+
+
+def _create_import_alias(
+    db: Session,
+    *,
+    parameter_id: str,
+    alias_text: str,
+    bemerkung: str | None,
+) -> None:
+    alias_normalized = normalize_parameter_name(alias_text)
+    if not alias_normalized:
+        return
+
+    db.add(
+        LaborparameterAlias(
+            laborparameter_id=parameter_id,
+            alias_text=alias_text,
+            alias_normalisiert=alias_normalized,
+            bemerkung=bemerkung,
+        )
+    )
+    db.flush()
 
 
 def _store_checks(db: Session, importvorgang_id: str, checks: list[Pruefregel]) -> None:
@@ -810,6 +1262,7 @@ def _parse_tabular_import(
     messwerte = [item for item in messwerte if item is not None]
     if not messwerte:
         raise ValueError("Es konnten keine Messwerte aus der Datei abgeleitet werden.")
+    gruppenvorschlaege = _build_tabular_group_suggestions(rows)
 
     quelle_typ = "excel" if suffix in {".xlsx", ".xlsm"} else "csv"
     dokument_pfad = dokument.pfad_absolut if dokument is not None else None
@@ -829,6 +1282,7 @@ def _parse_tabular_import(
                 "dokumentPfad": dokument_pfad,
             },
             "messwerte": [item.model_dump(mode="json", by_alias=True) for item in messwerte],
+            "gruppenVorschlaege": gruppenvorschlaege,
         }
     )
 
@@ -894,7 +1348,7 @@ def _row_to_measurement(row: dict[str, str]) -> ImportMesswertPayload | None:
     if not original_name:
         raise ValueError("Mindestens eine Zeile enthält keinen Parameternamen.")
 
-    operator = _row_value(row, "wert_operator") or "exakt"
+    operator = _normalize_operator_code(_row_value(row, "wert_operator")) or "exakt"
     normalized_raw = raw_value or ""
     if raw_value:
         inferred_operator, cleaned_raw = _split_operator(raw_value)
@@ -912,6 +1366,22 @@ def _row_to_measurement(row: dict[str, str]) -> ImportMesswertPayload | None:
     if wert_typ == "text" and not wert_text:
         wert_text = normalized_raw or raw_value or None
 
+    reference_text = _row_value(row, "referenz_text_original")
+    lower_reference_num = _parse_optional_float(_row_value(row, "untere_grenze_num"))
+    upper_reference_num = _parse_optional_float(_row_value(row, "obere_grenze_num"))
+    lower_reference_operator = _normalize_operator_code(_row_value(row, "untere_grenze_operator"))
+    upper_reference_operator = _normalize_operator_code(_row_value(row, "obere_grenze_operator"))
+    (
+        lower_reference_operator,
+        upper_reference_operator,
+    ) = _infer_reference_operators(
+        reference_text=reference_text,
+        lower_value=lower_reference_num,
+        upper_value=upper_reference_num,
+        explicit_lower_operator=lower_reference_operator,
+        explicit_upper_operator=upper_reference_operator,
+    )
+
     payload = {
         "parameterId": _row_value(row, "parameter_id"),
         "originalParametername": original_name,
@@ -923,14 +1393,17 @@ def _row_to_measurement(row: dict[str, str]) -> ImportMesswertPayload | None:
         "einheitOriginal": _row_value(row, "einheit_original"),
         "bemerkungKurz": _row_value(row, "bemerkung_kurz"),
         "bemerkungLang": _row_value(row, "bemerkung_lang"),
-        "referenzTextOriginal": _row_value(row, "referenz_text_original"),
-        "untereGrenzeNum": _parse_optional_float(_row_value(row, "untere_grenze_num")),
-        "obereGrenzeNum": _parse_optional_float(_row_value(row, "obere_grenze_num")),
+        "referenzTextOriginal": reference_text,
+        "untereGrenzeNum": lower_reference_num,
+        "untereGrenzeOperator": lower_reference_operator,
+        "obereGrenzeNum": upper_reference_num,
+        "obereGrenzeOperator": upper_reference_operator,
         "referenzEinheit": _row_value(row, "referenz_einheit"),
         "referenzGeschlechtCode": _row_value(row, "referenz_geschlecht_code"),
         "referenzAlterMinTage": _parse_optional_int(_row_value(row, "referenz_alter_min_tage")),
         "referenzAlterMaxTage": _parse_optional_int(_row_value(row, "referenz_alter_max_tage")),
         "referenzBemerkung": _row_value(row, "referenz_bemerkung"),
+        "aliasUebernehmen": _parse_bool(_row_value(row, "alias_uebernehmen")),
         "unsicherFlag": _parse_bool(_row_value(row, "unsicher_flag")),
         "pruefbedarfFlag": _parse_bool(_row_value(row, "pruefbedarf_flag")),
     }
@@ -951,6 +1424,37 @@ def _extract_date(rows: list[dict[str, str]], field: str) -> date | None:
         if value is not None:
             return value
     return None
+
+
+def _build_tabular_group_suggestions(rows: list[dict[str, str]]) -> list[dict[str, object]]:
+    grouped_indices: dict[str, list[int]] = {}
+    group_metadata: dict[str, tuple[str | None, str | None]] = {}
+
+    for index, row in enumerate(rows):
+        name = _row_value(row, "gruppe_name")
+        if not name:
+            continue
+        cleaned_name = name.strip()
+        if not cleaned_name:
+            continue
+        grouped_indices.setdefault(cleaned_name, []).append(index)
+        group_metadata.setdefault(
+            cleaned_name,
+            (
+                _row_value(row, "gruppe_beschreibung"),
+                _row_value(row, "gruppe_sortierschluessel"),
+            ),
+        )
+
+    return [
+        {
+            "name": name,
+            "beschreibung": group_metadata[name][0],
+            "sortierschluessel": group_metadata[name][1],
+            "messwertIndizes": indices,
+        }
+        for name, indices in grouped_indices.items()
+    ]
 
 
 def _row_value(row: dict[str, str], field: str) -> str | None:
@@ -1037,10 +1541,49 @@ def _parse_bool(value: str | None) -> bool:
 
 def _split_operator(raw_value: str) -> tuple[str, str]:
     normalized = raw_value.strip()
-    for token in ("<=", ">=", "<", ">"):
+    for token, code in (("<=", "kleiner_gleich"), (">=", "groesser_gleich"), ("<", "kleiner_als"), (">", "groesser_als")):
         if normalized.startswith(token):
-            return token, normalized[len(token) :].strip()
+            return code, normalized[len(token) :].strip()
     return "exakt", normalized
+
+
+def _normalize_operator_code(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip()
+    return {
+        "<": "kleiner_als",
+        "<=": "kleiner_gleich",
+        ">": "groesser_als",
+        ">=": "groesser_gleich",
+        "~": "ungefaehr",
+    }.get(normalized, normalized or None)
+
+
+def _infer_reference_operators(
+    *,
+    reference_text: str | None,
+    lower_value: float | None,
+    upper_value: float | None,
+    explicit_lower_operator: str | None,
+    explicit_upper_operator: str | None,
+) -> tuple[str | None, str | None]:
+    lower_operator = explicit_lower_operator or None
+    upper_operator = explicit_upper_operator or None
+
+    if reference_text:
+        inferred_operator, _ = _split_operator(reference_text)
+        if inferred_operator in {"kleiner_als", "kleiner_gleich"} and upper_value is not None and upper_operator is None:
+            upper_operator = inferred_operator
+        if inferred_operator in {"groesser_als", "groesser_gleich"} and lower_value is not None and lower_operator is None:
+            lower_operator = inferred_operator
+
+    if lower_value is not None and lower_operator is None:
+        lower_operator = DEFAULT_LOWER_REFERENCE_OPERATOR
+    if upper_value is not None and upper_operator is None:
+        upper_operator = DEFAULT_UPPER_REFERENCE_OPERATOR
+
+    return lower_operator, upper_operator
 
 
 def _infer_value_type(

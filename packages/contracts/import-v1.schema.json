@@ -54,14 +54,40 @@
           "bemerkungLang": { "type": "string" },
           "referenzTextOriginal": { "type": "string" },
           "untereGrenzeNum": { "type": "number" },
+          "untereGrenzeOperator": {
+            "type": "string",
+            "enum": ["groesser_als", "groesser_gleich", "kleiner_als", "kleiner_gleich"]
+          },
           "obereGrenzeNum": { "type": "number" },
+          "obereGrenzeOperator": {
+            "type": "string",
+            "enum": ["groesser_als", "groesser_gleich", "kleiner_als", "kleiner_gleich"]
+          },
           "referenzEinheit": { "type": "string" },
           "referenzGeschlechtCode": { "type": "string" },
           "referenzAlterMinTage": { "type": "integer" },
           "referenzAlterMaxTage": { "type": "integer" },
           "referenzBemerkung": { "type": "string" },
+          "aliasUebernehmen": { "type": "boolean" },
           "unsicherFlag": { "type": "boolean" },
           "pruefbedarfFlag": { "type": "boolean" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "gruppenVorschlaege": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "messwertIndizes"],
+        "properties": {
+          "name": { "type": "string" },
+          "beschreibung": { "type": "string" },
+          "sortierschluessel": { "type": "string" },
+          "messwertIndizes": {
+            "type": "array",
+            "items": { "type": "integer", "minimum": 0 }
+          }
         },
         "additionalProperties": false
       }

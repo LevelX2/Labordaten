@@ -1,13 +1,18 @@
 from datetime import date, datetime
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from labordaten_backend.core.field_options import (
     GESCHLECHT_CODES,
+    REFERENZ_GRENZ_OPERATOREN,
     WERT_OPERATOREN,
     WERT_TYPEN,
     validate_optional_code,
     validate_required_code,
+)
+from labordaten_backend.core.labor_value_formatting import (
+    DEFAULT_LOWER_REFERENCE_OPERATOR,
+    DEFAULT_UPPER_REFERENCE_OPERATOR,
 )
 
 
@@ -21,6 +26,15 @@ class ImportBefundPayload(BaseModel):
     befunddatum: date | None = Field(default=None, alias="befunddatum")
     bemerkung: str | None = None
     dokument_pfad: str | None = Field(default=None, alias="dokumentPfad")
+
+
+class ImportGruppenvorschlagPayload(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    name: str
+    beschreibung: str | None = None
+    sortierschluessel: str | None = Field(default=None, alias="sortierschluessel")
+    messwert_indizes: list[int] = Field(alias="messwertIndizes")
 
 
 class ImportMesswertPayload(BaseModel):
@@ -38,7 +52,9 @@ class ImportMesswertPayload(BaseModel):
     bemerkung_lang: str | None = Field(default=None, alias="bemerkungLang")
     referenz_text_original: str | None = Field(default=None, alias="referenzTextOriginal")
     untere_grenze_num: float | None = Field(default=None, alias="untereGrenzeNum")
+    untere_grenze_operator: str | None = Field(default=None, alias="untereGrenzeOperator")
     obere_grenze_num: float | None = Field(default=None, alias="obereGrenzeNum")
+    obere_grenze_operator: str | None = Field(default=None, alias="obereGrenzeOperator")
     referenz_einheit: str | None = Field(default=None, alias="referenzEinheit")
     referenz_geschlecht_code: str | None = Field(default=None, alias="referenzGeschlechtCode")
     referenz_alter_min_tage: int | None = Field(default=None, alias="referenzAlterMinTage")
@@ -63,6 +79,33 @@ class ImportMesswertPayload(BaseModel):
     def validate_referenz_geschlecht_code(cls, value: str | None) -> str | None:
         return validate_optional_code(value, valid_values=GESCHLECHT_CODES, field_label="Geschlecht")
 
+    @field_validator("untere_grenze_operator", "obere_grenze_operator")
+    @classmethod
+    def validate_grenze_operator(cls, value: str | None) -> str | None:
+        return validate_optional_code(value, valid_values=REFERENZ_GRENZ_OPERATOREN, field_label="Grenzoperator")
+
+    @field_validator("untere_grenze_operator", mode="after")
+    @classmethod
+    def default_untere_grenze_operator(cls, value: str | None, info) -> str | None:
+        if info.data.get("untere_grenze_num") is not None and value is None:
+            return DEFAULT_LOWER_REFERENCE_OPERATOR
+        return value
+
+    @field_validator("obere_grenze_operator", mode="after")
+    @classmethod
+    def default_obere_grenze_operator(cls, value: str | None, info) -> str | None:
+        if info.data.get("obere_grenze_num") is not None and value is None:
+            return DEFAULT_UPPER_REFERENCE_OPERATOR
+        return value
+
+    @model_validator(mode="after")
+    def validate_reference_bound_operators(self) -> "ImportMesswertPayload":
+        if self.untere_grenze_operator and not self.untere_grenze_operator.startswith("groesser"):
+            raise ValueError("Die untere Referenzgrenze braucht 'groesser_als' oder 'groesser_gleich'.")
+        if self.obere_grenze_operator and not self.obere_grenze_operator.startswith("kleiner"):
+            raise ValueError("Die obere Referenzgrenze braucht 'kleiner_als' oder 'kleiner_gleich'.")
+        return self
+
 
 class ImportPayload(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -72,6 +115,7 @@ class ImportPayload(BaseModel):
     person_hinweis: str | None = Field(default=None, alias="personHinweis")
     befund: ImportBefundPayload
     messwerte: list[ImportMesswertPayload]
+    gruppen_vorschlaege: list[ImportGruppenvorschlagPayload] = Field(default_factory=list, alias="gruppenVorschlaege")
 
     @field_validator("schema_version")
     @classmethod
@@ -113,6 +157,28 @@ class ImportPruefpunktRead(BaseModel):
     bestaetigt_am: datetime | None = None
 
 
+class ImportAehnlicheGruppeRead(BaseModel):
+    gruppe_id: str
+    name: str
+    parameter_anzahl: int
+    gemeinsame_parameter_anzahl: int
+    gemeinsame_parameter_namen: list[str] = []
+    namensaehnlich: bool = False
+
+
+class ImportGruppenvorschlagRead(BaseModel):
+    index: int
+    name: str
+    beschreibung: str | None = None
+    sortierschluessel: str | None = None
+    messwert_indizes: list[int]
+    parameter_ids: list[str] = []
+    parameter_namen: list[str] = []
+    fehlende_messwert_indizes: list[int] = []
+    aehnliche_gruppen: list[ImportAehnlicheGruppeRead] = []
+    anwendbar: bool = False
+
+
 class ImportMesswertPreviewRead(BaseModel):
     messwert_index: int
     parameter_id: str | None = None
@@ -121,6 +187,7 @@ class ImportMesswertPreviewRead(BaseModel):
     alias_uebernehmen: bool = False
     original_parametername: str
     wert_typ: str
+    wert_operator: str = "exakt"
     wert_roh_text: str
     wert_num: float | None = None
     wert_text: str | None = None
@@ -128,7 +195,9 @@ class ImportMesswertPreviewRead(BaseModel):
     bemerkung_kurz: str | None = None
     referenz_text_original: str | None = None
     untere_grenze_num: float | None = None
+    untere_grenze_operator: str | None = None
     obere_grenze_num: float | None = None
+    obere_grenze_operator: str | None = None
     referenz_einheit: str | None = None
     referenz_geschlecht_code: str | None = None
     referenz_alter_min_tage: int | None = None
@@ -184,4 +253,35 @@ class ImportvorgangDetailRead(BaseModel):
     warnung_anzahl: int
     befund: ImportBefundPreviewRead
     messwerte: list[ImportMesswertPreviewRead]
+    gruppenvorschlaege: list[ImportGruppenvorschlagRead] = []
     pruefpunkte: list[ImportPruefpunktRead]
+
+
+class ImportGruppenvorschlagAnwendenItem(BaseModel):
+    vorschlag_index: int
+    aktion: str
+    gruppe_id: str | None = None
+    gruppenname: str | None = None
+
+    @field_validator("aktion")
+    @classmethod
+    def validate_aktion(cls, value: str) -> str:
+        if value not in {"neu", "vorhanden", "ignorieren"}:
+            raise ValueError("Aktion muss 'neu', 'vorhanden' oder 'ignorieren' sein.")
+        return value
+
+
+class ImportGruppenvorschlaegeAnwendenRequest(BaseModel):
+    vorschlaege: list[ImportGruppenvorschlagAnwendenItem]
+
+
+class ImportGruppenvorschlagErgebnisRead(BaseModel):
+    vorschlag_index: int
+    aktion: str
+    gruppe_id: str | None = None
+    gruppenname: str | None = None
+    zugeordnete_parameter_anzahl: int = 0
+
+
+class ImportGruppenvorschlaegeAnwendenResponse(BaseModel):
+    ergebnisse: list[ImportGruppenvorschlagErgebnisRead]

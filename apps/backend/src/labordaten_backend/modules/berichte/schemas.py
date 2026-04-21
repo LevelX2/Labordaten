@@ -1,6 +1,6 @@
 from datetime import date
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ArztberichtRequest(BaseModel):
@@ -14,6 +14,7 @@ class ArztberichtRequest(BaseModel):
     include_labor: bool = True
     include_befundbemerkung: bool = True
     include_messwertbemerkung: bool = True
+    einheit_auswahl: dict[str, str] = Field(default_factory=dict)
 
 
 class ArztberichtEintrag(BaseModel):
@@ -27,6 +28,10 @@ class ArztberichtEintrag(BaseModel):
     wert_anzeige: str
     wert_num: float | None = None
     einheit: str | None = None
+    wert_original_num: float | None = None
+    einheit_original: str | None = None
+    wert_normiert_num: float | None = None
+    einheit_normiert: str | None = None
     referenzbereich: str | None = None
     labor_name: str | None = None
     befundbemerkung: str | None = None
@@ -47,6 +52,7 @@ class VerlaufsberichtRequest(BaseModel):
     labor_ids: list[str] = []
     datum_von: date | None = None
     datum_bis: date | None = None
+    einheit_auswahl: dict[str, str] = Field(default_factory=dict)
 
 
 class VerlaufsberichtPunkt(BaseModel):
@@ -61,6 +67,10 @@ class VerlaufsberichtPunkt(BaseModel):
     wert_num: float | None = None
     wert_text: str | None = None
     einheit: str | None = None
+    wert_original_num: float | None = None
+    einheit_original: str | None = None
+    wert_normiert_num: float | None = None
+    einheit_normiert: str | None = None
     labor_name: str | None = None
     gruppen_namen: list[str] = []
     ausserhalb_referenzbereich: bool | None = None

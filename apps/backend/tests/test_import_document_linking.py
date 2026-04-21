@@ -87,7 +87,9 @@ def test_json_import_links_local_document_and_persists_reference_context(monkeyp
                         "einheitOriginal": "ng/ml",
                         "referenzTextOriginal": "60 - <70 Jahre 0,13 - 0,75 ng/ml",
                         "untereGrenzeNum": 0.13,
+                        "untereGrenzeOperator": "groesser_gleich",
                         "obereGrenzeNum": 0.75,
+                        "obereGrenzeOperator": "kleiner_als",
                         "referenzEinheit": "ng/ml",
                         "referenzAlterMinTage": 21915,
                         "referenzAlterMaxTage": 25567,
@@ -139,7 +141,9 @@ def test_json_import_links_local_document_and_persists_reference_context(monkeyp
         referenz = db.scalar(select(MesswertReferenz).where(MesswertReferenz.referenz_text_original.is_not(None)))
         assert referenz is not None
         assert referenz.untere_grenze_num == 0.13
+        assert referenz.untere_grenze_operator == "groesser_gleich"
         assert referenz.obere_grenze_num == 0.75
+        assert referenz.obere_grenze_operator == "kleiner_als"
         assert referenz.alter_min_tage == 21915
         assert referenz.alter_max_tage == 25567
         assert referenz.bemerkung == "Altersbezogener Bereich laut Befund"

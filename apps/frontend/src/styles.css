@@ -130,10 +130,29 @@ a {
   font-size: clamp(1.7rem, 3vw, 2.3rem);
 }
 
+.page__info {
+  position: relative;
+}
+
 .page__info-button {
   width: 28px;
   height: 28px;
   font-size: 0.95rem;
+}
+
+.page__info-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 5;
+  width: min(320px, 70vw);
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  font-size: 0.92rem;
 }
 
 .hero {
@@ -496,6 +515,7 @@ a {
   margin-bottom: 18px;
 }
 
+.parameter-panel__toolbar,
 .parameter-panel__actions {
   display: flex;
   flex-wrap: wrap;

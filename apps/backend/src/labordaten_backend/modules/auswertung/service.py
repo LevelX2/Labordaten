@@ -6,6 +6,10 @@ from datetime import date
 from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
 
+from labordaten_backend.core.labor_value_formatting import (
+    format_numeric_measurement_value,
+    format_numeric_reference_range,
+)
 from labordaten_backend.models.befund import Befund
 from labordaten_backend.models.gruppen_parameter import GruppenParameter
 from labordaten_backend.models.labor import Labor
@@ -69,6 +73,7 @@ def build_auswertung(db: Session, payload: AuswertungRequest) -> AuswertungRespo
                     person_anzeigename=person.anzeigename,
                     datum=current_date,
                     wert_typ=messwert.wert_typ,
+                    wert_operator=messwert.wert_operator,
                     wert_anzeige=_format_measurement_value(messwert),
                     wert_num=messwert.wert_num,
                     wert_text=messwert.wert_text,
@@ -282,26 +287,23 @@ def _build_statistics(points: list[AuswertungPunkt]) -> AuswertungsStatistik:
 def _format_measurement_value(messwert: Messwert) -> str:
     if messwert.wert_typ == "text":
         return messwert.wert_text or messwert.wert_roh_text
-    operator_prefix = {
-        "exakt": "",
-        "kleiner_als": "< ",
-        "kleiner_gleich": "<= ",
-        "groesser_als": "> ",
-        "groesser_gleich": ">= ",
-        "ungefaehr": "~ ",
-    }.get(messwert.wert_operator, "")
-    if messwert.wert_num is not None:
-        return f"{operator_prefix}{messwert.wert_num}"
-    return f"{operator_prefix}{messwert.wert_roh_text}"
+    return format_numeric_measurement_value(messwert.wert_num, messwert.wert_operator, messwert.wert_roh_text)
 
 
 def _format_reference_text(referenz: MesswertReferenz) -> str:
     if referenz.wert_typ == "text":
-        return referenz.soll_text or referenz.referenz_text_original or "—"
-    lower = "—" if referenz.untere_grenze_num is None else str(referenz.untere_grenze_num)
-    upper = "—" if referenz.obere_grenze_num is None else str(referenz.obere_grenze_num)
-    einheit = f" {referenz.einheit}" if referenz.einheit else ""
-    return f"{lower} bis {upper}{einheit}"
+        return referenz.soll_text or referenz.referenz_text_original or "-"
+    return (
+        format_numeric_reference_range(
+            lower_value=referenz.untere_grenze_num,
+            upper_value=referenz.obere_grenze_num,
+            lower_operator=referenz.untere_grenze_operator,
+            upper_operator=referenz.obere_grenze_operator,
+            unit=referenz.einheit,
+        )
+        or referenz.referenz_text_original
+        or "-"
+    )
 
 
 def _effective_date(befund: Befund, messwert: Messwert):

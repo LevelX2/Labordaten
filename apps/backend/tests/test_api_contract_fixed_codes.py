@@ -125,7 +125,9 @@ def test_create_referenz_api_enforces_fixed_value_and_gender_codes(monkeypatch, 
                 "referenz_typ": "labor",
                 "wert_typ": "numerisch",
                 "untere_grenze_num": 12,
+                "untere_grenze_operator": "groesser_als",
                 "obere_grenze_num": 48,
+                "obere_grenze_operator": "kleiner_gleich",
                 "einheit": "ng/ml",
                 "geschlecht_code": "w",
             },
@@ -135,6 +137,8 @@ def test_create_referenz_api_enforces_fixed_value_and_gender_codes(monkeypatch, 
         body = response.json()
         assert body["referenz_typ"] == "labor"
         assert body["geschlecht_code"] == "w"
+        assert body["untere_grenze_operator"] == "groesser_als"
+        assert body["obere_grenze_operator"] == "kleiner_gleich"
 
         invalid_response = client.post(
             f"/api/messwerte/{messwert_id}/referenzen",
@@ -142,6 +146,7 @@ def test_create_referenz_api_enforces_fixed_value_and_gender_codes(monkeypatch, 
                 "referenz_typ": "extern",
                 "wert_typ": "numerisch",
                 "untere_grenze_num": 12,
+                "untere_grenze_operator": "exakt",
                 "einheit": "ng/ml",
                 "geschlecht_code": "M",
             },

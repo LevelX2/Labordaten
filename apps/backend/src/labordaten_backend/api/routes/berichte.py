@@ -12,7 +12,10 @@ def arztbericht_vorschau(
     payload: schemas.ArztberichtRequest,
     db: Session = Depends(get_db),
 ) -> schemas.ArztberichtResponse:
-    return service.build_arztbericht(db, payload)
+    try:
+        return service.build_arztbericht(db, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
 
 @router.post("/verlauf-vorschau", response_model=schemas.VerlaufsberichtResponse)
@@ -20,7 +23,10 @@ def verlauf_vorschau(
     payload: schemas.VerlaufsberichtRequest,
     db: Session = Depends(get_db),
 ) -> schemas.VerlaufsberichtResponse:
-    return service.build_verlaufsbericht(db, payload)
+    try:
+        return service.build_verlaufsbericht(db, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
 
 @router.post("/arztbericht-pdf")

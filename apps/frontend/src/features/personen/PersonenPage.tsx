@@ -7,7 +7,7 @@ import {
   PERSON_GESCHLECHT_OPTIONS,
   formatGeschlechtCode
 } from "../../shared/constants/fieldOptions";
-import type { Parameter, Person, WertTyp, Zielbereich, ZielbereichOverride } from "../../shared/types/api";
+import type { Einheit, Parameter, Person, WertTyp, Zielbereich, ZielbereichOverride } from "../../shared/types/api";
 
 type PersonFormState = {
   anzeigename: string;
@@ -62,6 +62,10 @@ export function PersonenPage() {
     queryKey: ["parameter"],
     queryFn: () => apiFetch<Parameter[]>("/api/parameter")
   });
+  const einheitenQuery = useQuery({
+    queryKey: ["einheiten"],
+    queryFn: () => apiFetch<Einheit[]>("/api/einheiten")
+  });
 
   const zielbereicheQuery = useQuery({
     queryKey: ["zielbereiche", overrideForm.parameter_id],
@@ -79,6 +83,7 @@ export function PersonenPage() {
     () => zielbereicheQuery.data?.find((zielbereich) => zielbereich.id === overrideForm.zielbereich_id) ?? null,
     [zielbereicheQuery.data, overrideForm.zielbereich_id]
   );
+  const einheiten = einheitenQuery.data ?? [];
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -348,12 +353,19 @@ export function PersonenPage() {
 
                 <label className="field">
                   <span>Einheit</span>
-                  <input
+                  <select
                     value={overrideForm.einheit}
                     onChange={(event) =>
                       setOverrideForm((current) => ({ ...current, einheit: event.target.value }))
                     }
-                  />
+                  >
+                    <option value="">Keine Einheit</option>
+                    {einheiten.map((einheit) => (
+                      <option key={einheit.id} value={einheit.kuerzel}>
+                        {einheit.kuerzel}
+                      </option>
+                    ))}
+                  </select>
                 </label>
               </>
             ) : (
@@ -430,6 +442,7 @@ export function PersonenPage() {
             </table>
           </div>
         </article>
+
       </div>
     </section>
   );

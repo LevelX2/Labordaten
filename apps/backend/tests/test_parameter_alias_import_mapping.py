@@ -9,8 +9,11 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
 from labordaten_backend.models.base import Base
+from labordaten_backend.models.laborparameter_alias import LaborparameterAlias
 from labordaten_backend.models.messwert import Messwert
 from labordaten_backend.models.person import Person
+from labordaten_backend.modules.einheiten import schemas as einheiten_schemas
+from labordaten_backend.modules.einheiten import service as einheiten_service
 from labordaten_backend.modules.importe import schemas as import_schemas
 from labordaten_backend.modules.importe import service as import_service
 from labordaten_backend.modules.parameter import schemas as parameter_schemas
@@ -25,6 +28,8 @@ def _make_session(tmp_path: Path) -> Session:
 
 def test_import_auto_maps_parameter_via_alias_without_manual_mapping(tmp_path: Path) -> None:
     with _make_session(tmp_path) as db:
+        einheiten_service.create_einheit(db, einheiten_schemas.EinheitCreate(kuerzel="ng/ml"))
+
         person = Person(
             anzeigename="Ludwig",
             vollname="Ludwig Hirth",
@@ -101,3 +106,188 @@ def test_import_auto_maps_parameter_via_alias_without_manual_mapping(tmp_path: P
         assert messwert is not None
         assert messwert.laborparameter_id == parameter.id
         assert messwert.original_parametername == "Vitamin D3 (25-OH) LCMS"
+
+
+def test_import_manual_mapping_can_create_alias_for_future_imports(tmp_path: Path) -> None:
+    with _make_session(tmp_path) as db:
+        einheiten_service.create_einheit(db, einheiten_schemas.EinheitCreate(kuerzel="µg/l"))
+
+        person = Person(
+            anzeigename="Ludwig",
+            vollname="Ludwig Hirth",
+            geburtsdatum=date(1964, 1, 12),
+            geschlecht_code="Männlich",
+        )
+        db.add(person)
+        db.commit()
+        db.refresh(person)
+
+        parameter = parameter_service.create_parameter(
+            db,
+            parameter_schemas.ParameterCreate(
+                anzeigename="25-Hydroxy-Vitamin D",
+                standard_einheit="µg/l",
+                wert_typ_standard="numerisch",
+            ),
+        )
+
+        detail = import_service.create_import_entwurf(
+            db,
+            import_schemas.ImportEntwurfCreate(
+                payload_json=json.dumps(
+                    {
+                        "schemaVersion": "1.0",
+                        "quelleTyp": "ki_json",
+                        "befund": {
+                            "personId": person.id,
+                            "laborName": "Labor Dr. Bayer",
+                            "entnahmedatum": "2026-02-03",
+                        },
+                        "messwerte": [
+                            {
+                                "originalParametername": "Vit. D (25-OH)",
+                                "wertTyp": "numerisch",
+                                "wertRohText": "96.7",
+                                "wertNum": 96.7,
+                                "einheitOriginal": "µg/l",
+                            }
+                        ],
+                    }
+                )
+            ),
+        )
+
+        assert detail.warnung_anzahl == 1
+        assert detail.messwerte[0].parameter_id is None
+
+        uebernommen = import_service.uebernehmen_import(
+            db,
+            detail.id,
+            import_schemas.ImportUebernehmenRequest(
+                parameter_mappings=[
+                    import_schemas.ImportParameterMapping(
+                        messwert_index=0,
+                        laborparameter_id=parameter.id,
+                        alias_uebernehmen=True,
+                    )
+                ]
+            ),
+        )
+
+        assert uebernommen.status == "uebernommen"
+
+        alias = db.scalar(
+            select(LaborparameterAlias).where(LaborparameterAlias.alias_text == "Vit. D (25-OH)")
+        )
+        assert alias is not None
+        assert alias.laborparameter_id == parameter.id
+
+        second_detail = import_service.create_import_entwurf(
+            db,
+            import_schemas.ImportEntwurfCreate(
+                payload_json=json.dumps(
+                    {
+                        "schemaVersion": "1.0",
+                        "quelleTyp": "ki_json",
+                        "befund": {
+                            "personId": person.id,
+                            "laborName": "Labor Dr. Bayer",
+                            "entnahmedatum": "2026-03-03",
+                        },
+                        "messwerte": [
+                            {
+                                "originalParametername": "Vit. D (25-OH)",
+                                "wertTyp": "numerisch",
+                                "wertRohText": "88.4",
+                                "wertNum": 88.4,
+                                "einheitOriginal": "µg/l",
+                            }
+                        ],
+                    }
+                )
+            ),
+        )
+
+        assert second_detail.warnung_anzahl == 0
+        assert second_detail.messwerte[0].parameter_id == parameter.id
+        assert second_detail.messwerte[0].parameter_mapping_herkunft == "alias"
+
+
+def test_import_alias_creation_conflict_blocks_takeover(tmp_path: Path) -> None:
+    with _make_session(tmp_path) as db:
+        einheiten_service.create_einheit(db, einheiten_schemas.EinheitCreate(kuerzel="µg/l"))
+
+        person = Person(
+            anzeigename="Ludwig",
+            vollname="Ludwig Hirth",
+            geburtsdatum=date(1964, 1, 12),
+            geschlecht_code="Männlich",
+        )
+        db.add(person)
+        db.commit()
+        db.refresh(person)
+
+        target = parameter_service.create_parameter(
+            db,
+            parameter_schemas.ParameterCreate(
+                anzeigename="25-Hydroxy-Vitamin D",
+                standard_einheit="µg/l",
+                wert_typ_standard="numerisch",
+            ),
+        )
+        conflicting = parameter_service.create_parameter(
+            db,
+            parameter_schemas.ParameterCreate(
+                anzeigename="Vit. D (25-OH)",
+                standard_einheit="µg/l",
+                wert_typ_standard="numerisch",
+            ),
+        )
+
+        detail = import_service.create_import_entwurf(
+            db,
+            import_schemas.ImportEntwurfCreate(
+                payload_json=json.dumps(
+                    {
+                        "schemaVersion": "1.0",
+                        "quelleTyp": "ki_json",
+                        "befund": {
+                            "personId": person.id,
+                            "laborName": "Labor Dr. Bayer",
+                            "entnahmedatum": "2026-02-03",
+                        },
+                        "messwerte": [
+                            {
+                                "originalParametername": "Vit. D (25-OH)",
+                                "wertTyp": "numerisch",
+                                "wertRohText": "96.7",
+                                "wertNum": 96.7,
+                                "einheitOriginal": "µg/l",
+                            }
+                        ],
+                    }
+                )
+            ),
+        )
+
+        assert detail.warnung_anzahl == 0
+        assert detail.messwerte[0].parameter_id == conflicting.id
+
+        try:
+            import_service.uebernehmen_import(
+                db,
+                detail.id,
+                import_schemas.ImportUebernehmenRequest(
+                    parameter_mappings=[
+                        import_schemas.ImportParameterMapping(
+                            messwert_index=0,
+                            laborparameter_id=target.id,
+                            alias_uebernehmen=True,
+                        )
+                    ]
+                ),
+            )
+        except ValueError as exc:
+            assert "kollidiert mit dem Anzeigenamen" in str(exc)
+        else:
+            raise AssertionError("Die Alias-Kollision hätte den Import blockieren müssen.")

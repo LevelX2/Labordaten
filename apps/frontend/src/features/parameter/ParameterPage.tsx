@@ -315,6 +315,11 @@ export function ParameterPage() {
     );
   }, [parameterSearchQuery, sortedParameters]);
 
+  const hasActiveParameterFilter = parameterSearchQuery.trim().length > 0;
+  const parameterCountLabel = hasActiveParameterFilter
+    ? `${filteredParameters.length} von ${sortedParameters.length} Parametern`
+    : `${sortedParameters.length} Parameter`;
+
   const einheiten = einheitenQuery.data ?? [];
 
   const zielbereicheQuery = useQuery({
@@ -1200,17 +1205,17 @@ export function ParameterPage() {
                 für den aktuell ausgewählten Parameter.
               </p>
             </div>
-            <div className="parameter-panel__actions">
-              <button
-                type="button"
-                className="inline-button"
-                onClick={() => aliasSuggestionsQuery.refetch()}
-                disabled={aliasSuggestionsQuery.isFetching}
-              >
-                {aliasSuggestionsQuery.isFetching ? "Sucht..." : "Vorschläge laden"}
-              </button>
-              {renderPanelCloseButton("Panel Alias-Vorschläge schließen")}
-            </div>
+            {renderPanelCloseButton("Panel Alias-Vorschläge schließen")}
+          </div>
+          <div className="parameter-panel__toolbar">
+            <button
+              type="button"
+              className="inline-button"
+              onClick={() => aliasSuggestionsQuery.refetch()}
+              disabled={aliasSuggestionsQuery.isFetching}
+            >
+              {aliasSuggestionsQuery.isFetching ? "Sucht..." : "Vorschläge laden"}
+            </button>
           </div>
           {aliasSuggestionsQuery.isError ? <p className="form-error">{aliasSuggestionsQuery.error.message}</p> : null}
           {confirmAliasSuggestionMutation.isError ? <p className="form-error">{confirmAliasSuggestionMutation.error.message}</p> : null}
@@ -1267,17 +1272,17 @@ export function ParameterPage() {
               Verwendungen umgehängt und Namen nach Möglichkeit als Alias erhalten.
             </p>
           </div>
-          <div className="parameter-panel__actions">
-            <button
-              type="button"
-              className="inline-button"
-              onClick={() => duplicateSuggestionsQuery.refetch()}
-              disabled={duplicateSuggestionsQuery.isFetching}
-            >
-              {duplicateSuggestionsQuery.isFetching ? "Prüft..." : "Dubletten suchen"}
-            </button>
-            {renderPanelCloseButton("Panel Dubletten schließen")}
-          </div>
+          {renderPanelCloseButton("Panel Dubletten schließen")}
+        </div>
+        <div className="parameter-panel__toolbar">
+          <button
+            type="button"
+            className="inline-button"
+            onClick={() => duplicateSuggestionsQuery.refetch()}
+            disabled={duplicateSuggestionsQuery.isFetching}
+          >
+            {duplicateSuggestionsQuery.isFetching ? "Prüft..." : "Dubletten suchen"}
+          </button>
         </div>
         {duplicateSuggestionsQuery.isError ? <p className="form-error">{duplicateSuggestionsQuery.error.message}</p> : null}
         {mergeDuplicateMutation.isError ? <p className="form-error">{mergeDuplicateMutation.error.message}</p> : null}
@@ -1380,14 +1385,22 @@ export function ParameterPage() {
     <section className="page">
       <header className="page__header page__header--compact">
         <h2>Parameter</h2>
-        <button
-          type="button"
-          className="icon-button page__info-button"
-          aria-label="Hinweis zur Parameterseite"
-          title="Hier verwaltest Du Laborparameter, Aliase, Umrechnungen und allgemeine Zielbereiche."
-        >
-          ?
-        </button>
+        <div className="page__info">
+          <button
+            type="button"
+            className="icon-button page__info-button"
+            aria-label="Hinweis zur Parameterseite"
+            aria-expanded={showPageInfo}
+            onClick={() => setShowPageInfo((current) => !current)}
+          >
+            i
+          </button>
+          {showPageInfo ? (
+            <div className="page__info-popover">
+              Hier verwaltest Du Laborparameter, Aliase, Umrechnungen und allgemeine Zielbereiche.
+            </div>
+          ) : null}
+        </div>
       </header>
 
       <div className="parameter-workspace">

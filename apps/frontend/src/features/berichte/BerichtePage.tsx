@@ -1,10 +1,12 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { apiFetch, apiFetchBlob } from "../../shared/api/client";
 import { MesswertDetailCard } from "../../shared/components/MesswertDetailCard";
 import { SelectionChecklist } from "../../shared/components/SelectionChecklist";
 import { getDefaultDateRange } from "../../shared/utils/dateRangeDefaults";
+import { applySharedFilterSearchParams } from "../../shared/utils/filterNavigation";
 import type {
   ArztberichtResponse,
   Gruppe,
@@ -27,7 +29,6 @@ type BerichtFormState = {
   include_labor: boolean;
   include_befundbemerkung: boolean;
   include_messwertbemerkung: boolean;
-  einheit_auswahl: Record<string, string>;
 };
 
 const initialForm: BerichtFormState = {
@@ -40,16 +41,7 @@ const initialForm: BerichtFormState = {
   include_referenzbereich: true,
   include_labor: true,
   include_befundbemerkung: true,
-  include_messwertbemerkung: true,
-  einheit_auswahl: {}
-};
-
-type BerichtEinheitenOption = {
-  laborparameter_id: string;
-  parameter_anzeigename: string;
-  original_einheiten: string[];
-  verfuegbare_ziel_einheiten: string[];
-  empfohlene_einheit?: string | null;
+  include_messwertbemerkung: true
 };
 
 function formatDate(value?: string | null): string {
@@ -103,27 +95,11 @@ function buildReportDescription(
   }.`;
 }
 
-function collectPointUnits(
-  point: Pick<
-    VerlaufsberichtResponse["punkte"][number],
-    "wert_typ" | "wert_original_num" | "einheit_original" | "wert_normiert_num" | "einheit_normiert"
-  >
-): Set<string> {
-  const units = new Set<string>();
-  if (point.wert_typ !== "numerisch") {
-    return units;
-  }
-  if (point.wert_original_num !== null && point.wert_original_num !== undefined && point.einheit_original) {
-    units.add(point.einheit_original);
-  }
-  if (point.wert_normiert_num !== null && point.wert_normiert_num !== undefined && point.einheit_normiert) {
-    units.add(point.einheit_normiert);
-  }
-  return units;
-}
-
 export function BerichtePage() {
-  const [form, setForm] = useState<BerichtFormState>(initialForm);
+  const [searchParams] = useSearchParams();
+  const [form, setForm] = useState<BerichtFormState>(() =>
+    applySharedFilterSearchParams(initialForm, searchParams)
+  );
   const [selectedMesswertId, setSelectedMesswertId] = useState<string | null>(null);
 
   const personenQuery = useQuery({
@@ -153,8 +129,7 @@ export function BerichtePage() {
     include_referenzbereich: form.include_referenzbereich,
     include_labor: form.include_labor,
     include_befundbemerkung: form.include_befundbemerkung,
-    include_messwertbemerkung: form.include_messwertbemerkung,
-    einheit_auswahl: form.einheit_auswahl
+    include_messwertbemerkung: form.include_messwertbemerkung
   };
 
   const trendPayload = {
@@ -163,8 +138,7 @@ export function BerichtePage() {
     gruppen_ids: form.gruppen_ids,
     labor_ids: form.labor_ids,
     datum_von: form.datum_von || null,
-    datum_bis: form.datum_bis || null,
-    einheit_auswahl: form.einheit_auswahl
+    datum_bis: form.datum_bis || null
   };
 
   const doctorReportMutation = useMutation({
@@ -234,70 +208,6 @@ export function BerichtePage() {
       description: buildReportDescription(items, items.length)
     };
   }, [trendReportMutation.data]);
-  const unitSelectionOptions = useMemo<BerichtEinheitenOption[]>(() => {
-    const points = trendReportMutation.data?.punkte ?? [];
-    const grouped = new Map<
-      string,
-      {
-        parameterName: string;
-        unitSets: Set<string>[];
-        originalUnits: Set<string>;
-      }
-    >();
-
-    points.forEach((point) => {
-      const availableUnits = collectPointUnits(point);
-      if (!availableUnits.size) {
-        return;
-      }
-
-      const current = grouped.get(point.laborparameter_id) ?? {
-        parameterName: point.parameter_anzeigename,
-        unitSets: [],
-        originalUnits: new Set<string>()
-      };
-      current.unitSets.push(availableUnits);
-      if (point.einheit_original) {
-        current.originalUnits.add(point.einheit_original);
-      }
-      grouped.set(point.laborparameter_id, current);
-    });
-
-    return Array.from(grouped.entries())
-      .map(([laborparameter_id, entry]) => {
-        const [firstSet, ...restSets] = entry.unitSets;
-        const commonUnits = new Set(firstSet);
-        restSets.forEach((unitSet) => {
-          Array.from(commonUnits).forEach((unit) => {
-            if (!unitSet.has(unit)) {
-              commonUnits.delete(unit);
-            }
-          });
-        });
-
-        const standardEinheit =
-          parameterQuery.data?.find((parameter) => parameter.id === laborparameter_id)?.standard_einheit ?? null;
-        const verfuegbareZielEinheiten = Array.from(commonUnits).sort((left, right) => left.localeCompare(right, "de"));
-        const originalEinheiten = Array.from(entry.originalUnits).sort((left, right) => left.localeCompare(right, "de"));
-
-        return {
-          laborparameter_id,
-          parameter_anzeigename: entry.parameterName,
-          original_einheiten: originalEinheiten,
-          verfuegbare_ziel_einheiten: verfuegbareZielEinheiten,
-          empfohlene_einheit:
-            standardEinheit && commonUnits.has(standardEinheit)
-              ? standardEinheit
-              : verfuegbareZielEinheiten[0] ?? null
-        };
-      })
-      .filter(
-        (entry) =>
-          entry.original_einheiten.length > 1 ||
-          entry.verfuegbare_ziel_einheiten.some((unit) => !entry.original_einheiten.includes(unit))
-      )
-      .sort((left, right) => left.parameter_anzeigename.localeCompare(right.parameter_anzeigename, "de"));
-  }, [parameterQuery.data, trendReportMutation.data]);
 
   useEffect(() => {
     const availableIds = new Set([
@@ -308,19 +218,6 @@ export function BerichtePage() {
       setSelectedMesswertId(null);
     }
   }, [doctorReportMutation.data, selectedMesswertId, trendReportMutation.data]);
-
-  useEffect(() => {
-    const allowedParameterIds = new Set(unitSelectionOptions.map((option) => option.laborparameter_id));
-    setForm((current) => {
-      const nextUnitSelection = Object.fromEntries(
-        Object.entries(current.einheit_auswahl).filter(([parameterId]) => allowedParameterIds.has(parameterId))
-      );
-      if (Object.keys(nextUnitSelection).length === Object.keys(current.einheit_auswahl).length) {
-        return current;
-      }
-      return { ...current, einheit_auswahl: nextUnitSelection };
-    });
-  }, [unitSelectionOptions]);
 
   return (
     <section className="page">
@@ -415,7 +312,9 @@ export function BerichtePage() {
               <input
                 type="checkbox"
                 checked={form.include_referenzbereich}
-                onChange={(event) => setForm((current) => ({ ...current, include_referenzbereich: event.target.checked }))}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, include_referenzbereich: event.target.checked }))
+                }
               />
             </label>
 
@@ -433,7 +332,9 @@ export function BerichtePage() {
               <input
                 type="checkbox"
                 checked={form.include_befundbemerkung}
-                onChange={(event) => setForm((current) => ({ ...current, include_befundbemerkung: event.target.checked }))}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, include_befundbemerkung: event.target.checked }))
+                }
               />
             </label>
 
@@ -442,7 +343,9 @@ export function BerichtePage() {
               <input
                 type="checkbox"
                 checked={form.include_messwertbemerkung}
-                onChange={(event) => setForm((current) => ({ ...current, include_messwertbemerkung: event.target.checked }))}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, include_messwertbemerkung: event.target.checked }))
+                }
               />
             </label>
 
@@ -466,59 +369,6 @@ export function BerichtePage() {
               </button>
             </div>
           </form>
-        </article>
-
-        <article className="card card--wide">
-          <h3>Darstellungseinheiten</h3>
-          <p>
-            Wenn ein Parameter in mehreren Einheiten vorkommt und für alle betroffenen numerischen Werte eine gemeinsame
-            Zieldarstellung möglich ist, kannst du sie hier festlegen. Die Auswahl wirkt auf die nächste Vorschau und
-            auf den PDF-Export.
-          </p>
-          {!unitSelectionOptions.length ? (
-            <p>Nach dem Laden der Vorschau erscheinen hier nur Parameter mit sinnvoller Einheitenwahl.</p>
-          ) : (
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Parameter</th>
-                    <th>Beobachtete Originaleinheiten</th>
-                    <th>Darstellung im Bericht</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {unitSelectionOptions.map((option) => (
-                    <tr key={option.laborparameter_id}>
-                      <td>{option.parameter_anzeigename}</td>
-                      <td>{option.original_einheiten.join(", ")}</td>
-                      <td>
-                        <select
-                          value={form.einheit_auswahl[option.laborparameter_id] ?? "original"}
-                          onChange={(event) =>
-                            setForm((current) => ({
-                              ...current,
-                              einheit_auswahl: {
-                                ...current.einheit_auswahl,
-                                [option.laborparameter_id]: event.target.value
-                              }
-                            }))
-                          }
-                        >
-                          <option value="original">Originaleinheiten beibehalten</option>
-                          {option.verfuegbare_ziel_einheiten.map((unit) => (
-                            <option key={unit} value={unit}>
-                              {option.empfohlene_einheit === unit ? `${unit} (empfohlen)` : unit}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
         </article>
 
         <article className="card card--wide">

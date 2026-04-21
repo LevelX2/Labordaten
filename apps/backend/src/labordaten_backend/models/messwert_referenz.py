@@ -17,11 +17,12 @@ class MesswertReferenz(Base):
     referenz_text_original: Mapped[str | None] = mapped_column(Text)
     wert_typ: Mapped[str] = mapped_column(String(20), nullable=False, default="numerisch")
     untere_grenze_num: Mapped[float | None] = mapped_column(Float)
+    untere_grenze_operator: Mapped[str | None] = mapped_column(String(30))
     obere_grenze_num: Mapped[float | None] = mapped_column(Float)
+    obere_grenze_operator: Mapped[str | None] = mapped_column(String(30))
     einheit: Mapped[str | None] = mapped_column(String(50))
     soll_text: Mapped[str | None] = mapped_column(Text)
     geschlecht_code: Mapped[str | None] = mapped_column(String(40))
     alter_min_tage: Mapped[int | None] = mapped_column(Integer)
     alter_max_tage: Mapped[int | None] = mapped_column(Integer)
     bemerkung: Mapped[str | None] = mapped_column(Text)
-

@@ -3,7 +3,10 @@ import { useEffect, useMemo, useState } from "react";
 
 import { apiFetch } from "../../shared/api/client";
 import { formatGeschlechtCode, formatWertTyp } from "../../shared/constants/fieldOptions";
+import { formatReferenzAnzeige } from "../../shared/utils/laborFormatting";
 import type {
+  Gruppe,
+  ImportGruppenvorschlaegeAnwendenResponse,
   ImportVorgangDetail,
   ImportMesswertPreview,
   ImportVorgangListItem,
@@ -28,6 +31,14 @@ type DateiImportFormState = {
   befund_bemerkung_override: string;
   import_bemerkung: string;
   quelle_behalten: boolean;
+};
+
+type GruppenVorschlagAktion = "neu" | "vorhanden" | "ignorieren";
+
+type GruppenVorschlagState = {
+  aktion: GruppenVorschlagAktion;
+  gruppe_id: string;
+  gruppenname: string;
 };
 
 const examplePayload = `{
@@ -134,6 +145,76 @@ function formatMappingInfo(messwert: ImportMesswertPreview, currentParameterId?:
   return "Noch offen";
 }
 
+function normalizeAliasCandidate(value?: string | null): string {
+  if (!value) {
+    return "";
+  }
+  return value
+    .toLocaleLowerCase("de-DE")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ß/g, "ss")
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+function getAliasRecommendation(args: {
+  messwert: ImportMesswertPreview;
+  parameterId?: string;
+  parameterById: Map<string, Parameter>;
+}): { recommended: boolean; note: string | null } {
+  const { messwert, parameterId, parameterById } = args;
+  if (!parameterId) {
+    return { recommended: false, note: null };
+  }
+
+  const parameter = parameterById.get(parameterId);
+  if (!parameter) {
+    return { recommended: false, note: null };
+  }
+
+  if (messwert.parameter_mapping_herkunft === "alias") {
+    return {
+      recommended: false,
+      note: "Alias bereits vorhanden. Eine zusätzliche Alias-Anlage ist nicht nötig."
+    };
+  }
+
+  const original = normalizeAliasCandidate(messwert.original_parametername);
+  const display = normalizeAliasCandidate(parameter.anzeigename);
+  const key = normalizeAliasCandidate(parameter.interner_schluessel);
+  if (!original || original === display || original === key) {
+    return { recommended: false, note: null };
+  }
+
+  return {
+    recommended: true,
+    note: `Empfohlen, wenn '${messwert.original_parametername}' wirklich nur eine andere Schreibweise von '${parameter.anzeigename}' ist.`
+  };
+}
+
+function getGruppenVorschlagDefault(args: {
+  suggestionName: string;
+  gruppen: Gruppe[];
+}): GruppenVorschlagState {
+  const normalizedSuggestion = normalizeAliasCandidate(args.suggestionName);
+  const exactMatch = args.gruppen.find(
+    (gruppe) => normalizeAliasCandidate(gruppe.name) === normalizedSuggestion
+  );
+  if (exactMatch) {
+    return {
+      aktion: "vorhanden",
+      gruppe_id: exactMatch.id,
+      gruppenname: exactMatch.name
+    };
+  }
+
+  return {
+    aktion: "neu",
+    gruppe_id: "",
+    gruppenname: args.suggestionName
+  };
+}
+
 function buildDefaultImportRemark(args: {
   filename?: string;
   personName?: string | null;
@@ -157,6 +238,28 @@ function buildDefaultImportRemark(args: {
   return parts.join(" · ");
 }
 
+function formatImportReferenceResolved(messwert: ImportMesswertPreview): string {
+  const range = formatReferenzAnzeige({
+    wert_typ: messwert.wert_typ,
+    soll_text: messwert.referenz_text_original,
+    referenz_text_original: messwert.referenz_text_original,
+    untere_grenze_num: messwert.untere_grenze_num,
+    untere_grenze_operator: messwert.untere_grenze_operator,
+    obere_grenze_num: messwert.obere_grenze_num,
+    obere_grenze_operator: messwert.obere_grenze_operator,
+    einheit: messwert.referenz_einheit || messwert.einheit_original
+  });
+
+  if (
+    range !== "—" &&
+    messwert.referenz_text_original &&
+    !range.includes(messwert.referenz_text_original)
+  ) {
+    return `${range} (${messwert.referenz_text_original})`;
+  }
+  return range;
+}
+
 export function ImportPage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<ImportFormState>(initialForm);
@@ -164,6 +267,7 @@ export function ImportPage() {
   const [selectedImportId, setSelectedImportId] = useState<string | null>(null);
   const [mappingState, setMappingState] = useState<Record<number, string>>({});
   const [aliasState, setAliasState] = useState<Record<number, boolean>>({});
+  const [gruppenState, setGruppenState] = useState<Record<number, GruppenVorschlagState>>({});
   const [warningsConfirmed, setWarningsConfirmed] = useState(false);
 
   const personenQuery = useQuery({
@@ -173,6 +277,10 @@ export function ImportPage() {
   const parameterQuery = useQuery({
     queryKey: ["parameter"],
     queryFn: () => apiFetch<Parameter[]>("/api/parameter")
+  });
+  const gruppenQuery = useQuery({
+    queryKey: ["gruppen"],
+    queryFn: () => apiFetch<Gruppe[]>("/api/gruppen")
   });
   const laboreQuery = useQuery({
     queryKey: ["labore"],
@@ -194,22 +302,6 @@ export function ImportPage() {
     }
   }, [importsQuery.data, selectedImportId]);
 
-  useEffect(() => {
-    const nextMappings: Record<number, string> = {};
-    const nextAliases: Record<number, boolean> = {};
-    selectedImportQuery.data?.messwerte.forEach((messwert) => {
-      if (messwert.parameter_id) {
-        nextMappings[messwert.messwert_index] = messwert.parameter_id;
-      }
-      if (messwert.alias_uebernehmen) {
-        nextAliases[messwert.messwert_index] = true;
-      }
-    });
-    setMappingState(nextMappings);
-    setAliasState(nextAliases);
-    setWarningsConfirmed(false);
-  }, [selectedImportQuery.data]);
-
   const personById = useMemo(
     () => new Map((personenQuery.data ?? []).map((person) => [person.id, person])),
     [personenQuery.data]
@@ -230,6 +322,34 @@ export function ImportPage() {
     laborName: selectedLaborName ?? manualLaborName,
     entnahmedatum: dateiForm.entnahmedatum_override
   });
+
+  useEffect(() => {
+    const nextMappings: Record<number, string> = {};
+    const nextAliases: Record<number, boolean> = {};
+    const nextGruppen: Record<number, GruppenVorschlagState> = {};
+    selectedImportQuery.data?.messwerte.forEach((messwert) => {
+      if (messwert.parameter_id) {
+        nextMappings[messwert.messwert_index] = messwert.parameter_id;
+      }
+      const resolvedParameterId = messwert.parameter_id ?? undefined;
+      const recommendation = getAliasRecommendation({
+        messwert,
+        parameterId: resolvedParameterId,
+        parameterById
+      });
+      nextAliases[messwert.messwert_index] = messwert.alias_uebernehmen || recommendation.recommended;
+    });
+    selectedImportQuery.data?.gruppenvorschlaege.forEach((vorschlag) => {
+      nextGruppen[vorschlag.index] = getGruppenVorschlagDefault({
+        suggestionName: vorschlag.name,
+        gruppen: gruppenQuery.data ?? []
+      });
+    });
+    setMappingState(nextMappings);
+    setAliasState(nextAliases);
+    setGruppenState(nextGruppen);
+    setWarningsConfirmed(false);
+  }, [selectedImportQuery.data, parameterById, gruppenQuery.data]);
 
   useEffect(() => {
     if (!defaultImportRemark) {
@@ -337,6 +457,36 @@ export function ImportPage() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["importe"] }),
         queryClient.invalidateQueries({ queryKey: ["importe", detail.id] })
+      ]);
+    }
+  });
+
+  const gruppenVorschlaegeMutation = useMutation({
+    mutationFn: () =>
+      apiFetch<ImportGruppenvorschlaegeAnwendenResponse>(
+        `/api/importe/${selectedImportId}/gruppenvorschlaege/anwenden`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            vorschlaege: (selectedImportQuery.data?.gruppenvorschlaege ?? []).map((vorschlag) => {
+              const currentState = gruppenState[vorschlag.index] ?? getGruppenVorschlagDefault({
+                suggestionName: vorschlag.name,
+                gruppen: gruppenQuery.data ?? []
+              });
+              return {
+                vorschlag_index: vorschlag.index,
+                aktion: currentState.aktion,
+                gruppe_id: currentState.aktion === "vorhanden" ? currentState.gruppe_id || null : null,
+                gruppenname: currentState.aktion === "neu" ? currentState.gruppenname || vorschlag.name : null
+              };
+            })
+          })
+        }
+      ),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["gruppen"] }),
+        queryClient.invalidateQueries({ queryKey: ["importe", selectedImportId] })
       ]);
     }
   });
@@ -625,13 +775,21 @@ export function ImportPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedImport.messwerte.map((messwert) => (
+                    {selectedImport.messwerte.map((messwert) => {
+                      const resolvedParameterId =
+                        mappingState[messwert.messwert_index] ?? messwert.parameter_id ?? undefined;
+                      const aliasRecommendation = getAliasRecommendation({
+                        messwert,
+                        parameterId: resolvedParameterId,
+                        parameterById
+                      });
+                      return (
                       <tr key={messwert.messwert_index}>
                         <td>{messwert.original_parametername}</td>
                         <td>{messwert.wert_roh_text}</td>
                         <td>{formatWertTyp(messwert.wert_typ)}</td>
                         <td>{messwert.einheit_original ?? "—"}</td>
-                        <td>{formatImportReference(messwert)}</td>
+                        <td>{formatImportReferenceResolved(messwert)}</td>
                         <td>
                           {[
                             messwert.referenz_geschlecht_code
@@ -660,10 +818,18 @@ export function ImportPage() {
                                   if (!nextValue) {
                                     return { ...current, [messwert.messwert_index]: false };
                                   }
+                                  const nextRecommendation = getAliasRecommendation({
+                                    messwert,
+                                    parameterId: nextValue,
+                                    parameterById
+                                  });
                                   if (current[messwert.messwert_index] !== undefined) {
                                     return current;
                                   }
-                                  return { ...current, [messwert.messwert_index]: !messwert.parameter_id };
+                                  return {
+                                    ...current,
+                                    [messwert.messwert_index]: nextRecommendation.recommended
+                                  };
                                 });
                               }
                             }
@@ -681,7 +847,7 @@ export function ImportPage() {
                         </td>
                         <td>
                           <label className="field" style={{ minWidth: 0 }}>
-                            <span>Originalnamen als Alias übernehmen</span>
+                            <span>Als Alias übernehmen</span>
                             <input
                               type="checkbox"
                               checked={Boolean(aliasState[messwert.messwert_index])}
@@ -694,12 +860,152 @@ export function ImportPage() {
                               }
                             />
                           </label>
+                          {aliasRecommendation.note ? (
+                            <p style={{ marginTop: 6, fontSize: 12, color: "#6a5f52" }}>{aliasRecommendation.note}</p>
+                          ) : null}
                         </td>
                       </tr>
-                    ))}
+                    )})}
                   </tbody>
                 </table>
               </div>
+
+              {selectedImport.gruppenvorschlaege.length ? (
+                <>
+                  <h4>Gruppenvorschläge</h4>
+                  <p>
+                    Berichtsblöcke können nach der Importübernahme als Gruppen angelegt oder mit vorhandenen Gruppen
+                    zusammengeführt werden.
+                  </p>
+                  <div className="table-wrap">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>Vorschlag</th>
+                          <th>Parameter</th>
+                          <th>Ähnliche Gruppen</th>
+                          <th>Aktion</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedImport.gruppenvorschlaege.map((vorschlag) => {
+                          const currentState =
+                            gruppenState[vorschlag.index] ??
+                            getGruppenVorschlagDefault({
+                              suggestionName: vorschlag.name,
+                              gruppen: gruppenQuery.data ?? []
+                            });
+                          return (
+                            <tr key={`gruppe-${vorschlag.index}`}>
+                              <td>
+                                <strong>{vorschlag.name}</strong>
+                                {vorschlag.beschreibung ? <p>{vorschlag.beschreibung}</p> : null}
+                                {vorschlag.fehlende_messwert_indizes.length ? (
+                                  <p className="form-error">
+                                    Noch nicht anwendbar. Für Messwerte {vorschlag.fehlende_messwert_indizes.join(", ")} fehlen
+                                    noch Parameterzuordnungen.
+                                  </p>
+                                ) : null}
+                              </td>
+                              <td>{vorschlag.parameter_namen.length ? vorschlag.parameter_namen.join(", ") : "—"}</td>
+                              <td>
+                                {vorschlag.aehnliche_gruppen.length ? (
+                                  vorschlag.aehnliche_gruppen.map((gruppe) => (
+                                    <p key={gruppe.gruppe_id}>
+                                      <strong>{gruppe.name}</strong>
+                                      {` · gemeinsame Parameter: ${gruppe.gemeinsame_parameter_anzahl}/${gruppe.parameter_anzahl}`}
+                                      {gruppe.namensaehnlich ? " · ähnlicher Name" : ""}
+                                    </p>
+                                  ))
+                                ) : (
+                                  "Keine ähnliche Gruppe gefunden."
+                                )}
+                              </td>
+                              <td>
+                                <label className="field">
+                                  <span>Aktion</span>
+                                  <select
+                                    value={currentState.aktion}
+                                    onChange={(event) =>
+                                      setGruppenState((current) => ({
+                                        ...current,
+                                        [vorschlag.index]: {
+                                          ...currentState,
+                                          aktion: event.target.value as GruppenVorschlagAktion
+                                        }
+                                      }))
+                                    }
+                                  >
+                                    <option value="neu">Neue Gruppe anlegen</option>
+                                    <option value="vorhanden">Vorhandene Gruppe verwenden</option>
+                                    <option value="ignorieren">Ignorieren</option>
+                                  </select>
+                                </label>
+                                {currentState.aktion === "neu" ? (
+                                  <label className="field">
+                                    <span>Gruppenname</span>
+                                    <input
+                                      value={currentState.gruppenname}
+                                      onChange={(event) =>
+                                        setGruppenState((current) => ({
+                                          ...current,
+                                          [vorschlag.index]: {
+                                            ...currentState,
+                                            gruppenname: event.target.value
+                                          }
+                                        }))
+                                      }
+                                    />
+                                  </label>
+                                ) : null}
+                                {currentState.aktion === "vorhanden" ? (
+                                  <label className="field">
+                                    <span>Zielgruppe</span>
+                                    <select
+                                      value={currentState.gruppe_id}
+                                      onChange={(event) =>
+                                        setGruppenState((current) => ({
+                                          ...current,
+                                          [vorschlag.index]: {
+                                            ...currentState,
+                                            gruppe_id: event.target.value
+                                          }
+                                        }))
+                                      }
+                                    >
+                                      <option value="">Bitte wählen</option>
+                                      {gruppenQuery.data?.map((gruppe) => (
+                                        <option key={gruppe.id} value={gruppe.id}>
+                                          {gruppe.name}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </label>
+                                ) : null}
+                                {selectedImport.status !== "uebernommen" ? (
+                                  <p>Wird nach der Importübernahme anwendbar.</p>
+                                ) : null}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="form-actions">
+                    <button
+                      type="button"
+                      onClick={() => gruppenVorschlaegeMutation.mutate()}
+                      disabled={gruppenVorschlaegeMutation.isPending || selectedImport.status !== "uebernommen"}
+                    >
+                      {gruppenVorschlaegeMutation.isPending ? "Wendet an..." : "Gruppenvorschläge anwenden"}
+                    </button>
+                    {gruppenVorschlaegeMutation.isError ? (
+                      <p className="form-error">{gruppenVorschlaegeMutation.error.message}</p>
+                    ) : null}
+                  </div>
+                </>
+              ) : null}
 
               <h4>Prüfpunkte</h4>
               <ul>

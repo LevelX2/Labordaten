@@ -10,6 +10,8 @@ from labordaten_backend.models.laborparameter import Laborparameter
 from labordaten_backend.models.messwert import Messwert
 from labordaten_backend.models.parameter_gruppe import ParameterGruppe
 from labordaten_backend.models.person import Person
+from labordaten_backend.modules.einheiten import service as einheiten_service
+from labordaten_backend.modules.parameter import conversions as parameter_conversions
 from labordaten_backend.modules.messwerte.schemas import MesswertCreate, MesswertRead
 
 
@@ -67,6 +69,7 @@ def list_messwerte(
             einheit_original=messwert.einheit_original,
             wert_normiert_num=messwert.wert_normiert_num,
             einheit_normiert=messwert.einheit_normiert,
+            umrechnungsregel_id=messwert.umrechnungsregel_id,
             bemerkung_kurz=messwert.bemerkung_kurz,
             bemerkung_lang=messwert.bemerkung_lang,
             unsicher_flag=messwert.unsicher_flag,
@@ -91,7 +94,24 @@ def create_messwert(db: Session, payload: MesswertCreate) -> Messwert:
     if befund.person_id != payload.person_id:
         raise ValueError("Messwert und Befund müssen derselben Person zugeordnet sein.")
 
-    messwert = Messwert(**payload.model_dump())
+    messwert_data = payload.model_dump()
+    messwert_data["einheit_original"] = (
+        einheiten_service.require_existing_einheit(db, payload.einheit_original)
+        if payload.wert_typ == "numerisch"
+        else None
+    )
+    normalized = parameter_conversions.resolve_measurement_normalization(
+        db,
+        laborparameter_id=payload.laborparameter_id,
+        wert_typ=payload.wert_typ,
+        wert_num=payload.wert_num,
+        einheit_original=messwert_data["einheit_original"],
+    )
+    messwert_data["wert_normiert_num"] = normalized.wert_normiert_num
+    messwert_data["einheit_normiert"] = normalized.einheit_normiert
+    messwert_data["umrechnungsregel_id"] = normalized.umrechnungsregel_id
+
+    messwert = Messwert(**messwert_data)
     db.add(messwert)
     db.commit()
     db.refresh(messwert)

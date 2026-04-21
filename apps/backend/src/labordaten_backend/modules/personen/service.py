@@ -6,6 +6,7 @@ from labordaten_backend.models.person import Person
 from labordaten_backend.models.zielbereich import Zielbereich
 from labordaten_backend.models.zielbereich_person_override import ZielbereichPersonOverride
 from labordaten_backend.models.base import utcnow
+from labordaten_backend.modules.einheiten import service as einheiten_service
 from labordaten_backend.modules.personen.schemas import PersonCreate
 from labordaten_backend.modules.personen.schemas import ZielbereichOverrideCreate, ZielbereichOverrideRead
 
@@ -91,7 +92,11 @@ def create_zielbereich_override(
         zielbereich_id=payload.zielbereich_id,
         untere_grenze_num=payload.untere_grenze_num,
         obere_grenze_num=payload.obere_grenze_num,
-        einheit=payload.einheit,
+        einheit=(
+            einheiten_service.require_existing_einheit(db, payload.einheit)
+            if zielbereich.wert_typ == "numerisch"
+            else None
+        ),
         soll_text=payload.soll_text,
         bemerkung=payload.bemerkung,
         erstellt_am=utcnow().isoformat(),

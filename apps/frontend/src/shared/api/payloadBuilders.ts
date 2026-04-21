@@ -3,6 +3,8 @@ import type {
   MesswertCreatePayload,
   MesswertReferenzCreatePayload,
   PersonCreatePayload,
+  ReferenzGrenzOperator,
+  WertOperator,
   WertTyp,
   ZielbereichCreatePayload,
 } from "../types/api";
@@ -21,6 +23,7 @@ type MesswertPayloadInput = {
   laborparameter_id: string;
   original_parametername: string;
   wert_typ: WertTyp;
+  wert_operator: string;
   wert_roh_text: string;
   wert_num: string;
   wert_text: string;
@@ -32,7 +35,9 @@ type ReferenzPayloadInput = {
   wert_typ: WertTyp;
   referenz_text_original: string;
   untere_grenze_num: string;
+  untere_grenze_operator: string;
   obere_grenze_num: string;
+  obere_grenze_operator: string;
   einheit: string;
   soll_text: string;
   geschlecht_code: string;
@@ -78,6 +83,7 @@ export function buildMesswertCreatePayload(input: MesswertPayloadInput): Messwer
     laborparameter_id: input.laborparameter_id,
     original_parametername: input.original_parametername,
     wert_typ: input.wert_typ,
+    wert_operator: (input.wert_operator || "exakt") as WertOperator,
     wert_roh_text: input.wert_roh_text,
     wert_num: input.wert_typ === "numerisch" ? stringNumberToNull(input.wert_num) : null,
     wert_text: input.wert_typ === "text" ? emptyToNull(input.wert_text) ?? input.wert_roh_text : null,
@@ -95,7 +101,15 @@ export function buildMesswertReferenzCreatePayload(
     wert_typ: input.wert_typ,
     referenz_text_original: emptyToNull(input.referenz_text_original),
     untere_grenze_num: input.wert_typ === "numerisch" ? stringNumberToNull(input.untere_grenze_num) : null,
+    untere_grenze_operator:
+      input.wert_typ === "numerisch" && input.untere_grenze_num
+        ? ((emptyToNull(input.untere_grenze_operator) ?? "groesser_gleich") as ReferenzGrenzOperator)
+        : null,
     obere_grenze_num: input.wert_typ === "numerisch" ? stringNumberToNull(input.obere_grenze_num) : null,
+    obere_grenze_operator:
+      input.wert_typ === "numerisch" && input.obere_grenze_num
+        ? ((emptyToNull(input.obere_grenze_operator) ?? "kleiner_gleich") as ReferenzGrenzOperator)
+        : null,
     einheit: input.wert_typ === "numerisch" ? emptyToNull(input.einheit) ?? fallbackEinheit ?? null : null,
     soll_text: input.wert_typ === "text" ? emptyToNull(input.soll_text) : null,
     geschlecht_code: emptyToOptionalGeschlechtCode(input.geschlecht_code),

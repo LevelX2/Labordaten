@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from labordaten_backend.models.messwert import Messwert
 from labordaten_backend.models.messwert_referenz import MesswertReferenz
+from labordaten_backend.modules.einheiten import service as einheiten_service
 from labordaten_backend.modules.referenzen.schemas import ReferenzCreate
 
 
@@ -16,9 +17,15 @@ def create_referenz(db: Session, messwert_id: str, payload: ReferenzCreate) -> M
     if messwert is None:
         raise ValueError("Der zugehörige Messwert existiert nicht.")
 
-    referenz = MesswertReferenz(messwert_id=messwert_id, **payload.model_dump())
+    referenz_data = payload.model_dump()
+    referenz_data["einheit"] = (
+        einheiten_service.require_existing_einheit(db, payload.einheit)
+        if payload.wert_typ == "numerisch"
+        else None
+    )
+
+    referenz = MesswertReferenz(messwert_id=messwert_id, **referenz_data)
     db.add(referenz)
     db.commit()
     db.refresh(referenz)
     return referenz
-

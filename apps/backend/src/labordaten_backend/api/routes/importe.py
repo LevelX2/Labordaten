@@ -88,3 +88,18 @@ def verwerfen_import(import_id: str, db: Session = Depends(get_db)) -> schemas.I
         return service.verwerfen_import(db, import_id)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@router.post(
+    "/{import_id}/gruppenvorschlaege/anwenden",
+    response_model=schemas.ImportGruppenvorschlaegeAnwendenResponse,
+)
+def anwenden_gruppenvorschlaege(
+    import_id: str,
+    payload: schemas.ImportGruppenvorschlaegeAnwendenRequest,
+    db: Session = Depends(get_db),
+) -> schemas.ImportGruppenvorschlaegeAnwendenResponse:
+    try:
+        return service.anwenden_gruppenvorschlaege(db, import_id, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc

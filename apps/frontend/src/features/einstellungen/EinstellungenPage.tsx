@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
 import { apiFetch } from "../../shared/api/client";
+import { EinheitenPflegeCard } from "../../shared/components/EinheitenPflegeCard";
 import type { LockStatus, RuntimeSettings, SystemHealth } from "../../shared/types/api";
 
 function formatDate(value?: string | null): string {
@@ -17,6 +18,8 @@ function formatDate(value?: string | null): string {
 export function EinstellungenPage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<RuntimeSettings | null>(null);
+  const backendDocsUrl = "/api/docs";
+  const backendOpenApiUrl = "/api/openapi.json";
 
   const healthQuery = useQuery({
     queryKey: ["system", "health"],
@@ -112,6 +115,24 @@ export function EinstellungenPage() {
           </div>
           {resetLockMutation.isError ? <p className="form-error">{resetLockMutation.error.message}</p> : null}
         </article>
+
+        <article className="card">
+          <h3>Technischer Zugang</h3>
+          <p>
+            Die eigentliche Pflegeoberfläche ist diese Anwendung. Für technische Prüfungen kannst du hier direkt die
+            Backend-API-Doku öffnen, ohne die Adresse separat aufzurufen.
+          </p>
+          <div className="form-actions">
+            <a className="card__link" href={backendDocsUrl} target="_blank" rel="noreferrer">
+              Backend-API öffnen
+            </a>
+            <a className="card__link" href={backendOpenApiUrl} target="_blank" rel="noreferrer">
+              OpenAPI-JSON öffnen
+            </a>
+          </div>
+        </article>
+
+        <EinheitenPflegeCard className="card card--wide" />
 
         <article className="card card--wide">
           <h3>Laufzeit-Einstellungen</h3>

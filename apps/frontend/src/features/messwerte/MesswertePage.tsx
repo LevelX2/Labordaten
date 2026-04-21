@@ -11,10 +11,13 @@ import { MesswertDetailCard } from "../../shared/components/MesswertDetailCard";
 import { SelectionChecklist } from "../../shared/components/SelectionChecklist";
 import {
   KONTEXT_GESCHLECHT_OPTIONS,
+  REFERENZ_GRENZ_OPERATOR_OPTIONS,
+  WERT_OPERATOR_OPTIONS,
   WERT_TYP_OPTIONS,
   formatGeschlechtCode,
   formatWertTyp
 } from "../../shared/constants/fieldOptions";
+import { formatReferenzAnzeige } from "../../shared/utils/laborFormatting";
 import { getDefaultDateRange } from "../../shared/utils/dateRangeDefaults";
 import {
   applySharedFilterSearchParams,
@@ -22,6 +25,7 @@ import {
 } from "../../shared/utils/filterNavigation";
 import type {
   Befund,
+  Einheit,
   Gruppe,
   Labor,
   Messwert,
@@ -39,6 +43,7 @@ type MesswertFormState = {
   laborparameter_id: string;
   original_parametername: string;
   wert_typ: WertTyp;
+  wert_operator: string;
   wert_roh_text: string;
   wert_num: string;
   wert_text: string;
@@ -61,6 +66,7 @@ const initialForm: MesswertFormState = {
   laborparameter_id: "",
   original_parametername: "",
   wert_typ: "numerisch",
+  wert_operator: "exakt",
   wert_roh_text: "",
   wert_num: "",
   wert_text: "",
@@ -82,7 +88,9 @@ type ReferenzFormState = {
   wert_typ: WertTyp;
   referenz_text_original: string;
   untere_grenze_num: string;
+  untere_grenze_operator: string;
   obere_grenze_num: string;
+  obere_grenze_operator: string;
   einheit: string;
   soll_text: string;
   geschlecht_code: string;
@@ -94,7 +102,9 @@ const initialReferenzForm: ReferenzFormState = {
   wert_typ: "numerisch",
   referenz_text_original: "",
   untere_grenze_num: "",
+  untere_grenze_operator: "groesser_gleich",
   obere_grenze_num: "",
+  obere_grenze_operator: "kleiner_gleich",
   einheit: "",
   soll_text: "",
   geschlecht_code: "",
@@ -143,6 +153,10 @@ export function MesswertePage() {
     queryKey: ["labore"],
     queryFn: () => apiFetch<Labor[]>("/api/labore")
   });
+  const einheitenQuery = useQuery({
+    queryKey: ["einheiten"],
+    queryFn: () => apiFetch<Einheit[]>("/api/einheiten")
+  });
   const messwerteSelectionQuery = useQuery({
     queryKey: ["messwerte", "alle"],
     queryFn: () => apiFetch<Messwert[]>("/api/messwerte")
@@ -181,6 +195,7 @@ export function MesswertePage() {
     () => befundeQuery.data?.filter((befund) => !form.person_id || befund.person_id === form.person_id) ?? [],
     [befundeQuery.data, form.person_id]
   );
+  const einheiten = einheitenQuery.data ?? [];
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -394,6 +409,7 @@ export function MesswertePage() {
                   setForm((current) => ({
                     ...current,
                     wert_typ: event.target.value as WertTyp,
+                    wert_operator: "exakt",
                     wert_num: "",
                     wert_text: ""
                   }))
@@ -406,6 +422,24 @@ export function MesswertePage() {
                 ))}
               </select>
             </label>
+
+            {form.wert_typ === "numerisch" ? (
+              <label className="field">
+                <span>Wertoperator</span>
+                <select
+                  value={form.wert_operator}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, wert_operator: event.target.value }))
+                  }
+                >
+                  {WERT_OPERATOR_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
 
             <label className="field">
               <span>Rohwert</span>
@@ -430,12 +464,19 @@ export function MesswertePage() {
 
                 <label className="field">
                   <span>Einheit</span>
-                  <input
+                  <select
                     value={form.einheit_original}
                     onChange={(event) =>
                       setForm((current) => ({ ...current, einheit_original: event.target.value }))
                     }
-                  />
+                  >
+                    <option value="">Keine Einheit</option>
+                    {einheiten.map((einheit) => (
+                      <option key={einheit.id} value={einheit.kuerzel}>
+                        {einheit.kuerzel}
+                      </option>
+                    ))}
+                  </select>
                 </label>
               </>
             ) : (
@@ -576,7 +617,9 @@ export function MesswertePage() {
                     ...current,
                     wert_typ: event.target.value as WertTyp,
                     untere_grenze_num: "",
+                    untere_grenze_operator: "groesser_gleich",
                     obere_grenze_num: "",
+                    obere_grenze_operator: "kleiner_gleich",
                     soll_text: ""
                   }))
                 }
@@ -617,6 +660,27 @@ export function MesswertePage() {
                 </label>
 
                 <label className="field">
+                  <span>Operator unten</span>
+                  <select
+                    value={referenzForm.untere_grenze_operator}
+                    onChange={(event) =>
+                      setReferenzForm((current) => ({
+                        ...current,
+                        untere_grenze_operator: event.target.value
+                      }))
+                    }
+                  >
+                    {REFERENZ_GRENZ_OPERATOR_OPTIONS.filter((option) =>
+                      option.value.startsWith("groesser")
+                    ).map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="field">
                   <span>Obere Grenze</span>
                   <input
                     type="number"
@@ -629,13 +693,41 @@ export function MesswertePage() {
                 </label>
 
                 <label className="field">
+                  <span>Operator oben</span>
+                  <select
+                    value={referenzForm.obere_grenze_operator}
+                    onChange={(event) =>
+                      setReferenzForm((current) => ({
+                        ...current,
+                        obere_grenze_operator: event.target.value
+                      }))
+                    }
+                  >
+                    {REFERENZ_GRENZ_OPERATOR_OPTIONS.filter((option) =>
+                      option.value.startsWith("kleiner")
+                    ).map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="field">
                   <span>Einheit</span>
-                  <input
+                  <select
                     value={referenzForm.einheit}
                     onChange={(event) =>
                       setReferenzForm((current) => ({ ...current, einheit: event.target.value }))
                     }
-                  />
+                  >
+                    <option value="">Keine Einheit</option>
+                    {einheiten.map((einheit) => (
+                      <option key={einheit.id} value={einheit.kuerzel}>
+                        {einheit.kuerzel}
+                      </option>
+                    ))}
+                  </select>
                 </label>
               </>
             ) : (
@@ -705,11 +797,7 @@ export function MesswertePage() {
                 {referenzenQuery.data?.map((referenz) => (
                   <tr key={referenz.id}>
                     <td>{formatWertTyp(referenz.wert_typ)}</td>
-                    <td>
-                      {referenz.wert_typ === "numerisch"
-                        ? `${referenz.untere_grenze_num ?? "—"} bis ${referenz.obere_grenze_num ?? "—"}`
-                        : referenz.soll_text || referenz.referenz_text_original || "—"}
-                    </td>
+                    <td>{formatReferenzAnzeige(referenz)}</td>
                     <td>{referenz.einheit || "—"}</td>
                     <td>{formatGeschlechtCode(referenz.geschlecht_code, "Alle Geschlechter")}</td>
                     <td>

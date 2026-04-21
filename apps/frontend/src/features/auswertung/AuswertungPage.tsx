@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   CartesianGrid,
   Legend,
@@ -14,6 +15,8 @@ import {
 import { apiFetch } from "../../shared/api/client";
 import { SelectionChecklist } from "../../shared/components/SelectionChecklist";
 import { getDefaultDateRange } from "../../shared/utils/dateRangeDefaults";
+import { applySharedFilterSearchParams } from "../../shared/utils/filterNavigation";
+import { formatReferenzAnzeige } from "../../shared/utils/laborFormatting";
 import type {
   AuswertungGesamtzahlen,
   AuswertungPunkt,
@@ -79,14 +82,16 @@ function formatTargetRange(point: AuswertungPunkt): string {
   if (point.zielbereich_text) {
     return point.zielbereich_text;
   }
-
-  const lower = point.zielbereich_untere_num ?? "—";
-  const upper = point.zielbereich_obere_num ?? "—";
-  const unit = point.zielbereich_einheit ? ` ${point.zielbereich_einheit}` : "";
-  if (lower === "—" && upper === "—" && !unit) {
-    return "—";
-  }
-  return `${lower} bis ${upper}${unit}`;
+  return formatReferenzAnzeige({
+    wert_typ: "numerisch",
+    soll_text: null,
+    referenz_text_original: null,
+    untere_grenze_num: point.zielbereich_untere_num,
+    untere_grenze_operator: null,
+    obere_grenze_num: point.zielbereich_obere_num,
+    obere_grenze_operator: null,
+    einheit: point.zielbereich_einheit
+  });
 }
 
 function buildChartData(points: AuswertungPunkt[]) {
@@ -105,6 +110,8 @@ function buildChartData(points: AuswertungPunkt[]) {
       zielbereich_oben: point.zielbereich_obere_num ?? null
     };
     row[point.person_anzeigename] = point.wert_num;
+    row[`${point.person_anzeigename}__display`] = point.wert_anzeige;
+    row[`${point.person_anzeigename}__operator`] = point.wert_operator;
     if (row.laborreferenz_unten === null && point.laborreferenz_untere_num !== null && point.laborreferenz_untere_num !== undefined) {
       row.laborreferenz_unten = point.laborreferenz_untere_num;
     }
@@ -135,6 +142,31 @@ function formatTooltipValue(value: unknown): string {
   return "—";
 }
 
+function renderOperatorDot(props: {
+  cx?: number;
+  cy?: number;
+  fill?: string;
+  dataKey?: string | number;
+  payload?: Record<string, unknown>;
+}) {
+  const { cx, cy, fill = "#1f5a92", dataKey, payload } = props;
+  if (typeof cx !== "number" || typeof cy !== "number" || typeof dataKey !== "string") {
+    return <circle cx={0} cy={0} r={0} fill="transparent" stroke="transparent" />;
+  }
+
+  const operator = payload?.[`${dataKey}__operator`];
+  if (operator === "kleiner_als" || operator === "kleiner_gleich") {
+    return <path d={`M ${cx} ${cy + 7} L ${cx - 7} ${cy - 5} L ${cx + 7} ${cy - 5} Z`} fill={fill} stroke={fill} />;
+  }
+  if (operator === "groesser_als" || operator === "groesser_gleich") {
+    return <path d={`M ${cx} ${cy - 7} L ${cx - 7} ${cy + 5} L ${cx + 7} ${cy + 5} Z`} fill={fill} stroke={fill} />;
+  }
+  if (operator === "ungefaehr") {
+    return <path d={`M ${cx} ${cy - 7} L ${cx - 7} ${cy} L ${cx} ${cy + 7} L ${cx + 7} ${cy} Z`} fill={fill} stroke={fill} />;
+  }
+  return <circle cx={cx} cy={cy} r={5} fill={fill} stroke={fill} />;
+}
+
 function SeriesChart({
   serie,
   includeLaborreferenz,
@@ -161,18 +193,60 @@ function SeriesChart({
           <CartesianGrid strokeDasharray="3 3" stroke="#d7ccb9" />
           <XAxis dataKey="datumLabel" tick={{ fontSize: 12 }} />
           <YAxis tick={{ fontSize: 12 }} />
-          <Tooltip formatter={(value) => formatTooltipValue(value)} />
+          <Tooltip
+            formatter={(value, name, item) => {
+              if (typeof name === "string") {
+                const displayValue = item?.payload?.[`${name}__display`];
+                if (typeof displayValue === "string") {
+                  return [displayValue, name];
+                }
+              }
+              return [formatTooltipValue(value), String(name)];
+            }}
+          />
           <Legend />
           {includeLaborreferenz ? (
             <>
-              <Line type="monotone" dataKey="laborreferenz_unten" name="Laborreferenz unten" stroke="#d77a2f" dot={false} strokeDasharray="4 4" connectNulls />
-              <Line type="monotone" dataKey="laborreferenz_oben" name="Laborreferenz oben" stroke="#d77a2f" dot={false} strokeDasharray="4 4" connectNulls />
+              <Line
+                type="monotone"
+                dataKey="laborreferenz_unten"
+                name="Laborreferenz unten"
+                stroke="#d77a2f"
+                dot={false}
+                strokeDasharray="4 4"
+                connectNulls
+              />
+              <Line
+                type="monotone"
+                dataKey="laborreferenz_oben"
+                name="Laborreferenz oben"
+                stroke="#d77a2f"
+                dot={false}
+                strokeDasharray="4 4"
+                connectNulls
+              />
             </>
           ) : null}
           {includeZielbereich ? (
             <>
-              <Line type="monotone" dataKey="zielbereich_unten" name="Zielbereich unten" stroke="#1f6a53" dot={false} strokeDasharray="2 4" connectNulls />
-              <Line type="monotone" dataKey="zielbereich_oben" name="Zielbereich oben" stroke="#1f6a53" dot={false} strokeDasharray="2 4" connectNulls />
+              <Line
+                type="monotone"
+                dataKey="zielbereich_unten"
+                name="Zielbereich unten"
+                stroke="#1f6a53"
+                dot={false}
+                strokeDasharray="2 4"
+                connectNulls
+              />
+              <Line
+                type="monotone"
+                dataKey="zielbereich_oben"
+                name="Zielbereich oben"
+                stroke="#1f6a53"
+                dot={false}
+                strokeDasharray="2 4"
+                connectNulls
+              />
             </>
           ) : null}
           {people.map((personName, index) => (
@@ -184,6 +258,7 @@ function SeriesChart({
               stroke={palette[index % palette.length]}
               strokeWidth={3}
               connectNulls
+              dot={renderOperatorDot}
             />
           ))}
         </LineChart>
@@ -193,7 +268,10 @@ function SeriesChart({
 }
 
 export function AuswertungPage() {
-  const [form, setForm] = useState<AuswertungFormState>(initialForm);
+  const [searchParams] = useSearchParams();
+  const [form, setForm] = useState<AuswertungFormState>(() =>
+    applySharedFilterSearchParams(initialForm, searchParams)
+  );
 
   const personenQuery = useQuery({
     queryKey: ["personen"],
@@ -384,7 +462,11 @@ export function AuswertungPage() {
               <div className="trend-card__header">
                 <div>
                   <h3>{serie.parameter_anzeigename}</h3>
-                  <p>{serie.standard_einheit ? `Standardeinheit: ${serie.standard_einheit}` : "Ohne definierte Standardeinheit"}</p>
+                  <p>
+                    {serie.standard_einheit
+                      ? `Standardeinheit: ${serie.standard_einheit}`
+                      : "Ohne definierte Standardeinheit"}
+                  </p>
                 </div>
                 <div className="trend-badges">
                   <span className="trend-badge">Messungen: {serie.statistik.anzahl_messungen}</span>
