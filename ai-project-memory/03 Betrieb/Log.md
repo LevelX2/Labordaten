@@ -398,6 +398,34 @@
   - Für Berichte wurden zusammenfassende Kennzahlen und eine kurze Schwerpunktbeschreibung als sinnvolle V1-Komfortstufe festgehalten.
   - Für Dateiimporte wurde festgehalten, dass Importbemerkungen vorbelegt, aber weiter editierbar sein sollen.
 
+## [2026-04-21] update | Batch-Import eines realen Ergebnisverzeichnisses praktisch verifiziert
+- Anlass oder Quelle: Nutzerauftrag, das Verzeichnis `C:\Users\Lui\OneDrive\🥝 Gesundheit\Laborergebnisse\Ludwig` vollständig auf importierbare Laborberichte zu prüfen und passende Befunde in die Anwendung zu übernehmen
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - [[../02 Wissen/Begriffe und Konzepte/Ist-Stand Importstrecke und PDF-Grenzen]]
+- Kern der inhaltlichen Anpassung:
+  - Die bestehende Importstrecke wurde gegen ein reales Mischverzeichnis aus PDFs und Bildern praktisch verifiziert. Mehrere zusätzliche Laborberichte aus den Jahren 2020 bis 2025 konnten erfolgreich als strukturierte Importentwürfe angelegt und ohne Warnungen übernommen werden.
+  - Dabei wurde bestätigt, dass auch Bilddateien über denselben JSON-Weg importiert werden können, solange die Extraktion außerhalb des Backends erfolgt und `dokumentPfad` gesetzt wird.
+- Gleichzeitig wurde ein wichtiger Schutzfall sichtbar: Im Verzeichnis lag mindestens ein Befund für `Hirth, Ludwig` mit dem abweichenden Geburtsdatum `13.04.1964`. Solche Fälle müssen als Identitätskonflikt behandelt und dürfen nicht automatisch auf die vorhandene Person gemappt werden.
+- Zusätzlich wurde eine praktische Grenze des Alias-Mappings dokumentiert: Ohne Einheiten-Normalisierung dürfen fachlich ähnliche Werte mit inkompatiblen Einheitenskalen nicht blind auf denselben kanonischen Parameter gemappt werden. Für den Batch mussten deshalb einzelne Parameter bewusst getrennt nach Einheitsskala geführt werden.
+- Im selben Zuge wurde eine beschädigte Problemdatei sichtbar: `2025-06-25 Laborwerte.pdf` ließ sich mit den lokal verfügbaren PDF-Werkzeugen nicht öffnen und bleibt bis zu einer Reparatur oder alternativen Quelle technisch unlesbar.
+
+## [2026-04-21] update | Alias-Vorschläge und steuerbare Berichtseinheiten umgesetzt
+- Anlass oder Quelle: [[../01 Rohquellen/fachkonzepte/2026-04-21 Rueckmeldung Alias-Vorschlaege und Berichtseinheiten]]
+- Neu angelegte Seiten:
+  - [[../01 Rohquellen/fachkonzepte/2026-04-21 Rueckmeldung Alias-Vorschlaege und Berichtseinheiten]]
+  - [[../02 Wissen/Begriffe und Konzepte/Ist-Stand Alias-Vorschlaege und Berichtseinheiten]]
+- Geänderte Seiten:
+  - [[../02 Wissen/00 Uebersichten/Index]]
+  - [[../02 Wissen/00 Uebersichten/Aktueller Projektstatus]]
+  - [[../02 Wissen/00 Uebersichten/Quellenlage und Aktualitaet]]
+- Kern der inhaltlichen Anpassung:
+  - Die Parameteroberfläche kann nun sichere Alias-Vorschläge aus bereits bestätigten Original-Parameternamen laden und direkt in echte Aliase überführen.
+  - Arztbericht und Verlaufsbericht akzeptieren jetzt eine parameterbezogene Darstellungseinheit, wenn alle betroffenen numerischen Werte diese Zieldarstellung tragen.
+  - Die Berichtslogik nutzt dafür nur belastbar vorhandene Original- oder normierte Werte und kennzeichnet Referenzbereiche bei Einheitenwechsel weiterhin als Originalreferenz.
+  - Frontend-Build sowie Backend-Tests für Alias-Vorschläge und Berichtseinheiten wurden erfolgreich verifiziert.
+
 ## [2026-04-21] update | Bedienbarkeit auf Tablet und Smartphone aus Konzept und Frontend abgeleitet
 - Anlass oder Quelle: Nutzerfrage zur Nutzbarkeit der Anwendung auf Tablet oder Mobiltelefon
 - Neu angelegte Seiten:
@@ -407,3 +435,150 @@
 - Kern der inhaltlichen Anpassung:
   - Die Anwendung wurde als lokale Browser-Oberfläche mit grundsätzlicher Responsive-Basis eingeordnet, nicht als native Mobil-App.
   - Für den aktuellen Stand wurde festgehalten: Desktop ist das Primärziel, Tablet ist grundsätzlich gut nutzbar, Smartphones sind eher für lesende und kurze Aufgaben geeignet.
+  - Als Hauptgrenzen wurden tabellenlastige Ansichten, dichte Mehrfachauswahlen und fehlende explizite Touch- oder PWA-Optimierung dokumentiert.
+
+## [2026-04-21] update | Batch-Import des Ludwig-Verzeichnisses weiter vertieft und Dateiklassen geschärft
+- Anlass oder Quelle: fortgesetzter Nutzerauftrag, das Verzeichnis `C:\Users\Lui\OneDrive\ðŸ¥ Gesundheit\Laborergebnisse\Ludwig` ohne Unterbrechung weiter abzuarbeiten
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - [[../02 Wissen/Begriffe und Konzepte/Ist-Stand Importstrecke und PDF-Grenzen]]
+- Kern der inhaltlichen Anpassung:
+  - Zusätzlich zu den bereits verarbeiteten neueren Befunden wurden weitere echte Laborberichte und Spezialprofile erfolgreich importiert, darunter `2024-05-06 MVZ Laborwerte`, `2024-05-06 LGS Laborwerte`, `2025-02-05 Messung Lithium`, `2021-08-25_Bioviz`, `Ludwig_2019_11_22_Glyphosat`, `Ludwig_2017-07-19_bioviz_Aminosäurestatus` und `Ludwig_2017_07_19_Bioviz VBMineral`.
+  - Damit wurde praktisch bestätigt, dass die Importstrecke auch mit Spezialwerten, Profilberichten, zahlreichen neu anzulegenden Parametern und vielen Referenzvarianten belastbar funktioniert.
+  - Die verbleibenden Dateiklassen wurden geschärft: nicht passende medizinische Dokumente, Rechnungen, doppelte Nachweise, Identitätskonflikte und technisch beschädigte Dateien wurden klar von wirklich importierbaren Laborbefunden getrennt.
+
+## [2026-04-21] update | PDF-Seitenumbr�che f�r Verlaufsberichte blockorientiert verfeinert
+- Anlass oder Quelle: [[../01 Rohquellen/fachkonzepte/2026-04-21 Rueckmeldung PDF-Seitenumbrueche]]
+- Neu angelegte Seiten:
+  - [[../01 Rohquellen/fachkonzepte/2026-04-21 Rueckmeldung PDF-Seitenumbrueche]]
+  - [[../02 Wissen/Begriffe und Konzepte/Ist-Stand PDF-Seitenumbrueche in Berichten]]
+- Ge�nderte Seiten:
+  - [[../02 Wissen/00 Uebersichten/Index]]
+- Kern der inhaltlichen Anpassung:
+  - Der PDF-Verlaufsbericht behandelt Wertebereiche jetzt als zusammenh�ngende Bl�cke statt sie nur von der Standard-Paginierung treiben zu lassen.
+  - Kompakte Abschnitte bleiben zusammen; gro�e Bereiche beginnen auf einer frischen Seite und d�rfen innerhalb langer Tabellen sauber weiterlaufen.
+  - F�r die mehrseitige Fortsetzung wird jetzt `LongTable` mit wiederholter Kopfzeile genutzt, zus�tzlich abgesichert durch Backend-Tests f�r Blocklogik und l�ngere Verlaufs-PDFs.
+
+## [2026-04-21] update | Lokaler Start f�r Backend und Frontend als Betriebswissen dokumentiert
+- Anlass oder Quelle: Nutzerfrage zum Start von Backend und Frontend sowie R�ckf�hrungswunsch in die Wissensbasis
+- Neu angelegte Seiten:
+  - [[../02 Wissen/Prozesse/Lokaler Start von Backend und Frontend]]
+- Ge�nderte Seiten:
+  - [[../02 Wissen/00 Uebersichten/Index]]
+- Kern der inhaltlichen Anpassung:
+  - Der lokale Start wurde als eigene Betriebsseite dokumentiert, mit klarer Trennung zwischen Erstinstallation und t�glichem Start.
+  - Zus�tzlich wurden die Standard-URLs f�r Frontend, Backend und API-Dokumentation sowie die Abh�ngigkeit des Frontend-Proxys vom laufenden Backend festgehalten.
+  - Als praktische Betriebsnotizen wurden Migrationsbedarf nach Updates, erneute Paketinstallation bei Abh�ngigkeits�nderungen und die bestehende Single-User-Sperrlogik erg�nzt.
+
+## [2026-04-21] update | Startskript f�r Backend und Frontend als Ein-Aufruf erg�nzt
+- Anlass oder Quelle: Nutzerwunsch nach einem gemeinsamen Startskript f�r beide Entwicklungsprozesse
+- Neu angelegte Seiten:
+  - keine
+- Ge�nderte Seiten:
+  - [[../02 Wissen/Prozesse/Lokaler Start von Backend und Frontend]]
+- Kern der inhaltlichen Anpassung:
+  - Im Repository wurde unter `scripts/start-dev.ps1` ein PowerShell-Skript erg�nzt, das Backend und Frontend mit einem Aufruf in getrennten Fenstern startet.
+  - Das Backend nutzt dabei direkt den Python-Interpreter aus `apps/backend/.venv`; optional k�nnen vor dem Start per Schalter auch Migrationen ausgef�hrt werden.
+  - Die Startdokumentation wurde im Repository-README und in der Wissensbasis um den neuen Kurzweg erg�nzt.
+
+## [2026-04-21] update | Desktop-Verkn�pfung f�r lokalen Start mit Browser�ffnung erg�nzt
+- Anlass oder Quelle: Nutzerwunsch nach einem Desktop-Icon f�r den gemeinsamen Start und die automatische Anzeige des Frontends
+- Neu angelegte Seiten:
+  - keine
+- Ge�nderte Seiten:
+  - [[../02 Wissen/Prozesse/Lokaler Start von Backend und Frontend]]
+- Kern der inhaltlichen Anpassung:
+  - Das bestehende Startskript wurde um die Option -OpenFrontend erweitert, die nach kurzem Warten die lokale Frontend-URL pr�ft und im Standardbrowser �ffnet.
+  - Zus�tzlich wurde auf dem Desktop eine Verkn�pfung Labordaten starten.lnk angelegt, die das Skript direkt in diesem Modus startet.
+  - Die Betriebsdokumentation wurde um diesen Bedienweg erg�nzt.
+
+## [2026-04-21] update | Parameter-Dublettenpruefung und Zusammenfuehrung umgesetzt
+- Anlass oder Quelle: [[../01 Rohquellen/fachkonzepte/2026-04-21 Rueckmeldung Parameter-Dubletten und Zusammenfuehrung]]
+- Neu angelegte Seiten:
+  - [[../01 Rohquellen/fachkonzepte/2026-04-21 Rueckmeldung Parameter-Dubletten und Zusammenfuehrung]]
+  - [[../02 Wissen/Begriffe und Konzepte/Ist-Stand Parameter-Dubletten und Zusammenfuehrung]]
+- Geaenderte Seiten:
+  - [[../02 Wissen/00 Uebersichten/Index]]
+  - [[../02 Wissen/00 Uebersichten/Aktueller Projektstatus]]
+  - [[../02 Wissen/00 Uebersichten/Quellenlage und Aktualitaet]]
+- Kern der inhaltlichen Anpassung:
+  - Die Parameteroberflaeche kann nun vorhandene Parameter auf wahrscheinliche Dubletten pruefen und eine bestaetigte Zusammenfuehrung anbieten.
+  - Bei der Zusammenfuehrung werden Messwerte, Zielbereiche, Gruppen- und Planungsbezuege auf einen Zielparameter umgehaengt.
+  - Nicht mehr verwendete Namen und bestehende Quell-Aliase werden nach Moeglichkeit als Aliase des Zielparameters erhalten, damit kuenftige Importe weiterhin sauber mappen.
+  - Backend-Tests und Frontend-Build wurden fuer den neuen Merge-Flow erfolgreich verifiziert.
+
+## [2026-04-21] update | Automatische interne Parameterschluessel umgesetzt
+- Anlass oder Quelle: [[../01 Rohquellen/fachkonzepte/2026-04-21 Rueckmeldung Automatische interne Parameterschluessel]]
+- Neu angelegte Seiten:
+  - [[../01 Rohquellen/fachkonzepte/2026-04-21 Rueckmeldung Automatische interne Parameterschluessel]]
+  - [[../02 Wissen/Begriffe und Konzepte/Ist-Stand Automatische interne Parameterschluessel]]
+- Geaenderte Seiten:
+  - [[../02 Wissen/00 Uebersichten/Index]]
+  - [[../02 Wissen/00 Uebersichten/Aktueller Projektstatus]]
+  - [[../02 Wissen/Begriffe und Konzepte/Ist-Stand Importstrecke und PDF-Grenzen]]
+- Kern der inhaltlichen Anpassung:
+  - Neue Parameter erhalten ihren technischen Schluessel nun automatisch aus dem Anzeigenamen.
+  - Die Parameteroberflaeche verlangt bei der Neuanlage keinen manuell gepflegten internen Schluessel mehr.
+  - Gleiche Anzeigenamen werden ueber numerische Suffixe wie `_2` eindeutig gemacht.
+  - Die neue Schluesselvergabe wurde durch einen eigenen Backend-Test und den erfolgreichen Frontend-Build verifiziert.
+
+## [2026-04-21] update | Uebertragbare Erkenntnis zur automatischen Schluesselvergabe ergaenzt
+- Anlass oder Quelle: aktualisierte AGENTS-Anforderung zur Sammlung projektuebergreifend nuetzlicher Anforderungen
+- Neu angelegte Seiten:
+  - [[erkenntnisse-fuer-naechstes-projekt]]
+- Geaenderte Seiten:
+  - [[Log]]
+- Kern der inhaltlichen Anpassung:
+  - Die Anforderung, technische Schluessel in der Stammdatenpflege standardmaessig automatisch aus fachlichen Namen abzuleiten, wurde als uebertragbare Erkenntnis fuer aehnliche Systeme festgehalten.
+
+## [2026-04-21] update | Startseite als arbeitsorientierte Uebersicht im Screenplan verankert
+- Anlass oder Quelle: Nutzerauftrag, die zuvor abgestimmte Startseitenlogik in die Wissensbasis zurueckzufuehren
+- Neu angelegte Seiten:
+  - keine
+- Geaenderte Seiten:
+  - [[../02 Wissen/Begriffe und Konzepte/V1 Screenplan und Kernworkflows]]
+  - [[erkenntnisse-fuer-naechstes-projekt]]
+- Kern der inhaltlichen Anpassung:
+  - Im Screenplan wurde fuer den Bereich `Start` festgehalten, dass die Startseite vorrangig als arbeitsleitende Uebersicht dienen soll und nicht als Flaeche fuer technische Stack-Angaben.
+  - Als prominente Inhalte wurden live relevante Informationen wie Datenbestand, offene Importlagen mit Warn- und Fehlerhinweisen sowie lokale Betriebszustaende geschaerft.
+  - Die Erkenntnis wurde zusaetzlich als uebertragbare Produktanforderung fuer aehnliche Fachsysteme in die Datei `erkenntnisse-fuer-naechstes-projekt.md` aufgenommen.
+
+## [2026-04-21] update | Feste Auspraegungen fuer semantische Codefelder im Datenmodell geschaerft
+- Anlass oder Quelle: Nutzerauftrag, die neue Erkenntnis zu Freitext versus festen Auspraegungen einzutragen und das Modell auf weitere Kandidaten zu pruefen
+- Neu angelegte Seiten:
+  - keine
+- Geaenderte Seiten:
+  - [[../02 Wissen/Begriffe und Konzepte/V1 Ziel-Datenmodell]]
+  - [[../02 Wissen/Begriffe und Konzepte/V1 Technisches Schema]]
+  - [[erkenntnisse-fuer-naechstes-projekt]]
+- Kern der inhaltlichen Anpassung:
+  - Im Ziel-Datenmodell wurde `geschlecht_code` als kleine feste Referenzkategorie statt als Freitext geschaerft.
+  - Zusaetzlich wurde eine Kandidatenliste fuer weitere Felder dokumentiert, die frueh auf Enums, feste Codewerte oder kontrollierte Kataloge geprueft werden sollten.
+  - Im technischen Schema wurde die Enum-Pruefung fuer `person.geschlecht_code` konkretisiert und der offene Restpunkt auf weitere semantisch enge Codefelder verallgemeinert.
+  - Die uebertragbare Erkenntnis wurde in `erkenntnisse-fuer-naechstes-projekt.md` als allgemeine Modellierungsregel fuer kuenftige Projekte festgehalten.
+
+## [2026-04-21] update | Erweiterbare Fachkataloge gegenueber festen Codes und Freitext eingeordnet
+- Anlass oder Quelle: Nutzerauftrag, die Kandidaten fuer pflegbare Kataloge konkreter einzuordnen und einen Vorschlag fuer `BasisdatenTyp` auszuarbeiten
+- Neu angelegte Seiten:
+  - keine
+- Geaenderte Seiten:
+  - [[../02 Wissen/Begriffe und Konzepte/V1 Ziel-Datenmodell]]
+  - [[../02 Wissen/Begriffe und Konzepte/V1 Technisches Schema]]
+  - [[../02 Wissen/Begriffe und Konzepte/V1 Projektstruktur, Module und Schnittstellen]]
+  - [[erkenntnisse-fuer-naechstes-projekt]]
+- Kern der inhaltlichen Anpassung:
+  - Die Wissensbasis unterscheidet jetzt ausdruecklich zwischen festen Codefeldern, pflegbaren Fachkatalogen und echtem Freitext.
+  - Fuer den bisher freien Typ von Person-Basisdaten wurde ein konkreter Katalogvorschlag `BasisdatenTyp` mit fachlichen und technischen Feldern ausgearbeitet.
+  - Das technische Schema und die Projektstruktur enthalten dafuer nun einen konkreten Tabellen- und API-Vorschlag, damit eine spaetere Katalogpflege nicht nur konzeptionell, sondern strukturell vorbereitet ist.
+
+## [2026-04-21] update | Vertragstests zwischen Frontend und Backend als uebertragbare Erkenntnis ergaenzt
+- Anlass oder Quelle: Nutzerauftrag, die neue Erkenntnis zu Frontend-Backend-Vertragstests fuer kuenftige Projekte festzuhalten
+- Neu angelegte Seiten:
+  - keine
+- Geaenderte Seiten:
+  - [[erkenntnisse-fuer-naechstes-projekt]]
+- Kern der inhaltlichen Anpassung:
+  - Fuer technologisch getrennte Frontend- und Backend-Zuschnitte wurde festgehalten, dass reine Backend-Tests nicht genuegen, um den tatsaechlich produzierten Request-Vertrag abzusichern.
+  - Als wiederverwendbare Empfehlung wurden dafuer Backend-Validierungstests, Frontend-nahe Payload- oder Formularlogiktests und einige API- oder Integrationspfade fuer kritische Eingaben benannt.
+  - Die Erkenntnis wurde bewusst an die Voraussetzung geknuepft, dass das System ueber getrennte Eingabeformung, Serialisierung oder API-Payloads verfuegt und solche Vertragstests dort echten Nutzen stiften.
