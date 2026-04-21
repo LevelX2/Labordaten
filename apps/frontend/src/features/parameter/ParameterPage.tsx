@@ -15,6 +15,7 @@ import type {
   ParameterAlias,
   ParameterAliasSuggestion,
   ParameterDuplicateSuggestion,
+  ParameterGruppenzuordnung,
   ParameterMergeResult,
   ParameterRenameResult,
   ParameterStandardEinheitUpdatePayload,
@@ -84,6 +85,9 @@ type ParameterPanelKey =
   | "zielbereich"
   | "aliasSuggestions"
   | "duplicates";
+
+type RelatedDataSectionKey = "aliases" | "conversions" | "ranges" | "groups";
+type DuplicateViewScope = "all" | "selected";
 
 const initialForm: ParameterFormState = {
   anzeigename: "",
@@ -191,6 +195,10 @@ function formatUmrechnungsregel(regel: ParameterUmrechnungsregel): string {
   return regel.formel_text || "â€”";
 }
 
+function formatCountLabel(count: number, singular: string, plural: string): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
 export function ParameterPage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<ParameterFormState>(initialForm);
@@ -211,6 +219,13 @@ export function ParameterPage() {
   const [activePanel, setActivePanel] = useState<ParameterPanelKey | null>(null);
   const [showAdvancedDetails, setShowAdvancedDetails] = useState(false);
   const [showPageInfo, setShowPageInfo] = useState(false);
+  const [expandedRelatedSections, setExpandedRelatedSections] = useState<Record<RelatedDataSectionKey, boolean>>({
+    aliases: true,
+    conversions: false,
+    ranges: false,
+    groups: false
+  });
+  const [duplicateViewScope, setDuplicateViewScope] = useState<DuplicateViewScope>("all");
 
   const parameterQuery = useQuery({
     queryKey: ["parameter"],
@@ -301,6 +316,15 @@ export function ParameterPage() {
     );
   }, [selectedParameter]);
 
+  useEffect(() => {
+    setExpandedRelatedSections({
+      aliases: true,
+      conversions: false,
+      ranges: false,
+      groups: false
+    });
+  }, [selectedParameterId]);
+
   const filteredParameters = useMemo(() => {
     const normalizedSearchQuery = parameterSearchQuery.trim().toLocaleLowerCase("de-DE");
     if (!normalizedSearchQuery) {
@@ -339,6 +363,11 @@ export function ParameterPage() {
     queryFn: () => apiFetch<ParameterUmrechnungsregel[]>(`/api/parameter/${selectedParameterId}/umrechnungsregeln`),
     enabled: Boolean(selectedParameterId)
   });
+  const parameterGruppenQuery = useQuery({
+    queryKey: ["parameter-gruppen", selectedParameterId],
+    queryFn: () => apiFetch<ParameterGruppenzuordnung[]>(`/api/parameter/${selectedParameterId}/gruppen`),
+    enabled: Boolean(selectedParameterId)
+  });
 
   const aliasSuggestionsQuery = useQuery({
     queryKey: ["parameter-alias-vorschlaege"],
@@ -360,14 +389,17 @@ export function ParameterPage() {
     [aliasSuggestionsQuery.data, selectedParameterId]
   );
 
-  const selectedDuplicateSuggestions = useMemo(
+  const visibleDuplicateSuggestions = useMemo(
     () =>
-      (duplicateSuggestionsQuery.data ?? []).filter((suggestion) =>
-        selectedParameterId
+      (duplicateSuggestionsQuery.data ?? []).filter((suggestion) => {
+        if (duplicateViewScope === "all") {
+          return true;
+        }
+        return selectedParameterId
           ? suggestion.ziel_parameter_id === selectedParameterId || suggestion.quell_parameter_id === selectedParameterId
-          : true
-      ),
-    [duplicateSuggestionsQuery.data, selectedParameterId]
+          : true;
+      }),
+    [duplicateSuggestionsQuery.data, duplicateViewScope, selectedParameterId]
   );
 
   const createMutation = useMutation({
@@ -584,6 +616,7 @@ export function ParameterPage() {
       setZielbereichForm({
         ...initialZielbereichForm,
         parameter_id: selectedParameter.id,
+        wert_typ: selectedParameter.wert_typ_standard,
         einheit: selectedParameter.standard_einheit ?? ""
       });
     }
@@ -1085,27 +1118,10 @@ export function ParameterPage() {
 
             <label className="field">
               <span>Werttyp</span>
-              <select
-                value={zielbereichForm.wert_typ}
-                onChange={(event) =>
-                  setZielbereichForm((current) => ({
-                    ...current,
-                    wert_typ: event.target.value as WertTyp,
-                    untere_grenze_num: "",
-                    obere_grenze_num: "",
-                    soll_text: ""
-                  }))
-                }
-              >
-                {WERT_TYP_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+              <input value={formatWertTyp(selectedParameter.wert_typ_standard)} disabled />
             </label>
 
-            {zielbereichForm.wert_typ === "numerisch" ? (
+            {selectedParameter.wert_typ_standard === "numerisch" ? (
               <>
                 <label className="field">
                   <span>Untere Grenze</span>
@@ -1133,17 +1149,7 @@ export function ParameterPage() {
 
                 <label className="field">
                   <span>Einheit</span>
-                  <select
-                    value={zielbereichForm.einheit}
-                    onChange={(event) => setZielbereichForm((current) => ({ ...current, einheit: event.target.value }))}
-                  >
-                    <option value="">Keine Einheit</option>
-                    {einheiten.map((einheit) => (
-                      <option key={einheit.id} value={einheit.kuerzel}>
-                        {einheit.kuerzel}
-                      </option>
-                    ))}
-                  </select>
+                  <input value={selectedParameter.standard_einheit || "Keine Einheit"} disabled />
                 </label>
               </>
             ) : (
@@ -1268,13 +1274,29 @@ export function ParameterPage() {
           <div>
             <h3>Dublettenprüfung und Zusammenführung</h3>
             <p>
-              Es werden nur Vorschläge gezeigt, die den aktuell ausgewählten Parameter betreffen. Nach Bestätigung werden
+              Prüfe wahlweise nur den aktuellen Parameter oder die gesamte Parameterbasis. Nach Bestätigung werden
               Verwendungen umgehängt und Namen nach Möglichkeit als Alias erhalten.
             </p>
           </div>
           {renderPanelCloseButton("Panel Dubletten schließen")}
         </div>
         <div className="parameter-panel__toolbar">
+          <button
+            type="button"
+            className={`parameter-toolrail__button ${duplicateViewScope === "selected" ? "parameter-toolrail__button--active" : ""}`}
+            onClick={() => setDuplicateViewScope("selected")}
+            aria-pressed={duplicateViewScope === "selected"}
+          >
+            Für diesen Parameter
+          </button>
+          <button
+            type="button"
+            className={`parameter-toolrail__button ${duplicateViewScope === "all" ? "parameter-toolrail__button--active" : ""}`}
+            onClick={() => setDuplicateViewScope("all")}
+            aria-pressed={duplicateViewScope === "all"}
+          >
+            Für alle Parameter
+          </button>
           <button
             type="button"
             className="inline-button"
@@ -1307,7 +1329,7 @@ export function ParameterPage() {
               </tr>
             </thead>
             <tbody>
-              {selectedDuplicateSuggestions.map((suggestion) => {
+              {visibleDuplicateSuggestions.map((suggestion) => {
                 const suggestionKey = `${suggestion.ziel_parameter_id}:${suggestion.quell_parameter_id}`;
                 const mergeName = mergeNameBySuggestion[suggestionKey] ?? suggestion.gemeinsamer_name_vorschlag;
                 return (
@@ -1369,9 +1391,13 @@ export function ParameterPage() {
                   </tr>
                 );
               })}
-              {duplicateSuggestionsQuery.isFetched && !selectedDuplicateSuggestions.length ? (
+              {duplicateSuggestionsQuery.isFetched && !visibleDuplicateSuggestions.length ? (
                 <tr>
-                  <td colSpan={5}>Für diesen Parameter wurden aktuell keine passenden Dublettenvorschläge gefunden.</td>
+                  <td colSpan={5}>
+                    {duplicateViewScope === "all"
+                      ? "Aktuell wurden keine passenden Dublettenvorschläge für die gesamte Parameterbasis gefunden."
+                      : "Für diesen Parameter wurden aktuell keine passenden Dublettenvorschläge gefunden."}
+                  </td>
                 </tr>
               ) : null}
             </tbody>
@@ -1408,20 +1434,30 @@ export function ParameterPage() {
           <div className="parameter-sidebar__header">
             <div>
               <h3>Vorhandene Parameter</h3>
-              <p>{filteredParameters.length} sichtbar • {sortedParameters.length} gesamt</p>
+              <p>{parameterCountLabel}</p>
             </div>
-            <button type="button" className="inline-button" onClick={() => handleOpenPanel("create")}>
-              Neuer Parameter
-            </button>
           </div>
 
           <label className="field field--full">
             <span>Suche</span>
-            <input
-              value={parameterSearchQuery}
-              onChange={(event) => setParameterSearchQuery(event.target.value)}
-              placeholder="Name, Schlüssel oder Beschreibung"
-            />
+            <div className="clearable-field">
+              <input
+                className="clearable-field__input"
+                value={parameterSearchQuery}
+                onChange={(event) => setParameterSearchQuery(event.target.value)}
+                placeholder="Name, Schlüssel oder Beschreibung"
+              />
+              <button
+                type="button"
+                className="clearable-field__clear"
+                onClick={() => setParameterSearchQuery("")}
+                aria-label="Suche löschen"
+                title="Suche löschen"
+                disabled={!parameterSearchQuery}
+              >
+                ×
+              </button>
+            </div>
           </label>
 
           <div className="parameter-list">
@@ -1453,7 +1489,7 @@ export function ParameterPage() {
         <div className="parameter-main">
           <article className="card">
             {!selectedParameter ? (
-              <p>Noch keine Parameter vorhanden. Legen Sie links über den Aktionsknopf den ersten Parameter an.</p>
+              <p>Noch keine Parameter vorhanden. Lege über die Werkzeugleiste den ersten Parameter an.</p>
             ) : (
               <>
                 <div className="parameter-detail__header">
@@ -1483,6 +1519,13 @@ export function ParameterPage() {
                 </div>
 
                 <div className="parameter-toolrail">
+                    <button
+                      type="button"
+                      className={`parameter-toolrail__button ${activePanel === "create" ? "parameter-toolrail__button--active" : ""}`}
+                      onClick={() => handleOpenPanel("create")}
+                    >
+                      Neuer Parameter
+                    </button>
                     <button
                       type="button"
                       className={`parameter-toolrail__button ${activePanel === "standardUnit" ? "parameter-toolrail__button--active" : ""}`}
@@ -1572,134 +1615,223 @@ export function ParameterPage() {
                   </div>
                 ) : null}
 
-                <div className="parameter-section-grid">
-                  <article className="card card--soft">
-                    <div className="parameter-card__header">
-                      <div>
-                        <h3>
-                          Aliase <span className="parameter-count-badge">{parameterAliaseQuery.data?.length ?? 0}</span>
-                        </h3>
-                        <p>Direkt sichtbare Zuordnungen für den aktuell gewählten Parameter.</p>
-                      </div>
-                      <button type="button" className="inline-button" onClick={() => handleOpenPanel("alias")}>
-                        Neuer Alias
-                      </button>
+                <section className="card card--soft parameter-related">
+                  <div className="parameter-related__header">
+                    <div>
+                      <h3>Zugeordnete Daten</h3>
                     </div>
-                    <div className="table-wrap">
-                      <table className="data-table">
-                        <thead>
-                          <tr>
-                            <th>Alias</th>
-                            <th>Normalisiert</th>
-                            <th>Bemerkung</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {parameterAliaseQuery.data?.map((alias) => (
-                            <tr key={alias.id}>
-                              <td>{alias.alias_text}</td>
-                              <td>{alias.alias_normalisiert}</td>
-                              <td>{alias.bemerkung || "—"}</td>
-                            </tr>
-                          ))}
-                          {!parameterAliaseQuery.data?.length ? (
-                            <tr>
-                              <td colSpan={3}>Noch keine Aliase für diesen Parameter vorhanden.</td>
-                            </tr>
-                          ) : null}
-                        </tbody>
-                      </table>
-                    </div>
-                  </article>
+                  </div>
 
-                  <article className="card card--soft">
-                    <div className="parameter-card__header">
-                      <div>
-                        <h3>
-                          Umrechnungsregeln{" "}
-                          <span className="parameter-count-badge">{umrechnungsregelnQuery.data?.length ?? 0}</span>
-                        </h3>
-                        <p>Parameterbezogene Regeln für normierte Vergleichswerte und gemischte Berichtseinheiten.</p>
-                      </div>
-                      <button type="button" className="inline-button" onClick={() => handleOpenPanel("conversion")}>
-                        Neue Regel
+                  <div className="parameter-related__list">
+                    <article className="parameter-related__item">
+                      <button
+                        type="button"
+                        className={`parameter-related__toggle ${
+                          expandedRelatedSections.aliases ? "parameter-related__toggle--open" : ""
+                        }`}
+                        onClick={() =>
+                          setExpandedRelatedSections((current) => ({ ...current, aliases: !current.aliases }))
+                        }
+                        aria-expanded={expandedRelatedSections.aliases}
+                      >
+                        <span>
+                          <strong>Aliase</strong>
+                          <small>{formatCountLabel(parameterAliaseQuery.data?.length ?? 0, "Eintrag", "Einträge")}</small>
+                        </span>
+                        <span className="parameter-related__chevron" aria-hidden="true">
+                          ▾
+                        </span>
                       </button>
-                    </div>
-                    <div className="table-wrap">
-                      <table className="data-table">
-                        <thead>
-                          <tr>
-                            <th>Von</th>
-                            <th>Nach</th>
-                            <th>Typ</th>
-                            <th>Berechnung</th>
-                            <th>Quelle</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {umrechnungsregelnQuery.data?.map((regel) => (
-                            <tr key={regel.id}>
-                              <td>{regel.von_einheit}</td>
-                              <td>{regel.nach_einheit}</td>
-                              <td>
-                                {UMRECHNUNGSREGEL_TYP_OPTIONS.find((option) => option.value === regel.regel_typ)?.label ??
-                                  regel.regel_typ}
-                              </td>
-                              <td>{formatUmrechnungsregel(regel)}</td>
-                              <td>{regel.quelle_beschreibung || "—"}</td>
-                            </tr>
-                          ))}
-                          {!umrechnungsregelnQuery.data?.length ? (
-                            <tr>
-                              <td colSpan={5}>Noch keine Umrechnungsregeln für diesen Parameter vorhanden.</td>
-                            </tr>
-                          ) : null}
-                        </tbody>
-                      </table>
-                    </div>
-                  </article>
+                      {expandedRelatedSections.aliases ? (
+                        <div className="parameter-related__content">
+                          <div className="table-wrap">
+                            <table className="data-table parameter-summary-table">
+                              <thead>
+                                <tr>
+                                  <th>Alias</th>
+                                  <th>Normalisiert</th>
+                                  <th>Bemerkung</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {parameterAliaseQuery.data?.map((alias) => (
+                                  <tr key={alias.id}>
+                                    <td>{alias.alias_text}</td>
+                                    <td>{alias.alias_normalisiert}</td>
+                                    <td>{alias.bemerkung || "—"}</td>
+                                  </tr>
+                                ))}
+                                {!parameterAliaseQuery.data?.length ? (
+                                  <tr>
+                                    <td colSpan={3}>Noch keine Aliase für diesen Parameter vorhanden.</td>
+                                  </tr>
+                                ) : null}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      ) : null}
+                    </article>
 
-                  <article className="card card--soft">
-                    <div className="parameter-card__header">
-                      <div>
-                        <h3>
-                          Zielbereiche <span className="parameter-count-badge">{zielbereicheQuery.data?.length ?? 0}</span>
-                        </h3>
-                        <p>Allgemeine Zielbereiche bleiben direkt am ausgewählten Parameter sichtbar.</p>
-                      </div>
-                      <button type="button" className="inline-button" onClick={() => handleOpenPanel("zielbereich")}>
-                        Neuer Zielbereich
+                    <article className="parameter-related__item">
+                      <button
+                        type="button"
+                        className={`parameter-related__toggle ${
+                          expandedRelatedSections.conversions ? "parameter-related__toggle--open" : ""
+                        }`}
+                        onClick={() =>
+                          setExpandedRelatedSections((current) => ({ ...current, conversions: !current.conversions }))
+                        }
+                        aria-expanded={expandedRelatedSections.conversions}
+                      >
+                        <span>
+                          <strong>Umrechnungsregeln</strong>
+                          <small>
+                            {formatCountLabel(umrechnungsregelnQuery.data?.length ?? 0, "Eintrag", "Einträge")}
+                          </small>
+                        </span>
+                        <span className="parameter-related__chevron" aria-hidden="true">
+                          ▾
+                        </span>
                       </button>
-                    </div>
-                    <div className="table-wrap">
-                      <table className="data-table">
-                        <thead>
-                          <tr>
-                            <th>Typ</th>
-                            <th>Bereich</th>
-                            <th>Einheit</th>
-                            <th>Geschlecht</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {zielbereicheQuery.data?.map((zielbereich) => (
-                            <tr key={zielbereich.id}>
-                              <td>{formatWertTyp(zielbereich.wert_typ)}</td>
-                              <td>{formatZielbereichValue(zielbereich)}</td>
-                              <td>{zielbereich.einheit || "—"}</td>
-                              <td>{formatGeschlechtCode(zielbereich.geschlecht_code, "Alle Geschlechter")}</td>
-                            </tr>
-                          ))}
-                          {!zielbereicheQuery.data?.length ? (
-                            <tr>
-                              <td colSpan={4}>Noch keine Zielbereiche für diesen Parameter vorhanden.</td>
-                            </tr>
-                          ) : null}
-                        </tbody>
-                      </table>
-                    </div>
-                  </article>
-                </div>
+                      {expandedRelatedSections.conversions ? (
+                        <div className="parameter-related__content">
+                          <div className="table-wrap">
+                            <table className="data-table parameter-summary-table">
+                              <thead>
+                                <tr>
+                                  <th>Von</th>
+                                  <th>Nach</th>
+                                  <th>Typ</th>
+                                  <th>Berechnung</th>
+                                  <th>Quelle</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {umrechnungsregelnQuery.data?.map((regel) => (
+                                  <tr key={regel.id}>
+                                    <td>{regel.von_einheit}</td>
+                                    <td>{regel.nach_einheit}</td>
+                                    <td>
+                                      {UMRECHNUNGSREGEL_TYP_OPTIONS.find((option) => option.value === regel.regel_typ)
+                                        ?.label ?? regel.regel_typ}
+                                    </td>
+                                    <td>{formatUmrechnungsregel(regel)}</td>
+                                    <td>{regel.quelle_beschreibung || "—"}</td>
+                                  </tr>
+                                ))}
+                                {!umrechnungsregelnQuery.data?.length ? (
+                                  <tr>
+                                    <td colSpan={5}>Noch keine Umrechnungsregeln für diesen Parameter vorhanden.</td>
+                                  </tr>
+                                ) : null}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      ) : null}
+                    </article>
+
+                    <article className="parameter-related__item">
+                      <button
+                        type="button"
+                        className={`parameter-related__toggle ${
+                          expandedRelatedSections.ranges ? "parameter-related__toggle--open" : ""
+                        }`}
+                        onClick={() => setExpandedRelatedSections((current) => ({ ...current, ranges: !current.ranges }))}
+                        aria-expanded={expandedRelatedSections.ranges}
+                      >
+                        <span>
+                          <strong>Zielbereiche</strong>
+                          <small>{formatCountLabel(zielbereicheQuery.data?.length ?? 0, "Eintrag", "Einträge")}</small>
+                        </span>
+                        <span className="parameter-related__chevron" aria-hidden="true">
+                          ▾
+                        </span>
+                      </button>
+                      {expandedRelatedSections.ranges ? (
+                        <div className="parameter-related__content">
+                          <div className="table-wrap">
+                            <table className="data-table parameter-summary-table">
+                              <thead>
+                                <tr>
+                                  <th>Typ</th>
+                                  <th>Bereich</th>
+                                  <th>Einheit</th>
+                                  <th>Geschlecht</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {zielbereicheQuery.data?.map((zielbereich) => (
+                                  <tr key={zielbereich.id}>
+                                    <td>{formatWertTyp(zielbereich.wert_typ)}</td>
+                                    <td>{formatZielbereichValue(zielbereich)}</td>
+                                    <td>{zielbereich.einheit || "—"}</td>
+                                    <td>{formatGeschlechtCode(zielbereich.geschlecht_code, "Alle Geschlechter")}</td>
+                                  </tr>
+                                ))}
+                                {!zielbereicheQuery.data?.length ? (
+                                  <tr>
+                                    <td colSpan={4}>Noch keine Zielbereiche für diesen Parameter vorhanden.</td>
+                                  </tr>
+                                ) : null}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      ) : null}
+                    </article>
+
+
+                    <article className="parameter-related__item">
+                      <button
+                        type="button"
+                        className={`parameter-related__toggle ${
+                          expandedRelatedSections.groups ? "parameter-related__toggle--open" : ""
+                        }`}
+                        onClick={() => setExpandedRelatedSections((current) => ({ ...current, groups: !current.groups }))}
+                        aria-expanded={expandedRelatedSections.groups}
+                      >
+                        <span>
+                          <strong>Gruppen</strong>
+                          <small>{formatCountLabel(parameterGruppenQuery.data?.length ?? 0, "Eintrag", "Einträge")}</small>
+                        </span>
+                        <span className="parameter-related__chevron" aria-hidden="true">
+                          ▾
+                        </span>
+                      </button>
+                      {expandedRelatedSections.groups ? (
+                        <div className="parameter-related__content">
+                          <div className="table-wrap">
+                            <table className="data-table parameter-summary-table">
+                              <thead>
+                                <tr>
+                                  <th>Gruppe</th>
+                                  <th>Gruppen-Schlüssel</th>
+                                  <th>Sortierung</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {parameterGruppenQuery.data?.map((gruppe) => (
+                                  <tr key={gruppe.id}>
+                                    <td>{gruppe.gruppenname}</td>
+                                    <td>{gruppe.gruppen_sortierschluessel || "—"}</td>
+                                    <td>{gruppe.sortierung ?? "—"}</td>
+                                  </tr>
+                                ))}
+                                {!parameterGruppenQuery.data?.length ? (
+                                  <tr>
+                                    <td colSpan={3}>Dieser Parameter ist aktuell keiner Gruppe zugeordnet.</td>
+                                  </tr>
+                                ) : null}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      ) : null}
+                    </article>
+                  </div>
+                </section>
               </>
             )}
           </article>

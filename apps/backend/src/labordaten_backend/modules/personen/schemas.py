@@ -34,6 +34,7 @@ class PersonRead(BaseModel):
     aktiv: bool
     erstellt_am: datetime
     geaendert_am: datetime
+    messwerte_anzahl: int = 0
 
 
 class ZielbereichOverrideCreate(BaseModel):

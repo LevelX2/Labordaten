@@ -132,12 +132,30 @@ a {
 
 .page__info {
   position: relative;
+  display: flex;
+  align-items: center;
 }
 
 .page__info-button {
-  width: 28px;
-  height: 28px;
-  font-size: 0.95rem;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  border-color: rgba(31, 106, 83, 0.16);
+  background: rgba(31, 106, 83, 0.08);
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: none;
+}
+
+.page__info-button:hover {
+  background: rgba(31, 106, 83, 0.14);
+}
+
+.page__info-button:focus-visible {
+  outline: 2px solid rgba(31, 106, 83, 0.28);
+  outline-offset: 2px;
 }
 
 .page__info-popover {
@@ -259,8 +277,7 @@ a {
 }
 
 .parameter-sidebar__header,
-.parameter-card__header,
-.parameter-panel__header {
+.parameter-card__header {
   display: flex;
   justify-content: space-between;
   gap: 14px;
@@ -272,6 +289,21 @@ a {
 .parameter-card__header p,
 .parameter-panel__header p {
   margin-top: 4px;
+}
+
+.parameter-panel__header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: start;
+}
+
+.parameter-panel__header > div:first-child {
+  min-width: 0;
+}
+
+.parameter-panel__header .icon-button {
+  justify-self: end;
 }
 
 .parameter-list {
@@ -489,12 +521,6 @@ a {
   color: var(--accent);
 }
 
-.parameter-section-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 18px;
-}
-
 .parameter-count-badge {
   display: inline-flex;
   align-items: center;
@@ -513,6 +539,90 @@ a {
   display: grid;
   gap: 16px;
   margin-bottom: 18px;
+}
+
+.parameter-related {
+  display: grid;
+  gap: 14px;
+  padding: 16px 18px;
+}
+
+.parameter-related__header h3 {
+  margin-bottom: 4px;
+}
+
+.parameter-related__header p {
+  font-size: 0.92rem;
+}
+
+.parameter-related__list {
+  display: grid;
+  gap: 10px;
+}
+
+.parameter-related__item {
+  border: 1px solid rgba(215, 204, 185, 0.95);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.78);
+  overflow: hidden;
+}
+
+.parameter-related__toggle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.parameter-related__toggle span:first-child {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.parameter-related__toggle strong {
+  font-size: 0.98rem;
+}
+
+.parameter-related__toggle small {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.parameter-related__toggle--open {
+  background: rgba(31, 106, 83, 0.06);
+}
+
+.parameter-related__chevron {
+  color: var(--accent);
+  font-size: 1rem;
+  transition: transform 0.18s ease;
+}
+
+.parameter-related__toggle--open .parameter-related__chevron {
+  transform: rotate(180deg);
+}
+
+.parameter-related__content {
+  padding: 0 16px 14px;
+}
+
+.parameter-summary-table {
+  width: max-content;
+  min-width: 100%;
+}
+
+.parameter-summary-table th,
+.parameter-summary-table td {
+  white-space: nowrap;
 }
 
 .parameter-panel__toolbar,
@@ -700,6 +810,44 @@ a {
   gap: 6px;
 }
 
+.clearable-field {
+  position: relative;
+}
+
+.clearable-field__input {
+  padding-right: 42px !important;
+}
+
+.clearable-field__clear {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  padding: 0;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 999px;
+  background: rgba(31, 106, 83, 0.08);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+.clearable-field__clear:hover {
+  background: rgba(31, 106, 83, 0.16);
+  color: var(--accent);
+}
+
+.clearable-field__clear:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
 .field span {
   font-size: 0.9rem;
   font-weight: 700;
@@ -776,6 +924,12 @@ a {
 .form-error {
   margin: 0;
   color: #a03d2c;
+}
+
+.form-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
 }
 
 .table-wrap {
@@ -870,6 +1024,10 @@ a {
   margin-bottom: 18px;
 }
 
+.detail-grid--metrics {
+  margin-top: -6px;
+}
+
 .detail-grid__item {
   display: grid;
   gap: 4px;
@@ -877,6 +1035,11 @@ a {
   border: 1px solid rgba(215, 204, 185, 0.8);
   border-radius: 14px;
   background: var(--panel-soft);
+}
+
+.detail-grid--metrics .detail-grid__item {
+  background: rgba(31, 106, 83, 0.06);
+  border-color: rgba(31, 106, 83, 0.18);
 }
 
 .detail-grid__item span {

@@ -9,6 +9,7 @@ from labordaten_backend.models.gruppen_parameter import GruppenParameter
 from labordaten_backend.models.laborparameter import Laborparameter
 from labordaten_backend.models.laborparameter_alias import LaborparameterAlias
 from labordaten_backend.models.messwert import Messwert
+from labordaten_backend.models.parameter_gruppe import ParameterGruppe
 from labordaten_backend.models.parameter_umrechnungsregel import ParameterUmrechnungsregel
 from labordaten_backend.models.planung_einmalig import PlanungEinmalig
 from labordaten_backend.models.planung_zyklisch import PlanungZyklisch
@@ -24,6 +25,7 @@ from labordaten_backend.modules.parameter.schemas import (
     ParameterAliasCreate,
     ParameterAliasSuggestionRead,
     ParameterDuplicateSuggestionRead,
+    ParameterGruppenzuordnungRead,
     ParameterMergeRequest,
     ParameterMergeResultRead,
     ParameterCreate,
@@ -112,6 +114,34 @@ def list_parameter_umrechnungsregeln(
         )
     )
     return list(db.scalars(stmt))
+
+
+def list_parameter_gruppen(
+    db: Session,
+    parameter_id: str,
+) -> list[ParameterGruppenzuordnungRead]:
+    _require_parameter(db, parameter_id)
+    stmt = (
+        select(GruppenParameter, ParameterGruppe)
+        .join(ParameterGruppe, GruppenParameter.parameter_gruppe_id == ParameterGruppe.id)
+        .where(GruppenParameter.laborparameter_id == parameter_id)
+        .where(ParameterGruppe.aktiv.is_(True))
+        .order_by(
+            ParameterGruppe.sortierschluessel.asc().nulls_last(),
+            GruppenParameter.sortierung.asc().nulls_last(),
+            func.lower(ParameterGruppe.name).asc(),
+        )
+    )
+    return [
+        ParameterGruppenzuordnungRead(
+            id=zuordnung.id,
+            parameter_gruppe_id=gruppe.id,
+            gruppenname=gruppe.name,
+            gruppen_sortierschluessel=gruppe.sortierschluessel,
+            sortierung=zuordnung.sortierung,
+        )
+        for zuordnung, gruppe in db.execute(stmt)
+    ]
 
 
 def create_parameter_umrechnungsregel(

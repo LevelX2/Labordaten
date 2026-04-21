@@ -1,26 +1,36 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from labordaten_backend.models.laborparameter import Laborparameter
+from labordaten_backend.models.messwert import Messwert
 from labordaten_backend.models.person import Person
 from labordaten_backend.models.zielbereich import Zielbereich
 from labordaten_backend.models.zielbereich_person_override import ZielbereichPersonOverride
 from labordaten_backend.models.base import utcnow
 from labordaten_backend.modules.einheiten import service as einheiten_service
-from labordaten_backend.modules.personen.schemas import PersonCreate
+from labordaten_backend.modules.personen.schemas import PersonCreate, PersonRead
 from labordaten_backend.modules.personen.schemas import ZielbereichOverrideCreate, ZielbereichOverrideRead
 
 
-def list_personen(db: Session) -> list[Person]:
-    return list(db.scalars(select(Person).order_by(Person.anzeigename)))
+def list_personen(db: Session) -> list[PersonRead]:
+    stmt = (
+        select(Person, func.count(Messwert.id))
+        .outerjoin(Messwert, Messwert.person_id == Person.id)
+        .group_by(Person.id)
+        .order_by(Person.anzeigename.asc())
+    )
+    return [
+        PersonRead.model_validate(person, from_attributes=True).model_copy(update={"messwerte_anzahl": messwerte_anzahl})
+        for person, messwerte_anzahl in db.execute(stmt)
+    ]
 
 
-def create_person(db: Session, payload: PersonCreate) -> Person:
+def create_person(db: Session, payload: PersonCreate) -> PersonRead:
     person = Person(**payload.model_dump())
     db.add(person)
     db.commit()
     db.refresh(person)
-    return person
+    return PersonRead.model_validate(person, from_attributes=True).model_copy(update={"messwerte_anzahl": 0})
 
 
 def get_person(db: Session, person_id: str) -> Person | None:

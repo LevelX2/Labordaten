@@ -99,6 +99,20 @@ def list_parameter_umrechnungsregeln(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
 
+@router.get(
+    "/{parameter_id}/gruppen",
+    response_model=list[schemas.ParameterGruppenzuordnungRead],
+)
+def list_parameter_gruppen(
+    parameter_id: str,
+    db: Session = Depends(get_db),
+) -> list[schemas.ParameterGruppenzuordnungRead]:
+    try:
+        return service.list_parameter_gruppen(db, parameter_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
 @router.post(
     "/{parameter_id}/aliase",
     response_model=schemas.ParameterAliasRead,

@@ -120,6 +120,14 @@ class ParameterUmrechnungsregelRead(BaseModel):
     geaendert_am: datetime
 
 
+class ParameterGruppenzuordnungRead(BaseModel):
+    id: str
+    parameter_gruppe_id: str
+    gruppenname: str
+    gruppen_sortierschluessel: str | None = None
+    sortierung: int | None = None
+
+
 class ParameterUsageSummaryRead(BaseModel):
     parameter_id: str
     anzeigename: str

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { apiFetch } from "../../shared/api/client";
 import { buildPersonCreatePayload } from "../../shared/api/payloadBuilders";
@@ -7,7 +7,7 @@ import {
   PERSON_GESCHLECHT_OPTIONS,
   formatGeschlechtCode
 } from "../../shared/constants/fieldOptions";
-import type { Einheit, Parameter, Person, WertTyp, Zielbereich, ZielbereichOverride } from "../../shared/types/api";
+import type { Parameter, Person, WertTyp, Zielbereich, ZielbereichOverride } from "../../shared/types/api";
 
 type PersonFormState = {
   anzeigename: string;
@@ -15,14 +15,6 @@ type PersonFormState = {
   geburtsdatum: string;
   geschlecht_code: string;
   hinweise_allgemein: string;
-};
-
-const initialForm: PersonFormState = {
-  anzeigename: "",
-  vollname: "",
-  geburtsdatum: "",
-  geschlecht_code: "",
-  hinweise_allgemein: ""
 };
 
 type OverrideFormState = {
@@ -37,6 +29,16 @@ type OverrideFormState = {
   bemerkung: string;
 };
 
+type PersonenPanelKey = "create" | "override";
+
+const initialForm: PersonFormState = {
+  anzeigename: "",
+  vollname: "",
+  geburtsdatum: "",
+  geschlecht_code: "",
+  hinweise_allgemein: ""
+};
+
 const initialOverrideForm: OverrideFormState = {
   person_id: "",
   parameter_id: "",
@@ -49,10 +51,65 @@ const initialOverrideForm: OverrideFormState = {
   bemerkung: ""
 };
 
+function summarizeDescription(person: Person): string {
+  const details = [
+    person.vollname?.trim() || "",
+    formatGeschlechtCode(person.geschlecht_code, ""),
+    person.geburtsdatum
+  ].filter(Boolean);
+  if (details.length) {
+    return details.join(" • ");
+  }
+  return "Noch keine ergänzenden Angaben hinterlegt.";
+}
+
+function formatDateTime(value: string | null | undefined): string {
+  if (!value) {
+    return "—";
+  }
+
+  return new Intl.DateTimeFormat("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(value));
+}
+
+function formatDateValue(value: string | null | undefined): string {
+  if (!value) {
+    return "—";
+  }
+
+  return new Intl.DateTimeFormat("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  }).format(new Date(value));
+}
+
+function formatOverrideValue(override: ZielbereichOverride, useBase = false): string {
+  if (override.wert_typ === "numerisch") {
+    const lower = useBase ? override.basis_untere_grenze_num : override.untere_grenze_num;
+    const upper = useBase ? override.basis_obere_grenze_num : override.obere_grenze_num;
+    const unit = useBase ? override.basis_einheit : override.einheit;
+    return `${lower ?? "—"} bis ${upper ?? "—"} ${unit ?? ""}`.trim();
+  }
+
+  return (useBase ? override.basis_soll_text : override.soll_text) || "—";
+}
+
 export function PersonenPage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<PersonFormState>(initialForm);
   const [overrideForm, setOverrideForm] = useState<OverrideFormState>(initialOverrideForm);
+  const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
+  const [personSearchQuery, setPersonSearchQuery] = useState("");
+  const [activePanel, setActivePanel] = useState<PersonenPanelKey | null>(null);
+  const [showAdvancedDetails, setShowAdvancedDetails] = useState(false);
+  const [showPageInfo, setShowPageInfo] = useState(false);
+  const [showRelatedOverrides, setShowRelatedOverrides] = useState(true);
 
   const personenQuery = useQuery({
     queryKey: ["personen"],
@@ -62,28 +119,85 @@ export function PersonenPage() {
     queryKey: ["parameter"],
     queryFn: () => apiFetch<Parameter[]>("/api/parameter")
   });
-  const einheitenQuery = useQuery({
-    queryKey: ["einheiten"],
-    queryFn: () => apiFetch<Einheit[]>("/api/einheiten")
+  const overridesQuery = useQuery({
+    queryKey: ["zielbereich-overrides", selectedPersonId],
+    queryFn: () => apiFetch<ZielbereichOverride[]>(`/api/personen/${selectedPersonId}/zielbereich-overrides`),
+    enabled: Boolean(selectedPersonId)
   });
-
   const zielbereicheQuery = useQuery({
     queryKey: ["zielbereiche", overrideForm.parameter_id],
     queryFn: () => apiFetch<Zielbereich[]>(`/api/parameter/${overrideForm.parameter_id}/zielbereiche`),
     enabled: Boolean(overrideForm.parameter_id)
   });
 
-  const overridesQuery = useQuery({
-    queryKey: ["zielbereich-overrides", overrideForm.person_id],
-    queryFn: () => apiFetch<ZielbereichOverride[]>(`/api/personen/${overrideForm.person_id}/zielbereich-overrides`),
-    enabled: Boolean(overrideForm.person_id)
-  });
+  const sortedPersons = useMemo(
+    () =>
+      [...(personenQuery.data ?? [])].sort((left, right) =>
+        left.anzeigename.localeCompare(right.anzeigename, "de-DE", { sensitivity: "base" })
+      ),
+    [personenQuery.data]
+  );
+
+  useEffect(() => {
+    if (!sortedPersons.length) {
+      setSelectedPersonId(null);
+      return;
+    }
+
+    const selectionStillExists = sortedPersons.some((person) => person.id === selectedPersonId);
+    if (!selectedPersonId || !selectionStillExists) {
+      setSelectedPersonId(sortedPersons[0].id);
+    }
+  }, [selectedPersonId, sortedPersons]);
+
+  const filteredPersons = useMemo(() => {
+    const normalizedSearchQuery = personSearchQuery.trim().toLocaleLowerCase("de-DE");
+    if (!normalizedSearchQuery) {
+      return sortedPersons;
+    }
+
+    return sortedPersons.filter((person) =>
+      [person.anzeigename, person.vollname ?? "", person.hinweise_allgemein ?? ""]
+        .join(" ")
+        .toLocaleLowerCase("de-DE")
+        .includes(normalizedSearchQuery)
+    );
+  }, [personSearchQuery, sortedPersons]);
+
+  const selectedPerson = useMemo(
+    () => sortedPersons.find((person) => person.id === selectedPersonId) ?? null,
+    [selectedPersonId, sortedPersons]
+  );
+
+  useEffect(() => {
+    if (!selectedPersonId) {
+      setOverrideForm(initialOverrideForm);
+      return;
+    }
+
+    setOverrideForm((current) =>
+      current.person_id === selectedPersonId
+        ? current
+        : {
+            ...initialOverrideForm,
+            person_id: selectedPersonId
+          }
+    );
+    setShowRelatedOverrides(true);
+  }, [selectedPersonId]);
 
   const selectedBaseTarget = useMemo(
     () => zielbereicheQuery.data?.find((zielbereich) => zielbereich.id === overrideForm.zielbereich_id) ?? null,
     [zielbereicheQuery.data, overrideForm.zielbereich_id]
   );
-  const einheiten = einheitenQuery.data ?? [];
+  const selectedOverrideParameter = useMemo(
+    () => parameterQuery.data?.find((parameter) => parameter.id === overrideForm.parameter_id) ?? null,
+    [overrideForm.parameter_id, parameterQuery.data]
+  );
+  const hasActivePersonFilter = personSearchQuery.trim().length > 0;
+  const personCountLabel = hasActivePersonFilter
+    ? `${filteredPersons.length} von ${sortedPersons.length} Personen`
+    : `${sortedPersons.length} Personen`;
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -91,8 +205,10 @@ export function PersonenPage() {
         method: "POST",
         body: JSON.stringify(buildPersonCreatePayload(form))
       }),
-    onSuccess: async () => {
+    onSuccess: async (person) => {
       setForm(initialForm);
+      setSelectedPersonId(person.id);
+      setActivePanel(null);
       await queryClient.invalidateQueries({ queryKey: ["personen"] });
     }
   });
@@ -122,24 +238,43 @@ export function PersonenPage() {
     onSuccess: async () => {
       setOverrideForm((current) => ({
         ...initialOverrideForm,
-        person_id: current.person_id,
-        parameter_id: current.parameter_id
+        person_id: current.person_id
       }));
-      await queryClient.invalidateQueries({ queryKey: ["zielbereich-overrides", overrideForm.person_id] });
+      await queryClient.invalidateQueries({ queryKey: ["zielbereich-overrides", selectedPersonId] });
     }
   });
 
-  return (
-    <section className="page">
-      <header className="page__header">
-        <span className="page__kicker">Erster Durchstich</span>
-        <h2>Personen</h2>
-        <p>Personen können jetzt tatsächlich angelegt und wieder aus der lokalen API gelesen werden.</p>
-      </header>
+  const handleOpenPanel = (panel: PersonenPanelKey) => {
+    setActivePanel((current) => (current === panel ? null : panel));
+  };
 
-      <div className="workspace-grid">
-        <article className="card">
-          <h3>Neue Person</h3>
+  const renderPanelCloseButton = (label = "Werkzeug schließen") => (
+    <button
+      type="button"
+      className="icon-button"
+      onClick={() => setActivePanel(null)}
+      aria-label={label}
+      title={label}
+    >
+      ×
+    </button>
+  );
+
+  const renderActionPanel = () => {
+    if (!activePanel) {
+      return null;
+    }
+
+    if (activePanel === "create") {
+      return (
+        <article className="card card--soft parameter-action-panel">
+          <div className="parameter-panel__header">
+            <div>
+              <h3>Neue Person</h3>
+              <p>Personen bilden die persönliche Ebene für Messwerte, Planung, Berichte und individuelle Zielbereiche.</p>
+            </div>
+            {renderPanelCloseButton("Panel Neue Person schließen")}
+          </div>
           <form
             className="form-grid"
             onSubmit={(event) => {
@@ -178,9 +313,7 @@ export function PersonenPage() {
               <span>Geschlecht</span>
               <select
                 value={form.geschlecht_code}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, geschlecht_code: event.target.value }))
-                }
+                onChange={(event) => setForm((current) => ({ ...current, geschlecht_code: event.target.value }))}
               >
                 {PERSON_GESCHLECHT_OPTIONS.map((option) => (
                   <option key={option.value || "empty"} value={option.value}>
@@ -195,9 +328,7 @@ export function PersonenPage() {
               <textarea
                 rows={4}
                 value={form.hinweise_allgemein}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, hinweise_allgemein: event.target.value }))
-                }
+                onChange={(event) => setForm((current) => ({ ...current, hinweise_allgemein: event.target.value }))}
               />
             </label>
 
@@ -209,240 +340,406 @@ export function PersonenPage() {
             </div>
           </form>
         </article>
+      );
+    }
 
-        <article className="card">
-          <h3>Vorhandene Personen</h3>
-          {personenQuery.isLoading ? <p>Lädt...</p> : null}
-          {personenQuery.isError ? <p className="form-error">{personenQuery.error.message}</p> : null}
-          <div className="table-wrap">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Anzeigename</th>
-                  <th>Geburtsdatum</th>
-                  <th>Geschlecht</th>
-                </tr>
-              </thead>
-              <tbody>
-                {personenQuery.data?.map((person) => (
-                  <tr key={person.id}>
-                    <td>{person.anzeigename}</td>
-                    <td>{person.geburtsdatum}</td>
-                    <td>{formatGeschlechtCode(person.geschlecht_code, "Nicht angegeben")}</td>
-                  </tr>
-                ))}
-                {!personenQuery.data?.length ? (
-                  <tr>
-                    <td colSpan={3}>Noch keine Personen vorhanden.</td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-          </div>
+    if (!selectedPersonId || !selectedPerson) {
+      return (
+        <article className="card card--soft">
+          <h3>Eigenen Zielbereich pflegen</h3>
+          <p>Bitte wähle zuerst links eine Person aus.</p>
         </article>
+      );
+    }
 
-        <article className="card">
-          <h3>Personenspezifischer Zielbereich</h3>
-          <form
-            className="form-grid"
-            onSubmit={(event) => {
-              event.preventDefault();
-              createOverrideMutation.mutate();
-            }}
-          >
-            <label className="field">
-              <span>Person</span>
-              <select
-                required
-                value={overrideForm.person_id}
-                onChange={(event) =>
-                  setOverrideForm((current) => ({
-                    ...current,
-                    person_id: event.target.value
-                  }))
-                }
-              >
-                <option value="">Bitte wählen</option>
-                {personenQuery.data?.map((person) => (
-                  <option key={person.id} value={person.id}>
-                    {person.anzeigename}
-                  </option>
-                ))}
-              </select>
-            </label>
+    return (
+      <article className="card card--soft parameter-action-panel">
+        <div className="parameter-panel__header">
+          <div>
+            <h3>Eigenen Zielbereich pflegen</h3>
+            <p>Lege bei Bedarf eine individuelle Überschreibung für einen bestehenden allgemeinen Zielbereich an.</p>
+          </div>
+          {renderPanelCloseButton("Panel Eigenen Zielbereich schließen")}
+        </div>
+        <form
+          className="form-grid"
+          onSubmit={(event) => {
+            event.preventDefault();
+            createOverrideMutation.mutate();
+          }}
+        >
+          <label className="field">
+            <span>Person</span>
+            <input value={selectedPerson.anzeigename} disabled />
+          </label>
 
-            <label className="field">
-              <span>Parameter</span>
-              <select
-                required
-                value={overrideForm.parameter_id}
-                onChange={(event) =>
-                  setOverrideForm((current) => ({
+          <label className="field">
+            <span>Parameter</span>
+            <select
+              required
+              value={overrideForm.parameter_id}
+              onChange={(event) =>
+                setOverrideForm((current) => {
+                  const nextParameter = parameterQuery.data?.find((parameter) => parameter.id === event.target.value) ?? null;
+                  return {
                     ...current,
                     parameter_id: event.target.value,
                     zielbereich_id: "",
                     wert_typ: "numerisch",
                     untere_grenze_num: "",
                     obere_grenze_num: "",
-                    einheit: "",
+                    einheit: nextParameter?.standard_einheit ?? "",
                     soll_text: ""
-                  }))
-                }
-              >
-                <option value="">Bitte wählen</option>
-                {parameterQuery.data?.map((parameter) => (
-                  <option key={parameter.id} value={parameter.id}>
-                    {parameter.anzeigename}
-                  </option>
+                  };
+                })
+              }
+            >
+              <option value="">Bitte wählen</option>
+              {parameterQuery.data?.map((parameter) => (
+                <option key={parameter.id} value={parameter.id}>
+                  {parameter.anzeigename}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="field">
+            <span>Basis-Zielbereich</span>
+            <select
+              required
+              value={overrideForm.zielbereich_id}
+              onChange={(event) => {
+                const selected = zielbereicheQuery.data?.find((item) => item.id === event.target.value);
+                setOverrideForm((current) => ({
+                  ...current,
+                  zielbereich_id: event.target.value,
+                  wert_typ: selected?.wert_typ ?? current.wert_typ,
+                  einheit: selected?.einheit ?? selectedOverrideParameter?.standard_einheit ?? "",
+                  soll_text: selected?.soll_text ?? ""
+                }));
+              }}
+            >
+              <option value="">Bitte wählen</option>
+              {zielbereicheQuery.data?.map((zielbereich) => (
+                <option key={zielbereich.id} value={zielbereich.id}>
+                  {zielbereich.wert_typ === "numerisch"
+                    ? `${zielbereich.untere_grenze_num ?? "—"} bis ${zielbereich.obere_grenze_num ?? "—"}`
+                    : zielbereich.soll_text || "Text-Zielbereich"}
+                </option>
                 ))}
               </select>
-            </label>
+              {overrideForm.parameter_id && !zielbereicheQuery.data?.length ? (
+                <p className="form-hint">
+                  Für den gewählten Parameter gibt es noch keinen allgemeinen Zielbereich. Lege ihn zuerst auf der
+                  Parameterseite an.
+                </p>
+              ) : (
+                <p className="form-hint">
+                  Hier wählst Du den allgemeinen Zielbereich aus, den Du für diese Person individuell anpassen willst.
+                </p>
+              )}
+          </label>
 
-            <label className="field">
-              <span>Allgemeiner Zielbereich</span>
-              <select
-                required
-                value={overrideForm.zielbereich_id}
-                onChange={(event) => {
-                  const selected = zielbereicheQuery.data?.find((item) => item.id === event.target.value);
-                  setOverrideForm((current) => ({
-                    ...current,
-                    zielbereich_id: event.target.value,
-                    wert_typ: selected?.wert_typ ?? current.wert_typ,
-                    einheit: selected?.einheit ?? "",
-                    soll_text: selected?.soll_text ?? ""
-                  }));
-                }}
-              >
-                <option value="">Bitte wählen</option>
-                {zielbereicheQuery.data?.map((zielbereich) => (
-                  <option key={zielbereich.id} value={zielbereich.id}>
-                    {zielbereich.wert_typ === "numerisch"
-                      ? `${zielbereich.untere_grenze_num ?? "—"} bis ${zielbereich.obere_grenze_num ?? "—"}`
-                      : zielbereich.soll_text || "Text-Zielbereich"}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            {overrideForm.wert_typ === "numerisch" ? (
-              <>
-                <label className="field">
-                  <span>Eigene untere Grenze</span>
-                  <input
-                    type="number"
-                    step="any"
-                    value={overrideForm.untere_grenze_num}
-                    onChange={(event) =>
-                      setOverrideForm((current) => ({ ...current, untere_grenze_num: event.target.value }))
-                    }
-                  />
-                </label>
-
-                <label className="field">
-                  <span>Eigene obere Grenze</span>
-                  <input
-                    type="number"
-                    step="any"
-                    value={overrideForm.obere_grenze_num}
-                    onChange={(event) =>
-                      setOverrideForm((current) => ({ ...current, obere_grenze_num: event.target.value }))
-                    }
-                  />
-                </label>
-
-                <label className="field">
-                  <span>Einheit</span>
-                  <select
-                    value={overrideForm.einheit}
-                    onChange={(event) =>
-                      setOverrideForm((current) => ({ ...current, einheit: event.target.value }))
-                    }
-                  >
-                    <option value="">Keine Einheit</option>
-                    {einheiten.map((einheit) => (
-                      <option key={einheit.id} value={einheit.kuerzel}>
-                        {einheit.kuerzel}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </>
-            ) : (
-              <label className="field field--full">
-                <span>Eigener Solltext</span>
+          {overrideForm.wert_typ === "numerisch" ? (
+            <>
+              <label className="field">
+                <span>Eigene untere Grenze</span>
                 <input
-                  value={overrideForm.soll_text}
-                  onChange={(event) => setOverrideForm((current) => ({ ...current, soll_text: event.target.value }))}
+                  type="number"
+                  step="any"
+                  value={overrideForm.untere_grenze_num}
+                  onChange={(event) =>
+                    setOverrideForm((current) => ({ ...current, untere_grenze_num: event.target.value }))
+                  }
                 />
               </label>
-            )}
 
+              <label className="field">
+                <span>Eigene obere Grenze</span>
+                <input
+                  type="number"
+                  step="any"
+                  value={overrideForm.obere_grenze_num}
+                  onChange={(event) =>
+                    setOverrideForm((current) => ({ ...current, obere_grenze_num: event.target.value }))
+                  }
+                />
+              </label>
+
+              <label className="field">
+                <span>Einheit</span>
+                <input value={selectedBaseTarget?.einheit || selectedOverrideParameter?.standard_einheit || "Keine Einheit"} disabled />
+              </label>
+            </>
+          ) : (
             <label className="field field--full">
-              <span>Bemerkung</span>
-              <textarea
-                rows={3}
-                value={overrideForm.bemerkung}
-                onChange={(event) => setOverrideForm((current) => ({ ...current, bemerkung: event.target.value }))}
+              <span>Eigener Solltext</span>
+              <input
+                value={overrideForm.soll_text}
+                onChange={(event) => setOverrideForm((current) => ({ ...current, soll_text: event.target.value }))}
               />
             </label>
+          )}
 
-            <div className="form-actions">
-              <button
-                type="submit"
-                disabled={
-                  createOverrideMutation.isPending || !overrideForm.person_id || !overrideForm.zielbereich_id
-                }
-              >
-                {createOverrideMutation.isPending ? "Speichert..." : "Override anlegen"}
-              </button>
-              {createOverrideMutation.isError ? (
-                <p className="form-error">{createOverrideMutation.error.message}</p>
-              ) : null}
-            </div>
-          </form>
-        </article>
+          <label className="field field--full">
+            <span>Bemerkung</span>
+            <textarea
+              rows={3}
+              value={overrideForm.bemerkung}
+              onChange={(event) => setOverrideForm((current) => ({ ...current, bemerkung: event.target.value }))}
+            />
+          </label>
 
-        <article className="card">
-          <h3>Overrides zur gewählten Person</h3>
-          {!overrideForm.person_id ? <p>Bitte zuerst eine Person auswählen.</p> : null}
-          <div className="table-wrap">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Parameter</th>
-                  <th>Allgemein</th>
-                  <th>Personenspezifisch</th>
-                  <th>Bemerkung</th>
-                </tr>
-              </thead>
-              <tbody>
-                {overridesQuery.data?.map((override) => (
-                  <tr key={override.id}>
-                    <td>{override.parameter_anzeigename}</td>
-                    <td>
-                      {override.wert_typ === "numerisch"
-                        ? `${override.basis_untere_grenze_num ?? "—"} bis ${override.basis_obere_grenze_num ?? "—"} ${override.basis_einheit ?? ""}`.trim()
-                        : override.basis_soll_text || "—"}
-                    </td>
-                    <td>
-                      {override.wert_typ === "numerisch"
-                        ? `${override.untere_grenze_num ?? "—"} bis ${override.obere_grenze_num ?? "—"} ${override.einheit ?? ""}`.trim()
-                        : override.soll_text || "—"}
-                    </td>
-                    <td>{override.bemerkung || "—"}</td>
-                  </tr>
-                ))}
-                {overrideForm.person_id && !overridesQuery.data?.length ? (
-                  <tr>
-                    <td colSpan={4}>Noch keine Zielbereichs-Overrides für diese Person vorhanden.</td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
+          <div className="form-actions">
+            <button
+              type="submit"
+              disabled={createOverrideMutation.isPending || !overrideForm.person_id || !overrideForm.zielbereich_id}
+            >
+              {createOverrideMutation.isPending ? "Speichert..." : "Eigenen Zielbereich anlegen"}
+            </button>
+            {createOverrideMutation.isError ? <p className="form-error">{createOverrideMutation.error.message}</p> : null}
           </div>
-        </article>
+        </form>
+      </article>
+    );
+  };
 
+  return (
+    <section className="page">
+      <header className="page__header page__header--compact">
+        <h2>Personen</h2>
+        <div className="page__info">
+          <button
+            type="button"
+            className="icon-button page__info-button"
+            aria-label="Hinweis zur Personenseite"
+            aria-expanded={showPageInfo}
+            onClick={() => setShowPageInfo((current) => !current)}
+          >
+            i
+          </button>
+          {showPageInfo ? (
+            <div className="page__info-popover">
+              Hier verwaltest Du Personen, pflegst Stammdaten und hinterlegst bei Bedarf individuelle Zielbereiche.
+            </div>
+          ) : null}
+        </div>
+      </header>
+
+      <div className="parameter-workspace">
+        <aside className="card parameter-sidebar">
+          <div className="parameter-sidebar__header">
+            <div>
+              <h3>Vorhandene Personen</h3>
+              <p>{personCountLabel}</p>
+            </div>
+          </div>
+
+          <label className="field field--full">
+            <span>Suche</span>
+            <div className="clearable-field">
+              <input
+                className="clearable-field__input"
+                value={personSearchQuery}
+                onChange={(event) => setPersonSearchQuery(event.target.value)}
+                placeholder="Name, Vollname oder Hinweis"
+              />
+              <button
+                type="button"
+                className="clearable-field__clear"
+                onClick={() => setPersonSearchQuery("")}
+                aria-label="Suche löschen"
+                title="Suche löschen"
+                disabled={!personSearchQuery}
+              >
+                ×
+              </button>
+            </div>
+          </label>
+
+          <div className="parameter-list">
+            {filteredPersons.map((person) => (
+              <button
+                key={person.id}
+                type="button"
+                className={`parameter-list__item ${selectedPersonId === person.id ? "parameter-list__item--selected" : ""}`}
+                onClick={() => setSelectedPersonId(person.id)}
+              >
+                <div className="parameter-list__title-row">
+                  <strong>{person.anzeigename}</strong>
+                </div>
+                <p>{summarizeDescription(person)}</p>
+                <div className="parameter-list__meta">
+                  <span className="parameter-pill">{formatDateValue(person.geburtsdatum)}</span>
+                  <span className="parameter-pill">{formatGeschlechtCode(person.geschlecht_code, "Nicht angegeben")}</span>
+                </div>
+              </button>
+            ))}
+            {!filteredPersons.length ? (
+              <div className="parameter-list__empty">
+                <p>Keine Personen passen zur aktuellen Suche.</p>
+              </div>
+            ) : null}
+          </div>
+        </aside>
+
+        <div className="parameter-main">
+          <article className="card">
+            {!selectedPerson ? (
+              <p>Noch keine Personen vorhanden. Lege über die Werkzeugleiste die erste Person an.</p>
+            ) : (
+              <>
+                <div className="parameter-detail__header">
+                  <div>
+                    <h3 className="parameter-detail__title">{selectedPerson.anzeigename}</h3>
+                    <p>{selectedPerson.hinweise_allgemein?.trim() || "Zu dieser Person sind noch keine Hinweise hinterlegt."}</p>
+                  </div>
+                  <div className="parameter-header-controls">
+                    <button
+                      type="button"
+                      className={`parameter-mode-toggle ${showAdvancedDetails ? "parameter-mode-toggle--advanced" : ""}`}
+                      onClick={() => setShowAdvancedDetails((current) => !current)}
+                      aria-pressed={showAdvancedDetails}
+                      title={showAdvancedDetails ? "Zur einfachen Ansicht wechseln" : "Zur Expertenansicht wechseln"}
+                    >
+                      <span className="parameter-mode-toggle__icon" aria-hidden="true">
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                      </span>
+                      <span className="parameter-mode-toggle__text">{showAdvancedDetails ? "Experte" : "Einfach"}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="parameter-toolrail">
+                  <button
+                    type="button"
+                    className={`parameter-toolrail__button ${activePanel === "create" ? "parameter-toolrail__button--active" : ""}`}
+                    onClick={() => handleOpenPanel("create")}
+                  >
+                    Neue Person
+                  </button>
+                  <button
+                    type="button"
+                    className={`parameter-toolrail__button ${activePanel === "override" ? "parameter-toolrail__button--active" : ""}`}
+                    onClick={() => handleOpenPanel("override")}
+                  >
+                    Zielbereich pflegen
+                  </button>
+                </div>
+
+                {renderActionPanel()}
+
+                <div className="detail-grid">
+                  <div className="detail-grid__item">
+                    <span>Vollname</span>
+                    <strong>{selectedPerson.vollname || "Nicht hinterlegt"}</strong>
+                  </div>
+                  <div className="detail-grid__item">
+                    <span>Geburtsdatum</span>
+                    <strong>{formatDateValue(selectedPerson.geburtsdatum)}</strong>
+                  </div>
+                  <div className="detail-grid__item">
+                    <span>Geschlecht</span>
+                    <strong>{formatGeschlechtCode(selectedPerson.geschlecht_code, "Nicht angegeben")}</strong>
+                  </div>
+                </div>
+
+                <div className="detail-grid detail-grid--metrics">
+                  <div className="detail-grid__item">
+                    <span>Messwerte</span>
+                    <strong>{selectedPerson.messwerte_anzahl}</strong>
+                  </div>
+                  <div className="detail-grid__item">
+                    <span>Eigene Zielbereiche</span>
+                    <strong>{overridesQuery.data?.length ?? 0}</strong>
+                  </div>
+                </div>
+
+                {showAdvancedDetails ? (
+                  <div className="detail-grid">
+                    <div className="detail-grid__item">
+                      <span>Status</span>
+                      <strong>{selectedPerson.aktiv ? "Aktiv" : "Inaktiv"}</strong>
+                    </div>
+                    <div className="detail-grid__item">
+                      <span>Erstellt</span>
+                      <strong>{formatDateTime(selectedPerson.erstellt_am)}</strong>
+                    </div>
+                    <div className="detail-grid__item">
+                      <span>Geändert</span>
+                      <strong>{formatDateTime(selectedPerson.geaendert_am)}</strong>
+                    </div>
+                    <div className="detail-grid__item detail-grid__item--full">
+                      <span>Interne ID</span>
+                      <strong className="detail-grid__value--break">{selectedPerson.id}</strong>
+                    </div>
+                  </div>
+                ) : null}
+
+                <section className="card card--soft parameter-related">
+                  <div className="parameter-related__header">
+                    <div>
+                      <h3>Zugeordnete Daten</h3>
+                    </div>
+                  </div>
+
+                  <div className="parameter-related__list">
+                    <article className="parameter-related__item">
+                      <button
+                        type="button"
+                        className={`parameter-related__toggle ${showRelatedOverrides ? "parameter-related__toggle--open" : ""}`}
+                        onClick={() => setShowRelatedOverrides((current) => !current)}
+                        aria-expanded={showRelatedOverrides}
+                      >
+                        <span>
+                          <strong>Eigene Zielbereiche</strong>
+                          <small>{overridesQuery.data?.length ?? 0} Einträge</small>
+                        </span>
+                        <span className="parameter-related__chevron" aria-hidden="true">
+                          ▾
+                        </span>
+                      </button>
+                      {showRelatedOverrides ? (
+                        <div className="parameter-related__content">
+                          <div className="table-wrap">
+                            <table className="data-table parameter-summary-table">
+                              <thead>
+                                <tr>
+                                  <th>Parameter</th>
+                                  <th>Allgemein</th>
+                                  <th>Personenspezifisch</th>
+                                  <th>Bemerkung</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {overridesQuery.data?.map((override) => (
+                                  <tr key={override.id}>
+                                    <td>{override.parameter_anzeigename}</td>
+                                    <td>{formatOverrideValue(override, true)}</td>
+                                    <td>{formatOverrideValue(override)}</td>
+                                    <td>{override.bemerkung || "—"}</td>
+                                  </tr>
+                                ))}
+                                {!overridesQuery.data?.length ? (
+                                  <tr>
+                                    <td colSpan={4}>Noch keine eigenen Zielbereiche für diese Person vorhanden.</td>
+                                  </tr>
+                                ) : null}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      ) : null}
+                    </article>
+                  </div>
+                </section>
+              </>
+            )}
+          </article>
+        </div>
       </div>
     </section>
   );

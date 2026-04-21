@@ -38,6 +38,16 @@ Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitp
 - Entwickler-Narrative, Änderungsbeschreibungen oder Formulierungen wie `die Seite ist jetzt ...` sind dort zu vermeiden.
 - Der Text soll auch für Nutzer sinnvoll sein, die die Anwendung nur gelegentlich verwenden.
 
+## Stammdatenseiten als Arbeitsbereich
+- Vergleichbare Stammdatenseiten sollten als klarer Arbeitsbereich aufgebaut sein und nicht als lose Sammlung gleichrangiger Karten oder Formulare.
+- Links steht bevorzugt eine filterbare Liste der vorhandenen Datensätze der führenden Tabelle.
+- Rechts steht der Detailbereich des aktuell ausgewählten Datensatzes.
+- Direkt unter dem Detailkopf liegen die kontextbezogenen Werkzeuge als kompakte Leiste; das jeweilige Werkzeug soll nur bei Bedarf geöffnet werden.
+- Die Standardansicht zeigt die wichtigsten fachlichen Informationen, während technische oder selten benötigte Angaben in eine Expertenansicht gehören.
+- Zugeordnete oder abhängige Daten sollen unterhalb des Detailbereichs in einem eigenen Abschnitt stehen.
+- Wenn solche abhängigen Daten tabellarisch oder breit werden, ist für arbeitsorientierte Oberflächen eine gestapelte und einklappbare Darstellung oft besser als mehrere nebeneinanderliegende Karten.
+- Werkzeuge zum Bearbeiten und Bereiche zum Anzeigen vorhandener Zuordnungen sollen nicht dieselbe Aktion doppelt an mehreren Stellen anbieten.
+
 ## Stammdatenpflege
 - Technische Schlüssel für neue Stammdatensätze sollten nach Möglichkeit automatisch aus fachlich sichtbaren Namen erzeugt werden, statt standardmäßig manuell eingegeben zu werden.
 - Das reduziert Tippfehler, inkonsistente Benennungen und vermeidbare Dubletten.

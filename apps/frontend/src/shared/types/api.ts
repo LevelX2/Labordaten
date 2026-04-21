@@ -117,6 +117,7 @@ export type Person = {
   aktiv: boolean;
   erstellt_am: string;
   geaendert_am: string;
+  messwerte_anzahl: number;
 };
 
 export type Parameter = {
@@ -192,6 +193,14 @@ export type ParameterUmrechnungsregel = {
   aktiv: boolean;
   erstellt_am: string;
   geaendert_am: string;
+};
+
+export type ParameterGruppenzuordnung = {
+  id: string;
+  parameter_gruppe_id: string;
+  gruppenname: string;
+  gruppen_sortierschluessel?: string | null;
+  sortierung?: number | null;
 };
 
 export type ParameterUsageSummary = {
