@@ -339,3 +339,48 @@
   - Das Backend liest jetzt Markdown-Seiten aus dem konfigurierten Wissensordner, extrahiert einfache Frontmatter-Metadaten und stellt Liste sowie Detailansicht per API bereit.
   - Das Frontend enthält eine echte Wissensbasis-Seite mit Suche, Seitenauswahl, Frontmatter-Anzeige und Markdown-Detailansicht.
   - Backend-Kompilation, Frontend-Build und ein Rauchtest für `Wissensseiten-Liste -> Detailansicht` wurden erfolgreich ausgeführt.
+
+## [2026-04-21] update | Reales PDF per API in Stammdaten und Import überführt
+- Anlass oder Quelle: Nutzerdatei `2026-01-20 Bioscientia Trap5 und beta-Cross-Laps.pdf`
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - [[../02 Wissen/Begriffe und Konzepte/Ist-Stand Importstrecke und PDF-Grenzen]]
+- Kern der inhaltlichen Anpassung:
+  - Ein realer Bioscientia-Befund für Ludwig Hirth wurde visuell aus dem PDF extrahiert und über bestehende API-Schnittstellen verarbeitet.
+  - Dabei wurden ein Labor und zwei Parameter angelegt sowie ein Importentwurf ohne Warnungen übernommen.
+  - Zusätzlich wurde sichtbar, dass `dokumentPfad` bei Unicode-reichen Pfaden im Rückgabekontext noch ein Kodierungsthema haben kann.
+
+## [2026-04-21] update | JSON-Import an lokale Dokumentverknüpfung und erweiterten Referenzkontext angebunden
+- Anlass oder Quelle: Nutzerauftrag, den bestehenden PDF-zu-Import-Flow zu vervollständigen
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - [[../02 Wissen/Begriffe und Konzepte/Ist-Stand Importstrecke und PDF-Grenzen]]
+- Kern der inhaltlichen Anpassung:
+  - JSON-Importe mit lokalem `dokumentPfad` erzeugen jetzt ebenfalls ein echtes `Dokument` und verknüpfen dieses mit Importvorgang und Befund.
+  - Das Importschema und die Prüfansicht wurden um Referenzkontext wie Altersgrenzen, Geschlecht und Referenzbemerkung erweitert.
+  - Der bereits importierte Bioscientia-Befund wurde nachträglich mit dem Original-PDF und dem altersbezogenen Referenzkontext verbunden.
+
+## [2026-04-21] update | Zweites reales PDF importiert und Parameter-Synonymproblem konkretisiert
+- Anlass oder Quelle: Nutzerdatei `2021-10-30 pur-life.pdf`
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - [[../02 Wissen/Begriffe und Konzepte/Ist-Stand Importstrecke und PDF-Grenzen]]
+- Kern der inhaltlichen Anpassung:
+  - Ein realer Pur-life-Befund für Ludwig Hirth wurde aus dem PDF extrahiert, mit 101 Messwerten als Importentwurf angelegt und ohne Warnungen übernommen.
+  - Das Originaldokument wurde dabei automatisch als `Dokument` gespeichert und mit dem resultierenden Befund verknüpft.
+  - Zusätzlich wurde am konkreten Beispiel `Vitamin D3 (25-OH) LCMS` sichtbar gemacht, dass fachlich gleiche Werte laborabhängig anders benannt sein können und deshalb eine künftige Alias- oder Synonymverwaltung für kanonische Parameter sinnvoll ist.
+
+## [2026-04-21] update | Aliasverwaltung für Parameter und automatische Importzuordnung umgesetzt
+- Anlass oder Quelle: Nutzerauftrag, das erkannte Synonymproblem praktisch im System zu lösen
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - [[../02 Wissen/Begriffe und Konzepte/Ist-Stand Importstrecke und PDF-Grenzen]]
+- Kern der inhaltlichen Anpassung:
+  - Das Backend enthält jetzt eine eigene Alias-Tabelle für Laborparameter samt API-Endpunkten zur Pflege dieser Alternativnamen.
+  - Die Importprüfung kann Messwerte nun automatisch über internen Schlüssel, normalisierten Anzeigenamen und gepflegte Aliase auf kanonische Parameter auflösen.
+  - Das Frontend zeigt den Zuordnungsweg in der Prüfansicht an und enthält auf der Parameterseite eine Pflegeoberfläche für Aliase.
+  - Der neue Ablauf wurde praktisch gegen den laufenden Workspace verifiziert: Für `Vitamin D3 (25-OH) LCMS` wurde ein Alias angelegt und ein nachfolgender Importentwurf automatisch per Alias auf `Vitamin D3 (25-OH)` gemappt.

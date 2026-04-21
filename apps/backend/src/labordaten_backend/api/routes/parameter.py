@@ -27,3 +27,26 @@ def get_parameter(parameter_id: str, db: Session = Depends(get_db)) -> schemas.P
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Parameter nicht gefunden.")
     return parameter
 
+
+@router.get("/{parameter_id}/aliase", response_model=list[schemas.ParameterAliasRead])
+def list_parameter_aliase(parameter_id: str, db: Session = Depends(get_db)) -> list[schemas.ParameterAliasRead]:
+    try:
+        return service.list_parameter_aliase(db, parameter_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.post(
+    "/{parameter_id}/aliase",
+    response_model=schemas.ParameterAliasRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_parameter_alias(
+    parameter_id: str,
+    payload: schemas.ParameterAliasCreate,
+    db: Session = Depends(get_db),
+) -> schemas.ParameterAliasRead:
+    try:
+        return service.create_parameter_alias(db, parameter_id, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc

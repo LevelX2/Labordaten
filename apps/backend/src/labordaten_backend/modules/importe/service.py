@@ -13,7 +13,7 @@ from openpyxl import load_workbook
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from labordaten_backend.core.documents import store_document_file
+from labordaten_backend.core.documents import store_document_file, store_existing_document_path
 from labordaten_backend.models.base import utcnow
 from labordaten_backend.models.befund import Befund
 from labordaten_backend.models.dokument import Dokument
@@ -21,6 +21,7 @@ from labordaten_backend.models.import_pruefpunkt import ImportPruefpunkt
 from labordaten_backend.models.importvorgang import Importvorgang
 from labordaten_backend.models.labor import Labor
 from labordaten_backend.models.laborparameter import Laborparameter
+from labordaten_backend.models.laborparameter_alias import LaborparameterAlias
 from labordaten_backend.models.messwert import Messwert
 from labordaten_backend.models.messwert_referenz import MesswertReferenz
 from labordaten_backend.models.person import Person
@@ -36,6 +37,7 @@ from labordaten_backend.modules.importe.schemas import (
     ImportvorgangDetailRead,
     ImportvorgangListRead,
 )
+from labordaten_backend.modules.parameter.normalization import normalize_parameter_name
 
 
 HEADER_ALIASES: dict[str, set[str]] = {
@@ -66,6 +68,10 @@ HEADER_ALIASES: dict[str, set[str]] = {
     "untere_grenze_num": {"unteregrenzenum", "untere_grenze_num", "referenzuntere", "untergrenze"},
     "obere_grenze_num": {"oberegrenzenum", "obere_grenze_num", "referenzobere", "obergrenze"},
     "referenz_einheit": {"referenzeinheit", "referenz_einheit"},
+    "referenz_geschlecht_code": {"referenzgeschlechtcode", "referenz_geschlecht_code", "geschlechtreferenz"},
+    "referenz_alter_min_tage": {"referenzaltermintage", "referenz_alter_min_tage"},
+    "referenz_alter_max_tage": {"referenzaltermaxtage", "referenz_alter_max_tage"},
+    "referenz_bemerkung": {"referenzbemerkung", "referenz_bemerkung"},
     "unsicher_flag": {"unsicherflag", "unsicher_flag", "unsicher"},
     "pruefbedarf_flag": {"pruefbedarfflag", "pruefbedarf_flag", "pruefbedarf"},
 }
@@ -78,6 +84,118 @@ class Pruefregel:
     pruefart: str
     status: str
     meldung: str
+
+
+@dataclass
+class ParameterResolution:
+    parameter_id: str | None
+    herkunft: str | None
+    hinweis: str | None = None
+    mehrdeutig: bool = False
+
+
+class ParameterResolver:
+    def __init__(self, db: Session) -> None:
+        self.by_id: dict[str, Laborparameter] = {}
+        self._schluessel_lookup: dict[str, list[tuple[str, str]]] = {}
+        self._anzeigename_lookup: dict[str, list[tuple[str, str]]] = {}
+        self._alias_lookup: dict[str, list[tuple[str, str]]] = {}
+
+        for parameter in db.scalars(select(Laborparameter)):
+            self.by_id[parameter.id] = parameter
+            self._add_candidate(
+                self._schluessel_lookup,
+                normalize_parameter_name(parameter.interner_schluessel),
+                parameter.id,
+                parameter.interner_schluessel,
+            )
+            self._add_candidate(
+                self._anzeigename_lookup,
+                normalize_parameter_name(parameter.anzeigename),
+                parameter.id,
+                parameter.anzeigename,
+            )
+
+        for alias in db.scalars(select(LaborparameterAlias)):
+            self._add_candidate(
+                self._alias_lookup,
+                alias.alias_normalisiert,
+                alias.laborparameter_id,
+                alias.alias_text,
+            )
+
+    def resolve(
+        self,
+        *,
+        original_name: str,
+        explicit_parameter_id: str | None,
+        manual_parameter_id: str | None,
+    ) -> ParameterResolution:
+        if manual_parameter_id:
+            return ParameterResolution(parameter_id=manual_parameter_id, herkunft="manuell")
+        if explicit_parameter_id:
+            return ParameterResolution(parameter_id=explicit_parameter_id, herkunft="explizit")
+
+        normalized_name = normalize_parameter_name(original_name)
+        if not normalized_name:
+            return ParameterResolution(parameter_id=None, herkunft=None)
+
+        for herkunft, lookup in (
+            ("schluessel", self._schluessel_lookup),
+            ("anzeigename", self._anzeigename_lookup),
+            ("alias", self._alias_lookup),
+        ):
+            resolution = self._match_lookup(lookup, normalized_name, herkunft)
+            if resolution is not None:
+                return resolution
+
+        return ParameterResolution(parameter_id=None, herkunft=None)
+
+    def get_parameter_name(self, parameter_id: str | None) -> str | None:
+        if not parameter_id:
+            return None
+        parameter = self.by_id.get(parameter_id)
+        return parameter.anzeigename if parameter is not None else None
+
+    def _match_lookup(
+        self,
+        lookup: dict[str, list[tuple[str, str]]],
+        normalized_name: str,
+        herkunft: str,
+    ) -> ParameterResolution | None:
+        candidates = lookup.get(normalized_name, [])
+        unique_ids = {parameter_id for parameter_id, _ in candidates}
+        if not unique_ids:
+            return None
+        if len(unique_ids) > 1:
+            namen = ", ".join(
+                sorted({self.by_id[parameter_id].anzeigename for parameter_id in unique_ids if parameter_id in self.by_id})
+            )
+            return ParameterResolution(
+                parameter_id=None,
+                herkunft=herkunft,
+                hinweis=namen or None,
+                mehrdeutig=True,
+            )
+
+        parameter_id = next(iter(unique_ids))
+        matched_texts = sorted({label for candidate_id, label in candidates if candidate_id == parameter_id})
+        return ParameterResolution(
+            parameter_id=parameter_id,
+            herkunft=herkunft,
+            hinweis=matched_texts[0] if matched_texts else self.get_parameter_name(parameter_id),
+        )
+
+    @staticmethod
+    def _add_candidate(
+        lookup: dict[str, list[tuple[str, str]]],
+        normalized_name: str,
+        parameter_id: str,
+        label: str,
+    ) -> None:
+        if not normalized_name:
+            return
+        lookup.setdefault(normalized_name, []).append((parameter_id, label))
 
 
 def list_importe(db: Session) -> list[ImportvorgangListRead]:
@@ -103,11 +221,23 @@ def list_pruefpunkte(db: Session, import_id: str) -> list[ImportPruefpunkt]:
 
 def create_import_entwurf(db: Session, payload: ImportEntwurfCreate) -> ImportvorgangDetailRead:
     import_payload = _parse_payload(payload.payload_json, payload.person_id_override)
+    dokument_id = payload.dokument_id
+    if dokument_id is None and import_payload.befund.dokument_pfad:
+        dokument = store_existing_document_path(
+            source_path=import_payload.befund.dokument_pfad,
+            dokument_typ="importquelle",
+            originalquelle_behalten=True,
+            bemerkung=payload.bemerkung,
+        )
+        db.add(dokument)
+        db.flush()
+        dokument_id = dokument.id
+
     return _create_import_entwurf_record(
         db,
         import_payload=import_payload,
         bemerkung=payload.bemerkung,
-        dokument_id=payload.dokument_id,
+        dokument_id=dokument_id,
     )
 
 
@@ -200,10 +330,16 @@ def uebernehmen_import(
     db.flush()
 
     mapping_lookup = {item.messwert_index: item.laborparameter_id for item in mappings}
+    parameter_resolver = ParameterResolver(db)
     created_measurements: list[Messwert] = []
 
     for index, item in enumerate(import_payload.messwerte):
-        parameter_id = item.parameter_id or mapping_lookup.get(index)
+        resolution = parameter_resolver.resolve(
+            original_name=item.original_parametername,
+            explicit_parameter_id=item.parameter_id,
+            manual_parameter_id=mapping_lookup.get(index),
+        )
+        parameter_id = resolution.parameter_id
         if parameter_id is None:
             raise ValueError("Es fehlt noch mindestens eine Parameterzuordnung.")
 
@@ -244,6 +380,10 @@ def uebernehmen_import(
                     obere_grenze_num=item.obere_grenze_num if item.wert_typ == "numerisch" else None,
                     einheit=item.referenz_einheit if item.wert_typ == "numerisch" else None,
                     soll_text=item.referenz_text_original if item.wert_typ == "text" else None,
+                    geschlecht_code=item.referenz_geschlecht_code,
+                    alter_min_tage=item.referenz_alter_min_tage,
+                    alter_max_tage=item.referenz_alter_max_tage,
+                    bemerkung=item.referenz_bemerkung,
                 )
             )
 
@@ -326,6 +466,7 @@ def _build_detail(db: Session, importvorgang: Importvorgang) -> ImportvorgangDet
     payload = _parse_payload(importvorgang.roh_payload_text or "")
     checks = list_pruefpunkte(db, importvorgang.id)
     counts = _count_checks(db, importvorgang.id)
+    parameter_resolver = ParameterResolver(db)
     imported_measurements = list(
         db.scalars(
             select(Messwert)
@@ -371,25 +512,61 @@ def _build_detail(db: Session, importvorgang: Importvorgang) -> ImportvorgangDet
             ),
         ),
         messwerte=[
-            ImportMesswertPreviewRead(
-                messwert_index=index,
-                parameter_id=(
-                    imported_measurements[index].laborparameter_id
-                    if index < len(imported_measurements)
-                    else item.parameter_id
-                ),
-                original_parametername=item.original_parametername,
-                wert_typ=item.wert_typ,
-                wert_roh_text=item.wert_roh_text,
-                wert_num=item.wert_num,
-                wert_text=item.wert_text,
-                einheit_original=item.einheit_original,
-                bemerkung_kurz=item.bemerkung_kurz,
-                referenz_text_original=item.referenz_text_original,
+            _build_measurement_preview(
+                index=index,
+                item=item,
+                imported_measurements=imported_measurements,
+                parameter_resolver=parameter_resolver,
             )
             for index, item in enumerate(payload.messwerte)
         ],
         pruefpunkte=[ImportPruefpunktRead.model_validate(item) for item in checks],
+    )
+
+
+def _build_measurement_preview(
+    *,
+    index: int,
+    item: ImportMesswertPayload,
+    imported_measurements: list[Messwert],
+    parameter_resolver: ParameterResolver,
+) -> ImportMesswertPreviewRead:
+    imported_parameter_id = imported_measurements[index].laborparameter_id if index < len(imported_measurements) else None
+    resolution = parameter_resolver.resolve(
+        original_name=item.original_parametername,
+        explicit_parameter_id=item.parameter_id,
+        manual_parameter_id=None,
+    )
+
+    if imported_parameter_id is not None:
+        parameter_id = imported_parameter_id
+        mapping_herkunft = "uebernommen"
+        mapping_hinweis = parameter_resolver.get_parameter_name(imported_parameter_id)
+    else:
+        parameter_id = resolution.parameter_id
+        mapping_herkunft = resolution.herkunft
+        mapping_hinweis = resolution.hinweis
+
+    return ImportMesswertPreviewRead(
+        messwert_index=index,
+        parameter_id=parameter_id,
+        parameter_mapping_herkunft=mapping_herkunft,
+        parameter_mapping_hinweis=mapping_hinweis,
+        original_parametername=item.original_parametername,
+        wert_typ=item.wert_typ,
+        wert_roh_text=item.wert_roh_text,
+        wert_num=item.wert_num,
+        wert_text=item.wert_text,
+        einheit_original=item.einheit_original,
+        bemerkung_kurz=item.bemerkung_kurz,
+        referenz_text_original=item.referenz_text_original,
+        untere_grenze_num=item.untere_grenze_num,
+        obere_grenze_num=item.obere_grenze_num,
+        referenz_einheit=item.referenz_einheit,
+        referenz_geschlecht_code=item.referenz_geschlecht_code,
+        referenz_alter_min_tage=item.referenz_alter_min_tage,
+        referenz_alter_max_tage=item.referenz_alter_max_tage,
+        referenz_bemerkung=item.referenz_bemerkung,
     )
 
 
@@ -402,6 +579,7 @@ def _generate_checks(
     del importvorgang_id
     mapping_lookup = {item.messwert_index: item.laborparameter_id for item in mappings}
     checks: list[Pruefregel] = []
+    parameter_resolver = ParameterResolver(db)
 
     person_id = payload.befund.person_id
     if not person_id:
@@ -431,18 +609,21 @@ def _generate_checks(
         )
 
     for index, item in enumerate(payload.messwerte):
-        parameter_id = item.parameter_id or mapping_lookup.get(index)
+        resolution = parameter_resolver.resolve(
+            original_name=item.original_parametername,
+            explicit_parameter_id=item.parameter_id,
+            manual_parameter_id=mapping_lookup.get(index),
+        )
+        parameter_id = resolution.parameter_id
         key = f"messwert:{index}"
         if parameter_id is None:
-            checks.append(
-                Pruefregel(
-                    "messwert",
-                    key,
-                    "parameter_mapping",
-                    "warnung",
-                    f"Für '{item.original_parametername}' fehlt noch eine Parameterzuordnung.",
-                )
+            meldung = (
+                f"Für '{item.original_parametername}' gibt es mehrere passende Parameter"
+                + (f": {resolution.hinweis}." if resolution.mehrdeutig and resolution.hinweis else ".")
+                if resolution.mehrdeutig
+                else f"Für '{item.original_parametername}' fehlt noch eine Parameterzuordnung."
             )
+            checks.append(Pruefregel("messwert", key, "parameter_mapping", "warnung", meldung))
         else:
             parameter = db.get(Laborparameter, parameter_id)
             if parameter is None:
@@ -746,6 +927,10 @@ def _row_to_measurement(row: dict[str, str]) -> ImportMesswertPayload | None:
         "untereGrenzeNum": _parse_optional_float(_row_value(row, "untere_grenze_num")),
         "obereGrenzeNum": _parse_optional_float(_row_value(row, "obere_grenze_num")),
         "referenzEinheit": _row_value(row, "referenz_einheit"),
+        "referenzGeschlechtCode": _row_value(row, "referenz_geschlecht_code"),
+        "referenzAlterMinTage": _parse_optional_int(_row_value(row, "referenz_alter_min_tage")),
+        "referenzAlterMaxTage": _parse_optional_int(_row_value(row, "referenz_alter_max_tage")),
+        "referenzBemerkung": _row_value(row, "referenz_bemerkung"),
         "unsicherFlag": _parse_bool(_row_value(row, "unsicher_flag")),
         "pruefbedarfFlag": _parse_bool(_row_value(row, "pruefbedarf_flag")),
     }
@@ -805,6 +990,21 @@ def _parse_optional_float(value: str | None) -> float | None:
         return None
     try:
         return float(match.group(0))
+    except ValueError:
+        return None
+
+
+def _parse_optional_int(value: str | None) -> int | None:
+    if value is None:
+        return None
+    normalized = value.strip()
+    if not normalized:
+        return None
+    match = re.search(r"[-+]?\d+", normalized)
+    if match is None:
+        return None
+    try:
+        return int(match.group(0))
     except ValueError:
         return None
 

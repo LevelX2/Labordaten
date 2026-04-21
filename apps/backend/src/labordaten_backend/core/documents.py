@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import mimetypes
 import re
 from datetime import datetime
 from pathlib import Path
@@ -54,4 +55,31 @@ def store_document_file(
         originalquelle_behalten=originalquelle_behalten,
         bemerkung=bemerkung,
         erstellt_am=utcnow().isoformat(),
+    )
+
+
+def store_existing_document_path(
+    *,
+    source_path: str | Path,
+    dokument_typ: str,
+    originalquelle_behalten: bool,
+    bemerkung: str | None = None,
+) -> Dokument:
+    source = Path(source_path).expanduser().resolve()
+    if not source.exists():
+        raise ValueError(f"Die Dokumentquelle '{source}' wurde nicht gefunden.")
+    if not source.is_file():
+        raise ValueError(f"Die Dokumentquelle '{source}' ist keine Datei.")
+
+    content_type, _ = mimetypes.guess_type(source.name)
+    source_note = f"Originalpfad: {source}"
+    merged_bemerkung = source_note if not bemerkung else f"{bemerkung}\n{source_note}"
+
+    return store_document_file(
+        content=source.read_bytes(),
+        original_filename=source.name,
+        content_type=content_type,
+        dokument_typ=dokument_typ,
+        originalquelle_behalten=originalquelle_behalten,
+        bemerkung=merged_bemerkung,
     )

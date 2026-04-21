@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 
 import { apiFetch } from "../../shared/api/client";
-import type { Parameter, Zielbereich } from "../../shared/types/api";
+import type { Parameter, ParameterAlias, Zielbereich } from "../../shared/types/api";
 
 type ParameterFormState = {
   interner_schluessel: string;
@@ -18,6 +18,18 @@ const initialForm: ParameterFormState = {
   standard_einheit: "",
   wert_typ_standard: "numerisch",
   beschreibung: ""
+};
+
+type ParameterAliasFormState = {
+  laborparameter_id: string;
+  alias_text: string;
+  bemerkung: string;
+};
+
+const initialAliasForm: ParameterAliasFormState = {
+  laborparameter_id: "",
+  alias_text: "",
+  bemerkung: ""
 };
 
 type ZielbereichFormState = {
@@ -45,6 +57,7 @@ const initialZielbereichForm: ZielbereichFormState = {
 export function ParameterPage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<ParameterFormState>(initialForm);
+  const [aliasForm, setAliasForm] = useState<ParameterAliasFormState>(initialAliasForm);
   const [zielbereichForm, setZielbereichForm] = useState<ZielbereichFormState>(initialZielbereichForm);
 
   const parameterQuery = useQuery({
@@ -61,6 +74,12 @@ export function ParameterPage() {
     queryKey: ["zielbereiche", zielbereichForm.parameter_id],
     queryFn: () => apiFetch<Zielbereich[]>(`/api/parameter/${zielbereichForm.parameter_id}/zielbereiche`),
     enabled: Boolean(zielbereichForm.parameter_id)
+  });
+
+  const parameterAliaseQuery = useQuery({
+    queryKey: ["parameter-aliase", aliasForm.laborparameter_id],
+    queryFn: () => apiFetch<ParameterAlias[]>(`/api/parameter/${aliasForm.laborparameter_id}/aliase`),
+    enabled: Boolean(aliasForm.laborparameter_id)
   });
 
   const createMutation = useMutation({
@@ -104,6 +123,24 @@ export function ParameterPage() {
         parameter_id: current.parameter_id
       }));
       await queryClient.invalidateQueries({ queryKey: ["zielbereiche", zielbereichForm.parameter_id] });
+    }
+  });
+
+  const createAliasMutation = useMutation({
+    mutationFn: () =>
+      apiFetch<ParameterAlias>(`/api/parameter/${aliasForm.laborparameter_id}/aliase`, {
+        method: "POST",
+        body: JSON.stringify({
+          alias_text: aliasForm.alias_text,
+          bemerkung: aliasForm.bemerkung || null
+        })
+      }),
+    onSuccess: async () => {
+      setAliasForm((current) => ({
+        ...initialAliasForm,
+        laborparameter_id: current.laborparameter_id
+      }));
+      await queryClient.invalidateQueries({ queryKey: ["parameter-aliase", aliasForm.laborparameter_id] });
     }
   });
 
@@ -210,6 +247,95 @@ export function ParameterPage() {
                 {!parameterQuery.data?.length ? (
                   <tr>
                     <td colSpan={4}>Noch keine Parameter vorhanden.</td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article className="card">
+          <h3>Alias pflegen</h3>
+          <p>
+            Aliasnamen helfen beim Import, wenn Labore denselben Wert unterschiedlich benennen, etwa mit anderer
+            Schreibweise oder Zusatz wie LCMS.
+          </p>
+          <form
+            className="form-grid"
+            onSubmit={(event) => {
+              event.preventDefault();
+              createAliasMutation.mutate();
+            }}
+          >
+            <label className="field">
+              <span>Parameter</span>
+              <select
+                required
+                value={aliasForm.laborparameter_id}
+                onChange={(event) =>
+                  setAliasForm((current) => ({ ...current, laborparameter_id: event.target.value }))
+                }
+              >
+                <option value="">Bitte wählen</option>
+                {parameterQuery.data?.map((parameter) => (
+                  <option key={parameter.id} value={parameter.id}>
+                    {parameter.anzeigename}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field">
+              <span>Aliasname</span>
+              <input
+                required
+                value={aliasForm.alias_text}
+                onChange={(event) => setAliasForm((current) => ({ ...current, alias_text: event.target.value }))}
+                placeholder="z. B. Vitamin D3 (25-OH) LCMS"
+              />
+            </label>
+
+            <label className="field field--full">
+              <span>Bemerkung</span>
+              <textarea
+                rows={3}
+                value={aliasForm.bemerkung}
+                onChange={(event) => setAliasForm((current) => ({ ...current, bemerkung: event.target.value }))}
+              />
+            </label>
+
+            <div className="form-actions">
+              <button type="submit" disabled={createAliasMutation.isPending || !aliasForm.laborparameter_id}>
+                {createAliasMutation.isPending ? "Speichert..." : "Alias anlegen"}
+              </button>
+              {createAliasMutation.isError ? <p className="form-error">{createAliasMutation.error.message}</p> : null}
+            </div>
+          </form>
+        </article>
+
+        <article className="card">
+          <h3>Aliase zum gewählten Parameter</h3>
+          {!aliasForm.laborparameter_id ? <p>Bitte zuerst einen Parameter für die Aliaspflege wählen.</p> : null}
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Alias</th>
+                  <th>Normalisiert</th>
+                  <th>Bemerkung</th>
+                </tr>
+              </thead>
+              <tbody>
+                {parameterAliaseQuery.data?.map((alias) => (
+                  <tr key={alias.id}>
+                    <td>{alias.alias_text}</td>
+                    <td>{alias.alias_normalisiert}</td>
+                    <td>{alias.bemerkung || "—"}</td>
+                  </tr>
+                ))}
+                {aliasForm.laborparameter_id && !parameterAliaseQuery.data?.length ? (
+                  <tr>
+                    <td colSpan={3}>Noch keine Aliase für diesen Parameter vorhanden.</td>
                   </tr>
                 ) : null}
               </tbody>

@@ -696,16 +696,18 @@ export function MesswertePage() {
           <div className="table-wrap">
             <table className="data-table">
               <thead>
-                <tr>
-                  <th>Typ</th>
-                  <th>Referenz</th>
-                  <th>Einheit</th>
-                  <th>Geschlecht</th>
-                </tr>
-              </thead>
-              <tbody>
-                {referenzenQuery.data?.map((referenz) => (
-                  <tr key={referenz.id}>
+                  <tr>
+                    <th>Typ</th>
+                    <th>Referenz</th>
+                    <th>Einheit</th>
+                    <th>Geschlecht</th>
+                    <th>Alter</th>
+                    <th>Originaltext</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {referenzenQuery.data?.map((referenz) => (
+                    <tr key={referenz.id}>
                     <td>{referenz.wert_typ}</td>
                     <td>
                       {referenz.wert_typ === "numerisch"
@@ -714,11 +716,23 @@ export function MesswertePage() {
                     </td>
                     <td>{referenz.einheit || "—"}</td>
                     <td>{referenz.geschlecht_code || "alle"}</td>
+                    <td>
+                      {referenz.alter_min_tage !== null && referenz.alter_min_tage !== undefined
+                        ? `${(referenz.alter_min_tage / 365.25).toFixed(1)} bis ${
+                            referenz.alter_max_tage !== null && referenz.alter_max_tage !== undefined
+                              ? (referenz.alter_max_tage / 365.25).toFixed(1)
+                              : "—"
+                          } Jahre`
+                        : referenz.alter_max_tage !== null && referenz.alter_max_tage !== undefined
+                          ? `bis ${(referenz.alter_max_tage / 365.25).toFixed(1)} Jahre`
+                          : "—"}
+                    </td>
+                    <td>{referenz.referenz_text_original || "—"}</td>
                   </tr>
                 ))}
                 {referenzForm.messwert_id && !referenzenQuery.data?.length ? (
                   <tr>
-                    <td colSpan={4}>Noch keine Referenzen für diesen Messwert vorhanden.</td>
+                    <td colSpan={6}>Noch keine Referenzen für diesen Messwert vorhanden.</td>
                   </tr>
                 ) : null}
               </tbody>

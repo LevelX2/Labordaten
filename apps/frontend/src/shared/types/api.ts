@@ -25,6 +25,16 @@ export type Parameter = {
   geaendert_am: string;
 };
 
+export type ParameterAlias = {
+  id: string;
+  laborparameter_id: string;
+  alias_text: string;
+  alias_normalisiert: string;
+  bemerkung?: string | null;
+  erstellt_am: string;
+  geaendert_am: string;
+};
+
 export type Gruppe = {
   id: string;
   name: string;
@@ -227,6 +237,8 @@ export type ImportBefundPreview = {
 export type ImportMesswertPreview = {
   messwert_index: number;
   parameter_id?: string | null;
+  parameter_mapping_herkunft?: string | null;
+  parameter_mapping_hinweis?: string | null;
   original_parametername: string;
   wert_typ: string;
   wert_roh_text: string;
@@ -235,6 +247,13 @@ export type ImportMesswertPreview = {
   einheit_original?: string | null;
   bemerkung_kurz?: string | null;
   referenz_text_original?: string | null;
+  untere_grenze_num?: number | null;
+  obere_grenze_num?: number | null;
+  referenz_einheit?: string | null;
+  referenz_geschlecht_code?: string | null;
+  referenz_alter_min_tage?: number | null;
+  referenz_alter_max_tage?: number | null;
+  referenz_bemerkung?: string | null;
 };
 
 export type ImportVorgangListItem = {
@@ -275,17 +294,22 @@ export type ImportVorgangDetail = {
 };
 
 export type ArztberichtEintrag = {
+  messwert_id: string;
   person_id: string;
   person_anzeigename: string;
   laborparameter_id: string;
   parameter_anzeigename: string;
   datum?: string | null;
+  wert_typ: string;
   wert_anzeige: string;
+  wert_num?: number | null;
   einheit?: string | null;
   referenzbereich?: string | null;
   labor_name?: string | null;
   befundbemerkung?: string | null;
   messwertbemerkung?: string | null;
+  gruppen_namen: string[];
+  ausserhalb_referenzbereich?: boolean | null;
 };
 
 export type ArztberichtResponse = {
@@ -294,6 +318,7 @@ export type ArztberichtResponse = {
 };
 
 export type VerlaufsberichtPunkt = {
+  messwert_id: string;
   person_id: string;
   person_anzeigename: string;
   laborparameter_id: string;
@@ -305,6 +330,8 @@ export type VerlaufsberichtPunkt = {
   wert_text?: string | null;
   einheit?: string | null;
   labor_name?: string | null;
+  gruppen_namen: string[];
+  ausserhalb_referenzbereich?: boolean | null;
 };
 
 export type VerlaufsberichtResponse = {

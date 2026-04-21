@@ -56,6 +56,10 @@
           "untereGrenzeNum": { "type": "number" },
           "obereGrenzeNum": { "type": "number" },
           "referenzEinheit": { "type": "string" },
+          "referenzGeschlechtCode": { "type": "string" },
+          "referenzAlterMinTage": { "type": "integer" },
+          "referenzAlterMaxTage": { "type": "integer" },
+          "referenzBemerkung": { "type": "string" },
           "unsicherFlag": { "type": "boolean" },
           "pruefbedarfFlag": { "type": "boolean" }
         },
@@ -65,4 +69,3 @@
   },
   "additionalProperties": false
 }
-

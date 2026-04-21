@@ -32,6 +32,10 @@ class ImportMesswertPayload(BaseModel):
     untere_grenze_num: float | None = Field(default=None, alias="untereGrenzeNum")
     obere_grenze_num: float | None = Field(default=None, alias="obereGrenzeNum")
     referenz_einheit: str | None = Field(default=None, alias="referenzEinheit")
+    referenz_geschlecht_code: str | None = Field(default=None, alias="referenzGeschlechtCode")
+    referenz_alter_min_tage: int | None = Field(default=None, alias="referenzAlterMinTage")
+    referenz_alter_max_tage: int | None = Field(default=None, alias="referenzAlterMaxTage")
+    referenz_bemerkung: str | None = Field(default=None, alias="referenzBemerkung")
     unsicher_flag: bool = Field(default=False, alias="unsicherFlag")
     pruefbedarf_flag: bool = Field(default=False, alias="pruefbedarfFlag")
 
@@ -94,6 +98,8 @@ class ImportPruefpunktRead(BaseModel):
 class ImportMesswertPreviewRead(BaseModel):
     messwert_index: int
     parameter_id: str | None = None
+    parameter_mapping_herkunft: str | None = None
+    parameter_mapping_hinweis: str | None = None
     original_parametername: str
     wert_typ: str
     wert_roh_text: str
@@ -102,6 +108,13 @@ class ImportMesswertPreviewRead(BaseModel):
     einheit_original: str | None = None
     bemerkung_kurz: str | None = None
     referenz_text_original: str | None = None
+    untere_grenze_num: float | None = None
+    obere_grenze_num: float | None = None
+    referenz_einheit: str | None = None
+    referenz_geschlecht_code: str | None = None
+    referenz_alter_min_tage: int | None = None
+    referenz_alter_max_tage: int | None = None
+    referenz_bemerkung: str | None = None
 
 
 class ImportBefundPreviewRead(BaseModel):

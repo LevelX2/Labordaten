@@ -4,6 +4,7 @@ from labordaten_backend.models.import_pruefpunkt import ImportPruefpunkt
 from labordaten_backend.models.importvorgang import Importvorgang
 from labordaten_backend.models.labor import Labor
 from labordaten_backend.models.laborparameter import Laborparameter
+from labordaten_backend.models.laborparameter_alias import LaborparameterAlias
 from labordaten_backend.models.gruppen_parameter import GruppenParameter
 from labordaten_backend.models.messwert import Messwert
 from labordaten_backend.models.messwert_referenz import MesswertReferenz
@@ -22,6 +23,7 @@ __all__ = [
     "Importvorgang",
     "Labor",
     "Laborparameter",
+    "LaborparameterAlias",
     "GruppenParameter",
     "Messwert",
     "MesswertReferenz",

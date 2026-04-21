@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../../shared/api/client";
 import type {
   ImportVorgangDetail,
+  ImportMesswertPreview,
   ImportVorgangListItem,
   Labor,
   Parameter,
@@ -68,6 +69,68 @@ function formatDate(value?: string | null): string {
     return "—";
   }
   return new Intl.DateTimeFormat("de-DE").format(new Date(value));
+}
+
+function formatAgeRange(minDays?: number | null, maxDays?: number | null): string {
+  const minYears = minDays !== null && minDays !== undefined ? (minDays / 365.25).toFixed(1) : null;
+  const maxYears = maxDays !== null && maxDays !== undefined ? (maxDays / 365.25).toFixed(1) : null;
+  if (minYears && maxYears) {
+    return `${minYears} bis ${maxYears} Jahre`;
+  }
+  if (minYears) {
+    return `ab ${minYears} Jahre`;
+  }
+  if (maxYears) {
+    return `bis ${maxYears} Jahre`;
+  }
+  return "â€”";
+}
+
+function formatImportReference(messwert: ImportMesswertPreview): string {
+  if (messwert.wert_typ === "text") {
+    return messwert.referenz_text_original || "â€”";
+  }
+
+  const lower = messwert.untere_grenze_num ?? null;
+  const upper = messwert.obere_grenze_num ?? null;
+  const unit = messwert.referenz_einheit || messwert.einheit_original || "";
+  const range =
+    lower !== null || upper !== null
+      ? `${lower ?? "â€”"} bis ${upper ?? "â€”"}${unit ? ` ${unit}` : ""}`
+      : null;
+
+  if (range && messwert.referenz_text_original) {
+    return `${range} (${messwert.referenz_text_original})`;
+  }
+  return range || messwert.referenz_text_original || "â€”";
+}
+
+function formatMappingInfo(messwert: ImportMesswertPreview, currentParameterId?: string): string {
+  if (currentParameterId && currentParameterId !== (messwert.parameter_id ?? "")) {
+    return "Manuell angepasst";
+  }
+
+  const source = messwert.parameter_mapping_herkunft;
+  const hint = messwert.parameter_mapping_hinweis;
+  if (source === "alias") {
+    return hint ? `Automatisch über Alias: ${hint}` : "Automatisch über Alias";
+  }
+  if (source === "anzeigename") {
+    return hint ? `Automatisch über Anzeigenamen: ${hint}` : "Automatisch über Anzeigenamen";
+  }
+  if (source === "schluessel") {
+    return hint ? `Automatisch über Schlüssel: ${hint}` : "Automatisch über Schlüssel";
+  }
+  if (source === "explizit") {
+    return "Im Import bereits zugeordnet";
+  }
+  if (source === "manuell") {
+    return "Manuell zugeordnet";
+  }
+  if (source === "uebernommen") {
+    return hint ? `Bereits übernommen: ${hint}` : "Bereits übernommen";
+  }
+  return "Noch offen";
 }
 
 export function ImportPage() {
@@ -490,6 +553,9 @@ export function ImportPage() {
               <p>
                 Quelldatei: <strong>{selectedImport.dokument_dateiname ?? selectedImport.befund.dokument_dateiname ?? "—"}</strong>
               </p>
+              <p>
+                Dokumentpfad: <strong>{selectedImport.befund.dokument_pfad ?? "—"}</strong>
+              </p>
 
               <div className="table-wrap">
                 <table className="data-table">
@@ -499,6 +565,9 @@ export function ImportPage() {
                       <th>Rohwert</th>
                       <th>Typ</th>
                       <th>Einheit</th>
+                      <th>Referenz</th>
+                      <th>Kontext</th>
+                      <th>Zuordnungsweg</th>
                       <th>Parameter-Zuordnung</th>
                     </tr>
                   </thead>
@@ -509,6 +578,19 @@ export function ImportPage() {
                         <td>{messwert.wert_roh_text}</td>
                         <td>{messwert.wert_typ}</td>
                         <td>{messwert.einheit_original ?? "—"}</td>
+                        <td>{formatImportReference(messwert)}</td>
+                        <td>
+                          {[
+                            messwert.referenz_geschlecht_code ? `Geschlecht: ${messwert.referenz_geschlecht_code}` : null,
+                            messwert.referenz_alter_min_tage || messwert.referenz_alter_max_tage
+                              ? `Alter: ${formatAgeRange(messwert.referenz_alter_min_tage, messwert.referenz_alter_max_tage)}`
+                              : null,
+                            messwert.referenz_bemerkung ?? null
+                          ]
+                            .filter(Boolean)
+                            .join(" · ") || "—"}
+                        </td>
+                        <td>{formatMappingInfo(messwert, mappingState[messwert.messwert_index])}</td>
                         <td>
                           <select
                             value={mappingState[messwert.messwert_index] ?? ""}

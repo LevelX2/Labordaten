@@ -26,3 +26,19 @@ class ParameterRead(BaseModel):
     erstellt_am: datetime
     geaendert_am: datetime
 
+
+class ParameterAliasCreate(BaseModel):
+    alias_text: str
+    bemerkung: str | None = None
+
+
+class ParameterAliasRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    laborparameter_id: str
+    alias_text: str
+    alias_normalisiert: str
+    bemerkung: str | None = None
+    erstellt_am: datetime
+    geaendert_am: datetime
