@@ -13,6 +13,7 @@
 - [[../Begriffe und Konzepte/V1 Ziel-Datenmodell]]: verbindlicher fachlicher Zuschnitt der V1-Entitäten, Felder und Beziehungen.
 - [[../Begriffe und Konzepte/V1 Technisches Schema]]: relationale Tabellen, Constraints, Indizes und Konsistenzregeln für V1.
 - [[../Begriffe und Konzepte/V1 Screenplan und Kernworkflows]]: arbeitsbereichsorientierte V1-Oberfläche und Hauptabläufe.
+- [[../Begriffe und Konzepte/Geraeteprofile und mobile Bedienbarkeit]]: Einordnung, wie gut der aktuelle Stand auf Desktop, Tablet und Smartphone bedienbar ist.
 - [[../Begriffe und Konzepte/V1 Projektstruktur, Module und Schnittstellen]]: konkreter Zuschnitt für Backend, Frontend, API und Ordnerstruktur.
 - [[../Begriffe und Konzepte/Systembild und Paketuebersicht der Anwendung]]: visuelle Architekturübersicht mit Systemkomponenten, Ist-Zuschnitt und geplantem Paketbild.
 - [[../Begriffe und Konzepte/Ist-Stand Importstrecke und PDF-Grenzen]]: klare Einordnung, was die Importprüfung heute schon kann und was für echten PDF-Import noch fehlt.

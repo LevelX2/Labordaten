@@ -397,3 +397,13 @@
   - Mehrfachauswahlen in Berichten und Messwertfiltern wurden als kompakte Komfortsteuerung mit Sammelaktionen konkretisiert.
   - Für Berichte wurden zusammenfassende Kennzahlen und eine kurze Schwerpunktbeschreibung als sinnvolle V1-Komfortstufe festgehalten.
   - Für Dateiimporte wurde festgehalten, dass Importbemerkungen vorbelegt, aber weiter editierbar sein sollen.
+
+## [2026-04-21] update | Bedienbarkeit auf Tablet und Smartphone aus Konzept und Frontend abgeleitet
+- Anlass oder Quelle: Nutzerfrage zur Nutzbarkeit der Anwendung auf Tablet oder Mobiltelefon
+- Neu angelegte Seiten:
+  - [[../02 Wissen/Begriffe und Konzepte/Geraeteprofile und mobile Bedienbarkeit]]
+- Geänderte Seiten:
+  - [[../02 Wissen/00 Uebersichten/Index]]
+- Kern der inhaltlichen Anpassung:
+  - Die Anwendung wurde als lokale Browser-Oberfläche mit grundsätzlicher Responsive-Basis eingeordnet, nicht als native Mobil-App.
+  - Für den aktuellen Stand wurde festgehalten: Desktop ist das Primärziel, Tablet ist grundsätzlich gut nutzbar, Smartphones sind eher für lesende und kurze Aufgaben geeignet.
