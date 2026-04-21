@@ -7,6 +7,11 @@ export type WertOperator =
   | "groesser_als"
   | "groesser_gleich"
   | "ungefaehr";
+export type ReferenzGrenzOperator =
+  | "kleiner_als"
+  | "kleiner_gleich"
+  | "groesser_als"
+  | "groesser_gleich";
 export type ReferenzTyp = "labor" | "ziel_allgemein" | "ziel_person";
 export type BefundQuelleTyp = "manuell" | "import" | "ki_import";
 
@@ -27,6 +32,15 @@ export type ParameterCreatePayload = {
   standard_einheit?: string | null;
   wert_typ_standard: WertTyp;
   sortierschluessel?: string | null;
+};
+
+export type EinheitCreatePayload = {
+  kuerzel: string;
+};
+
+export type EinheitAliasCreatePayload = {
+  alias_text: string;
+  bemerkung?: string | null;
 };
 
 export type MesswertCreatePayload = {
@@ -51,7 +65,9 @@ export type MesswertReferenzCreatePayload = {
   wert_typ: WertTyp;
   referenz_text_original?: string | null;
   untere_grenze_num?: number | null;
+  untere_grenze_operator?: ReferenzGrenzOperator | null;
   obere_grenze_num?: number | null;
+  obere_grenze_operator?: ReferenzGrenzOperator | null;
   einheit?: string | null;
   soll_text?: string | null;
   geschlecht_code?: GeschlechtCode | null;
@@ -95,6 +111,25 @@ export type Parameter = {
   wert_typ_standard: WertTyp;
   sortierschluessel?: string | null;
   aktiv: boolean;
+  erstellt_am: string;
+  geaendert_am: string;
+};
+
+export type Einheit = {
+  id: string;
+  kuerzel: string;
+  aktiv: boolean;
+  erstellt_am: string;
+  geaendert_am: string;
+  aliase: EinheitAlias[];
+};
+
+export type EinheitAlias = {
+  id: string;
+  einheit_id: string;
+  alias_text: string;
+  alias_normalisiert: string;
+  bemerkung?: string | null;
   erstellt_am: string;
   geaendert_am: string;
 };
@@ -254,7 +289,9 @@ export type MesswertReferenz = {
   referenz_text_original?: string | null;
   wert_typ: WertTyp;
   untere_grenze_num?: number | null;
+  untere_grenze_operator?: ReferenzGrenzOperator | null;
   obere_grenze_num?: number | null;
+  obere_grenze_operator?: ReferenzGrenzOperator | null;
   einheit?: string | null;
   soll_text?: string | null;
   geschlecht_code?: GeschlechtCode | null;
@@ -379,6 +416,7 @@ export type ImportMesswertPreview = {
   alias_uebernehmen: boolean;
   original_parametername: string;
   wert_typ: WertTyp;
+  wert_operator?: WertOperator;
   wert_roh_text: string;
   wert_num?: number | null;
   wert_text?: string | null;
@@ -386,7 +424,9 @@ export type ImportMesswertPreview = {
   bemerkung_kurz?: string | null;
   referenz_text_original?: string | null;
   untere_grenze_num?: number | null;
+  untere_grenze_operator?: ReferenzGrenzOperator | null;
   obere_grenze_num?: number | null;
+  obere_grenze_operator?: ReferenzGrenzOperator | null;
   referenz_einheit?: string | null;
   referenz_geschlecht_code?: GeschlechtCode | null;
   referenz_alter_min_tage?: number | null;
@@ -510,6 +550,7 @@ export type AuswertungPunkt = {
   person_anzeigename: string;
   datum?: string | null;
   wert_typ: WertTyp;
+  wert_operator: WertOperator;
   wert_anzeige: string;
   wert_num?: number | null;
   wert_text?: string | null;
