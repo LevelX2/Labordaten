@@ -606,3 +606,14 @@
   - In den generischen Entwicklungsvorgaben wurden neue wiederverwendbare Regeln zu Lesefeldern, Original- versus Vergleichsdaten, explizit gepflegten Zielauspraegungen, konsistenter Neuberechnung und der Trennung von Alias und fachlicher Transformation ergaenzt.
   - Fuer das Projekt `Labordaten` wurde zusaetzlich eine eigene Fachseite angelegt, die den aktuellen Zuschnitt fuer zentrale Einheitenstammdaten, Einheiten-Aliase, parameterbezogene Umrechnungsregeln und die fuehrende Normeinheit beschreibt.
   - Der Index verweist nun explizit auf diese Trennung zwischen allgemeinem Regelwissen und projektspezifischer Einheitenlogik.
+
+## [2026-04-22] update | Importstrecke um dateibasierte Importe und Gruppenvorschlaege im Ist-Stand ergaenzt
+- Anlass oder Quelle: Abschlusspruefung mit Rueckfuehrung des aktuellen Importfunktionsstands in die Wissensbasis
+- Neu angelegte Seiten:
+  - keine
+- Geaenderte Seiten:
+  - [[../02 Wissen/Begriffe und Konzepte/Ist-Stand Importstrecke und PDF-Grenzen]]
+- Kern der inhaltlichen Anpassung:
+  - Die Ist-Stand-Seite zur Importstrecke beschreibt jetzt ausdruecklich, dass neben JSON auch CSV- und Excel-Dateien in Importentwuerfe ueberfuehrt werden koennen.
+  - Zusaetzlich wurde festgehalten, dass die Importstrecke Gruppenvorschlaege aus Importdaten ableiten, aehnliche vorhandene Gruppen anzeigen und diese nach der Uebernahme auf neue oder bestehende Gruppen anwenden kann.
+  - Veraltete Aussagen, nach denen CSV- und Excel-Dateiimporte noch fehlen, wurden entsprechend korrigiert.
