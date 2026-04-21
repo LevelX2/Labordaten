@@ -161,6 +161,24 @@ a {
   font-size: 1.05rem;
 }
 
+.stat-card__detail {
+  margin-top: 10px;
+  color: var(--muted);
+}
+
+.stat-card__link,
+.card__link {
+  display: inline-flex;
+  margin-top: 14px;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.stat-card__link:hover,
+.card__link:hover {
+  text-decoration: underline;
+}
+
 .card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
