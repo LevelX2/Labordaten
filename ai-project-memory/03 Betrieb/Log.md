@@ -384,3 +384,16 @@
   - Die Importprüfung kann Messwerte nun automatisch über internen Schlüssel, normalisierten Anzeigenamen und gepflegte Aliase auf kanonische Parameter auflösen.
   - Das Frontend zeigt den Zuordnungsweg in der Prüfansicht an und enthält auf der Parameterseite eine Pflegeoberfläche für Aliase.
   - Der neue Ablauf wurde praktisch gegen den laufenden Workspace verifiziert: Für `Vitamin D3 (25-OH) LCMS` wurde ein Alias angelegt und ein nachfolgender Importentwurf automatisch per Alias auf `Vitamin D3 (25-OH)` gemappt.
+
+## [2026-04-21] update | Berichts- und Import-UX anhand Nutzerfeedback verfeinert
+- Anlass oder Quelle: [[../01 Rohquellen/fachkonzepte/2026-04-21 Rueckmeldung Berichte und Import UX]]
+- Neu angelegte Seiten:
+  - [[../01 Rohquellen/fachkonzepte/2026-04-21 Rueckmeldung Berichte und Import UX]]
+- Geänderte Seiten:
+  - [[../02 Wissen/00 Uebersichten/Aktueller Projektstatus]]
+  - [[../02 Wissen/Begriffe und Konzepte/V1 Screenplan und Kernworkflows]]
+- Kern der inhaltlichen Anpassung:
+  - Die Berichts- und Messwertlisten wurden auf direkt sichtbare Detailzugänge mit Referenzwerten ausgerichtet.
+  - Mehrfachauswahlen in Berichten und Messwertfiltern wurden als kompakte Komfortsteuerung mit Sammelaktionen konkretisiert.
+  - Für Berichte wurden zusammenfassende Kennzahlen und eine kurze Schwerpunktbeschreibung als sinnvolle V1-Komfortstufe festgehalten.
+  - Für Dateiimporte wurde festgehalten, dass Importbemerkungen vorbelegt, aber weiter editierbar sein sollen.

@@ -133,6 +133,29 @@ function formatMappingInfo(messwert: ImportMesswertPreview, currentParameterId?:
   return "Noch offen";
 }
 
+function buildDefaultImportRemark(args: {
+  filename?: string;
+  personName?: string | null;
+  laborName?: string | null;
+  entnahmedatum?: string;
+}): string {
+  if (!args.filename) {
+    return "";
+  }
+
+  const parts = [`Import aus Datei ${args.filename}`];
+  if (args.personName) {
+    parts.push(`für ${args.personName}`);
+  }
+  if (args.entnahmedatum) {
+    parts.push(`mit Entnahmedatum ${args.entnahmedatum}`);
+  }
+  if (args.laborName) {
+    parts.push(`Labor ${args.laborName}`);
+  }
+  return parts.join(" · ");
+}
+
 export function ImportPage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<ImportFormState>(initialForm);
@@ -192,6 +215,27 @@ export function ImportPage() {
     () => new Map((laboreQuery.data ?? []).map((labor) => [labor.id, labor])),
     [laboreQuery.data]
   );
+  const selectedLaborName = laborById.get(dateiForm.labor_id_override)?.name ?? null;
+  const manualLaborName = dateiForm.labor_name_override.trim() ? dateiForm.labor_name_override.trim() : null;
+  const defaultImportRemark = buildDefaultImportRemark({
+    filename: dateiForm.file?.name,
+    personName: personById.get(dateiForm.person_id_override)?.anzeigename ?? null,
+    laborName: selectedLaborName ?? manualLaborName,
+    entnahmedatum: dateiForm.entnahmedatum_override
+  });
+
+  useEffect(() => {
+    if (!defaultImportRemark) {
+      return;
+    }
+
+    setDateiForm((current) => {
+      if (current.import_bemerkung && current.import_bemerkung !== defaultImportRemark) {
+        return current;
+      }
+      return { ...current, import_bemerkung: defaultImportRemark };
+    });
+  }, [defaultImportRemark]);
 
   const createDraftMutation = useMutation({
     mutationFn: () =>

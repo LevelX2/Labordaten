@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 
 import { apiFetch } from "../../shared/api/client";
+import { MesswertDetailCard } from "../../shared/components/MesswertDetailCard";
+import { SelectionChecklist } from "../../shared/components/SelectionChecklist";
 import type {
   Befund,
   Gruppe,
@@ -96,6 +98,7 @@ export function MesswertePage() {
   const [form, setForm] = useState<MesswertFormState>(initialForm);
   const [filter, setFilter] = useState<ListenFilterState>(initialFilter);
   const [referenzForm, setReferenzForm] = useState<ReferenzFormState>(initialReferenzForm);
+  const [selectedMesswertId, setSelectedMesswertId] = useState<string | null>(null);
 
   const personenQuery = useQuery({
     queryKey: ["personen"],
@@ -230,97 +233,51 @@ export function MesswertePage() {
       <article className="card">
         <h3>Listenfilter</h3>
         <div className="form-grid">
-          <label className="field field--full">
-            <span>Personen</span>
-            <div className="checkbox-grid">
-              {personenQuery.data?.map((person) => (
-                <label key={person.id}>
-                  <input
-                    type="checkbox"
-                    checked={filter.person_ids.includes(person.id)}
-                    onChange={(event) =>
-                      setFilter((current) => ({
-                        ...current,
-                        person_ids: event.target.checked
-                          ? [...current.person_ids, person.id]
-                          : current.person_ids.filter((item) => item !== person.id)
-                      }))
-                    }
-                  />
-                  {person.anzeigename}
-                </label>
-              ))}
-            </div>
-          </label>
+          <SelectionChecklist
+            label="Personen"
+            options={(personenQuery.data ?? []).map((person) => ({
+              id: person.id,
+              label: person.anzeigename
+            }))}
+            selectedIds={filter.person_ids}
+            onChange={(person_ids) => setFilter((current) => ({ ...current, person_ids }))}
+            emptyText="Noch keine Personen vorhanden."
+          />
 
-          <label className="field field--full">
-            <span>Gruppen</span>
-            <div className="checkbox-grid">
-              {gruppenQuery.data?.map((gruppe) => (
-                <label key={gruppe.id}>
-                  <input
-                    type="checkbox"
-                    checked={filter.gruppen_ids.includes(gruppe.id)}
-                    onChange={(event) =>
-                      setFilter((current) => ({
-                        ...current,
-                        gruppen_ids: event.target.checked
-                          ? [...current.gruppen_ids, gruppe.id]
-                          : current.gruppen_ids.filter((item) => item !== gruppe.id)
-                      }))
-                    }
-                  />
-                  {gruppe.name}
-                </label>
-              ))}
-            </div>
-          </label>
+          <SelectionChecklist
+            label="Gruppen"
+            options={(gruppenQuery.data ?? []).map((gruppe) => ({
+              id: gruppe.id,
+              label: gruppe.name,
+              meta: gruppe.beschreibung
+            }))}
+            selectedIds={filter.gruppen_ids}
+            onChange={(gruppen_ids) => setFilter((current) => ({ ...current, gruppen_ids }))}
+            emptyText="Noch keine Gruppen vorhanden."
+          />
 
-          <label className="field field--full">
-            <span>Parameter</span>
-            <div className="checkbox-grid">
-              {parameterQuery.data?.map((parameter) => (
-                <label key={parameter.id}>
-                  <input
-                    type="checkbox"
-                    checked={filter.laborparameter_ids.includes(parameter.id)}
-                    onChange={(event) =>
-                      setFilter((current) => ({
-                        ...current,
-                        laborparameter_ids: event.target.checked
-                          ? [...current.laborparameter_ids, parameter.id]
-                          : current.laborparameter_ids.filter((item) => item !== parameter.id)
-                      }))
-                    }
-                  />
-                  {parameter.anzeigename}
-                </label>
-              ))}
-            </div>
-          </label>
+          <SelectionChecklist
+            label="Parameter"
+            options={(parameterQuery.data ?? []).map((parameter) => ({
+              id: parameter.id,
+              label: parameter.anzeigename,
+              meta: parameter.standard_einheit
+            }))}
+            selectedIds={filter.laborparameter_ids}
+            onChange={(laborparameter_ids) => setFilter((current) => ({ ...current, laborparameter_ids }))}
+            emptyText="Noch keine Parameter vorhanden."
+          />
 
-          <label className="field field--full">
-            <span>Labore</span>
-            <div className="checkbox-grid">
-              {laboreQuery.data?.map((labor) => (
-                <label key={labor.id}>
-                  <input
-                    type="checkbox"
-                    checked={filter.labor_ids.includes(labor.id)}
-                    onChange={(event) =>
-                      setFilter((current) => ({
-                        ...current,
-                        labor_ids: event.target.checked
-                          ? [...current.labor_ids, labor.id]
-                          : current.labor_ids.filter((item) => item !== labor.id)
-                      }))
-                    }
-                  />
-                  {labor.name}
-                </label>
-              ))}
-            </div>
-          </label>
+          <SelectionChecklist
+            label="Labore"
+            options={(laboreQuery.data ?? []).map((labor) => ({
+              id: labor.id,
+              label: labor.name
+            }))}
+            selectedIds={filter.labor_ids}
+            onChange={(labor_ids) => setFilter((current) => ({ ...current, labor_ids }))}
+            emptyText="Noch keine Labore vorhanden."
+          />
 
           <label className="field">
             <span>Datum von</span>
@@ -510,6 +467,7 @@ export function MesswertePage() {
 
         <article className="card card--wide">
           <h3>Vorhandene Messwerte</h3>
+          <p>Zeilen können angeklickt werden, um alle Details und Referenzwerte direkt darunter zu sehen.</p>
           <div className="table-wrap">
             <table className="data-table">
               <thead>
@@ -526,7 +484,11 @@ export function MesswertePage() {
               </thead>
               <tbody>
                 {messwerteQuery.data?.map((messwert) => (
-                  <tr key={messwert.id}>
+                  <tr
+                    key={messwert.id}
+                    onClick={() => setSelectedMesswertId(messwert.id)}
+                    className={messwert.id === selectedMesswertId ? "row-selected" : undefined}
+                  >
                     <td>{messwert.person_anzeigename || messwert.person_id}</td>
                     <td>{messwert.parameter_anzeigename || messwert.original_parametername}</td>
                     <td>{formatDate(messwert.entnahmedatum)}</td>
@@ -546,6 +508,12 @@ export function MesswertePage() {
             </table>
           </div>
         </article>
+
+        <MesswertDetailCard
+          messwertId={selectedMesswertId}
+          title="Ausgewählter Messwert"
+          emptyText="Bitte in der Messwertliste einen Eintrag auswählen."
+        />
 
         <article className="card">
           <h3>Laborreferenz zum Messwert</h3>
@@ -574,7 +542,9 @@ export function MesswertePage() {
                 <option value="">Bitte wählen</option>
                 {messwerteSelectionQuery.data?.map((messwert) => (
                   <option key={messwert.id} value={messwert.id}>
-                    {`${messwert.person_anzeigename || messwert.person_id} · ${messwert.original_parametername} · ${messwert.wert_roh_text}`}
+                    {`${messwert.person_anzeigename || messwert.person_id} · ${messwert.original_parametername} · ${
+                      messwert.wert_roh_text
+                    }`}
                   </option>
                 ))}
               </select>
@@ -696,18 +666,18 @@ export function MesswertePage() {
           <div className="table-wrap">
             <table className="data-table">
               <thead>
-                  <tr>
-                    <th>Typ</th>
-                    <th>Referenz</th>
-                    <th>Einheit</th>
-                    <th>Geschlecht</th>
-                    <th>Alter</th>
-                    <th>Originaltext</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {referenzenQuery.data?.map((referenz) => (
-                    <tr key={referenz.id}>
+                <tr>
+                  <th>Typ</th>
+                  <th>Referenz</th>
+                  <th>Einheit</th>
+                  <th>Geschlecht</th>
+                  <th>Alter</th>
+                  <th>Originaltext</th>
+                </tr>
+              </thead>
+              <tbody>
+                {referenzenQuery.data?.map((referenz) => (
+                  <tr key={referenz.id}>
                     <td>{referenz.wert_typ}</td>
                     <td>
                       {referenz.wert_typ === "numerisch"

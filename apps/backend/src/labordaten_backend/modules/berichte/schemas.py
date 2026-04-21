@@ -17,17 +17,22 @@ class ArztberichtRequest(BaseModel):
 
 
 class ArztberichtEintrag(BaseModel):
+    messwert_id: str
     person_id: str
     person_anzeigename: str
     laborparameter_id: str
     parameter_anzeigename: str
     datum: date | None = None
+    wert_typ: str
     wert_anzeige: str
+    wert_num: float | None = None
     einheit: str | None = None
     referenzbereich: str | None = None
     labor_name: str | None = None
     befundbemerkung: str | None = None
     messwertbemerkung: str | None = None
+    gruppen_namen: list[str] = []
+    ausserhalb_referenzbereich: bool | None = None
 
 
 class ArztberichtResponse(BaseModel):
@@ -45,6 +50,7 @@ class VerlaufsberichtRequest(BaseModel):
 
 
 class VerlaufsberichtPunkt(BaseModel):
+    messwert_id: str
     person_id: str
     person_anzeigename: str
     laborparameter_id: str
@@ -56,6 +62,8 @@ class VerlaufsberichtPunkt(BaseModel):
     wert_text: str | None = None
     einheit: str | None = None
     labor_name: str | None = None
+    gruppen_namen: list[str] = []
+    ausserhalb_referenzbereich: bool | None = None
 
 
 class VerlaufsberichtResponse(BaseModel):

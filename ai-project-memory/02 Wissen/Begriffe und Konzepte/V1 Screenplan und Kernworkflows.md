@@ -119,6 +119,7 @@ Die V1-Oberfläche soll arbeitsbereichsorientiert und sachlich aufgebaut sein. D
 - Laborreferenz
 - Zielbereich effektiv
 - Import- und Prüfhinweise
+- Direkt aus Listen und Berichtsansichten erreichbar, nicht nur über versteckte Zusatzformulare
 
 ### Besonderheit qualitative Werte
 - Eigene Filteroption `nur qualitative Werte`
@@ -219,6 +220,7 @@ Die V1-Oberfläche soll arbeitsbereichsorientiert und sachlich aufgebaut sein. D
 
 ### Arztbericht Liste
 - Filter: Person, Gruppe, Parameter, Zeitraum, Labor
+- Mehrfachauswahl kompakt statt breitflächiger Checkbox-Zeilen, inklusive `Alle auswählen` und `Alle abwählen`
 - Standardmäßig aktiv:
   - Parameter
   - Datum
@@ -229,6 +231,8 @@ Die V1-Oberfläche soll arbeitsbereichsorientiert und sachlich aufgebaut sein. D
   - Befundbemerkung
   - Messwertbemerkung
 - Felder einzeln abwählbar
+- Vorschau enthält zusätzlich Kennzahlen wie Anzahl enthaltener Werte und Anzahl referenzauffälliger Werte
+- Vorschau enthält eine kurze Charakterisierung des Berichtsinhalts, bevorzugt aus Gruppen oder Schwerpunkten abgeleitet
 - Ausgabe als sachlicher PDF-Bericht
 
 ### Verlaufsbericht Zeitachse
@@ -242,6 +246,7 @@ Die V1-Oberfläche soll arbeitsbereichsorientiert und sachlich aufgebaut sein. D
 - Auswahl: CSV, Excel, JSON, manuelle Eingabe, später KI
 - Personzuordnung optional vorschlagen
 - Option, Rohquelle als Dokument zu archivieren
+- Importbemerkung sinnvoll vorbelegen, aber vor dem Anlegen des Entwurfs frei editierbar halten
 
 ### Import-Prüfansicht
 - Kopf mit Quelle, Status, möglicher Person, möglichem Befund
