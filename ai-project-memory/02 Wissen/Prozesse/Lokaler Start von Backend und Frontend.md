@@ -1,7 +1,7 @@
 ---
 typ: prozess
 status: aktiv
-letzte_aktualisierung: 2026-04-21
+letzte_aktualisierung: 2026-04-22
 quellen:
   - ../../../README.md
   - ../../../scripts/start-dev.ps1
@@ -19,12 +19,13 @@ tags:
 # Lokaler Start von Backend und Frontend
 
 ## Kurzfassung
-Für den lokalen Betrieb wird zuerst das Backend in `apps/backend` und danach das Frontend in `apps/frontend` gestartet. Das Frontend läuft standardmäßig unter `http://localhost:5173` und leitet `/api` per Vite-Proxy an das Backend unter `http://127.0.0.1:8000` weiter.
+Für den lokalen Betrieb wird zuerst das Backend in `apps/backend` und danach das Frontend in `apps/frontend` gestartet. Das Frontend läuft standardmäßig unter `http://localhost:5173` und leitet `/api` per Vite-Proxy an das Backend unter `http://127.0.0.1:8000` weiter. Unter Windows ist PowerShell 7 (`pwsh`) der bevorzugte Standard, weil die UTF-8-Dateien des Repositories damit konsistent gelesen und gestartet werden.
 
 ## Erstinstallation auf einer neuen Umgebung
 
 ### Backend einmalig einrichten
-```powershell
+```pwsh
+pwsh
 cd C:\Users\Lui\OneDrive\Documents\Labordaten\apps\backend
 python -m venv .venv
 .venv\Scripts\Activate.ps1
@@ -34,7 +35,8 @@ uvicorn labordaten_backend.main:app --reload --app-dir src
 ```
 
 ### Frontend einmalig einrichten
-```powershell
+```pwsh
+pwsh
 cd C:\Users\Lui\OneDrive\Documents\Labordaten\apps\frontend
 npm install
 npm run dev
@@ -43,35 +45,36 @@ npm run dev
 ## Täglicher Start
 
 ### Beide Prozesse mit einem Aufruf starten
-```powershell
-cd C:\Users\Lui\OneDrive\Documents\Labordaten
-.\scripts\start-dev.ps1
+```pwsh
+pwsh -File C:\Users\Lui\OneDrive\Documents\Labordaten\scripts\start-dev.ps1
 ```
 
 Optional mit Migrationen vor dem Backend-Start:
-```powershell
-.\scripts\start-dev.ps1 -RunMigrations
+```pwsh
+pwsh -File C:\Users\Lui\OneDrive\Documents\Labordaten\scripts\start-dev.ps1 -RunMigrations
 ```
 
 Optional mit automatischem Öffnen des Frontends im Browser:
-```powershell
-.\scripts\start-dev.ps1 -OpenFrontend
+```pwsh
+pwsh -File C:\Users\Lui\OneDrive\Documents\Labordaten\scripts\start-dev.ps1 -OpenFrontend
 ```
 
-Das Skript öffnet zwei neue PowerShell-Fenster, startet darin Backend und Frontend getrennt und nutzt für das Backend direkt den Python-Interpreter aus `apps/backend/.venv`. Mit `-OpenFrontend` wartet es kurz, prüft die lokale Frontend-URL und öffnet anschließend `http://localhost:5173` im Standardbrowser.
+Das Skript öffnet bevorzugt zwei neue PowerShell-7-Fenster, startet darin Backend und Frontend getrennt und nutzt für das Backend direkt den Python-Interpreter aus `apps/backend/.venv`. Falls `pwsh` lokal noch nicht vorhanden ist, fällt es aus Kompatibilitätsgründen auf Windows PowerShell 5.1 zurück. Mit `-OpenFrontend` wartet es kurz, prüft die lokale Frontend-URL und öffnet anschließend `http://localhost:5173` im Standardbrowser.
 
 ### Desktop-Verknüpfung
 Auf dem Desktop kann eine Verknüpfung `Labordaten starten.lnk` liegen, die genau diesen Modus startet. Sie ruft `scripts/start-dev.ps1 -OpenFrontend` auf, startet damit beide Entwicklungsprozesse und öffnet danach das Frontend im Browser.
 
 ### Backend
-```powershell
+```pwsh
+pwsh
 cd C:\Users\Lui\OneDrive\Documents\Labordaten\apps\backend
 .venv\Scripts\Activate.ps1
 uvicorn labordaten_backend.main:app --reload --app-dir src
 ```
 
 ### Frontend
-```powershell
+```pwsh
+pwsh
 cd C:\Users\Lui\OneDrive\Documents\Labordaten\apps\frontend
 npm run dev
 ```
@@ -86,3 +89,4 @@ npm run dev
 - `alembic upgrade head` ist vor allem dann nötig, wenn neue Migrationen aus dem Repository hinzugekommen sind.
 - `pip install -e .[dev]` oder `npm install` müssen im Alltag nur erneut ausgeführt werden, wenn sich Abhängigkeiten geändert haben.
 - Das Backend arbeitet mit lokaler Sperrlogik für Einzelnutzung. Eine zweite laufende Instanz kann deshalb zu Konfliktmeldungen führen.
+- Im Workspace sollte unter Windows nach Möglichkeit ein Terminal mit `pwsh` als Standardprofil verwendet werden, damit Umlaute und andere UTF-8-Inhalte aus Markdown-, Skript- und Konfigurationsdateien konsistent erscheinen.

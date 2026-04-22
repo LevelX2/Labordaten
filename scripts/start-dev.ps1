@@ -12,6 +12,27 @@ $backendDir = Join-Path $repoRoot "apps\backend"
 $frontendDir = Join-Path $repoRoot "apps\frontend"
 $backendPython = Join-Path $backendDir ".venv\Scripts\python.exe"
 
+function Resolve-PreferredPowerShell {
+    $pwsh = Get-Command pwsh -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($pwsh) {
+        return @{
+            Path = $pwsh.Source
+            DisplayName = "PowerShell 7"
+        }
+    }
+
+    $windowsPowerShell = Get-Command powershell.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($windowsPowerShell) {
+        Write-Warning "PowerShell 7 wurde nicht gefunden. Es wird auf Windows PowerShell 5.1 zurückgefallen."
+        return @{
+            Path = $windowsPowerShell.Source
+            DisplayName = "Windows PowerShell 5.1"
+        }
+    }
+
+    throw "Es wurde weder pwsh noch powershell.exe gefunden."
+}
+
 if (-not (Test-Path -LiteralPath $backendDir)) {
     throw "Backend-Ordner nicht gefunden: $backendDir"
 }
@@ -42,8 +63,11 @@ $backendCommand = $backendParts -join "; "
 
 $frontendCommand = "Set-Location -LiteralPath '$frontendDir'; npm.cmd run dev"
 $frontendUrl = "http://localhost:5173"
+$powerShell = Resolve-PreferredPowerShell
 
-Start-Process -FilePath "powershell.exe" -ArgumentList @(
+Start-Process -FilePath $powerShell.Path -ArgumentList @(
+    "-NoLogo",
+    "-NoProfile",
     "-NoExit",
     "-ExecutionPolicy",
     "Bypass",
@@ -51,7 +75,9 @@ Start-Process -FilePath "powershell.exe" -ArgumentList @(
     $backendCommand
 )
 
-Start-Process -FilePath "powershell.exe" -ArgumentList @(
+Start-Process -FilePath $powerShell.Path -ArgumentList @(
+    "-NoLogo",
+    "-NoProfile",
     "-NoExit",
     "-ExecutionPolicy",
     "Bypass",
@@ -59,7 +85,7 @@ Start-Process -FilePath "powershell.exe" -ArgumentList @(
     $frontendCommand
 )
 
-Write-Host "Backend und Frontend wurden in zwei neuen PowerShell-Fenstern gestartet."
+Write-Host "Backend und Frontend wurden in zwei neuen $($powerShell.DisplayName)-Fenstern gestartet."
 if ($RunMigrations) {
     Write-Host "Vor dem Backend-Start werden zusätzlich Alembic-Migrationen ausgeführt."
 }

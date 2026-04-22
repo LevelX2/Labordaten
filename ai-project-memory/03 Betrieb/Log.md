@@ -689,3 +689,15 @@
   - Fuer `laborparameter` wird zwischen unbenutzten, kaskadierbar loeschbaren Pflegestrukturen und verwendeten Parametern mit Deaktivierungsempfehlung unterschieden.
   - Fuer `labor` und `parameter_umrechnungsregel` wurde die Blockade bei historischer Nutzung mit Deaktivierungsersatz umgesetzt; `parameter_gruppe` und `zielbereich` loeschen ihre klaren Kindobjekte mit.
   - Die erweiterten Loeschpfade wurden durch weitere API-Regressionstests abgesichert; der gesamte Backend-Teststand lief danach erfolgreich mit `50 passed`.
+
+## [2026-04-22] update | PowerShell-7-Standard fuer lokalen Windows-Workflow verankert
+- Anlass oder Quelle: Nutzerauftrag nach Analyse wiederkehrender UTF-8- und Codierungsprobleme im lokalen Windows-Workflow
+- Neu angelegte Seiten:
+  - keine
+- Geaenderte Seiten:
+  - [[../02 Wissen/Prozesse/Lokaler Start von Backend und Frontend]]
+  - [[Generische Entwicklungsvorgaben]]
+- Kern der inhaltlichen Anpassung:
+  - Der lokale Windows-Workflow verweist nun ausdruecklich auf PowerShell 7 (pwsh) als bevorzugten Standard fuer Start und Textarbeit im Repository.
+  - Als generische Entwicklungsvorgabe wurde festgehalten, dass Windows PowerShell 5.1 bei UTF-8-lastigen Dateien wiederholt Fehlinterpretationen verursachen kann und deshalb moeglichst nicht der Standard fuer Repo-Arbeit sein sollte.
+  - Die projektbezogene Startdokumentation beschreibt zusaetzlich, dass das Startskript bevorzugt pwsh nutzt und nur noch als Rueckfall auf Windows PowerShell 5.1 ausweicht.

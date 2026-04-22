@@ -42,6 +42,12 @@ Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitp
 - Formulierungen sollen sich am produktiven Einsatz der Anwendung orientieren und nicht an Entwicklungsstand, Scaffold-Status oder Einführungslogik.
 - Kleine Vorspann-Labels über der Hauptüberschrift sind nur sinnvoll, wenn sie einen zusätzlichen fachlichen Informationswert liefern; reine Stimmungs- oder Orientierungswörter ohne Mehrwert können entfallen.
 
+## Shell und Zeichencodierung unter Windows
+- Für lokale Textarbeit, Repo-Inspektion und Skriptstarts unter Windows sollte nach Möglichkeit PowerShell 7 (pwsh) statt Windows PowerShell 5.1 verwendet werden.
+- Der Grund ist nicht nur Komfort, sondern die konsistentere UTF-8-Verarbeitung bei Markdown-, JSON-, TypeScript-, CSS- und ähnlichen Textdateien.
+- Wenn Skripte oder Einmalbefehle Textdateien lesen oder schreiben, sollte die Zeichencodierung zusätzlich an kritischen Stellen explizit angegeben werden, statt auf implizite Standardwerte des aufrufenden Prozesses zu vertrauen.
+- Repo- und Workspace-Konfigurationen dürfen den gewünschten Standard festlegen, ersetzen aber keine bewusste Prüfung der tatsächlich verwendeten Shell, wenn Symptome wie Mojibake, unerwartete Diffs oder fehlgeschlagene Patch-Matches auftreten.
+
 ## Stammdatenseiten als Arbeitsbereich
 - Vergleichbare Stammdatenseiten sollten als klarer Arbeitsbereich aufgebaut sein und nicht als lose Sammlung gleichrangiger Karten oder Formulare.
 - Links steht bevorzugt eine filterbare Liste der vorhandenen Datensätze der führenden Tabelle.

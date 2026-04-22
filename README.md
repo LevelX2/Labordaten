@@ -2,6 +2,8 @@
 
 Dieses Repository enthält die fachliche Wissensbasis und das technische Grundgerüst für eine lokal betriebene Laboranwendung mit Weboberfläche.
 
+Für lokale Arbeit unter Windows ist PowerShell 7 (`pwsh`) der bevorzugte Standard, damit UTF-8-Dateien aus Repository und Wissensbasis konsistent gelesen und geschrieben werden.
+
 ## Struktur
 
 - `ai-project-memory/`: projektbezogene Wissensbasis
@@ -21,25 +23,26 @@ Das Projekt ist jetzt in zwei Ebenen aufgeteilt:
 
 ### Beide Prozesse mit einem Aufruf starten
 
-```powershell
-.\scripts\start-dev.ps1
+```pwsh
+pwsh -File .\scripts\start-dev.ps1
 ```
 
 Optional mit Migrationen vor dem Backend-Start:
 
-```powershell
-.\scripts\start-dev.ps1 -RunMigrations
+```pwsh
+pwsh -File .\scripts\start-dev.ps1 -RunMigrations
 ```
 
 Optional zusätzlich mit automatischem Öffnen des Frontends im Browser:
 
-```powershell
-.\scripts\start-dev.ps1 -OpenFrontend
+```pwsh
+pwsh -File .\scripts\start-dev.ps1 -OpenFrontend
 ```
 
 ### Backend
 
-```powershell
+```pwsh
+pwsh
 cd apps/backend
 python -m venv .venv
 .venv\Scripts\Activate.ps1
@@ -50,7 +53,8 @@ uvicorn labordaten_backend.main:app --reload --app-dir src
 
 ### Frontend
 
-```powershell
+```pwsh
+pwsh
 cd apps/frontend
 npm install
 npm run dev
