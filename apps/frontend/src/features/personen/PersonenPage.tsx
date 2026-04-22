@@ -589,6 +589,25 @@ export function PersonenPage() {
               <p>Noch keine Personen vorhanden. Lege über die Werkzeugleiste die erste Person an.</p>
             ) : (
               <>
+                <div className="parameter-toolrail">
+                  <button
+                    type="button"
+                    className={`parameter-toolrail__button ${activePanel === "create" ? "parameter-toolrail__button--active" : ""}`}
+                    onClick={() => handleOpenPanel("create")}
+                  >
+                    Neue Person
+                  </button>
+                  <button
+                    type="button"
+                    className={`parameter-toolrail__button ${activePanel === "override" ? "parameter-toolrail__button--active" : ""}`}
+                    onClick={() => handleOpenPanel("override")}
+                  >
+                    Zielbereich pflegen
+                  </button>
+                </div>
+
+                {renderActionPanel()}
+
                 <div className="parameter-detail__header">
                   <div>
                     <h3 className="parameter-detail__title">{selectedPerson.anzeigename}</h3>
@@ -612,25 +631,6 @@ export function PersonenPage() {
                     </button>
                   </div>
                 </div>
-
-                <div className="parameter-toolrail">
-                  <button
-                    type="button"
-                    className={`parameter-toolrail__button ${activePanel === "create" ? "parameter-toolrail__button--active" : ""}`}
-                    onClick={() => handleOpenPanel("create")}
-                  >
-                    Neue Person
-                  </button>
-                  <button
-                    type="button"
-                    className={`parameter-toolrail__button ${activePanel === "override" ? "parameter-toolrail__button--active" : ""}`}
-                    onClick={() => handleOpenPanel("override")}
-                  >
-                    Zielbereich pflegen
-                  </button>
-                </div>
-
-                {renderActionPanel()}
 
                 <div className="detail-grid">
                   <div className="detail-grid__item">

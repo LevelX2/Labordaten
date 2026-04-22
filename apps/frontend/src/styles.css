@@ -979,6 +979,47 @@ a {
   font-size: 0.9rem;
 }
 
+.selection-checklist__toggle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.selection-checklist__toggle span:first-child {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.selection-checklist__toggle strong {
+  font-size: 0.94rem;
+}
+
+.selection-checklist__toggle small {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.selection-checklist__chevron {
+  color: var(--accent);
+  font-size: 1rem;
+  transform: rotate(-90deg);
+  transition: transform 0.18s ease;
+}
+
+.selection-checklist__toggle--open .selection-checklist__chevron {
+  transform: rotate(0deg);
+}
+
 .selection-checklist__actions {
   display: flex;
   gap: 8px;
@@ -1180,6 +1221,31 @@ a {
 
 .field--full {
   grid-column: 1 / -1;
+}
+
+.auswertung-date-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 280px));
+  gap: 14px;
+  align-items: start;
+}
+
+.auswertung-date-field {
+  max-width: 280px;
+}
+
+.auswertung-date-field input[type="date"] {
+  width: 100%;
+}
+
+.auswertung-date-field__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.auswertung-date-field__actions .inline-button {
+  min-width: 0;
 }
 
 .form-actions {

@@ -27,31 +27,45 @@ export function SelectionChecklist({
 }: SelectionChecklistProps) {
   const selectedCount = selectedIds.filter((id) => options.some((option) => option.id === id)).length;
   const [isExpanded, setIsExpanded] = useState(defaultExpanded || selectedCount > 0);
+  const hasOptions = options.length > 0;
 
   return (
     <div className="field field--full">
       <span>{label}</span>
       <div className="selection-checklist">
-        <div className="selection-checklist__toolbar">
-          <p>
-            {selectedCount} von {options.length} ausgewählt
-          </p>
+        {collapsible ? (
+          <button
+            type="button"
+            className={`selection-checklist__toggle${isExpanded ? " selection-checklist__toggle--open" : ""}`}
+            onClick={() => setIsExpanded((current) => !current)}
+            aria-expanded={isExpanded}
+          >
+            <span>
+              <strong>{selectedCount} von {options.length} ausgewählt</strong>
+              <small>{isExpanded ? "Liste einklappen" : "Liste aufklappen"}</small>
+            </span>
+            <span className="selection-checklist__chevron" aria-hidden="true">
+              ▾
+            </span>
+          </button>
+        ) : (
+          <div className="selection-checklist__toolbar">
+            <p>{selectedCount} von {options.length} ausgewählt</p>
+          </div>
+        )}
+
+        {!collapsible || isExpanded ? (
           <div className="selection-checklist__actions">
-            {collapsible ? (
-              <button type="button" onClick={() => setIsExpanded((current) => !current)}>
-                {isExpanded ? "Liste einklappen" : "Liste aufklappen"}
-              </button>
-            ) : null}
-            <button type="button" onClick={() => onChange(options.map((option) => option.id))} disabled={!options.length}>
+            <button type="button" onClick={() => onChange(options.map((option) => option.id))} disabled={!hasOptions}>
               Alle auswählen
             </button>
             <button type="button" onClick={() => onChange([])} disabled={!selectedIds.length}>
               Alle abwählen
             </button>
           </div>
-        </div>
+        ) : null}
 
-        {options.length && isExpanded ? (
+        {hasOptions && isExpanded ? (
           <div className="selection-checklist__options">
             {options.map((option) => {
               const checked = selectedIds.includes(option.id);
@@ -79,7 +93,7 @@ export function SelectionChecklist({
               );
             })}
           </div>
-        ) : options.length ? (
+        ) : hasOptions ? (
           <p className="selection-checklist__empty">Liste eingeklappt. Bei Bedarf aufklappen.</p>
         ) : (
           <p className="selection-checklist__empty">{emptyText}</p>

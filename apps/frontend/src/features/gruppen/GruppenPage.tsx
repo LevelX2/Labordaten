@@ -534,6 +534,25 @@ export function GruppenPage() {
               <p>Noch keine Gruppen vorhanden. Lege über die Werkzeugleiste die erste Gruppe an.</p>
             ) : (
               <>
+                <div className="parameter-toolrail">
+                  <button
+                    type="button"
+                    className={`parameter-toolrail__button ${activePanel === "create" ? "parameter-toolrail__button--active" : ""}`}
+                    onClick={() => handleOpenPanel("create")}
+                  >
+                    Neue Gruppe
+                  </button>
+                  <button
+                    type="button"
+                    className={`parameter-toolrail__button ${activePanel === "assignments" ? "parameter-toolrail__button--active" : ""}`}
+                    onClick={() => handleOpenPanel("assignments")}
+                  >
+                    Parameter zuordnen
+                  </button>
+                </div>
+
+                {renderActionPanel()}
+
                 <div className="parameter-detail__header">
                   <div>
                     <h3 className="parameter-detail__title">{selectedGroup.name}</h3>
@@ -557,25 +576,6 @@ export function GruppenPage() {
                     </button>
                   </div>
                 </div>
-
-                <div className="parameter-toolrail">
-                  <button
-                    type="button"
-                    className={`parameter-toolrail__button ${activePanel === "create" ? "parameter-toolrail__button--active" : ""}`}
-                    onClick={() => handleOpenPanel("create")}
-                  >
-                    Neue Gruppe
-                  </button>
-                  <button
-                    type="button"
-                    className={`parameter-toolrail__button ${activePanel === "assignments" ? "parameter-toolrail__button--active" : ""}`}
-                    onClick={() => handleOpenPanel("assignments")}
-                  >
-                    Parameter zuordnen
-                  </button>
-                </div>
-
-                {renderActionPanel()}
 
                 <div className="detail-grid">
                   <div className="detail-grid__item">
