@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
+import heroImage from "../../assets/labordaten-hero.webp";
 import { apiFetch } from "../api/client";
 import type { AuswertungGesamtzahlen, ImportVorgangListItem, SystemHealth } from "../types/api";
 
@@ -117,15 +118,37 @@ export function StartPage() {
   return (
     <section className="page">
       <header className="hero">
-        <div>
-          <span className="page__kicker">Arbeitsstart</span>
-          <h2>Lokale Arbeitsoberfläche für Laborwerte</h2>
-          <p>
-            Die Startseite soll nicht die Technik erklären, sondern den nächsten sinnvollen Arbeitsschritt sichtbar
-            machen: Datenbestand prüfen, offene Importe klären und den Betriebszustand der lokalen Datenbasis im Blick
-            behalten.
-          </p>
+        <div className="hero__content">
+          <div>
+            <h2>Laborwerte übersichtlich verwalten</h2>
+            <p>
+              Behalte Datenbestand, offene Importe und den aktuellen Systemzustand im Blick, damit Befunde vor Ort
+              sauber geprüft, übernommen und ausgewertet werden können.
+            </p>
+          </div>
+
+          <div className="hero__quick-links" aria-label="Schnelle Arbeitsbereiche">
+            <Link className="hero__button hero__button--primary" to="/import">
+              Import starten
+            </Link>
+            <Link className="hero__button" to="/auswertung">
+              Auswertung öffnen
+            </Link>
+            <Link className="hero__button" to="/personen">
+              Personen pflegen
+            </Link>
+          </div>
         </div>
+
+        <figure className="hero__visual">
+          <img
+            src={heroImage}
+            alt="Eleganter Laborarbeitsplatz mit Auswertungen, Unterlagen und Glasgeräten"
+          />
+          <figcaption className="hero__caption">
+            <p>Befunde prüfen, Importe freigeben und Verläufe in einer klaren Arbeitsumgebung auswerten.</p>
+          </figcaption>
+        </figure>
 
         <div className="hero__meta">
           <article className="stat-card">

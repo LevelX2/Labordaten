@@ -1,5 +1,8 @@
 import { NavLink, Outlet } from "react-router-dom";
 
+import { LabordatenBrandMark } from "../../shared/components/LabordatenBrandMark";
+import { APP_VERSION } from "../../shared/constants/appInfo";
+
 const navItems = [
   { to: "/", label: "Start", end: true },
   { to: "/personen", label: "Personen" },
@@ -19,23 +22,33 @@ export function AppLayout() {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <div className="sidebar__brand">
-          <span className="sidebar__eyebrow">Lokale Laboranwendung</span>
-          <h1>Labordaten</h1>
+        <div className="sidebar__main">
+          <div className="sidebar__brand">
+            <div className="sidebar__brand-lockup">
+              <LabordatenBrandMark className="sidebar__brand-icon" title="Labordaten Icon" />
+              <div>
+                <h1>Labordaten</h1>
+              </div>
+            </div>
+          </div>
+
+          <nav className="sidebar__nav" aria-label="Hauptnavigation">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) => (isActive ? "nav-link nav-link--active" : "nav-link")}
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
         </div>
 
-        <nav className="sidebar__nav" aria-label="Hauptnavigation">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) => (isActive ? "nav-link nav-link--active" : "nav-link")}
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
+        <div className="sidebar__footer">
+          <span className="version-badge version-badge--subtle">Version {APP_VERSION}</span>
+        </div>
       </aside>
 
       <main className="content">
@@ -44,4 +57,3 @@ export function AppLayout() {
     </div>
   );
 }
-
