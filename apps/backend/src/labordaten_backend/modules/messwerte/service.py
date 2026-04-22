@@ -19,6 +19,7 @@ def list_messwerte(
     db: Session,
     *,
     person_ids: list[str] | None = None,
+    befund_ids: list[str] | None = None,
     laborparameter_ids: list[str] | None = None,
     gruppen_ids: list[str] | None = None,
     labor_ids: list[str] | None = None,
@@ -34,6 +35,8 @@ def list_messwerte(
     )
     if person_ids:
         stmt = stmt.where(Messwert.person_id.in_(person_ids))
+    if befund_ids:
+        stmt = stmt.where(Messwert.befund_id.in_(befund_ids))
     if laborparameter_ids:
         stmt = stmt.where(Messwert.laborparameter_id.in_(laborparameter_ids))
     if labor_ids:

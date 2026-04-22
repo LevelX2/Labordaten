@@ -7,7 +7,9 @@ quellen:
   - ../../02 Wissen/Prozesse/Arbeitsworkflow Wissenspflege und Projektanfragen.md
   - ../../01 Rohquellen/fachkonzepte/2026-04-21 Rueckmeldung Automatische interne Parameterschluessel.md
   - ../../01 Rohquellen/fachkonzepte/2026-04-21 Rueckmeldung Alias-Vorschlaege und Berichtseinheiten.md
+  - ../../01 Rohquellen/fachkonzepte/2026-04-22 Rueckmeldung Loeschlogik und Deaktivierungsregeln.md
   - ../../02 Wissen/Begriffe und Konzepte/Ist-Stand Einheiten, Normeinheiten und Umrechnung.md
+  - ../../02 Wissen/Begriffe und Konzepte/Ist-Stand Loeschlogik und Deaktivierungsregeln.md
 tags:
   - betrieb
   - vorgaben
@@ -49,6 +51,12 @@ Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitp
 - Zugeordnete oder abhängige Daten sollen unterhalb des Detailbereichs in einem eigenen Abschnitt stehen.
 - Wenn solche abhängigen Daten tabellarisch oder breit werden, ist für arbeitsorientierte Oberflächen eine gestapelte und einklappbare Darstellung oft besser als mehrere nebeneinanderliegende Karten.
 - Werkzeuge zum Bearbeiten und Bereiche zum Anzeigen vorhandener Zuordnungen sollen nicht dieselbe Aktion doppelt an mehreren Stellen anbieten.
+
+## Einklappbare Bereiche und grosse Filterbloecke
+- Groessere Filterbloecke und vergleichbare Zusatzbereiche sollten dieselbe Auf- und Zuklapplogik wie andere einklappbare Arbeitsbereiche der Anwendung verwenden.
+- Alles, was fachlich zu einem einklappbaren Block gehoert, soll gemeinsam ein- und ausgeklappt werden.
+- Zugehoerige Aktionen wie `Alle auswaehlen`, `Alle abwaehlen` oder vergleichbare Bereichsaktionen duerfen im eingeklappten Zustand nicht als losgeloeste Reste sichtbar bleiben.
+- Kleine, kompakte Eingaben wie einzelne Datumsfelder brauchen diese Einklapplogik in der Regel nicht.
 
 ## Stammdatenpflege
 - Technische Schlüssel für neue Stammdatensätze sollten nach Möglichkeit automatisch aus fachlich sichtbaren Namen erzeugt werden, statt standardmäßig manuell eingegeben zu werden.
@@ -108,3 +116,13 @@ Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitp
 - Alias- oder Synonymlogik beschreibt dieselbe Sache in anderer Schreibweise.
 - Transformationen oder Umrechnungen beschreiben eine fachliche Beziehung zwischen verschiedenen Darstellungen.
 - Diese Ebenen sollten im Modell und in der UI nicht vermischt werden.
+
+## Löschlogik und Deaktivierung
+- Löschentscheidungen für vergleichbare Fachobjekte sollten zentral pro Entitätstyp geprüft werden, statt jede Seite mit eigener Sonderlogik auszustatten.
+- Die UI sollte zuerst eine Löschprüfung anzeigen und die eigentliche Ausführung erst in einem zweiten Schritt anstoßen.
+- Historische Anker, Provenienzträger und zentrale Stammdatensätze sollten bevorzugt deaktiviert statt hart gelöscht werden.
+- Harte Löschung ist vor allem für unkritische Pflegekinder oder klar eigentumsgebundene Kaskadenobjekte geeignet.
+- Folgeeffekte auf abhängige Ableitungen, Statusfelder oder Cache-Verweise müssen Teil derselben Transaktion wie die Löschung sein.
+- Nutzungsprüfungen dürfen sich nicht nur auf Fremdschlüssel verlassen, wenn fachliche Verwendungen bewusst in denormalisierten Feldern gespeichert werden.
+- Physische Dateien und Datenbankdatensätze sollen getrennt behandelt werden; ein Fachobjekt darf nicht still nebenbei die Quelle auf Platte mitvernichten.
+- Löschlogik braucht eigene Regressionstests mit Positiv- und Negativpaaren, weil Fehler in diesem Bereich besonders teuer und unangenehm sind.

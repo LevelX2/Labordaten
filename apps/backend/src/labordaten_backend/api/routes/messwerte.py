@@ -12,6 +12,7 @@ router = APIRouter()
 @router.get("", response_model=list[schemas.MesswertRead])
 def list_messwerte(
     person_ids: list[str] | None = Query(default=None),
+    befund_ids: list[str] | None = Query(default=None),
     laborparameter_ids: list[str] | None = Query(default=None),
     gruppen_ids: list[str] | None = Query(default=None),
     labor_ids: list[str] | None = Query(default=None),
@@ -22,6 +23,7 @@ def list_messwerte(
     return service.list_messwerte(
         db,
         person_ids=person_ids,
+        befund_ids=befund_ids,
         laborparameter_ids=laborparameter_ids,
         gruppen_ids=gruppen_ids,
         labor_ids=labor_ids,

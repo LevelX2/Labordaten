@@ -661,3 +661,31 @@
 - Kern der inhaltlichen Anpassung:
   - Fuer UI-Texte wurde als wiederverwendbare Regel ergaenzt, dass Seitenkoepfe und Einleitungstexte am produktiven Einsatz der Anwendung ausgerichtet sein sollen statt an Entwicklungs- oder Einfuehrungslogik.
   - Zusaetzlich wurde festgehalten, dass kleine Vorspann-Labels ueber Hauptueberschriften nur bei echtem fachlichem Mehrwert bleiben sollten und dass persistente Shell-Bereiche wie eine linke Navigation keine zusaetzlichen Beschreibungstexte brauchen, wenn die Orientierung bereits klar ist.
+
+## [2026-04-22] update | Zentrale Loeschlogik fuer erste Kernentitaeten umgesetzt und dokumentiert
+- Anlass oder Quelle: [[../01 Rohquellen/fachkonzepte/2026-04-22 Rueckmeldung Loeschlogik und Deaktivierungsregeln]]
+- Neu angelegte Seiten:
+  - [[../01 Rohquellen/fachkonzepte/2026-04-22 Rueckmeldung Loeschlogik und Deaktivierungsregeln]]
+  - [[../02 Wissen/Begriffe und Konzepte/Ist-Stand Loeschlogik und Deaktivierungsregeln]]
+- Geaenderte Seiten:
+  - [[../02 Wissen/00 Uebersichten/Index]]
+  - [[../02 Wissen/00 Uebersichten/Aktueller Projektstatus]]
+  - [[Generische Entwicklungsvorgaben]]
+- Kern der inhaltlichen Anpassung:
+  - Im Backend wurde eine zentrale Loeschpruefung mit getrennter Ausfuehrung fuer `person`, `befund`, `messwert`, `importvorgang` und `einheit` umgesetzt.
+  - Die neue Logik unterscheidet zwischen `direkt`, `kaskade` und `blockiert`, kann bei blockierten Stammdaten `deaktivieren` empfehlen und repariert bei geloeschten Messwerten betroffene Planungen in derselben Transaktion.
+  - Fuer `messwert` wird ein danach leerer `befund` standardmaessig mitgeloescht, waehrend verknuepfte Dokumente bewusst unveraendert bleiben.
+  - Die Wissensbasis trennt dazu nun die projektspezifische Loeschmatrix von den generischen Regeln; zusaetzlich wurden eigene API-Regressionstests eingebaut und der gesamte Backend-Teststand erfolgreich mit `45 passed` verifiziert.
+
+## [2026-04-22] update | Zentrale Loeschlogik auf weitere Stammdaten und Fachobjekte erweitert
+- Anlass oder Quelle: Fortsetzung der gleichen Fachentscheidung zur standardisierten Loeschmatrix
+- Neu angelegte Seiten:
+  - keine
+- Geaenderte Seiten:
+  - [[../02 Wissen/Begriffe und Konzepte/Ist-Stand Loeschlogik und Deaktivierungsregeln]]
+  - [[../02 Wissen/00 Uebersichten/Aktueller Projektstatus]]
+- Kern der inhaltlichen Anpassung:
+  - Die zentrale Loeschpruefung und Ausfuehrung deckt nun zusaetzlich `labor`, `laborparameter`, `parameter_gruppe`, `zielbereich` und `parameter_umrechnungsregel` ab.
+  - Fuer `laborparameter` wird zwischen unbenutzten, kaskadierbar loeschbaren Pflegestrukturen und verwendeten Parametern mit Deaktivierungsempfehlung unterschieden.
+  - Fuer `labor` und `parameter_umrechnungsregel` wurde die Blockade bei historischer Nutzung mit Deaktivierungsersatz umgesetzt; `parameter_gruppe` und `zielbereich` loeschen ihre klaren Kindobjekte mit.
+  - Die erweiterten Loeschpfade wurden durch weitere API-Regressionstests abgesichert; der gesamte Backend-Teststand lief danach erfolgreich mit `50 passed`.

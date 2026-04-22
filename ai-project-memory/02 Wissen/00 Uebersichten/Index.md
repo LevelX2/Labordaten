@@ -19,6 +19,7 @@
 - [[../Begriffe und Konzepte/Ist-Stand Importstrecke und PDF-Grenzen]]: klare Einordnung, was die Importprüfung heute schon kann und was für echten PDF-Import noch fehlt.
 - [[../Begriffe und Konzepte/Ist-Stand Alias-Vorschlaege und Berichtseinheiten]]: aktueller Stand der sicheren Alias-Vorschlagslogik und der steuerbaren Berichtseinheiten auf Basis vorhandener normierter Werte.
 - [[../Begriffe und Konzepte/Ist-Stand Einheiten, Normeinheiten und Umrechnung]]: aktueller Stand der zentralen Einheitenstammdaten, Einheiten-Aliase, parameterbezogenen Umrechnungsregeln und der pflegbaren führenden Normeinheit.
+- [[../Begriffe und Konzepte/Ist-Stand Loeschlogik und Deaktivierungsregeln]]: aktueller Stand der zentralen Löschprüfung, Deaktivierungsempfehlungen und der ersten backendseitig abgesicherten Entitätenrunde.
 - [[../Begriffe und Konzepte/Ist-Stand Parameter-Dubletten und Zusammenfuehrung]]: aktueller Stand der Dublettenprüfung für vorhandene Parameter und der bestätigten Zusammenführung mit Alias-Rückfall.
 - [[../Begriffe und Konzepte/Ist-Stand PDF-Seitenumbrueche in Berichten]]: aktueller Stand der Block- und Fortsetzungslogik für drucktaugliche Seitenumbrüche in PDF-Berichten.
 - [[../Begriffe und Konzepte/Ist-Stand Automatische interne Parameterschluessel]]: aktueller Stand der automatischen technischen Schlüsselvergabe bei neuer Parameter-Stammdatenpflege.

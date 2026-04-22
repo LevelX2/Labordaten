@@ -7,6 +7,7 @@ quellen:
   - ../../03 Betrieb/Log.md
   - ../Begriffe und Konzepte/Ist-Stand Importstrecke und PDF-Grenzen.md
   - ../Begriffe und Konzepte/Ist-Stand Einheiten, Normeinheiten und Umrechnung.md
+  - ../Begriffe und Konzepte/Ist-Stand Loeschlogik und Deaktivierungsregeln.md
   - ../Begriffe und Konzepte/Ist-Stand Alias-Vorschlaege und Berichtseinheiten.md
   - ../Begriffe und Konzepte/Ist-Stand Parameter-Dubletten und Zusammenfuehrung.md
 tags:
@@ -32,11 +33,13 @@ Diese Seite beschreibt den aktuellen Projektstand als Snapshot. Zeitliche Abfolg
 - Berichtsblöcke können im Import als Gruppenvorschläge vorbereitet und nach der Übernahme auf neue oder bestehende Gruppen angewendet werden.
 - Neue Parameter erhalten ihren internen Schlüssel automatisch aus dem Anzeigenamen; Dublettenprüfung, Zusammenführung und Alias-Vorschläge sind in der Parameterpflege vorhanden.
 - Die Wissensbasis ist als lesender Arbeitsbereich in der Anwendung eingebunden.
+- Eine zentrale Löschprüfung mit getrennter Ausführung ist im Backend für `person`, `befund`, `messwert`, `importvorgang`, `einheit`, `labor`, `laborparameter`, `parameter_gruppe`, `zielbereich` und `parameter_umrechnungsregel` vorhanden.
 
 ## Teilweise umgesetzt
 - Der Import produktivisiert bereits einen assistierten Laborbericht-Workflow, setzt für gescannte PDFs aber weiterhin eine externe Extraktion oder manuelle Aufbereitung voraus.
 - Die Berichts- und Auswertungslogik nutzt bereits normierte Werte und Anzeigeeinheiten in passenden Fällen, ist aber noch nicht in allen fachlichen Darstellungen gleich tief ausgebaut.
 - Die Wissensverknüpfung ist als eigener Arbeitsbereich vorhanden, aber noch nicht tief in Parameter-, Gruppen- und Importansichten integriert.
+- Die zentrale Löschlogik deckt viele Kernobjekte ab, ist aber noch nicht auf Dokumente, Wissensseiten und einige Betriebsobjekte ausgedehnt.
 
 ## Offen
 - Direkter PDF-Upload mit OCR- oder Parser-Stufe in die Importprüfung.
@@ -44,6 +47,7 @@ Diese Seite beschreibt den aktuellen Projektstand als Snapshot. Zeitliche Abfolg
 - Mehrstufige Übernahme von `Vorwerten` aus Berichten.
 - Weitere fachliche Verfeinerung von Berichten, insbesondere bei Gruppensemantik, Zielbereichsauswertung und präziseren Kurztexten.
 - Weitere Vertiefung der Wissensverknüpfung in fachliche Arbeitsbereiche.
+- Ausweitung der zentralen Löschlogik auf `dokument`, `wissensseite`, `einstellung` und `datenbasis_sperre` sowie die spätere Anbindung an die Oberfläche.
 
 ## Wichtige Grenzen
 - Der aktuelle Importfluss ist stark, aber noch kein Vollautomat für gescannte Laborberichte.
