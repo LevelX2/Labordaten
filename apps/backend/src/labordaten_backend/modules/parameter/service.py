@@ -2,13 +2,15 @@ from collections import defaultdict
 from datetime import datetime
 from difflib import SequenceMatcher
 
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy import func, or_, select
+from sqlalchemy.orm import Session, aliased
 
 from labordaten_backend.models.gruppen_parameter import GruppenParameter
 from labordaten_backend.models.laborparameter import Laborparameter
 from labordaten_backend.models.laborparameter_alias import LaborparameterAlias
 from labordaten_backend.models.messwert import Messwert
+from labordaten_backend.models.messwert_referenz import MesswertReferenz
+from labordaten_backend.models.parameter_dublettenausschluss import ParameterDublettenausschluss
 from labordaten_backend.models.parameter_gruppe import ParameterGruppe
 from labordaten_backend.models.parameter_umrechnungsregel import ParameterUmrechnungsregel
 from labordaten_backend.models.planung_einmalig import PlanungEinmalig
@@ -24,11 +26,14 @@ from labordaten_backend.modules.parameter.normalization import (
 from labordaten_backend.modules.parameter.schemas import (
     ParameterAliasCreate,
     ParameterAliasSuggestionRead,
+    ParameterDuplicateSuppressionCreate,
+    ParameterDuplicateSuppressionRead,
     ParameterDuplicateSuggestionRead,
     ParameterGruppenzuordnungRead,
     ParameterMergeRequest,
     ParameterMergeResultRead,
     ParameterCreate,
+    ParameterRead,
     ParameterUmrechnungsregelCreate,
     ParameterUmrechnungsregelRead,
     ParameterRenameRequest,
@@ -39,8 +44,10 @@ from labordaten_backend.modules.parameter.schemas import (
 )
 
 
-def list_parameter(db: Session) -> list[Laborparameter]:
-    return list(db.scalars(select(Laborparameter).order_by(Laborparameter.anzeigename)))
+def list_parameter(db: Session) -> list[ParameterRead]:
+    parameters = list(db.scalars(select(Laborparameter).order_by(Laborparameter.anzeigename)))
+    usage_summaries = _build_parameter_usage_summaries(db, [parameter.id for parameter in parameters])
+    return [_build_parameter_read(parameter, usage_summaries.get(parameter.id)) for parameter in parameters]
 
 
 def create_parameter(db: Session, payload: ParameterCreate) -> Laborparameter:
@@ -61,8 +68,12 @@ def create_parameter(db: Session, payload: ParameterCreate) -> Laborparameter:
     return parameter
 
 
-def get_parameter(db: Session, parameter_id: str) -> Laborparameter | None:
-    return db.get(Laborparameter, parameter_id)
+def get_parameter(db: Session, parameter_id: str) -> ParameterRead | None:
+    parameter = db.get(Laborparameter, parameter_id)
+    if parameter is None:
+        return None
+    usage_summaries = _build_parameter_usage_summaries(db, [parameter.id])
+    return _build_parameter_read(parameter, usage_summaries.get(parameter.id))
 
 
 def update_parameter_standard_einheit(
@@ -283,11 +294,24 @@ def list_parameter_duplicate_suggestions(db: Session) -> list[ParameterDuplicate
         return []
 
     usage_summaries = _build_parameter_usage_summaries(db, [parameter.id for parameter in parameters])
+    target_range_signatures = _build_parameter_target_range_signatures(db, [parameter.id for parameter in parameters])
+    reference_signatures = _build_parameter_reference_signatures(db, [parameter.id for parameter in parameters])
+    suppressed_pair_keys = _list_duplicate_suppression_keys(db)
     suggestions: list[ParameterDuplicateSuggestionRead] = []
 
     for index, left in enumerate(parameters):
         for right in parameters[index + 1 :]:
-            duplicate_assessment = _assess_parameter_duplicate(left, right)
+            _, _, pair_key = _normalize_duplicate_pair_ids(left.id, right.id)
+            if pair_key in suppressed_pair_keys:
+                continue
+            duplicate_assessment = _assess_parameter_duplicate(
+                left,
+                right,
+                target_range_signatures.get(left.id, set()),
+                target_range_signatures.get(right.id, set()),
+                reference_signatures.get(left.id, set()),
+                reference_signatures.get(right.id, set()),
+            )
             if duplicate_assessment is None:
                 continue
 
@@ -321,6 +345,84 @@ def list_parameter_duplicate_suggestions(db: Session) -> list[ParameterDuplicate
     return suggestions
 
 
+def list_parameter_duplicate_suppressions(
+    db: Session,
+    parameter_id: str,
+) -> list[ParameterDuplicateSuppressionRead]:
+    _require_parameter(db, parameter_id)
+    erster_parameter = aliased(Laborparameter)
+    zweiter_parameter = aliased(Laborparameter)
+    stmt = (
+        select(ParameterDublettenausschluss, erster_parameter.anzeigename, zweiter_parameter.anzeigename)
+        .join(erster_parameter, ParameterDublettenausschluss.erster_parameter_id == erster_parameter.id)
+        .join(zweiter_parameter, ParameterDublettenausschluss.zweiter_parameter_id == zweiter_parameter.id)
+        .where(
+            or_(
+                ParameterDublettenausschluss.erster_parameter_id == parameter_id,
+                ParameterDublettenausschluss.zweiter_parameter_id == parameter_id,
+            )
+        )
+        .order_by(ParameterDublettenausschluss.erstellt_am.desc())
+    )
+    return [
+        ParameterDuplicateSuppressionRead(
+            id=suppression.id,
+            erster_parameter_id=suppression.erster_parameter_id,
+            erster_parameter_anzeigename=first_name,
+            zweiter_parameter_id=suppression.zweiter_parameter_id,
+            zweiter_parameter_anzeigename=second_name,
+            erstellt_am=suppression.erstellt_am,
+            geaendert_am=suppression.geaendert_am,
+        )
+        for suppression, first_name, second_name in db.execute(stmt)
+    ]
+
+
+def create_parameter_duplicate_suppression(
+    db: Session,
+    payload: ParameterDuplicateSuppressionCreate,
+) -> ParameterDuplicateSuppressionRead:
+    if payload.erster_parameter_id == payload.zweiter_parameter_id:
+        raise ValueError("Ein Parameter kann nicht gegen sich selbst als 'kein Dublett' markiert werden.")
+
+    first = _require_parameter(db, payload.erster_parameter_id)
+    second = _require_parameter(db, payload.zweiter_parameter_id)
+    erster_parameter_id, zweiter_parameter_id, pair_key = _normalize_duplicate_pair_ids(first.id, second.id)
+
+    suppression = db.scalar(
+        select(ParameterDublettenausschluss).where(ParameterDublettenausschluss.paar_schluessel == pair_key)
+    )
+    if suppression is None:
+        suppression = ParameterDublettenausschluss(
+            erster_parameter_id=erster_parameter_id,
+            zweiter_parameter_id=zweiter_parameter_id,
+            paar_schluessel=pair_key,
+        )
+        db.add(suppression)
+        db.commit()
+        db.refresh(suppression)
+
+    first_name = first.anzeigename if first.id == suppression.erster_parameter_id else second.anzeigename
+    second_name = second.anzeigename if second.id == suppression.zweiter_parameter_id else first.anzeigename
+    return ParameterDuplicateSuppressionRead(
+        id=suppression.id,
+        erster_parameter_id=suppression.erster_parameter_id,
+        erster_parameter_anzeigename=first_name,
+        zweiter_parameter_id=suppression.zweiter_parameter_id,
+        zweiter_parameter_anzeigename=second_name,
+        erstellt_am=suppression.erstellt_am,
+        geaendert_am=suppression.geaendert_am,
+    )
+
+
+def delete_parameter_duplicate_suppression(db: Session, suppression_id: str) -> None:
+    suppression = db.get(ParameterDublettenausschluss, suppression_id)
+    if suppression is None:
+        raise ValueError("Dublett-Unterdrückung nicht gefunden.")
+    db.delete(suppression)
+    db.commit()
+
+
 def merge_parameters(db: Session, payload: ParameterMergeRequest) -> ParameterMergeResultRead:
     if payload.ziel_parameter_id == payload.quell_parameter_id:
         raise ValueError("Quelle und Ziel der Zusammenführung müssen verschieden sein.")
@@ -343,6 +445,7 @@ def merge_parameters(db: Session, payload: ParameterMergeRequest) -> ParameterMe
     moved_one_time_plans = _reassign_parameter_rows(db, PlanungEinmalig, source.id, target.id)
     moved_group_assignments, removed_duplicate_group_assignments = _merge_group_assignments(db, source.id, target.id)
     created_aliases, skipped_aliases = _merge_parameter_aliases(db, target, source, common_name, original_target_name)
+    _delete_duplicate_suppressions_for_parameter_ids(db, [source.id])
 
     if not target.standard_einheit and source.standard_einheit:
         target.standard_einheit = source.standard_einheit
@@ -458,6 +561,55 @@ def _require_parameter(db: Session, parameter_id: str) -> Laborparameter:
     return parameter
 
 
+def _build_parameter_read(
+    parameter: Laborparameter,
+    summary: ParameterUsageSummaryRead | None = None,
+) -> ParameterRead:
+    return ParameterRead(
+        id=parameter.id,
+        interner_schluessel=parameter.interner_schluessel,
+        anzeigename=parameter.anzeigename,
+        beschreibung=parameter.beschreibung,
+        standard_einheit=parameter.standard_einheit,
+        wert_typ_standard=parameter.wert_typ_standard,
+        sortierschluessel=parameter.sortierschluessel,
+        aktiv=parameter.aktiv,
+        erstellt_am=parameter.erstellt_am,
+        geaendert_am=parameter.geaendert_am,
+        messwerte_anzahl=summary.messwerte_anzahl if summary is not None else 0,
+    )
+
+
+def _normalize_duplicate_pair_ids(
+    first_parameter_id: str,
+    second_parameter_id: str,
+) -> tuple[str, str, str]:
+    erster_parameter_id, zweiter_parameter_id = sorted([first_parameter_id, second_parameter_id])
+    return erster_parameter_id, zweiter_parameter_id, f"{erster_parameter_id}::{zweiter_parameter_id}"
+
+
+def _list_duplicate_suppression_keys(db: Session) -> set[str]:
+    return set(db.scalars(select(ParameterDublettenausschluss.paar_schluessel)))
+
+
+def _delete_duplicate_suppressions_for_parameter_ids(db: Session, parameter_ids: list[str]) -> int:
+    if not parameter_ids:
+        return 0
+    suppressions = list(
+        db.scalars(
+            select(ParameterDublettenausschluss).where(
+                or_(
+                    ParameterDublettenausschluss.erster_parameter_id.in_(parameter_ids),
+                    ParameterDublettenausschluss.zweiter_parameter_id.in_(parameter_ids),
+                )
+            )
+        )
+    )
+    for suppression in suppressions:
+        db.delete(suppression)
+    return len(suppressions)
+
+
 def _assert_alias_is_unique_and_meaningful(
     db: Session,
     parameter: Laborparameter,
@@ -540,9 +692,135 @@ def _fill_usage_count(db: Session, model, summaries: dict[str, ParameterUsageSum
             setattr(summary, field_name, int(count or 0))
 
 
+def _build_parameter_target_range_signatures(
+    db: Session,
+    parameter_ids: list[str],
+) -> dict[str, set[str]]:
+    signatures = {parameter_id: set() for parameter_id in parameter_ids}
+    if not parameter_ids:
+        return signatures
+
+    stmt = (
+        select(Zielbereich)
+        .where(Zielbereich.laborparameter_id.in_(parameter_ids))
+        .where(Zielbereich.aktiv.is_(True))
+    )
+    for target_range in db.scalars(stmt):
+        signatures.setdefault(target_range.laborparameter_id, set()).add(
+            _build_target_range_signature(target_range)
+        )
+    return signatures
+
+
+def _build_target_range_signature(target_range: Zielbereich) -> str:
+    lower = "" if target_range.untere_grenze_num is None else f"{target_range.untere_grenze_num:.12g}"
+    upper = "" if target_range.obere_grenze_num is None else f"{target_range.obere_grenze_num:.12g}"
+    return "|".join(
+        [
+            target_range.wert_typ or "",
+            lower,
+            upper,
+            normalize_parameter_name(target_range.einheit),
+            normalize_parameter_name(target_range.soll_text),
+            (target_range.geschlecht_code or "").strip().lower(),
+            "" if target_range.alter_min_tage is None else str(target_range.alter_min_tage),
+            "" if target_range.alter_max_tage is None else str(target_range.alter_max_tage),
+        ]
+    )
+
+
+def _build_parameter_reference_signatures(
+    db: Session,
+    parameter_ids: list[str],
+) -> dict[str, set[str]]:
+    signatures = {parameter_id: set() for parameter_id in parameter_ids}
+    if not parameter_ids:
+        return signatures
+
+    stmt = (
+        select(Messwert.laborparameter_id, MesswertReferenz)
+        .join(MesswertReferenz, MesswertReferenz.messwert_id == Messwert.id)
+        .where(Messwert.laborparameter_id.in_(parameter_ids))
+    )
+    for parameter_id, reference in db.execute(stmt):
+        signatures.setdefault(parameter_id, set()).add(_build_reference_signature(reference))
+    return signatures
+
+
+def _build_reference_signature(reference: MesswertReferenz) -> str:
+    lower = "" if reference.untere_grenze_num is None else f"{reference.untere_grenze_num:.12g}"
+    upper = "" if reference.obere_grenze_num is None else f"{reference.obere_grenze_num:.12g}"
+    return "|".join(
+        [
+            (reference.referenz_typ or "").strip().lower(),
+            reference.wert_typ or "",
+            normalize_parameter_name(reference.referenz_text_original),
+            lower,
+            (reference.untere_grenze_operator or "").strip().lower(),
+            upper,
+            (reference.obere_grenze_operator or "").strip().lower(),
+            normalize_parameter_name(reference.einheit),
+            normalize_parameter_name(reference.soll_text),
+            (reference.geschlecht_code or "").strip().lower(),
+            "" if reference.alter_min_tage is None else str(reference.alter_min_tage),
+            "" if reference.alter_max_tage is None else str(reference.alter_max_tage),
+        ]
+    )
+
+
+def _assess_target_range_overlap(
+    left_signatures: set[str],
+    right_signatures: set[str],
+) -> tuple[str, str | None]:
+    if not left_signatures or not right_signatures:
+        return "unknown", None
+
+    overlap = left_signatures & right_signatures
+    if overlap:
+        if left_signatures == right_signatures:
+            return "exact", "Aktive Zielbereiche stimmen überein."
+        return "partial", "Aktive Zielbereiche überlappen teilweise."
+
+    return "conflict", "Aktive Zielbereiche weichen ab."
+
+
+def _assess_reference_overlap(
+    left_signatures: set[str],
+    right_signatures: set[str],
+) -> tuple[str, str | None]:
+    if not left_signatures or not right_signatures:
+        return "unknown", None
+
+    overlap = left_signatures & right_signatures
+    if overlap:
+        return "exact", "Messwert-Referenzbereiche stimmen überein."
+
+    return "conflict", "Messwert-Referenzbereiche weichen ab."
+
+
+def _combine_duplicate_contexts(
+    target_range_status: str,
+    target_range_note: str | None,
+    reference_status: str,
+    reference_note: str | None,
+) -> tuple[str, str | None]:
+    notes = [note for note in [target_range_note, reference_note] if note]
+    if target_range_status == "exact" or reference_status == "exact":
+        return "exact", " ".join(notes) if notes else None
+    if target_range_status == "partial":
+        return "partial", target_range_note
+    if target_range_status == "conflict" or reference_status == "conflict":
+        return "conflict", " ".join(notes) if notes else None
+    return "unknown", " ".join(notes) if notes else None
+
+
 def _assess_parameter_duplicate(
     left: Laborparameter,
     right: Laborparameter,
+    left_target_ranges: set[str],
+    right_target_ranges: set[str],
+    left_references: set[str],
+    right_references: set[str],
 ) -> dict[str, str | float | None] | None:
     if left.wert_typ_standard != right.wert_typ_standard:
         return None
@@ -551,8 +829,10 @@ def _assess_parameter_duplicate(
     right_name_normalized = normalize_parameter_name(right.anzeigename)
     left_key_normalized = normalize_parameter_name(left.interner_schluessel)
     right_key_normalized = normalize_parameter_name(right.interner_schluessel)
-    left_tokens = tokenize_parameter_name(left.anzeigename) | tokenize_parameter_name(left.interner_schluessel)
-    right_tokens = tokenize_parameter_name(right.anzeigename) | tokenize_parameter_name(right.interner_schluessel)
+    left_name_tokens = tokenize_parameter_name(left.anzeigename)
+    right_name_tokens = tokenize_parameter_name(right.anzeigename)
+    left_tokens = left_name_tokens | tokenize_parameter_name(left.interner_schluessel)
+    right_tokens = right_name_tokens | tokenize_parameter_name(right.interner_schluessel)
 
     overlap = 0.0
     if left_tokens and right_tokens:
@@ -561,6 +841,27 @@ def _assess_parameter_duplicate(
     name_similarity = SequenceMatcher(None, left_name_normalized, right_name_normalized).ratio()
     key_similarity = SequenceMatcher(None, left_key_normalized, right_key_normalized).ratio()
     similarity = max(name_similarity, key_similarity)
+    target_range_status, target_range_note = _assess_target_range_overlap(left_target_ranges, right_target_ranges)
+    reference_status, reference_note = _assess_reference_overlap(left_references, right_references)
+    context_status, context_note = _combine_duplicate_contexts(
+        target_range_status,
+        target_range_note,
+        reference_status,
+        reference_note,
+    )
+    token_subset = bool(
+        left_name_tokens
+        and right_name_tokens
+        and (left_name_tokens <= right_name_tokens or right_name_tokens <= left_name_tokens)
+    )
+    name_contains_other = bool(
+        left_name_normalized
+        and right_name_normalized
+        and (left_name_normalized in right_name_normalized or right_name_normalized in left_name_normalized)
+    )
+    smaller_token_count = (
+        min(len(left_name_tokens), len(right_name_tokens)) if left_name_tokens and right_name_tokens else 0
+    )
 
     if left_name_normalized == right_name_normalized:
         score = 1.0
@@ -571,8 +872,31 @@ def _assess_parameter_duplicate(
     elif overlap >= 0.75 and similarity >= 0.72:
         score = round((overlap * 0.55) + (similarity * 0.45), 2)
         reason = f"Hohe Namensaehnlichkeit mit {int(round(similarity * 100))} % und stark ueberlappenden Begriffen."
+    elif (
+        name_contains_other
+        and token_subset
+        and smaller_token_count >= 2
+        and similarity >= 0.72
+        and context_status == "exact"
+    ):
+        score = round(min(max(similarity, 0.76) + 0.08, 0.95), 2)
+        reason = (
+            "Ein Parametername ist im anderen enthalten und die Referenzkontexte stimmen überein."
+        )
     else:
         return None
+
+    fuzzy_match = left_name_normalized != right_name_normalized and left_key_normalized != right_key_normalized
+    if fuzzy_match and context_status == "conflict":
+        return None
+    if fuzzy_match and context_status == "exact":
+        score = round(min(score + 0.05, 1.0), 2)
+        reason = f"{reason} {context_note}"
+    elif fuzzy_match and context_status == "partial":
+        score = round(min(score + 0.02, 1.0), 2)
+        reason = f"{reason} {context_note}"
+    elif not fuzzy_match and context_status == "conflict":
+        reason = f"{reason} {context_note}"
 
     unit_note: str | None = None
     if left.standard_einheit and right.standard_einheit and left.standard_einheit != right.standard_einheit:

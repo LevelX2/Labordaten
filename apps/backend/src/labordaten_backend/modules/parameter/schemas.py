@@ -36,6 +36,7 @@ class ParameterRead(BaseModel):
     aktiv: bool
     erstellt_am: datetime
     geaendert_am: datetime
+    messwerte_anzahl: int = 0
 
 
 class ParameterStandardEinheitUpdate(BaseModel):
@@ -153,6 +154,25 @@ class ParameterDuplicateSuggestionRead(BaseModel):
     einheiten_hinweis: str | None = None
     ziel_parameter: ParameterUsageSummaryRead
     quell_parameter: ParameterUsageSummaryRead
+
+
+class ParameterDuplicateSuppressionCreate(BaseModel):
+    erster_parameter_id: str
+    zweiter_parameter_id: str
+
+
+class ParameterDuplicateSuppressionRead(BaseModel):
+    id: str
+    erster_parameter_id: str
+    erster_parameter_anzeigename: str
+    zweiter_parameter_id: str
+    zweiter_parameter_anzeigename: str
+    erstellt_am: datetime
+    geaendert_am: datetime
+
+
+class ParameterDuplicateSuppressionDeleteResult(BaseModel):
+    suppression_id: str
 
 
 class ParameterMergeRequest(BaseModel):

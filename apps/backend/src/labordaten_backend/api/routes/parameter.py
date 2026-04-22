@@ -26,6 +26,21 @@ def list_parameter_duplicate_suggestions(
     return service.list_parameter_duplicate_suggestions(db)
 
 
+@router.post(
+    "/dublettenausschluesse",
+    response_model=schemas.ParameterDuplicateSuppressionRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_parameter_duplicate_suppression(
+    payload: schemas.ParameterDuplicateSuppressionCreate,
+    db: Session = Depends(get_db),
+) -> schemas.ParameterDuplicateSuppressionRead:
+    try:
+        return service.create_parameter_duplicate_suppression(db, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
 @router.post("", response_model=schemas.ParameterRead, status_code=status.HTTP_201_CREATED)
 def create_parameter(
     payload: schemas.ParameterCreate,
@@ -75,6 +90,20 @@ def get_parameter(parameter_id: str, db: Session = Depends(get_db)) -> schemas.P
     if parameter is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Parameter nicht gefunden.")
     return parameter
+
+
+@router.get(
+    "/{parameter_id}/dublettenausschluesse",
+    response_model=list[schemas.ParameterDuplicateSuppressionRead],
+)
+def list_parameter_duplicate_suppressions(
+    parameter_id: str,
+    db: Session = Depends(get_db),
+) -> list[schemas.ParameterDuplicateSuppressionRead]:
+    try:
+        return service.list_parameter_duplicate_suppressions(db, parameter_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
 
 @router.get("/{parameter_id}/aliase", response_model=list[schemas.ParameterAliasRead])
@@ -143,3 +172,18 @@ def create_parameter_umrechnungsregel(
         return service.create_parameter_umrechnungsregel(db, parameter_id, payload)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@router.delete(
+    "/dublettenausschluesse/{suppression_id}",
+    response_model=schemas.ParameterDuplicateSuppressionDeleteResult,
+)
+def delete_parameter_duplicate_suppression(
+    suppression_id: str,
+    db: Session = Depends(get_db),
+) -> schemas.ParameterDuplicateSuppressionDeleteResult:
+    try:
+        service.delete_parameter_duplicate_suppression(db, suppression_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return schemas.ParameterDuplicateSuppressionDeleteResult(suppression_id=suppression_id)

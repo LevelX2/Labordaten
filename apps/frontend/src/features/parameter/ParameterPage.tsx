@@ -14,6 +14,7 @@ import type {
   Parameter,
   ParameterAlias,
   ParameterAliasSuggestion,
+  ParameterDuplicateSuppression,
   ParameterDuplicateSuggestion,
   ParameterGruppenzuordnung,
   ParameterMergeResult,
@@ -199,6 +200,10 @@ function formatCountLabel(count: number, singular: string, plural: string): stri
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
+function buildDuplicateSuggestionKey(zielParameterId: string, quellParameterId: string): string {
+  return `${zielParameterId}:${quellParameterId}`;
+}
+
 export function ParameterPage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<ParameterFormState>(initialForm);
@@ -210,6 +215,7 @@ export function ParameterPage() {
   const [umrechnungsregelForm, setUmrechnungsregelForm] =
     useState<ParameterUmrechnungsregelFormState>(initialUmrechnungsregelForm);
   const [mergeNameBySuggestion, setMergeNameBySuggestion] = useState<Record<string, string>>({});
+  const [pendingDuplicateSuppressionKey, setPendingDuplicateSuppressionKey] = useState<string | null>(null);
   const [lastMergeResult, setLastMergeResult] = useState<ParameterMergeResult | null>(null);
   const [lastRenameResult, setLastRenameResult] = useState<ParameterRenameResult | null>(null);
   const [lastStandardEinheitResult, setLastStandardEinheitResult] =
@@ -380,6 +386,12 @@ export function ParameterPage() {
     queryFn: () => apiFetch<ParameterDuplicateSuggestion[]>("/api/parameter/dublettenvorschlaege"),
     enabled: false
   });
+  const duplicateSuppressionsQuery = useQuery({
+    queryKey: ["parameter-dublettenausschluesse", selectedParameterId],
+    queryFn: () =>
+      apiFetch<ParameterDuplicateSuppression[]>(`/api/parameter/${selectedParameterId}/dublettenausschluesse`),
+    enabled: Boolean(selectedParameterId && activePanel === "duplicates")
+  });
 
   const selectedAliasSuggestions = useMemo(
     () =>
@@ -400,6 +412,21 @@ export function ParameterPage() {
           : true;
       }),
     [duplicateSuggestionsQuery.data, duplicateViewScope, selectedParameterId]
+  );
+
+  const visibleDuplicateSuppressions = useMemo(
+    () =>
+      (duplicateSuppressionsQuery.data ?? []).map((suppression) => {
+        const selectedIsFirst = suppression.erster_parameter_id === selectedParameterId;
+        return {
+          ...suppression,
+          anderer_parameter_id: selectedIsFirst ? suppression.zweiter_parameter_id : suppression.erster_parameter_id,
+          anderer_parameter_anzeigename: selectedIsFirst
+            ? suppression.zweiter_parameter_anzeigename
+            : suppression.erster_parameter_anzeigename
+        };
+      }),
+    [duplicateSuppressionsQuery.data, selectedParameterId]
   );
 
   const createMutation = useMutation({
@@ -566,7 +593,7 @@ export function ParameterPage() {
       setSelectedParameterId(result.ziel_parameter_id);
       setMergeNameBySuggestion((current) => {
         const next = { ...current };
-        delete next[`${payload.ziel_parameter_id}:${payload.quell_parameter_id}`];
+        delete next[buildDuplicateSuggestionKey(payload.ziel_parameter_id, payload.quell_parameter_id)];
         return next;
       });
       await queryClient.invalidateQueries({ queryKey: ["parameter"] });
@@ -574,6 +601,43 @@ export function ParameterPage() {
       await queryClient.invalidateQueries({ queryKey: ["parameter-alias-vorschlaege"] });
       await queryClient.invalidateQueries({ queryKey: ["parameter-dublettenvorschlaege"] });
       await duplicateSuggestionsQuery.refetch();
+    }
+  });
+  const suppressDuplicateMutation = useMutation({
+    mutationFn: (payload: { erster_parameter_id: string; zweiter_parameter_id: string }) =>
+      apiFetch<ParameterDuplicateSuppression>("/api/parameter/dublettenausschluesse", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      }),
+    onMutate: (payload) => {
+      setPendingDuplicateSuppressionKey(
+        buildDuplicateSuggestionKey(payload.erster_parameter_id, payload.zweiter_parameter_id)
+      );
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["parameter-dublettenausschluesse"] });
+      await queryClient.invalidateQueries({ queryKey: ["parameter-dublettenvorschlaege"] });
+      await duplicateSuppressionsQuery.refetch();
+      if (duplicateSuggestionsQuery.isFetched) {
+        await duplicateSuggestionsQuery.refetch();
+      }
+    },
+    onSettled: () => {
+      setPendingDuplicateSuppressionKey(null);
+    }
+  });
+  const deleteDuplicateSuppressionMutation = useMutation({
+    mutationFn: (suppressionId: string) =>
+      apiFetch<void>(`/api/parameter/dublettenausschluesse/${suppressionId}`, {
+        method: "DELETE"
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["parameter-dublettenausschluesse"] });
+      await queryClient.invalidateQueries({ queryKey: ["parameter-dublettenvorschlaege"] });
+      await duplicateSuppressionsQuery.refetch();
+      if (duplicateSuggestionsQuery.isFetched) {
+        await duplicateSuggestionsQuery.refetch();
+      }
     }
   });
 
@@ -621,7 +685,11 @@ export function ParameterPage() {
       });
     }
 
-    setActivePanel((current) => (current === panel ? null : panel));
+    const nextPanel = activePanel === panel ? null : panel;
+    if (panel === "duplicates" && nextPanel === "duplicates" && activePanel !== "duplicates") {
+      queryClient.removeQueries({ queryKey: ["parameter-dublettenvorschlaege"], exact: true });
+    }
+    setActivePanel(nextPanel);
   };
 
   const renderPanelCloseButton = (label = "Werkzeug schließen") => (
@@ -646,10 +714,15 @@ export function ParameterPage() {
         <article className="card card--soft parameter-action-panel">
           <div className="parameter-panel__header">
             <div>
-              <h3>Neuer Parameter</h3>
-              <p>Der interne Schlüssel wird beim Anlegen automatisch aus dem Anzeigenamen erzeugt.</p>
+              <h3>Parameter anlegen</h3>
+              <p>
+                Neue Parameter werden normalerweise beim Import eines Berichts automatisch angelegt. Diese Eingabe ist
+                für die manuelle Anlage gedacht, wenn ein Parameter nachgepflegt werden muss oder die automatische
+                Zuordnung nicht ausgereicht hat. Der interne Schlüssel wird dabei automatisch aus dem Anzeigenamen
+                erzeugt.
+              </p>
             </div>
-            {renderPanelCloseButton("Panel Neuer Parameter schließen")}
+            {renderPanelCloseButton("Panel Parameter anlegen schließen")}
           </div>
           <form
             className="form-grid"
@@ -733,7 +806,11 @@ export function ParameterPage() {
           <div className="parameter-panel__header">
             <div>
               <h3>Parameter umbenennen</h3>
-              <p>Der bisherige Name kann direkt als Alias erhalten bleiben, damit Importe weiter sauber laufen.</p>
+              <p>
+                Hier änderst Du den sichtbaren Namen des ausgewählten Parameters, ohne seine Messwerte, Zielbereiche
+                oder Planungen zu verlieren. Wenn Du den alten Namen als Alias behältst, bleiben frühere
+                Bezeichnungen und bestehende Importe weiterhin sauber zuordenbar.
+              </p>
             </div>
             {renderPanelCloseButton("Panel Parameter umbenennen schließen")}
           </div>
@@ -799,7 +876,8 @@ export function ParameterPage() {
             <div>
               <h3>Führende Normeinheit festlegen</h3>
               <p>
-                Diese Einheit steuert, worauf numerische Werte intern bevorzugt normiert werden. Originalwerte und
+                Hier legst Du fest, in welcher Einheit numerische Werte dieses Parameters bevorzugt verglichen,
+                ausgewertet und in gemeinsamen Darstellungen verwendet werden sollen. Originalwerte und
                 Originaleinheiten bleiben dabei unverändert erhalten.
               </p>
             </div>
@@ -835,8 +913,9 @@ export function ParameterPage() {
             </label>
 
             <p className="field field--full">
-              Wenn passende Umrechnungsregeln vorhanden sind, werden bestehende normierte Vergleichswerte nach dem
-              Speichern sofort neu berechnet.
+              Wenn passende Umrechnungsregeln vorhanden sind, berechnet das System vorhandene normierte Vergleichswerte
+              nach dem Speichern sofort neu. So werden alte und neue Messwerte in derselben führenden Einheit
+              vergleichbar.
             </p>
 
             {lastStandardEinheitResult?.parameter_id === selectedParameter.id ? (
@@ -865,7 +944,11 @@ export function ParameterPage() {
           <div className="parameter-panel__header">
             <div>
               <h3>Alias pflegen</h3>
-              <p>Aliasnamen helfen beim Import, wenn Labore denselben Wert unterschiedlich benennen.</p>
+              <p>
+                Aliasnamen helfen, unterschiedliche Laborbezeichnungen demselben bestehenden Parameter sicher
+                zuzuordnen. Trage hier alternative Namen ein, unter denen dieser Wert in Berichten, Importen oder
+                älteren Daten vorkommt, ohne dafür einen zweiten eigenen Parameter anzulegen.
+              </p>
             </div>
             {renderPanelCloseButton("Panel Alias pflegen schließen")}
           </div>
@@ -918,8 +1001,9 @@ export function ParameterPage() {
             <div>
               <h3>Umrechnungsregel anlegen</h3>
               <p>
-                Regeln werden parameterbezogen gepflegt. Für die automatische Normierung ist die
-                Standardeinheit als Zieleinheit meist der sinnvollste Zielwert.
+                Mit Umrechnungsregeln beschreibst Du, wie Werte dieses Parameters von einer Einheit in eine andere
+                überführt werden. Das ist sinnvoll, wenn derselbe Analyt je nach Labor in verschiedenen Einheiten
+                vorkommt und trotzdem gemeinsam verglichen oder auf eine führende Normeinheit gebracht werden soll.
               </p>
             </div>
             {renderPanelCloseButton("Panel Umrechnungsregel schließen")}
@@ -1100,7 +1184,11 @@ export function ParameterPage() {
           <div className="parameter-panel__header">
             <div>
               <h3>Allgemeinen Zielbereich anlegen</h3>
-              <p>Der Zielbereich wird direkt dem aktuell gewählten Parameter zugeordnet.</p>
+              <p>
+                Hier hinterlegst Du einen allgemeinen Zielbereich für den ausgewählten Parameter. Dieser Bereich dient
+                als fachliche Orientierung für Auswertung, Berichte und Planung und kann später bei Bedarf noch
+                personenspezifisch überschrieben werden.
+              </p>
             </div>
             {renderPanelCloseButton("Panel Zielbereich schließen")}
           </div>
@@ -1205,13 +1293,14 @@ export function ParameterPage() {
         <article className="card card--soft parameter-action-panel">
           <div className="parameter-panel__header">
             <div>
-              <h3>Alias-Vorschläge</h3>
+              <h3>Alias-Vorschläge prüfen</h3>
               <p>
-                Die Liste nutzt bereits bestätigte Originalnamen aus vorhandenen Messwerten und zeigt hier nur Vorschläge
-                für den aktuell ausgewählten Parameter.
+                Hier siehst Du zusätzliche Namensvorschläge für den aktuell ausgewählten Parameter. Das System leitet
+                sie aus bereits beobachteten Originalbezeichnungen ab, damit Du wiederkehrende Berichtsschreibweisen
+                mit einem Klick als Alias übernehmen kannst, ohne bestehende Parameter zusammenzuführen.
               </p>
             </div>
-            {renderPanelCloseButton("Panel Alias-Vorschläge schließen")}
+            {renderPanelCloseButton("Panel Alias-Vorschläge prüfen schließen")}
           </div>
           <div className="parameter-panel__toolbar">
             <button
@@ -1225,7 +1314,9 @@ export function ParameterPage() {
           </div>
           {aliasSuggestionsQuery.isError ? <p className="form-error">{aliasSuggestionsQuery.error.message}</p> : null}
           {confirmAliasSuggestionMutation.isError ? <p className="form-error">{confirmAliasSuggestionMutation.error.message}</p> : null}
-          {!aliasSuggestionsQuery.isFetched ? <p>Die Vorschläge werden nur bei Bedarf geladen.</p> : null}
+          {!aliasSuggestionsQuery.isFetched ? (
+            <p>Die Vorschläge werden nur bei Bedarf geladen, damit die Seite übersichtlich bleibt.</p>
+          ) : null}
           <div className="table-wrap">
             <table className="data-table">
               <thead>
@@ -1272,10 +1363,13 @@ export function ParameterPage() {
       <article className="card card--soft parameter-action-panel">
         <div className="parameter-panel__header">
           <div>
-            <h3>Dublettenprüfung und Zusammenführung</h3>
+            <h3>Dubletten prüfen und zusammenführen</h3>
             <p>
-              Prüfe wahlweise nur den aktuellen Parameter oder die gesamte Parameterbasis. Nach Bestätigung werden
-              Verwendungen umgehängt und Namen nach Möglichkeit als Alias erhalten.
+              Hier prüfst Du, ob derselbe Laborwert versehentlich mehrfach als eigener Parameter angelegt wurde. Im
+              Unterschied zur Alias-Pflege geht es hier nicht nur um einen zusätzlichen Namen, sondern um zwei
+              getrennte Parameterdatensätze, die möglicherweise fachlich zusammengehören. Erst nach Deiner
+              Bestätigung werden Messwerte, Zielbereiche und weitere Zuordnungen auf den behaltenen Parameter
+              umgestellt; frühere Namen bleiben nach Möglichkeit als Alias erhalten.
             </p>
           </div>
           {renderPanelCloseButton("Panel Dubletten schließen")}
@@ -1306,8 +1400,52 @@ export function ParameterPage() {
             {duplicateSuggestionsQuery.isFetching ? "Prüft..." : "Dubletten suchen"}
           </button>
         </div>
+        {selectedParameter ? (
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th colSpan={3}>Für diesen Parameter unterdrückte Paarungen</th>
+                </tr>
+                <tr>
+                  <th>Anderer Parameter</th>
+                  <th>Seit</th>
+                  <th>Aktion</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleDuplicateSuppressions.map((suppression) => (
+                  <tr key={suppression.id}>
+                    <td>{suppression.anderer_parameter_anzeigename}</td>
+                    <td>{formatDateTime(suppression.erstellt_am)}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="inline-button"
+                        disabled={deleteDuplicateSuppressionMutation.isPending}
+                        onClick={() => deleteDuplicateSuppressionMutation.mutate(suppression.id)}
+                      >
+                        Unterdrückung aufheben
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {!visibleDuplicateSuppressions.length ? (
+                  <tr>
+                    <td colSpan={3}>Für diesen Parameter sind aktuell keine Dublett-Unterdrückungen hinterlegt.</td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
         {duplicateSuggestionsQuery.isError ? <p className="form-error">{duplicateSuggestionsQuery.error.message}</p> : null}
         {mergeDuplicateMutation.isError ? <p className="form-error">{mergeDuplicateMutation.error.message}</p> : null}
+        {duplicateSuppressionsQuery.isError ? <p className="form-error">{duplicateSuppressionsQuery.error.message}</p> : null}
+        {suppressDuplicateMutation.isError ? <p className="form-error">{suppressDuplicateMutation.error.message}</p> : null}
+        {deleteDuplicateSuppressionMutation.isError ? (
+          <p className="form-error">{deleteDuplicateSuppressionMutation.error.message}</p>
+        ) : null}
         {lastMergeResult && selectedParameterId === lastMergeResult.ziel_parameter_id ? (
           <p>
             Zusammengeführt zu <strong>{lastMergeResult.gemeinsamer_name}</strong>. Verschoben: {lastMergeResult.verschobene_messwerte}{" "}
@@ -1330,8 +1468,12 @@ export function ParameterPage() {
             </thead>
             <tbody>
               {visibleDuplicateSuggestions.map((suggestion) => {
-                const suggestionKey = `${suggestion.ziel_parameter_id}:${suggestion.quell_parameter_id}`;
+                const suggestionKey = buildDuplicateSuggestionKey(
+                  suggestion.ziel_parameter_id,
+                  suggestion.quell_parameter_id
+                );
                 const mergeName = mergeNameBySuggestion[suggestionKey] ?? suggestion.gemeinsamer_name_vorschlag;
+                const isSuppressingThisSuggestion = pendingDuplicateSuppressionKey === suggestionKey;
                 return (
                   <tr key={suggestionKey}>
                     <td>
@@ -1367,26 +1509,41 @@ export function ParameterPage() {
                       />
                     </td>
                     <td>
-                      <button
-                        type="button"
-                        className="inline-button"
-                        disabled={mergeDuplicateMutation.isPending}
-                        onClick={() => {
-                          const confirmed = window.confirm(
-                            `Soll '${suggestion.quell_parameter_anzeigename}' in '${suggestion.ziel_parameter_anzeigename}' überführt werden?`
-                          );
-                          if (!confirmed) {
-                            return;
+                      <div className="inline-actions">
+                        <button
+                          type="button"
+                          className="inline-button"
+                          disabled={mergeDuplicateMutation.isPending || suppressDuplicateMutation.isPending}
+                          onClick={() => {
+                            const confirmed = window.confirm(
+                              `Soll '${suggestion.quell_parameter_anzeigename}' in '${suggestion.ziel_parameter_anzeigename}' überführt werden?`
+                            );
+                            if (!confirmed) {
+                              return;
+                            }
+                            mergeDuplicateMutation.mutate({
+                              ziel_parameter_id: suggestion.ziel_parameter_id,
+                              quell_parameter_id: suggestion.quell_parameter_id,
+                              gemeinsamer_name: mergeName
+                            });
+                          }}
+                        >
+                          {mergeDuplicateMutation.isPending ? "Führt zusammen..." : "Zusammenführen"}
+                        </button>
+                        <button
+                          type="button"
+                          className="inline-button"
+                          disabled={mergeDuplicateMutation.isPending || suppressDuplicateMutation.isPending}
+                          onClick={() =>
+                            suppressDuplicateMutation.mutate({
+                              erster_parameter_id: suggestion.ziel_parameter_id,
+                              zweiter_parameter_id: suggestion.quell_parameter_id
+                            })
                           }
-                          mergeDuplicateMutation.mutate({
-                            ziel_parameter_id: suggestion.ziel_parameter_id,
-                            quell_parameter_id: suggestion.quell_parameter_id,
-                            gemeinsamer_name: mergeName
-                          });
-                        }}
-                      >
-                        {mergeDuplicateMutation.isPending ? "Führt zusammen..." : "Zusammenführen"}
-                      </button>
+                        >
+                          {isSuppressingThisSuggestion ? "Merkt..." : "Kein Dublett"}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -1492,32 +1649,6 @@ export function ParameterPage() {
               <p>Noch keine Parameter vorhanden. Lege über die Werkzeugleiste den ersten Parameter an.</p>
             ) : (
               <>
-                <div className="parameter-detail__header">
-                  <div>
-                    <h3 className="parameter-detail__title">{selectedParameter.anzeigename}</h3>
-                    <p>{selectedParameter.beschreibung?.trim() || "Zu diesem Parameter ist noch keine Erläuterung hinterlegt."}</p>
-                  </div>
-                  <div className="parameter-header-controls">
-                    <button
-                      type="button"
-                      className={`parameter-mode-toggle ${showAdvancedDetails ? "parameter-mode-toggle--advanced" : ""}`}
-                      onClick={() => setShowAdvancedDetails((current) => !current)}
-                      aria-pressed={showAdvancedDetails}
-                      title={showAdvancedDetails ? "Zur einfachen Ansicht wechseln" : "Zur Expertenansicht wechseln"}
-                    >
-                      <span className="parameter-mode-toggle__icon" aria-hidden="true">
-                        <span />
-                        <span />
-                        <span />
-                        <span />
-                      </span>
-                      <span className="parameter-mode-toggle__text">
-                        {showAdvancedDetails ? "Experte" : "Einfach"}
-                      </span>
-                    </button>
-                  </div>
-                </div>
-
                 <div className="parameter-toolrail">
                     <button
                       type="button"
@@ -1579,6 +1710,32 @@ export function ParameterPage() {
 
                 {renderActionPanel()}
 
+                <div className="parameter-detail__header">
+                  <div>
+                    <h3 className="parameter-detail__title">{selectedParameter.anzeigename}</h3>
+                    <p>{selectedParameter.beschreibung?.trim() || "Zu diesem Parameter ist noch keine Erläuterung hinterlegt."}</p>
+                  </div>
+                  <div className="parameter-header-controls">
+                    <button
+                      type="button"
+                      className={`parameter-mode-toggle ${showAdvancedDetails ? "parameter-mode-toggle--advanced" : ""}`}
+                      onClick={() => setShowAdvancedDetails((current) => !current)}
+                      aria-pressed={showAdvancedDetails}
+                      title={showAdvancedDetails ? "Zur einfachen Ansicht wechseln" : "Zur Expertenansicht wechseln"}
+                    >
+                      <span className="parameter-mode-toggle__icon" aria-hidden="true">
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                      </span>
+                      <span className="parameter-mode-toggle__text">
+                        {showAdvancedDetails ? "Experte" : "Einfach"}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
                 <div className="detail-grid">
                   <div className="detail-grid__item">
                     <span>Werttyp</span>
@@ -1587,6 +1744,14 @@ export function ParameterPage() {
                   <div className="detail-grid__item">
                     <span>Führende Normeinheit</span>
                     <strong>{selectedParameter.standard_einheit || "Keine Einheit"}</strong>
+                  </div>
+                  <div className="detail-grid__item">
+                    <span>Vorhandene Messwerte</span>
+                    <strong>{selectedParameter.messwerte_anzahl}</strong>
+                  </div>
+                  <div className="detail-grid__item">
+                    <span>Verwendet in Gruppen</span>
+                    <strong>{parameterGruppenQuery.data?.length ?? 0}</strong>
                   </div>
                 </div>
 

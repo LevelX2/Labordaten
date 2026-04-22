@@ -131,6 +131,7 @@ export type Parameter = {
   aktiv: boolean;
   erstellt_am: string;
   geaendert_am: string;
+  messwerte_anzahl: number;
 };
 
 export type ParameterStandardEinheitUpdateResult = {
@@ -228,6 +229,16 @@ export type ParameterDuplicateSuggestion = {
   einheiten_hinweis?: string | null;
   ziel_parameter: ParameterUsageSummary;
   quell_parameter: ParameterUsageSummary;
+};
+
+export type ParameterDuplicateSuppression = {
+  id: string;
+  erster_parameter_id: string;
+  erster_parameter_anzeigename: string;
+  zweiter_parameter_id: string;
+  zweiter_parameter_anzeigename: string;
+  erstellt_am: string;
+  geaendert_am: string;
 };
 
 export type ParameterMergeResult = {

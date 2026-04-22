@@ -4,7 +4,7 @@ from calendar import monthrange
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from labordaten_backend.models.befund import Befund
@@ -19,6 +19,7 @@ from labordaten_backend.models.laborparameter import Laborparameter
 from labordaten_backend.models.laborparameter_alias import LaborparameterAlias
 from labordaten_backend.models.messwert import Messwert
 from labordaten_backend.models.messwert_referenz import MesswertReferenz
+from labordaten_backend.models.parameter_dublettenausschluss import ParameterDublettenausschluss
 from labordaten_backend.models.parameter_gruppe import ParameterGruppe
 from labordaten_backend.models.person import Person
 from labordaten_backend.models.planung_einmalig import PlanungEinmalig
@@ -475,6 +476,14 @@ def _pruefe_laborparameter(db: Session, parameter_id: str) -> schemas.LoeschPrue
     alias_anzahl = _count(LaborparameterAlias.id, db, LaborparameterAlias.laborparameter_id == parameter_id)
     gruppen_anzahl = _count(GruppenParameter.id, db, GruppenParameter.laborparameter_id == parameter_id)
     zielbereich_anzahl = _count(Zielbereich.id, db, Zielbereich.laborparameter_id == parameter_id)
+    dubletten_ausschluss_anzahl = _count(
+        ParameterDublettenausschluss.id,
+        db,
+        or_(
+            ParameterDublettenausschluss.erster_parameter_id == parameter_id,
+            ParameterDublettenausschluss.zweiter_parameter_id == parameter_id,
+        ),
+    )
     regel_anzahl = _count(
         ParameterUmrechnungsregel.id,
         db,
@@ -525,6 +534,15 @@ def _pruefe_laborparameter(db: Session, parameter_id: str) -> schemas.LoeschPrue
     if gruppen_anzahl:
         dependencies.append(
             _dependency("gruppen_parameter", gruppen_anzahl, "kind", "Gruppenzuordnungen dieses Parameters werden mitgeloescht.")
+        )
+    if dubletten_ausschluss_anzahl:
+        dependencies.append(
+            _dependency(
+                "parameter_dublettenausschluss",
+                dubletten_ausschluss_anzahl,
+                "kind",
+                "Unterdrueckte Dublettenpaare dieses Parameters werden mitgeloescht.",
+            )
         )
     if zielbereich_anzahl:
         override_anzahl = _count_overrides_for_parameter(db, parameter_id)
@@ -898,6 +916,15 @@ def _execute_delete_laborparameter(db: Session, parameter_id: str) -> schemas.Lo
         db,
         select(GruppenParameter).where(GruppenParameter.laborparameter_id == parameter_id),
     )
+    dubletten_ausschluss_count = _delete_rows(
+        db,
+        select(ParameterDublettenausschluss).where(
+            or_(
+                ParameterDublettenausschluss.erster_parameter_id == parameter_id,
+                ParameterDublettenausschluss.zweiter_parameter_id == parameter_id,
+            )
+        ),
+    )
     zielbereiche = list(db.scalars(select(Zielbereich).where(Zielbereich.laborparameter_id == parameter_id)))
     zielbereich_ids = [zielbereich.id for zielbereich in zielbereiche]
     override_count = _delete_rows_for_ids(
@@ -921,6 +948,15 @@ def _execute_delete_laborparameter(db: Session, parameter_id: str) -> schemas.Lo
         )
     if gruppen_count:
         geloeschte_objekte.append(_dependency("gruppen_parameter", gruppen_count, "kind", "Gruppenzuordnungen wurden mitgeloescht."))
+    if dubletten_ausschluss_count:
+        geloeschte_objekte.append(
+            _dependency(
+                "parameter_dublettenausschluss",
+                dubletten_ausschluss_count,
+                "kind",
+                "Unterdrueckte Dublettenpaare wurden mitgeloescht.",
+            )
+        )
     if zielbereich_count:
         geloeschte_objekte.append(_dependency("zielbereich", zielbereich_count, "kind", "Zielbereiche wurden mitgeloescht."))
     if override_count:
