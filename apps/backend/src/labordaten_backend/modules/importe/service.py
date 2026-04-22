@@ -992,6 +992,22 @@ def _generate_checks(
                         f"Der Werttyp von '{item.original_parametername}' passt nicht zum erwarteten Parametertyp.",
                     )
                 )
+            else:
+                normalization_warning = _build_missing_normalization_warning(
+                    db,
+                    parameter=parameter,
+                    item=item,
+                )
+                if normalization_warning is not None:
+                    checks.append(
+                        Pruefregel(
+                            "messwert",
+                            key,
+                            "normierung_fehlt",
+                            "warnung",
+                            normalization_warning,
+                        )
+                    )
 
         alias_resolution = _resolve_alias_request(
             db,
@@ -1045,6 +1061,49 @@ def _has_duplicate_measurement(db: Session, person_id: str, entnahmedatum, param
     )
     count = db.scalar(stmt) or 0
     return count > 0
+
+
+def _build_missing_normalization_warning(
+    db: Session,
+    *,
+    parameter: Laborparameter,
+    item: ImportMesswertPayload,
+) -> str | None:
+    if item.wert_typ != "numerisch" or item.wert_num is None or not parameter.standard_einheit or not item.einheit_original:
+        return None
+
+    source_unit = _resolve_import_check_unit(db, item.einheit_original)
+    target_unit = parameter.standard_einheit
+    if source_unit == target_unit:
+        return None
+
+    normalized = parameter_conversions.resolve_measurement_normalization(
+        db,
+        laborparameter_id=parameter.id,
+        wert_typ=item.wert_typ,
+        wert_num=item.wert_num,
+        einheit_original=source_unit,
+    )
+    if normalized.einheit_normiert == target_unit and normalized.wert_normiert_num is not None:
+        return None
+
+    return (
+        f"Für '{item.original_parametername}' fehlt aktuell eine saubere Umrechnung von "
+        f"'{source_unit}' in die führende Normeinheit '{target_unit}' des Parameters "
+        f"'{parameter.anzeigename}'."
+    )
+
+
+def _resolve_import_check_unit(db: Session, unit: str) -> str:
+    cleaned = einheiten_service.normalize_einheit(unit)
+    if cleaned is None:
+        return unit
+
+    try:
+        resolved = einheiten_service.require_existing_einheit(db, cleaned)
+    except ValueError:
+        return cleaned
+    return resolved or cleaned
 
 
 def _resolve_alias_request(
