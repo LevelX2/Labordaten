@@ -31,6 +31,9 @@ type BerichtFormState = {
   include_messwertbemerkung: boolean;
 };
 
+type BerichtAnsichtKey = "arztbericht" | "verlauf";
+type BerichtPanelKey = "filters";
+
 const initialForm: BerichtFormState = {
   person_ids: [],
   laborparameter_ids: [],
@@ -95,12 +98,56 @@ function buildReportDescription(
   }.`;
 }
 
+function buildFilterSummary(form: BerichtFormState): string[] {
+  const summary: string[] = [];
+
+  summary.push(
+    form.person_ids.length
+      ? `${formatCount(form.person_ids.length, "Person", "Personen")} ausgewählt`
+      : "Noch keine Person ausgewählt"
+  );
+
+  if (form.gruppen_ids.length) {
+    summary.push(formatCount(form.gruppen_ids.length, "Gruppe", "Gruppen"));
+  }
+  if (form.laborparameter_ids.length) {
+    summary.push(formatCount(form.laborparameter_ids.length, "Parameter", "Parameter"));
+  }
+  if (form.labor_ids.length) {
+    summary.push(formatCount(form.labor_ids.length, "Labor", "Labore"));
+  }
+
+  if (form.datum_von || form.datum_bis) {
+    summary.push(
+      `Zeitraum ${form.datum_von ? formatDate(form.datum_von) : "offen"} bis ${form.datum_bis ? formatDate(form.datum_bis) : "offen"}`
+    );
+  }
+
+  return summary;
+}
+
+function buildDoctorOptionSummary(form: BerichtFormState): string {
+  const options = [
+    form.include_referenzbereich ? "Referenzbereich" : null,
+    form.include_labor ? "Labor" : null,
+    form.include_befundbemerkung ? "Befundbemerkung" : null,
+    form.include_messwertbemerkung ? "Messwertbemerkung" : null
+  ].filter(Boolean);
+
+  return options.length ? options.join(" • ") : "Nur Pflichtfelder";
+}
+
 export function BerichtePage() {
   const [searchParams] = useSearchParams();
   const [form, setForm] = useState<BerichtFormState>(() =>
     applySharedFilterSearchParams(initialForm, searchParams)
   );
   const [selectedMesswertId, setSelectedMesswertId] = useState<string | null>(null);
+  const [selectedAnsicht, setSelectedAnsicht] = useState<BerichtAnsichtKey>("arztbericht");
+  const [activePanel, setActivePanel] = useState<BerichtPanelKey | null>(() =>
+    form.person_ids.length ? null : "filters"
+  );
+  const [showPageInfo, setShowPageInfo] = useState(false);
 
   const personenQuery = useQuery({
     queryKey: ["personen"],
@@ -209,6 +256,39 @@ export function BerichtePage() {
     };
   }, [trendReportMutation.data]);
 
+  const filterSummary = useMemo(() => buildFilterSummary(form), [form]);
+  const doctorOptionSummary = useMemo(() => buildDoctorOptionSummary(form), [form]);
+
+  const reportEntries = useMemo(
+    () => [
+      {
+        key: "arztbericht" as const,
+        title: "Arztbericht Liste",
+        description: "Kompakte Berichtssicht mit den neuesten passenden Werten und auswählbaren Zusatzfeldern.",
+        previewLabel: doctorReportMutation.data
+          ? formatCount(doctorSummary.totalValues, "Wert", "Werte")
+          : "Noch keine Vorschau",
+        metaLabel: doctorReportMutation.data
+          ? formatCount(doctorSummary.parameterCount, "Parameter", "Parameter")
+          : "PDF und Vorschau verfügbar"
+      },
+      {
+        key: "verlauf" as const,
+        title: "Verlaufsbericht Zeitachse",
+        description: "Alle passenden Verlaufspunkte für Zeitachsen, PDF-Ausgabe und Detailprüfung in einer Sicht.",
+        previewLabel: trendReportMutation.data
+          ? formatCount(trendSummary.totalValues, "Punkt", "Punkte")
+          : "Noch keine Vorschau",
+        metaLabel: trendReportMutation.data
+          ? formatCount(trendSummary.parameterCount, "Parameter", "Parameter")
+          : "Verlaufs-PDF verfügbar"
+      }
+    ],
+    [doctorReportMutation.data, doctorSummary, trendReportMutation.data, trendSummary]
+  );
+
+  const selectedEntry = reportEntries.find((entry) => entry.key === selectedAnsicht) ?? reportEntries[0];
+
   useEffect(() => {
     const availableIds = new Set([
       ...(doctorReportMutation.data?.eintraege.map((item) => item.messwert_id) ?? []),
@@ -219,163 +299,37 @@ export function BerichtePage() {
     }
   }, [doctorReportMutation.data, selectedMesswertId, trendReportMutation.data]);
 
-  return (
-    <section className="page">
-      <header className="page__header">
-        <span className="page__kicker">Berichte</span>
-        <h2>Berichte</h2>
-        <p>
-          Arztberichte und Verlaufsberichte lassen sich jetzt auch personenübergreifend sowie nach Gruppen, Laboren und
-          Zeitraum filtern.
-        </p>
-      </header>
+  const handlePreviewLoad = () => {
+    doctorReportMutation.mutate();
+    trendReportMutation.mutate();
+    setActivePanel(null);
+  };
 
-      <div className="workspace-grid">
-        <article className="card">
-          <h3>Berichtsfilter</h3>
-          <form
-            className="form-grid"
-            onSubmit={(event) => {
-              event.preventDefault();
-              doctorReportMutation.mutate();
-              trendReportMutation.mutate();
-            }}
-          >
-            <SelectionChecklist
-              label="Personen"
-              options={(personenQuery.data ?? []).map((person) => ({
-                id: person.id,
-                label: person.anzeigename
-              }))}
-              selectedIds={form.person_ids}
-              onChange={(person_ids) => setForm((current) => ({ ...current, person_ids }))}
-              emptyText="Noch keine Personen vorhanden."
-            />
+  const handlePdfExport = () => {
+    if (selectedAnsicht === "arztbericht") {
+      doctorPdfMutation.mutate();
+      return;
+    }
+    trendPdfMutation.mutate();
+  };
 
-            <label className="field">
-              <span>Datum von</span>
-              <input
-                type="date"
-                value={form.datum_von}
-                onChange={(event) => setForm((current) => ({ ...current, datum_von: event.target.value }))}
-              />
-            </label>
+  const renderSelectedPreview = () => {
+    if (selectedAnsicht === "arztbericht") {
+      if (doctorReportMutation.isError) {
+        return <p className="form-error">{doctorReportMutation.error.message}</p>;
+      }
 
-            <label className="field">
-              <span>Datum bis</span>
-              <input
-                type="date"
-                value={form.datum_bis}
-                onChange={(event) => setForm((current) => ({ ...current, datum_bis: event.target.value }))}
-              />
-            </label>
+      if (!doctorReportMutation.data) {
+        return (
+          <p>
+            Lade zuerst eine Vorschau, damit Du die aktuellen Berichtsinhalte, Kennzahlen und auswählbaren Messwerte
+            prüfen kannst.
+          </p>
+        );
+      }
 
-            <SelectionChecklist
-              label="Gruppen"
-              options={(gruppenQuery.data ?? []).map((gruppe) => ({
-                id: gruppe.id,
-                label: gruppe.name,
-                meta: gruppe.beschreibung
-              }))}
-              selectedIds={form.gruppen_ids}
-              onChange={(gruppen_ids) => setForm((current) => ({ ...current, gruppen_ids }))}
-              emptyText="Noch keine Gruppen vorhanden."
-            />
-
-            <SelectionChecklist
-              label="Parameter"
-              options={(parameterQuery.data ?? []).map((parameter) => ({
-                id: parameter.id,
-                label: parameter.anzeigename,
-                meta: parameter.standard_einheit
-              }))}
-              selectedIds={form.laborparameter_ids}
-              onChange={(laborparameter_ids) => setForm((current) => ({ ...current, laborparameter_ids }))}
-              emptyText="Noch keine Parameter vorhanden."
-              collapsible
-              defaultExpanded={false}
-            />
-
-            <SelectionChecklist
-              label="Labore"
-              options={(laboreQuery.data ?? []).map((labor) => ({
-                id: labor.id,
-                label: labor.name
-              }))}
-              selectedIds={form.labor_ids}
-              onChange={(labor_ids) => setForm((current) => ({ ...current, labor_ids }))}
-              emptyText="Noch keine Labore vorhanden."
-            />
-
-            <label className="field">
-              <span>Referenzbereich</span>
-              <input
-                type="checkbox"
-                checked={form.include_referenzbereich}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, include_referenzbereich: event.target.checked }))
-                }
-              />
-            </label>
-
-            <label className="field">
-              <span>Labor</span>
-              <input
-                type="checkbox"
-                checked={form.include_labor}
-                onChange={(event) => setForm((current) => ({ ...current, include_labor: event.target.checked }))}
-              />
-            </label>
-
-            <label className="field">
-              <span>Befundbemerkung</span>
-              <input
-                type="checkbox"
-                checked={form.include_befundbemerkung}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, include_befundbemerkung: event.target.checked }))
-                }
-              />
-            </label>
-
-            <label className="field">
-              <span>Messwertbemerkung</span>
-              <input
-                type="checkbox"
-                checked={form.include_messwertbemerkung}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, include_messwertbemerkung: event.target.checked }))
-                }
-              />
-            </label>
-
-            <div className="form-actions">
-              <button type="submit" disabled={previewPending || !form.person_ids.length}>
-                {previewPending ? "Lädt..." : "Vorschau laden"}
-              </button>
-              <button
-                type="button"
-                disabled={doctorPdfMutation.isPending || !form.person_ids.length}
-                onClick={() => doctorPdfMutation.mutate()}
-              >
-                {doctorPdfMutation.isPending ? "PDF wird erstellt..." : "Arztbericht als PDF"}
-              </button>
-              <button
-                type="button"
-                disabled={trendPdfMutation.isPending || !form.person_ids.length}
-                onClick={() => trendPdfMutation.mutate()}
-              >
-                {trendPdfMutation.isPending ? "PDF wird erstellt..." : "Verlaufsbericht als PDF"}
-              </button>
-            </div>
-          </form>
-        </article>
-
-        <article className="card card--wide">
-          <h3>Arztbericht Liste</h3>
-          <p>Die Vorschau zeigt die jeweils neuesten passenden Werte. Zeilen können für Details angeklickt werden.</p>
-          {doctorReportMutation.isError ? <p className="form-error">{doctorReportMutation.error.message}</p> : null}
-          {doctorPdfMutation.isError ? <p className="form-error">{doctorPdfMutation.error.message}</p> : null}
+      return (
+        <>
           <div className="report-summary-grid">
             <article className="stat-card">
               <span className="stat-card__label">Enthaltene Werte</span>
@@ -398,6 +352,7 @@ export function BerichtePage() {
               <strong>{doctorSummary.description}</strong>
             </article>
           </div>
+
           <div className="table-wrap">
             <table className="data-table">
               <thead>
@@ -411,7 +366,7 @@ export function BerichtePage() {
                 </tr>
               </thead>
               <tbody>
-                {doctorReportMutation.data?.eintraege.map((item) => (
+                {doctorReportMutation.data.eintraege.map((item) => (
                   <tr
                     key={item.messwert_id}
                     onClick={() => setSelectedMesswertId(item.messwert_id)}
@@ -425,7 +380,7 @@ export function BerichtePage() {
                     <td>{item.labor_name || "—"}</td>
                   </tr>
                 ))}
-                {doctorReportMutation.data && !doctorReportMutation.data.eintraege.length ? (
+                {!doctorReportMutation.data.eintraege.length ? (
                   <tr>
                     <td colSpan={6}>Für die aktuelle Auswahl gibt es noch keine passenden Werte.</td>
                   </tr>
@@ -433,77 +388,398 @@ export function BerichtePage() {
               </tbody>
             </table>
           </div>
-        </article>
+        </>
+      );
+    }
 
-        <article className="card card--wide">
-          <h3>Verlaufsbericht Vorschau</h3>
-          <p>Hier siehst du alle passenden Verlaufspunkte. Auch hier öffnen Zeilen die Messwertdetails darunter.</p>
-          {trendReportMutation.isError ? <p className="form-error">{trendReportMutation.error.message}</p> : null}
-          {trendPdfMutation.isError ? <p className="form-error">{trendPdfMutation.error.message}</p> : null}
-          <div className="report-summary-grid">
-            <article className="stat-card">
-              <span className="stat-card__label">Verlaufspunkte</span>
-              <strong>{trendSummary.totalValues}</strong>
-            </article>
-            <article className="stat-card">
-              <span className="stat-card__label">Parameter</span>
-              <strong>{trendSummary.parameterCount}</strong>
-            </article>
-            <article className="stat-card">
-              <span className="stat-card__label">Außerhalb Referenz</span>
-              <strong>
-                {trendSummary.assessableCount
-                  ? `${trendSummary.outsideCount} von ${trendSummary.assessableCount}`
-                  : "nicht beurteilbar"}
-              </strong>
-            </article>
-            <article className="stat-card">
-              <span className="stat-card__label">Kurzbeschreibung</span>
-              <strong>{trendSummary.description}</strong>
-            </article>
-          </div>
-          <div className="table-wrap">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Person</th>
-                  <th>Parameter</th>
-                  <th>Datum</th>
-                  <th>Typ</th>
-                  <th>Wert</th>
-                  <th>Labor</th>
+    if (trendReportMutation.isError) {
+      return <p className="form-error">{trendReportMutation.error.message}</p>;
+    }
+
+    if (!trendReportMutation.data) {
+      return (
+        <p>
+          Lade zuerst eine Vorschau, damit Du die Verlaufspunkte, die spätere PDF-Ausgabe und die Messwertdetails
+          entlang der aktuellen Auswahl prüfen kannst.
+        </p>
+      );
+    }
+
+    return (
+      <>
+        <div className="report-summary-grid">
+          <article className="stat-card">
+            <span className="stat-card__label">Verlaufspunkte</span>
+            <strong>{trendSummary.totalValues}</strong>
+          </article>
+          <article className="stat-card">
+            <span className="stat-card__label">Parameter</span>
+            <strong>{trendSummary.parameterCount}</strong>
+          </article>
+          <article className="stat-card">
+            <span className="stat-card__label">Außerhalb Referenz</span>
+            <strong>
+              {trendSummary.assessableCount
+                ? `${trendSummary.outsideCount} von ${trendSummary.assessableCount}`
+                : "nicht beurteilbar"}
+            </strong>
+          </article>
+          <article className="stat-card">
+            <span className="stat-card__label">Kurzbeschreibung</span>
+            <strong>{trendSummary.description}</strong>
+          </article>
+        </div>
+
+        <div className="table-wrap">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Person</th>
+                <th>Parameter</th>
+                <th>Datum</th>
+                <th>Typ</th>
+                <th>Wert</th>
+                <th>Labor</th>
+              </tr>
+            </thead>
+            <tbody>
+              {trendReportMutation.data.punkte.map((punkt) => (
+                <tr
+                  key={punkt.messwert_id}
+                  onClick={() => setSelectedMesswertId(punkt.messwert_id)}
+                  className={punkt.messwert_id === selectedMesswertId ? "row-selected" : undefined}
+                >
+                  <td>{punkt.person_anzeigename}</td>
+                  <td>{punkt.parameter_anzeigename}</td>
+                  <td>{formatDate(punkt.datum)}</td>
+                  <td>{punkt.wert_typ}</td>
+                  <td>{[punkt.wert_anzeige, punkt.einheit].filter(Boolean).join(" ")}</td>
+                  <td>{punkt.labor_name || "—"}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {trendReportMutation.data?.punkte.map((punkt) => (
-                  <tr
-                    key={punkt.messwert_id}
-                    onClick={() => setSelectedMesswertId(punkt.messwert_id)}
-                    className={punkt.messwert_id === selectedMesswertId ? "row-selected" : undefined}
-                  >
-                    <td>{punkt.person_anzeigename}</td>
-                    <td>{punkt.parameter_anzeigename}</td>
-                    <td>{formatDate(punkt.datum)}</td>
-                    <td>{punkt.wert_typ}</td>
-                    <td>{[punkt.wert_anzeige, punkt.einheit].filter(Boolean).join(" ")}</td>
-                    <td>{punkt.labor_name || "—"}</td>
-                  </tr>
-                ))}
-                {trendReportMutation.data && !trendReportMutation.data.punkte.length ? (
-                  <tr>
-                    <td colSpan={6}>Für die aktuelle Auswahl gibt es noch keinen Verlauf.</td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-          </div>
-        </article>
+              ))}
+              {!trendReportMutation.data.punkte.length ? (
+                <tr>
+                  <td colSpan={6}>Für die aktuelle Auswahl gibt es noch keinen Verlauf.</td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </>
+    );
+  };
 
-        <MesswertDetailCard
-          messwertId={selectedMesswertId}
-          title="Ausgewählter Messwert mit Referenzen"
-          emptyText="Bitte in einer Berichtsvorschau einen Messwert auswählen."
-        />
+  return (
+    <section className="page">
+      <header className="page__header page__header--compact">
+        <h2>Berichte</h2>
+        <div className="page__info">
+          <button
+            type="button"
+            className="icon-button page__info-button"
+            aria-label="Hinweis zur Berichtsseite"
+            aria-expanded={showPageInfo}
+            onClick={() => setShowPageInfo((current) => !current)}
+          >
+            i
+          </button>
+          {showPageInfo ? (
+            <div className="page__info-popover">
+              Hier stellst Du Berichtsauswahl, Filter und Ausgabeoptionen zusammen und prüfst die Vorschau direkt vor
+              dem PDF-Export.
+            </div>
+          ) : null}
+        </div>
+      </header>
+
+      <div className="parameter-workspace">
+        <aside className="card parameter-sidebar">
+          <div className="parameter-sidebar__header">
+            <div>
+              <h3>Berichtsansichten</h3>
+              <p>{filterSummary.join(" • ")}</p>
+            </div>
+          </div>
+
+          <div className="parameter-list">
+            {reportEntries.map((entry) => (
+              <button
+                key={entry.key}
+                type="button"
+                className={`parameter-list__item ${selectedAnsicht === entry.key ? "parameter-list__item--selected" : ""}`}
+                onClick={() => setSelectedAnsicht(entry.key)}
+              >
+                <div className="parameter-list__title-row">
+                  <strong>{entry.title}</strong>
+                </div>
+                <p>{entry.description}</p>
+                <div className="parameter-list__meta">
+                  <span className="parameter-pill">{entry.previewLabel}</span>
+                  <span className="parameter-pill">{entry.metaLabel}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </aside>
+
+        <div className="parameter-main">
+          <article className="card">
+            <div className="parameter-detail__header">
+              <div>
+                <h3 className="parameter-detail__title">{selectedEntry.title}</h3>
+                <p>{selectedEntry.description}</p>
+              </div>
+              <div className="parameter-header-controls">
+                <span className="parameter-pill parameter-pill--accent">
+                  {selectedAnsicht === "arztbericht"
+                    ? doctorReportMutation.data
+                      ? "Arztbericht geladen"
+                      : "Arztbericht bereit"
+                    : trendReportMutation.data
+                      ? "Verlauf geladen"
+                      : "Verlauf bereit"}
+                </span>
+              </div>
+            </div>
+
+            <div className="parameter-toolrail">
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "filters" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => setActivePanel((current) => (current === "filters" ? null : "filters"))}
+              >
+                Filter bearbeiten
+              </button>
+              <button
+                type="button"
+                className="parameter-toolrail__button"
+                onClick={handlePreviewLoad}
+                disabled={previewPending || !form.person_ids.length}
+              >
+                {previewPending ? "Lädt..." : "Vorschau laden"}
+              </button>
+              <button
+                type="button"
+                className="parameter-toolrail__button"
+                onClick={handlePdfExport}
+                disabled={
+                  selectedAnsicht === "arztbericht"
+                    ? doctorPdfMutation.isPending || !form.person_ids.length
+                    : trendPdfMutation.isPending || !form.person_ids.length
+                }
+              >
+                {selectedAnsicht === "arztbericht"
+                  ? doctorPdfMutation.isPending
+                    ? "PDF wird erstellt..."
+                    : "Arztbericht als PDF"
+                  : trendPdfMutation.isPending
+                    ? "PDF wird erstellt..."
+                    : "Verlaufsbericht als PDF"}
+              </button>
+            </div>
+
+            {activePanel === "filters" ? (
+              <article className="card card--soft parameter-action-panel">
+                <div className="parameter-panel__header">
+                  <div>
+                    <h3>Berichtsfilter</h3>
+                    <p>Die Auswahl wirkt gemeinsam auf Arztbericht, Verlaufsbericht und die Messwertdetails darunter.</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="icon-button"
+                    onClick={() => setActivePanel(null)}
+                    aria-label="Panel Berichtsfilter schließen"
+                    title="Panel Berichtsfilter schließen"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <form
+                  className="form-grid"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    handlePreviewLoad();
+                  }}
+                >
+                  <SelectionChecklist
+                    label="Personen"
+                    options={(personenQuery.data ?? []).map((person) => ({
+                      id: person.id,
+                      label: person.anzeigename
+                    }))}
+                    selectedIds={form.person_ids}
+                    onChange={(person_ids) => setForm((current) => ({ ...current, person_ids }))}
+                    emptyText="Noch keine Personen vorhanden."
+                    collapsible
+                  />
+
+                  <SelectionChecklist
+                    label="Gruppen"
+                    options={(gruppenQuery.data ?? []).map((gruppe) => ({
+                      id: gruppe.id,
+                      label: gruppe.name,
+                      meta: gruppe.beschreibung
+                    }))}
+                    selectedIds={form.gruppen_ids}
+                    onChange={(gruppen_ids) => setForm((current) => ({ ...current, gruppen_ids }))}
+                    emptyText="Noch keine Gruppen vorhanden."
+                    collapsible
+                    defaultExpanded={false}
+                  />
+
+                  <SelectionChecklist
+                    label="Parameter"
+                    options={(parameterQuery.data ?? []).map((parameter) => ({
+                      id: parameter.id,
+                      label: parameter.anzeigename,
+                      meta: parameter.standard_einheit
+                    }))}
+                    selectedIds={form.laborparameter_ids}
+                    onChange={(laborparameter_ids) => setForm((current) => ({ ...current, laborparameter_ids }))}
+                    emptyText="Noch keine Parameter vorhanden."
+                    collapsible
+                    defaultExpanded={false}
+                  />
+
+                  <SelectionChecklist
+                    label="Labore"
+                    options={(laboreQuery.data ?? []).map((labor) => ({
+                      id: labor.id,
+                      label: labor.name
+                    }))}
+                    selectedIds={form.labor_ids}
+                    onChange={(labor_ids) => setForm((current) => ({ ...current, labor_ids }))}
+                    emptyText="Noch keine Labore vorhanden."
+                    collapsible
+                    defaultExpanded={false}
+                  />
+
+                  <div className="auswertung-date-grid field--full">
+                    <label className="field auswertung-date-field">
+                      <span>Datum von</span>
+                      <input
+                        type="date"
+                        value={form.datum_von}
+                        onChange={(event) => setForm((current) => ({ ...current, datum_von: event.target.value }))}
+                      />
+                    </label>
+
+                    <label className="field auswertung-date-field">
+                      <span>Datum bis</span>
+                      <input
+                        type="date"
+                        value={form.datum_bis}
+                        onChange={(event) => setForm((current) => ({ ...current, datum_bis: event.target.value }))}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="field field--full">
+                    <span>Arztbericht-Inhalte</span>
+                    <div className="checkbox-grid">
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={form.include_referenzbereich}
+                          onChange={(event) =>
+                            setForm((current) => ({ ...current, include_referenzbereich: event.target.checked }))
+                          }
+                        />
+                        <span>Referenzbereich</span>
+                      </label>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={form.include_labor}
+                          onChange={(event) =>
+                            setForm((current) => ({ ...current, include_labor: event.target.checked }))
+                          }
+                        />
+                        <span>Labor</span>
+                      </label>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={form.include_befundbemerkung}
+                          onChange={(event) =>
+                            setForm((current) => ({ ...current, include_befundbemerkung: event.target.checked }))
+                          }
+                        />
+                        <span>Befundbemerkung</span>
+                      </label>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={form.include_messwertbemerkung}
+                          onChange={(event) =>
+                            setForm((current) => ({ ...current, include_messwertbemerkung: event.target.checked }))
+                          }
+                        />
+                        <span>Messwertbemerkung</span>
+                      </label>
+                    </div>
+                    <p className="form-hint">Diese Optionen wirken auf den Arztbericht und dessen PDF-Ausgabe.</p>
+                  </div>
+
+                  <div className="form-actions">
+                    <button type="button" onClick={() => setForm(initialForm)}>
+                      Filter zurücksetzen
+                    </button>
+                    <button type="submit" disabled={previewPending || !form.person_ids.length}>
+                      {previewPending ? "Lädt..." : "Vorschau laden"}
+                    </button>
+                  </div>
+                </form>
+              </article>
+            ) : null}
+
+            <div className="detail-grid">
+              <div className="detail-grid__item">
+                <span>Personen</span>
+                <strong>{formatCount(form.person_ids.length, "Person", "Personen")}</strong>
+              </div>
+              <div className="detail-grid__item">
+                <span>Gruppen und Parameter</span>
+                <strong>
+                  {formatCount(form.gruppen_ids.length, "Gruppe", "Gruppen")} •{" "}
+                  {formatCount(form.laborparameter_ids.length, "Parameter", "Parameter")}
+                </strong>
+              </div>
+              <div className="detail-grid__item">
+                <span>Labore und Zeitraum</span>
+                <strong>
+                  {formatCount(form.labor_ids.length, "Labor", "Labore")} • {formatDate(form.datum_von)} bis{" "}
+                  {formatDate(form.datum_bis)}
+                </strong>
+              </div>
+              <div className="detail-grid__item">
+                <span>Ausgabeoptionen</span>
+                <strong>
+                  {selectedAnsicht === "arztbericht"
+                    ? doctorOptionSummary
+                    : "Verlaufspunkte mit Messwerttyp, Datum und Labor"}
+                </strong>
+              </div>
+            </div>
+
+            {selectedAnsicht === "arztbericht" && doctorPdfMutation.isError ? (
+              <p className="form-error">{doctorPdfMutation.error.message}</p>
+            ) : null}
+            {selectedAnsicht === "verlauf" && trendPdfMutation.isError ? (
+              <p className="form-error">{trendPdfMutation.error.message}</p>
+            ) : null}
+
+            {renderSelectedPreview()}
+          </article>
+
+          <MesswertDetailCard
+            messwertId={selectedMesswertId}
+            title="Ausgewählter Messwert mit Referenzen"
+            emptyText="Bitte in einer Berichtsvorschau einen Messwert auswählen."
+          />
+        </div>
       </div>
     </section>
   );
