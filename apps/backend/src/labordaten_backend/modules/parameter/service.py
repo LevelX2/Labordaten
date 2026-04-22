@@ -54,7 +54,7 @@ def create_parameter(db: Session, payload: ParameterCreate) -> Laborparameter:
     parameter_data = payload.model_dump()
     parameter_data["interner_schluessel"] = _build_unique_parameter_key(
         db,
-        payload.anzeigename or payload.interner_schluessel,
+        payload.interner_schluessel or payload.anzeigename,
     )
     parameter_data["standard_einheit"] = einheiten_service.require_existing_einheit(
         db,

@@ -53,3 +53,19 @@ def test_parameter_key_gets_suffix_for_duplicate_display_name(tmp_path: Path) ->
 
         assert first_parameter.interner_schluessel == "glukose_nuechtern"
         assert second_parameter.interner_schluessel == "glukose_nuechtern_2"
+
+
+def test_parameter_key_uses_explicit_internal_key_when_provided(tmp_path: Path) -> None:
+    with _make_session(tmp_path) as db:
+        einheiten_service.create_einheit(db, einheiten_schemas.EinheitCreate(kuerzel="nmol/l"))
+        parameter = parameter_service.create_parameter(
+            db,
+            parameter_schemas.ParameterCreate(
+                anzeigename="Lipoprotein a Lp(a)",
+                interner_schluessel="lipoprotein_a_lpa",
+                standard_einheit="nmol/l",
+                wert_typ_standard="numerisch",
+            ),
+        )
+
+        assert parameter.interner_schluessel == "lipoprotein_a_lpa"

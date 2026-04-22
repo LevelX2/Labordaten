@@ -69,6 +69,20 @@ class ImportMesswertPayload(BaseModel):
     def validate_wert_typ(cls, value: str) -> str:
         return validate_required_code(value, valid_values=WERT_TYPEN, field_label="Werttyp")
 
+    @field_validator("wert_operator", mode="before")
+    @classmethod
+    def normalize_legacy_wert_operator(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        legacy_map = {
+            "<": "kleiner_als",
+            "<=": "kleiner_gleich",
+            ">": "groesser_als",
+            ">=": "groesser_gleich",
+            "~": "ungefaehr",
+        }
+        return legacy_map.get(value, value)
+
     @field_validator("wert_operator")
     @classmethod
     def validate_wert_operator(cls, value: str) -> str:

@@ -118,3 +118,17 @@ def test_import_payload_rejects_invalid_operator_and_gender_code() -> None:
                 "referenzGeschlechtCode": "M",
             }
         )
+
+
+def test_import_payload_accepts_legacy_symbol_operators_for_backward_compatibility() -> None:
+    payload = ImportMesswertPayload.model_validate(
+        {
+            "originalParametername": "Vitamin B12 bioaktiv i.S.",
+            "wertTyp": "numerisch",
+            "wertOperator": ">",
+            "wertRohText": ">1350",
+            "wertNum": 1350,
+        }
+    )
+
+    assert payload.wert_operator == "groesser_als"
