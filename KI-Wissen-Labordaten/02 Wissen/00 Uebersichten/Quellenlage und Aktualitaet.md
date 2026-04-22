@@ -28,6 +28,9 @@ tags:
 - Verifizierte bereichsübergreifende Filter nach Personen, Gruppen, Laboren und Zeitraum für Messwerte, Berichte und Auswertung
 - Verifizierte personenübergreifende Familienansichten in Berichtsvorschau, Verlaufs-PDF und Auswertung
 - Verifizierter Dateiimport für CSV und Excel mit optionaler Quellablage als Dokument und Verknüpfung zum übernommenen Befund
+- Verifizierte Alias-Vorschlagsliste auf Basis bereits bestätigter Original-Parameternamen
+- Verifizierte Dublettenprüfung und bestätigte Zusammenführung vorhandener Parameter mit Alias-Rückfall
+- Verifizierte Einheitenwahl für Berichte, sofern die aktuelle Auswahl eine gemeinsame numerische Zieldarstellung erlaubt
 - Verifizierter Betriebsblock für Laufzeit-Einstellungen, Sperrstatus und kontrollierten Reset der lokalen Datenbasis-Sperre
 - Verifizierte Wissensbasis-Anzeige für Markdown-Seiten aus dem konfigurierten Wissensordner
 

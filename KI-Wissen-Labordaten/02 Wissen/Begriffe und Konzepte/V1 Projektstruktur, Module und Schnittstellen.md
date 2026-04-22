@@ -23,7 +23,7 @@ Die V1-Projektstruktur sollte Backend, Frontend, Datenmigrationen, Berichtslogik
 ## Empfohlene Top-Level-Struktur
 ```text
 Labordaten/
-  ai-project-memory/
+  KI-Wissen-Labordaten/
   apps/
     backend/
     frontend/
@@ -109,6 +109,7 @@ apps/backend/
 
 ### `personen`
 - Person anlegen, ändern, deaktivieren
+- Katalogpflege für Basisdatentypen
 - Basisdatenverlauf verwalten
 - Personenbezogene Zielbereich-Overrides
 - Personenbezogene Übersichtsdaten
@@ -198,6 +199,9 @@ apps/backend/
 - `POST /api/personen`
 - `GET /api/personen/{personId}`
 - `PATCH /api/personen/{personId}`
+- `GET /api/personen/basisdaten-typen`
+- `POST /api/personen/basisdaten-typen`
+- `PATCH /api/personen/basisdaten-typen/{typId}`
 - `GET /api/personen/{personId}/basisdaten`
 - `POST /api/personen/{personId}/basisdaten`
 - `GET /api/personen/{personId}/planung`

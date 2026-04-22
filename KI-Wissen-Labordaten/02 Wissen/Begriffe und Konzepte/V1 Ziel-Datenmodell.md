@@ -1,12 +1,17 @@
 ---
 typ: datenmodell
 status: entwurf
-letzte_aktualisierung: 2026-04-20
+letzte_aktualisierung: 2026-04-21
 quellen:
   - ../../01 Rohquellen/fachkonzepte/2026-04-20 Erste Konzeptvorgabe Laboranwendung.md
   - ../../01 Rohquellen/fachkonzepte/2026-04-20 Konzeptklaerungen V1 aus Rueckfragen.md
   - ../Entscheidungen/V1 Vorentscheidungen Produktform und Kernmodell.md
   - Planung Erstarchitektur und Umsetzungsphasen.md
+  - ../../../apps/backend/src/labordaten_backend/modules/personen/schemas.py
+  - ../../../apps/backend/src/labordaten_backend/modules/messwerte/schemas.py
+  - ../../../apps/backend/src/labordaten_backend/modules/referenzen/schemas.py
+  - ../../../apps/backend/src/labordaten_backend/modules/zielbereiche/schemas.py
+  - ../../../apps/backend/src/labordaten_backend/modules/befunde/schemas.py
 tags:
   - datenmodell
   - v1
@@ -22,13 +27,14 @@ Das V1-Datenmodell trennt Stammdaten, Messdaten, Referenzlogik, Zielbereiche, Pl
 - Originalinformationen aus Befunden bleiben immer erhalten.
 - Abgeleitete oder normierte Werte ergänzen Rohdaten, ersetzen sie aber nie.
 - Numerische und qualitative Messwerte leben im selben Fachobjekt, werden aber klar typisiert gespeichert.
+- Felder mit fachlich enger Bedeutung für Filter, Referenzlogik, Status oder Verarbeitung sollen früh als feste Ausprägungen, Enums oder Lookup-Werte erkannt und nicht vorschnell als Freitext modelliert werden.
 - Laborreferenzen der konkreten Messung und allgemeine oder personenbezogene Zielbereiche bleiben getrennt.
 - Dokumente und Wissensseiten liegen im Dateisystem; die Datenbank hält nur referenzierende Metadaten.
 - Importe werden zuerst als Prüfobjekte behandelt und erst nach Bestätigung in Befunde und Messwerte übernommen.
 - V1 optimiert auf fachliche Korrektheit und Nachvollziehbarkeit, nicht auf medizinische Diagnoseautomatik.
 
 ## Domänenübersicht
-- Stammdaten: Person, Person-Basisdaten-Verlauf, Labor, Laborparameter, Synonyme, Gruppen, Wissensseite
+- Stammdaten: Person, BasisdatenTyp, Person-Basisdaten-Verlauf, Labor, Laborparameter, Synonyme, Gruppen, Wissensseite
 - Messdaten: Befund, Dokument, Messwert, Messwert-Referenz
 - Ziel- und Planungslogik: Zielbereich allgemein, Zielbereich Person-Überschreibung, Planung zyklisch, Planung einmalig
 - Import: Importvorgang, Import-Prüfpunkt, optionale Import-Artefakte
@@ -74,10 +80,31 @@ Das V1-Datenmodell trennt Stammdaten, Messdaten, Referenzlogik, Zielbereiche, Pl
 - `erstellt_am`
 - `geaendert_am`
 
+Regel:
+- `geschlecht_code` soll nicht als Freitext geführt werden, sondern als feste kleine Auswahlliste oder klar definierte Referenzkategorie.
+- Für den aktuellen Projektstand ist eine schlanke Codierung wie `w`, `m`, `d` plus leer beziehungsweise unbekannt als praktikable V1-Lösung ausreichend.
+
+### BasisdatenTyp
+- `id`
+- `code`: stabiler technischer Schlüssel wie `gewicht`, `groesse`
+- `anzeigename`: fachlicher Titel für UI und Pflege
+- `beschreibung`
+- `standard_einheit`: z. B. `kg`, `cm`
+- `aktiv`
+- `sortierung`
+- `system_flag`: kennzeichnet mitgelieferte Grundtypen gegenüber später ergänzten Projekttypen
+- `erstellt_am`
+- `geaendert_am`
+
+Regel:
+- `BasisdatenTyp` ist ein pflegbarer Katalog und kein Freitextfeld in einzelnen Basisdateneinträgen.
+- V1 kann mit systemseitigen Grundtypen wie `gewicht` und `groesse` starten, soll aber fachlich erweiterbar bleiben.
+- Neue Katalogeinträge sollen nur ergänzt werden, wenn sie wirklich als wiederkehrender, filterbarer Basistyp gebraucht werden.
+
 ### PersonBasisdatenEintrag
 - `id`
 - `person_id`
-- `typ`: z. B. `gewicht`, `groesse`
+- `basisdaten_typ_id`
 - `wert_num`
 - `einheit`
 - `datum`: fachliches Gültigkeits- oder Messdatum
@@ -86,8 +113,9 @@ Das V1-Datenmodell trennt Stammdaten, Messdaten, Referenzlogik, Zielbereiche, Pl
 - `erstellt_am`
 
 Regel:
-- Pro Eintrag genau ein Typ.
+- Pro Eintrag genau ein Basisdatentyp.
 - Historie entsteht durch mehrere datierte Einträge.
+- Die Pflege neuer fachlicher Typen erfolgt über den Katalog `BasisdatenTyp`, nicht über freie Texteingabe im Eintrag selbst.
 
 ### Labor
 - `id`
@@ -448,6 +476,18 @@ erDiagram
 - `aktiv`-Felder auf Stammdatenobjekten statt harter Löschung
 - `erstellt_am` und `geaendert_am` auf zentralen Objekten
 
+## Weitere Felder, die früh auf feste Ausprägungen geprüft werden sollten
+- `Person.geschlecht_code`: kein Freitext, sondern kleine feste Codeliste für Referenzlogik und Filter.
+- `BasisdatenTyp`: klarer Kandidat für einen pflegbaren Fachkatalog statt Freitext direkt im Eintrag.
+- `Befund.quelle_typ`: sollte eine feste Herkunftsliste bleiben, damit manuelle Erfassung, Import und spätere KI-Wege sauber unterscheidbar bleiben.
+- `Messwert.wert_typ` und `Messwert.wert_operator`: sollten strikt geführt werden, weil Import, Validierung und Auswertung direkt davon abhängen.
+- `MesswertReferenz.referenz_typ` und `MesswertReferenz.wert_typ`: ebenfalls klarer Enum-Kandidat, weil diese Felder für die Auswertungslogik keine Freitexte vertragen.
+- `Zielbereich.wert_typ`: gleicher Grund wie bei Messwert und Referenz.
+- `Importvorgang.quelle_typ` und `Importvorgang.status`: fachliche Steuerfelder, die für Historie, Prüfansicht und Freigabe besonders konsistent sein müssen.
+- `ImportPruefpunkt.status` und mittelfristig auch `objekt_typ`: sinnvoll mit kontrolliertem Vokabular, damit Warnungen, Fehler und Bestätigungen stabil filterbar bleiben.
+- `ParameterUmrechnungsregel.regel_typ` und `ParameterBeziehung.beziehungs_typ`: sollten nicht als freie Texte auseinanderlaufen, sobald mehrere Regeln und Beziehungen gepflegt werden.
+- `Einstellung.bereich`: sollte nur aus einem kleinen bekannten Bereichskatalog stammen, damit Konfiguration gruppierbar und wartbar bleibt.
+
 ## Empfohlene Eindeutigkeiten und Prüfregeln
 - `Laborparameter.interner_schluessel` eindeutig
 - `Labor.name` in V1 nicht zwingend global eindeutig, aber bei Neuanlage auf Ähnlichkeiten prüfen
@@ -463,7 +503,8 @@ erDiagram
 - Exakte UI-Darstellung qualitativer Werte im Verlaufsbericht ist noch nicht endgültig entschieden.
 - Ob Referenzvarianten direkt beim Messwert oder zusätzlich als wiederverwendbare Referenzdefinitionen gepflegt werden, kann später weiter normalisiert werden.
 - Die genormte externe Import-Schnittstelle braucht als Nächstes ein konkretes JSON-Schema.
-- Für Geschlecht als Referenzkategorie ist noch zu entscheiden, wie frei oder wie strikt die Auswahlliste sein soll.
+- Für weitere semantisch engen Codefelder ist noch zu entscheiden, welche in V1 sofort hart validiert werden und welche zunächst nur dokumentiert eingeschränkt bleiben.
+- Für erweiterbare Fachkataloge wie `BasisdatenTyp` ist noch zu entscheiden, welche Mindestvalidierung und welche Pflegeoberfläche V1 direkt mitliefern soll.
 
 ## Einordnung für die weitere Umsetzung
 - Dieses Modell ist für V1 bewusst etwas strenger als eine schnelle Demo.

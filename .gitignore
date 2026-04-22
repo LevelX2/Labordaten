@@ -22,6 +22,9 @@ apps/frontend/vite.config.d.ts
 *.db
 data/
 tmp/
+labordaten.runtime.json
+apps/backend/labordaten.runtime.json
+KI-Wissen-Labordaten/.obsidian/
 
 # Editor and OS
 .DS_Store

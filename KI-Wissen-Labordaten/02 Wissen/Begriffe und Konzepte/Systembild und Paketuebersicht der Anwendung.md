@@ -35,7 +35,7 @@ Die Anwendung ist aktuell bereits ein lokales Websystem mit React-Frontend, Fast
 ## Einordnung
 - Das folgende Ist-Bild beschreibt den aktuellen Workspace-Stand vom 2026-04-21.
 - Das Zielbild beschreibt die dokumentierte V1-Architektur aus der Wissensbasis, nicht durchgehend bereits umgesetzten Code.
-- Die Wissensbasis `ai-project-memory/` ist projektseitig zentral, ist aber aktuell noch nicht als voll angebundene Laufzeitkomponente der Anwendung umgesetzt.
+- Die Wissensbasis `KI-Wissen-Labordaten/` ist projektseitig zentral, ist aber aktuell noch nicht als voll angebundene Laufzeitkomponente der Anwendung umgesetzt.
 
 ## Diagramm 1: Systemkomponenten und Zusammenspiel
 

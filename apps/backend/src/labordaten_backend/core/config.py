@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     frontend_origin: str = "http://localhost:5173"
     documents_dir: str = "./documents"
     runtime_settings_file: str = "./labordaten.runtime.json"
-    knowledge_dir: str = "./ai-project-memory"
+    knowledge_dir: str = "../../KI-Wissen-Labordaten"
 
     model_config = SettingsConfigDict(
         env_prefix="LABORDATEN_",

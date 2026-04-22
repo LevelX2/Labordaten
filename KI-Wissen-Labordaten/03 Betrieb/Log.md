@@ -690,6 +690,17 @@
   - Fuer `labor` und `parameter_umrechnungsregel` wurde die Blockade bei historischer Nutzung mit Deaktivierungsersatz umgesetzt; `parameter_gruppe` und `zielbereich` loeschen ihre klaren Kindobjekte mit.
   - Die erweiterten Loeschpfade wurden durch weitere API-Regressionstests abgesichert; der gesamte Backend-Teststand lief danach erfolgreich mit `50 passed`.
 
+## [2026-04-22] update | Generische UI-Regel fuer einklappbare Filterbereiche ergaenzt
+- Anlass oder Quelle: Nutzerfeedback zur Messwertseite und zur einheitlichen Gestaltung groesserer Filterbloecke
+- Neu angelegte Seiten:
+  - keine
+- Geaenderte Seiten:
+  - [[Generische Entwicklungsvorgaben]]
+- Kern der inhaltlichen Anpassung:
+  - Als wiederverwendbare UI-Regel wurde festgehalten, dass groessere Filterbloecke dieselbe Auf- und Zuklapplogik wie andere einklappbare Arbeitsbereiche verwenden sollen.
+  - Zugehoerige Bereichsaktionen wie `Alle auswaehlen` und `Alle abwaehlen` sollen dabei nicht ausserhalb eines eingeklappten Blocks sichtbar bleiben.
+  - Kleine, kompakte Eingaben wie einzelne Datumsfelder wurden bewusst von dieser Regel ausgenommen.
+
 ## [2026-04-22] update | PowerShell-7-Standard fuer lokalen Windows-Workflow verankert
 - Anlass oder Quelle: Nutzerauftrag nach Analyse wiederkehrender UTF-8- und Codierungsprobleme im lokalen Windows-Workflow
 - Neu angelegte Seiten:
@@ -698,6 +709,109 @@
   - [[../02 Wissen/Prozesse/Lokaler Start von Backend und Frontend]]
   - [[Generische Entwicklungsvorgaben]]
 - Kern der inhaltlichen Anpassung:
-  - Der lokale Windows-Workflow verweist nun ausdruecklich auf PowerShell 7 (pwsh) als bevorzugten Standard fuer Start und Textarbeit im Repository.
+  - Der lokale Windows-Workflow verweist nun ausdruecklich auf PowerShell 7 (`pwsh`) als bevorzugten Standard fuer Start und Textarbeit im Repository.
   - Als generische Entwicklungsvorgabe wurde festgehalten, dass Windows PowerShell 5.1 bei UTF-8-lastigen Dateien wiederholt Fehlinterpretationen verursachen kann und deshalb moeglichst nicht der Standard fuer Repo-Arbeit sein sollte.
-  - Die projektbezogene Startdokumentation beschreibt zusaetzlich, dass das Startskript bevorzugt pwsh nutzt und nur noch als Rueckfall auf Windows PowerShell 5.1 ausweicht.
+  - Die projektbezogene Startdokumentation beschreibt zusaetzlich, dass das Startskript bevorzugt `pwsh` nutzt und nur noch als Rueckfall auf Windows PowerShell 5.1 ausweicht.
+
+## [2026-04-22] update | Linke Hauptnavigation als schmaler Desktop-Rail einklappbar gemacht
+- Anlass oder Quelle: Nutzerwunsch nach mehr nutzbarer Flaeche fuer den Hauptarbeitsbereich bei erhaltener linker Menueleiste
+- Neu angelegte Seiten:
+  - keine
+- Geaenderte Seiten:
+  - [[Generische Entwicklungsvorgaben]]
+  - [[../02 Wissen/Begriffe und Konzepte/Geraeteprofile und mobile Bedienbarkeit]]
+- Kern der inhaltlichen Anpassung:
+  - Im Frontend kann die linke Hauptnavigation jetzt auf Desktop in einen schmalen Rail-Zustand eingeklappt und wieder ausgeklappt werden.
+  - Der Zustand wird lokal im Browser gemerkt, damit die bevorzugte Flaechenaufteilung fuer den jeweiligen Arbeitsplatz erhalten bleibt.
+  - Im eingeklappten Zustand bleiben Umschalter und Navigationsziele ueber kurze Labels und Tooltips weiter schnell erreichbar; auf kleineren Breiten bleibt die vollstaendige Navigation bewusst sichtbar.
+  - Der neue Shell-Zuschnitt wurde durch einen erfolgreichen Frontend-Build verifiziert.
+
+## [2026-04-22] update | Parameter-Dublettensuche um Zielbereichsabgleich fuer weiche Namensvarianten erweitert
+- Anlass oder Quelle: Nutzerfrage zur ausbleibenden Dublettenerkennung zwischen `Gesamt-Testosteron` und `Gesamt-Testosteron im Serum`
+- Neu angelegte Seiten:
+  - keine
+- Geaenderte Seiten:
+  - [[../02 Wissen/Begriffe und Konzepte/Ist-Stand Parameter-Dubletten und Zusammenfuehrung]]
+- Kern der inhaltlichen Anpassung:
+  - Die Parameter-Dublettensuche bewertet nun aktive Zielbereiche als zusaetzlichen Kontextfaktor fuer weichere Namensvarianten.
+  - Wenn ein Parametername vollstaendig im anderen enthalten ist und die aktiven Zielbereiche exakt uebereinstimmen, wird jetzt ein Dublettenvorschlag erzeugt.
+  - Wenn bei solchen weicheren Namens-Treffern die aktiven Zielbereiche klar abweichen, wird der Vorschlag bewusst unterdrueckt.
+  - Die Grenze bleibt sichtbar: `Labor` ist dafuer weiterhin kein Kriterium, weil der Parameterstammsatz aktuell keine Laborbindung traegt.
+  - Die Aenderung wurde durch Backend-Tests fuer positiven und negativen Zielbereichsfall sowie den bestehenden Merge-Test verifiziert; `tests/test_parameter_duplicate_merge.py` lief erfolgreich mit `4 passed`.
+
+## [2026-04-22] update | Parameter-Dublettensuche nutzt nun auch Messwert-Referenzbereiche fuer Referenzkontexte
+- Anlass oder Quelle: Nachverifikation am echten Datenbestand zeigte, dass die betroffenen Testosteron-Parameter keine gepflegten Zielbereiche, aber identische Messwert-Referenzbereiche besitzen
+- Neu angelegte Seiten:
+  - keine
+- Geaenderte Seiten:
+  - [[../02 Wissen/Begriffe und Konzepte/Ist-Stand Parameter-Dubletten und Zusammenfuehrung]]
+- Kern der inhaltlichen Anpassung:
+  - Die Dublettensuche wertet bei weicheren Namensvarianten nun nicht nur aktive Zielbereiche, sondern auch identische Messwert-Referenzbereiche als Referenzkontext aus.
+  - Dadurch wird der reale Fall `Gesamt-Testosteron` versus `Gesamt-Testosteron im Serum` jetzt auch dann vorgeschlagen, wenn der gleiche Referenzbereich nur an vorhandenen Messwerten und nicht als Zielbereichsstammsatz vorliegt.
+  - Die Zusatzlogik wurde so korrigiert, dass aeltere interne Schluessel ohne Token-Trennzeichen den Containment-Fall nicht versehentlich blockieren.
+  - Verifiziert wurde dies sowohl durch den erweiterten Backend-Testlauf `5 passed` als auch direkt gegen den aktuellen Workspace-Datenbestand, in dem das Paar nun mit `0.96` Aehnlichkeit vorgeschlagen wird.
+
+## [2026-04-22] update | Lokaler Entwicklungsbetrieb als Dev-Modus und Diagnoseleitlinie dokumentiert
+- Anlass oder Quelle: Nutzerhinweis, dass Frontend und Backend im Projektalltag grundsaetzlich im Dev-Modus laufen und Neustart- oder Reload-Vermutungen deshalb nicht standardmaessig im Vordergrund stehen sollen
+- Neu angelegte Seiten:
+  - keine
+- Geaenderte Seiten:
+  - [[../02 Wissen/Prozesse/Lokaler Start von Backend und Frontend]]
+  - [[Generische Entwicklungsvorgaben]]
+- Kern der inhaltlichen Anpassung:
+  - Die Startdokumentation beschreibt nun ausdruecklich, dass das Backend lokal mit Reload und das Frontend ueber den Vite-Dev-Server betrieben wird.
+  - Daraus wurde fuer den Projektalltag festgehalten, dass ein veralteter Build oder fehlender Neustart nicht die erste Standardvermutung bei Analysen und Rueckmeldungen sein soll.
+  - Manuelles Neuladen oder Neustarten bleibt als spaetere Sicherheitsmassnahme moeglich, wenn konkrete Symptome oder eine festgefahrene Analyse dafuer sprechen.
+
+## [2026-04-22] update | Diagnoseleitlinie fuer Dev-Betrieb staerker als generische Vorgabe eingeordnet
+- Anlass oder Quelle: Nutzerpraezisierung, dass die Annahme eines laufenden Dev-Modus vor allem als generische Entwicklungsregel und weniger als hervorgehobene Startseitenbesonderheit verstanden werden soll
+- Neu angelegte Seiten:
+  - keine
+- Geaenderte Seiten:
+  - [[../02 Wissen/Prozesse/Lokaler Start von Backend und Frontend]]
+  - [[Generische Entwicklungsvorgaben]]
+- Kern der inhaltlichen Anpassung:
+  - Die Prozessseite zum lokalen Start enthaelt dazu nun nur noch den knappen Betriebsmodus mit Reload- beziehungsweise Dev-Server-Hinweis.
+  - Die eigentliche Diagnoseleitlinie wurde klarer in den generischen Entwicklungsvorgaben verankert.
+  - Damit ist fuer kuenftige Analysen ausdruecklicher festgehalten, dass im normalen Dev-Betrieb ein fehlender Reload nicht reflexhaft als erste Ursache angenommen werden soll.
+
+## [2026-04-22] update | Parameter-Dublettensuche um unterdrueckbare Fehlvorschlaege und Messwert-Anzahl erweitert
+- Anlass oder Quelle: Nutzerwunsch, offensichtliche Nicht-Dubletten dauerhaft aus den Vorschlaegen herauszuhalten, ohne die Entscheidung unsichtbar zu machen
+- Neu angelegte Seiten:
+  - keine
+- Geaenderte Seiten:
+  - [[../02 Wissen/Begriffe und Konzepte/Ist-Stand Parameter-Dubletten und Zusammenfuehrung]]
+- Kern der inhaltlichen Anpassung:
+  - Die Parameter-Dublettensuche erlaubt nun eine dauerhafte, aber ruecknehmbare Markierung `Kein Dublett` pro Parameterpaar.
+  - Unterdrueckte Paare werden aus kuenftigen Vorschlaegen herausgefiltert und im Dubletten-Bereich fuer den ausgewaehlten Parameter mit Aufhebemoeglichkeit sichtbar angezeigt.
+  - Das Frontend leert beim Oeffnen des Dubletten-Panels bewusst alte Treffer, damit Vorschlaege nicht wie automatisch neu berechnet wirken.
+  - Im Parameter-Detailbereich wird zusaetzlich die berechnete Anzahl vorhandener Messwerte zum ausgewaehlten Parameter angezeigt.
+  - Verifiziert wurde dies durch `tests/test_parameter_duplicate_merge.py`, `tests/test_delete_logic_api.py`, einen erfolgreichen Frontend-Build und eine eingespielte Alembic-Migration auf die lokale Dev-Datenbank.
+
+## [2026-04-22] update | Import warnt nun bei zugeordneten, aber noch nicht normierbaren Parameter-Einheiten
+- Anlass oder Quelle: Nutzerfrage zur fachlichen Grenze zwischen kanonischem Parameter-Mapping und fehlender Umrechnungslogik bei mehreren Einheiten
+- Neu angelegte Seiten:
+  - keine
+- Geaenderte Seiten:
+  - [[../02 Wissen/Begriffe und Konzepte/Ist-Stand Importstrecke und PDF-Grenzen]]
+- Kern der inhaltlichen Anpassung:
+  - Die Importpruefung erzeugt jetzt eine eigene Warnung, wenn ein numerischer Messwert bereits einem Parameter zugeordnet ist, aber aus seiner Berichtseinheit noch nicht sauber in die fuehrende Normeinheit dieses Parameters ueberfuehrt werden kann.
+  - Dadurch bleibt der Fall sichtbar, dass fachgleiches Mapping bereits plausibel ist, die parameterbezogene Umrechnungsregel aber noch fehlt.
+  - Die Uebernahme bleibt weiterhin moeglich, erfordert in diesem Fall aber die bewusste Bestaetigung der Warnung statt einer stillen Freigabe.
+  - Verifiziert wurde dies durch neue Backend-Tests fuer Warnfall und Nicht-Warnfall sowie durch erfolgreiche Regressionen in `tests/test_import_parameter_normalization_warning.py`, `tests/test_parameter_conversion_rules.py`, `tests/test_parameter_standard_unit.py` und `tests/test_parameter_alias_import_mapping.py`.
+
+## [2026-04-22] update | Wissensbasis auf Projektpraefix `KI-Wissen-Labordaten` umbenannt
+- Anlass oder Quelle: Nutzerwunsch, die projektbezogene Wissensbasis in Obsidian eindeutig ueber einen festen Projektpraefix unterscheidbar zu machen
+- Neu angelegte Seiten:
+  - keine
+- Geaenderte Seiten:
+  - [[../../README]]
+  - [[../../docs/README]]
+  - [[README]]
+  - [[../02 Wissen/Begriffe und Konzepte/V1 Projektstruktur, Module und Schnittstellen]]
+  - [[../02 Wissen/Begriffe und Konzepte/Systembild und Paketuebersicht der Anwendung]]
+- Kern der inhaltlichen Anpassung:
+  - Der Wissensbasis-Ordner wurde von der bisherigen generischen Bezeichnung auf `KI-Wissen-Labordaten/` umgestellt.
+  - Projektdokumentation und Agent-Hinweise verwenden nun denselben Namen, damit Einstiegspfade und Pflegehinweise wieder konsistent sind.
+  - Der Backend-Default fuer den Wissensordner zeigt jetzt relativ aus `apps/backend` korrekt auf den Wissensbasis-Ordner im Repository-Wurzelverzeichnis.
+  - Die lokalen Runtime-Einstellungen wurden ebenfalls auf den neuen absoluten Wissenspfad nachgezogen, damit die Anwendung die Wissensbasis weiterhin direkt findet.

@@ -21,6 +21,12 @@ tags:
 ## Kurzfassung
 Für den lokalen Betrieb wird zuerst das Backend in `apps/backend` und danach das Frontend in `apps/frontend` gestartet. Das Frontend läuft standardmäßig unter `http://localhost:5173` und leitet `/api` per Vite-Proxy an das Backend unter `http://127.0.0.1:8000` weiter. Unter Windows ist PowerShell 7 (`pwsh`) der bevorzugte Standard, weil die UTF-8-Dateien des Repositories damit konsistent gelesen und gestartet werden.
 
+## Entwicklungsmodus im Alltag
+- Der lokale Standardbetrieb dieses Projekts ist Entwicklungsbetrieb, nicht ein separater Test- oder Produktionsmodus.
+- Das Backend wird lokal mit `uvicorn ... --reload` gestartet und lädt Python-Code bei Änderungen neu.
+- Das Frontend wird lokal mit `npm run dev` über Vite gestartet und arbeitet mit Dev-Server und Hot-Reload.
+- Für normale Entwicklungsarbeit ist deshalb zunächst davon auszugehen, dass Änderungen ohne manuellen Neuaufbau wirksam werden.
+
 ## Erstinstallation auf einer neuen Umgebung
 
 ### Backend einmalig einrichten

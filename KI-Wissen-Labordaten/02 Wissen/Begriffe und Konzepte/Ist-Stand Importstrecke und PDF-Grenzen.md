@@ -30,6 +30,7 @@ Der aktuelle Stand vom 2026-04-22 unterstützt eine echte Importprüfung und bew
 - Vor der Übernahme können Messwerte manuell vorhandenen Parametern zugeordnet werden.
 - Bei der Übernahme werden `Befund`, `Messwert` und gegebenenfalls `MesswertReferenz` erzeugt.
 - Warnungen wie fehlende Zuordnung, unparsebare Zahlenwerte oder mögliche Dubletten werden sichtbar gemacht.
+- Wenn ein numerischer Messwert bereits einem Parameter zugeordnet ist, für seine Berichtseinheit aber noch keine saubere Umrechnung in die führende Normeinheit dieses Parameters vorhanden ist, erzeugt die Importprüfung jetzt ebenfalls eine sichtbare Warnung.
 - Wenn ein JSON-Import bereits einen lokalen `dokumentPfad` enthält, kann daraus jetzt auch für diesen Importweg ein echtes `Dokument` in der lokalen Dokumentablage angelegt und mit `Importvorgang` sowie `Befund` verknüpft werden.
 - Referenzen aus dem Import können jetzt neben Text, Grenzen und Einheit auch Kontext wie Altersbereich, Geschlecht und Referenzbemerkung mitführen.
 - Dateibasierte Importe können Gruppenvorschläge aus einer Gruppen- oder Blockspalte ableiten und diese im Importdetail sichtbar machen.

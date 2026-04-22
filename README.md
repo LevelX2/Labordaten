@@ -6,7 +6,7 @@ Für lokale Arbeit unter Windows ist PowerShell 7 (`pwsh`) der bevorzugte Standa
 
 ## Struktur
 
-- `ai-project-memory/`: projektbezogene Wissensbasis
+- `KI-Wissen-Labordaten/`: projektbezogene Wissensbasis
 - `apps/backend/`: lokales FastAPI-Backend
 - `apps/frontend/`: React-Frontend mit Vite
 - `packages/contracts/`: gemeinsame Import- und API-Verträge
@@ -66,4 +66,4 @@ npm run dev
 - Dateien wie PDFs und Markdown-Wissensseiten bleiben im Dateisystem.
 - Arztbericht und Verlaufsbericht können bereits lokal als PDF erzeugt werden.
 - Der Bereich `Auswertung` zeigt bereits echte Zeitreihen und Diagramme auf Basis vorhandener Messwerte.
-- Fachentscheidungen und Architekturableitungen werden wiki-first in `ai-project-memory/` gepflegt.
+- Fachentscheidungen und Architekturableitungen werden wiki-first in `KI-Wissen-Labordaten/` gepflegt.

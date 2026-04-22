@@ -4,7 +4,7 @@
 
 Für dieses Repository existiert eine projektbezogene KI-Wissensbasis im Ordner:
 
-`ai-project-memory/`
+`KI-Wissen-Labordaten/`
 
 Bei neuen Threads, neuen Aufgaben und Projektfragen ist diese Wissensbasis primär zu verwenden.
 
@@ -12,10 +12,10 @@ Bei neuen Threads, neuen Aufgaben und Projektfragen ist diese Wissensbasis prim�
 
 Zu Beginn projektbezogener Arbeit zuerst diese Dateien lesen:
 
-1. `ai-project-memory/00 Projektstart.md`
-2. `ai-project-memory/02 Wissen/00 Uebersichten/Index.md`
-3. `ai-project-memory/02 Wissen/Prozesse/Arbeitsworkflow Wissenspflege und Projektanfragen.md`
-4. `ai-project-memory/00 Steuerung/Regeldatei KI-Wissenspflege.md`
+1. `KI-Wissen-Labordaten/00 Projektstart.md`
+2. `KI-Wissen-Labordaten/02 Wissen/00 Uebersichten/Index.md`
+3. `KI-Wissen-Labordaten/02 Wissen/Prozesse/Arbeitsworkflow Wissenspflege und Projektanfragen.md`
+4. `KI-Wissen-Labordaten/00 Steuerung/Regeldatei KI-Wissenspflege.md`
 
 ## Arbeitsmodus
 
@@ -24,7 +24,7 @@ Zu Beginn projektbezogener Arbeit zuerst diese Dateien lesen:
 - Ziehe Rohquellen, Repository-Dateien oder Webquellen nur dann nach, wenn die Wissensbasis Lücken hat, veraltet ist oder verifiziert werden muss.
 - Wenn neue belastbare Erkenntnisse entstehen, die einen erkennbaren dauerhaften Wert haben, führe sie in die Wissensbasis zurück.
 - Wenn du bei einer Änderung eine Regel oder Anforderung erkennst, prüfe, ob sie generisch für vergleichbare Funktionen oder Systeme ist oder nur den Einzelfall betrifft.
-- Generische Regeln und wiederverwendbare Entwicklungsvorgaben sammle in `ai-project-memory/03 Betrieb/Generische Entwicklungsvorgaben.md`.
+- Generische Regeln und wiederverwendbare Entwicklungsvorgaben sammle in `KI-Wissen-Labordaten/03 Betrieb/Generische Entwicklungsvorgaben.md`.
 - Spezifische Erkenntnisse für nur einen Fachfall, eine Seite oder einen einzelnen Ablauf gehören stattdessen in die fachlich passende Wissensseite und nicht in die generischen Entwicklungsvorgaben.
 
 ## Sprachregeln
@@ -97,17 +97,17 @@ Ausnahmen:
 
 ## Wichtige Wissensbasis-Dateien
 
-- Einstieg: `ai-project-memory/02 Wissen/00 Uebersichten/Index.md`
-- Workflow: `ai-project-memory/02 Wissen/Prozesse/Arbeitsworkflow Wissenspflege und Projektanfragen.md`
-- Log: `ai-project-memory/03 Betrieb/Log.md`
-- Qualitätsprüfung: `ai-project-memory/03 Betrieb/Qualitaetspruefung.md`
+- Einstieg: `KI-Wissen-Labordaten/02 Wissen/00 Uebersichten/Index.md`
+- Workflow: `KI-Wissen-Labordaten/02 Wissen/Prozesse/Arbeitsworkflow Wissenspflege und Projektanfragen.md`
+- Log: `KI-Wissen-Labordaten/03 Betrieb/Log.md`
+- Qualitätsprüfung: `KI-Wissen-Labordaten/03 Betrieb/Qualitaetspruefung.md`
 
 ## Einordnung von Status und Log
 
-- `ai-project-memory/02 Wissen/00 Uebersichten/Aktueller Projektstatus.md` ist eine verdichtete Zustandsübersicht und kein Änderungsprotokoll.
+- `KI-Wissen-Labordaten/02 Wissen/00 Uebersichten/Aktueller Projektstatus.md` ist eine verdichtete Zustandsübersicht und kein Änderungsprotokoll.
 - Diese Seite soll den aktuellen Stand als Snapshot zeigen, zum Beispiel gegliedert in `Umgesetzt`, `Teilweise umgesetzt`, `Offen` und `Wichtige Grenzen`.
-- Einzelne Schritte, Entscheidungen, Verifikationen und zeitliche Abfolgen gehören nicht als Erzählung in diese Statusseite, sondern in `ai-project-memory/03 Betrieb/Log.md`.
-- `ai-project-memory/03 Betrieb/Log.md` bleibt chronologisch und append-only und beantwortet primär, was wann passiert ist.
+- Einzelne Schritte, Entscheidungen, Verifikationen und zeitliche Abfolgen gehören nicht als Erzählung in diese Statusseite, sondern in `KI-Wissen-Labordaten/03 Betrieb/Log.md`.
+- `KI-Wissen-Labordaten/03 Betrieb/Log.md` bleibt chronologisch und append-only und beantwortet primär, was wann passiert ist.
 - Wenn sich Statusseite und Log inhaltlich überschneiden, ist die Statusseite zu verdichten statt das Log auszudünnen.
 
 ## Abschluss-Kommandos

@@ -1,11 +1,12 @@
 ---
 typ: screenplan
 status: entwurf
-letzte_aktualisierung: 2026-04-20
+letzte_aktualisierung: 2026-04-21
 quellen:
   - V1 Ziel-Datenmodell.md
   - V1 Technisches Schema.md
   - ../Entscheidungen/V1 Vorentscheidungen Produktform und Kernmodell.md
+  - ../../../apps/frontend/src/shared/components/StartPage.tsx
 tags:
   - screenplan
   - ui
@@ -48,6 +49,13 @@ Die V1-Oberfläche soll arbeitsbereichsorientiert und sachlich aufgebaut sein. D
 
 ### Zweck
 - Schneller Überblick über offenen Handlungsbedarf
+- Arbeitsorientierter Einstieg statt technischer Selbstbeschreibung der Anwendung
+
+### Gestaltungsprinzip
+- Die Startseite soll vorrangig zeigen, womit der Nutzer als Nächstes sinnvoll arbeiten kann.
+- Prominent gehören deshalb Live-Informationen zum Datenbestand, zu offenen Importprüfungen und zum aktuellen Betriebszustand dorthin.
+- Reine Technikangaben wie Frameworks, Datenbank oder Scaffold-Status sind für die Startseite nachrangig und gehören eher in Entwicklungskontext, Dokumentation oder Einstellungen.
+- Die Startseite soll in V1 nicht als dekoratives Dashboard verstanden werden, sondern als kurze arbeitsleitende Übersicht mit klaren Anschlussaktionen.
 
 ### Inhalte
 - Anzahl Personen
@@ -55,14 +63,18 @@ Die V1-Oberfläche soll arbeitsbereichsorientiert und sachlich aufgebaut sein. D
 - Anzahl Messwerte
 - Anzahl Parameter
 - Offene Importprüfungen
+- Kennzeichnung, ob offene Importentwürfe Warnungen oder Fehler enthalten
 - Fällige oder bald fällige Planungen
-- Letzte hinzugefügte Befunde
+- Aktueller Status der Datenbasis-Sperre oder anderer lokaler Betriebszustände
+- Letzte hinzugefügte oder zuletzt relevante Befunde nur dann, wenn sie den nächsten Arbeitsschritt erkennbar unterstützen
 
 ### Aktionen
 - `Neue Person`
 - `Neuer Befund`
 - `Import starten`
 - `Fälligkeiten anzeigen`
+- `Auswertung öffnen`
+- `Einstellungen öffnen`, wenn Betriebszustände oder Sperren relevant sind
 
 ## Personen
 

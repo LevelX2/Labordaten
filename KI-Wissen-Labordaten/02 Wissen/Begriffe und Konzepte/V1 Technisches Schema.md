@@ -1,11 +1,16 @@
 ---
 typ: technisches-schema
 status: entwurf
-letzte_aktualisierung: 2026-04-20
+letzte_aktualisierung: 2026-04-21
 quellen:
   - V1 Ziel-Datenmodell.md
   - Planung Erstarchitektur und Umsetzungsphasen.md
   - ../Entscheidungen/V1 Vorentscheidungen Produktform und Kernmodell.md
+  - ../../../apps/backend/src/labordaten_backend/modules/personen/schemas.py
+  - ../../../apps/backend/src/labordaten_backend/modules/messwerte/schemas.py
+  - ../../../apps/backend/src/labordaten_backend/modules/referenzen/schemas.py
+  - ../../../apps/backend/src/labordaten_backend/modules/zielbereiche/schemas.py
+  - ../../../apps/backend/src/labordaten_backend/modules/befunde/schemas.py
 tags:
   - schema
   - datenbank
@@ -32,6 +37,7 @@ Das technische V1-Schema setzt das fachliche Ziel-Datenmodell in eine relational
 
 ## Tabellenübersicht
 - `person`
+- `basisdaten_typ`
 - `person_basisdaten_eintrag`
 - `labor`
 - `wissensseite`
@@ -70,15 +76,34 @@ Das technische V1-Schema setzt das fachliche Ziel-Datenmodell in eine relational
 - `erstellt_am` NOT NULL
 - `geaendert_am` NOT NULL
 
+Checks:
+- `geschlecht_code` entweder NULL oder in `w`, `m`, `d`
+
 Indizes:
 - Index auf `anzeigename`
 - Index auf `geburtsdatum`
 - Optional zusammengesetzt auf `aktiv, anzeigename`
 
+### basisdaten_typ
+- `id` PK
+- `code` NOT NULL UNIQUE
+- `anzeigename` NOT NULL
+- `beschreibung`
+- `standard_einheit`
+- `aktiv` NOT NULL DEFAULT 1
+- `sortierung`
+- `system_flag` NOT NULL DEFAULT 0
+- `erstellt_am` NOT NULL
+- `geaendert_am` NOT NULL
+
+Indizes:
+- Unique auf `code`
+- Index auf `aktiv, sortierung, anzeigename`
+
 ### person_basisdaten_eintrag
 - `id` PK
 - `person_id` NOT NULL FK -> `person.id`
-- `typ` NOT NULL
+- `basisdaten_typ_id` NOT NULL FK -> `basisdaten_typ.id`
 - `wert_num` NOT NULL
 - `einheit`
 - `datum` NOT NULL
@@ -87,10 +112,10 @@ Indizes:
 - `erstellt_am` NOT NULL
 
 Indizes:
-- Index auf `person_id, typ, datum DESC`
+- Index auf `person_id, basisdaten_typ_id, datum DESC`
 
 Checks:
-- `typ` in V1 mindestens `gewicht`, `groesse`
+- `wert_num` bleibt in V1 numerisch; textuelle Basisdaten brauchen erst mit eigener Modellentscheidung zusätzliche Felder
 
 ### labor
 - `id` PK
@@ -481,7 +506,7 @@ Indizes:
 - Exakte ID-Strategie: UUID oder Integer
 - Trigger versus reine Anwendungskontrolle für Konsistenzregeln
 - Ob `pfad_absolut` wirklich nötig bleibt oder auf Basispfade reduziert werden kann
-- Ob `geschlecht_code` streng enumeriert oder flexibler modelliert wird
+- Welche weiteren semantisch engen Codefelder in V1 nicht nur dokumentiert, sondern auch durchgängig in API-Schemas, UI-Auswahlen und Datenbank-Checks hart validiert werden sollen
 
 ## Einordnung für die weitere Umsetzung
 - Dieses Schema ist der richtige technische Startpunkt für Migrationen und Repository-Struktur.

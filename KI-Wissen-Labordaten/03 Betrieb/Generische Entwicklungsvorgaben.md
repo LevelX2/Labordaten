@@ -10,6 +10,8 @@ quellen:
   - ../../01 Rohquellen/fachkonzepte/2026-04-22 Rueckmeldung Loeschlogik und Deaktivierungsregeln.md
   - ../../02 Wissen/Begriffe und Konzepte/Ist-Stand Einheiten, Normeinheiten und Umrechnung.md
   - ../../02 Wissen/Begriffe und Konzepte/Ist-Stand Loeschlogik und Deaktivierungsregeln.md
+  - ../../apps/frontend/src/app/layout/AppLayout.tsx
+  - ../../apps/frontend/src/styles.css
 tags:
   - betrieb
   - vorgaben
@@ -43,10 +45,17 @@ Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitp
 - Kleine Vorspann-Labels über der Hauptüberschrift sind nur sinnvoll, wenn sie einen zusätzlichen fachlichen Informationswert liefern; reine Stimmungs- oder Orientierungswörter ohne Mehrwert können entfallen.
 
 ## Shell und Zeichencodierung unter Windows
-- Für lokale Textarbeit, Repo-Inspektion und Skriptstarts unter Windows sollte nach Möglichkeit PowerShell 7 (pwsh) statt Windows PowerShell 5.1 verwendet werden.
+- Für lokale Textarbeit, Repo-Inspektion und Skriptstarts unter Windows sollte nach Möglichkeit PowerShell 7 (`pwsh`) statt Windows PowerShell 5.1 verwendet werden.
 - Der Grund ist nicht nur Komfort, sondern die konsistentere UTF-8-Verarbeitung bei Markdown-, JSON-, TypeScript-, CSS- und ähnlichen Textdateien.
 - Wenn Skripte oder Einmalbefehle Textdateien lesen oder schreiben, sollte die Zeichencodierung zusätzlich an kritischen Stellen explizit angegeben werden, statt auf implizite Standardwerte des aufrufenden Prozesses zu vertrauen.
 - Repo- und Workspace-Konfigurationen dürfen den gewünschten Standard festlegen, ersetzen aber keine bewusste Prüfung der tatsächlich verwendeten Shell, wenn Symptome wie Mojibake, unerwartete Diffs oder fehlgeschlagene Patch-Matches auftreten.
+
+## Diagnosehinweise im lokalen Dev-Betrieb
+- Wenn Frontend und Backend bewusst im laufenden Dev-Modus betrieben werden, sollte ein fehlender Reload, veralteter Build oder nötiger Neustart ausdrücklich nicht als Standardursache angenommen werden.
+- Im normalen Entwicklungsalltag ist zuerst davon auszugehen, dass Codeaenderungen bereits im laufenden Dev-Betrieb wirksam sind.
+- Solche Hinweise sind eher als spätere Sicherheitsmaßnahme sinnvoll, wenn die fachliche oder technische Analyse sonst nicht weiterführt oder konkrete Symptome auf einen hängenden Prozess, Caching oder einen tatsächlich veralteten Stand deuten.
+- Für Rückmeldungen im Projektalltag ist es hilfreicher, zunächst Datenlage, Codepfad, Filterzustand, API-Antwort oder konkrete Laufzeitlogik zu prüfen als reflexhaft ein manuelles Neuladen zu empfehlen.
+- Diese Leitlinie gilt nicht nur fuer dieses eine Repository, sondern generell fuer vergleichbare lokale Entwicklungsumgebungen mit Reload- oder Hot-Reload-Betrieb.
 
 ## Stammdatenseiten als Arbeitsbereich
 - Vergleichbare Stammdatenseiten sollten als klarer Arbeitsbereich aufgebaut sein und nicht als lose Sammlung gleichrangiger Karten oder Formulare.
@@ -76,6 +85,12 @@ Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitp
 - Eine visuelle Aufwertung durch ruhige, hochwertige Bildmotive oder ein kleines Markenbild ist sinnvoll, wenn sie die Orientierung unterstützt und die arbeitsrelevanten Kennzahlen, Warnlagen und Anschlussaktionen weiterhin den inhaltlichen Fokus behalten.
 - Versionsnummern oder vergleichbare technische Metadaten sollten dezent im Branding, in der Shell oder in Einstellungen platziert werden statt als dominanter Hauptinhalt einer Start- oder Übersichtsseite.
 - Persistente Shell-Bereiche wie eine linke Navigation sollten keine erläuternden Beschreibungstexte tragen, wenn Markenname, Navigationsstruktur und Nutzungskontext die Orientierung bereits ausreichend leisten.
+
+## Shell-Navigation und Arbeitsfläche
+- In arbeitsorientierten Desktop-Oberflächen sollte eine persistente linke Hauptnavigation bei Bedarf in einen schmalen Rail-Zustand einklappbar sein, wenn breite Listen, Tabellen, Formulare oder Diagramme den eigentlichen Arbeitsfokus bilden.
+- Der Umschalter für diesen Modus muss im eingeklappten Zustand weiterhin klar sichtbar bleiben, damit der gewonnene Platz nicht mit schlechterer Orientierung bezahlt wird.
+- Auch im Schmalmodus soll die Navigation noch schnell zuordenbar bleiben, zum Beispiel über kurze Labels, erkennbare aktive Ziele oder direkte Tooltips.
+- Wenn kein fachlicher Grund für ein Zurücksetzen besteht, sollte der gewählte Shell-Zustand pro Gerät oder Browser lokal gemerkt werden.
 
 ## Datenmodell und feste Ausprägungen
 - Beim Festlegen des Datenmodells sollte früh geprüft werden, welche Felder semantisch zu eng für Freitext sind und stattdessen feste Ausprägungen, Enums oder Lookup-Werte brauchen.

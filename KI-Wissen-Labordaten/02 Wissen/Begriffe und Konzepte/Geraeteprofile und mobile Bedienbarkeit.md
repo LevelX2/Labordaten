@@ -1,7 +1,7 @@
 ---
 typ: konzept
 status: aktiv
-letzte_aktualisierung: 2026-04-21
+letzte_aktualisierung: 2026-04-22
 quellen:
   - Fachkonzept Laboranwendung Grundstruktur.md
   - Planung Erstarchitektur und Umsetzungsphasen.md
@@ -30,6 +30,7 @@ Die Anwendung ist im aktuellen Stand eine lokale Browser-Anwendung mit Weboberfl
 ## Gesicherter Stand aus Konzept und Workspace
 - Das Projekt ist als lokal betriebene Weboberfläche mit lokalem Backend beschrieben, nicht als native Mobil-App.
 - Das Frontend enthält einen normalen Browser-Viewport und ist damit grundsätzlich auch auf kleineren Displays aufrufbar.
+- Auf Desktop kann die linke Hauptnavigation in einen schmalen Rail-Zustand eingeklappt werden; der gewählte Zustand wird lokal im Browser gemerkt.
 - Die Shell reagiert auf kleinere Breiten: unterhalb von 960 Pixeln wird die zweispaltige Struktur auf eine einspaltige Ansicht umgestellt und die Seitenleiste wandert nach oben.
 - Mehrere Inhaltsbereiche sind bereits fluid aufgebaut, etwa Kartenraster, Formblöcke und Berichtszusammenfassungen.
 - Tabellenbereiche sind horizontal scrollbar statt für kleine Displays in eigene Mobilkarten umgebaut.
@@ -40,6 +41,7 @@ Die Anwendung ist im aktuellen Stand eine lokale Browser-Anwendung mit Weboberfl
 ### Desktop oder Notebook
 - Primäres Zielgerät des aktuellen UI-Zuschnitts.
 - Besonders passend für tabellenlastige Pflege, kombinierte Filter, Importprüfung und paralleles Lesen von Listen plus Detailbereichen.
+- Die einklappbare linke Navigation verbessert auf größeren Arbeitsflächen zusätzlich den nutzbaren Raum für den Hauptbereich, ohne dass die Hauptnavigation komplett ausgeblendet werden muss.
 
 ### Tablet
 - Grundsätzlich gut nutzbar, vor allem im Querformat.
@@ -52,7 +54,7 @@ Die Anwendung ist im aktuellen Stand eine lokale Browser-Anwendung mit Weboberfl
 - Für umfangreiche Datenerfassung, Importprüfung, Parameterpflege, Mehrfachauswahl und detaillierte Tabellenarbeit ist der aktuelle Stand zu dicht und zu breit.
 
 ## Gründe für die Einschränkungen auf kleinen Geräten
-- Die Hauptnavigation bleibt auch in der schmalen Ansicht eine vollständige Linkliste und wird nicht in ein kompakteres Mobilmuster wie Menü-Drawer oder Akkordeon überführt.
+- Die Hauptnavigation bleibt auf kleineren Breiten auch weiterhin eine vollständige Linkliste und wird nicht in ein kompakteres Mobilmuster wie Menü-Drawer oder Akkordeon überführt; der neue Schmalmodus ist bewusst eine Desktop-Optimierung und kein Mobilersatz.
 - Zentrale Arbeitsbereiche sind stark formular-, filter- und tabellenorientiert.
 - Seiten wie `Messwerte`, `Berichte` und `Auswertung` arbeiten mit breiten Datentabellen mit sechs bis acht Spalten.
 - Große Mehrfachauswahlen werden als Checkbox-Raster dargestellt. Das ist für Desktop und Tablet brauchbar, auf Smartphones aber schnell lang und fingerintensiv.

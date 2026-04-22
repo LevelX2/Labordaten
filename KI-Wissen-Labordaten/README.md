@@ -1,6 +1,6 @@
-# Projekt-Wissensbasis
+# KI-Wissen-Labordaten
 
-Diese Wissensbasis dient als dauerhaftes Arbeitsgedächtnis für das Repository `Labordaten`.
+Diese Wissensbasis dient als dauerhaftes Arbeitsgedächtnis für das Repository `Labordaten` und trägt den Projektpräfix bewusst im Ordnernamen, damit sie in Obsidian eindeutig vom Wissensbestand anderer Projekte unterscheidbar bleibt.
 
 ## Struktur
 
