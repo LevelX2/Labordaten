@@ -37,6 +37,7 @@ type AuswertungFormState = {
   labor_ids: string[];
   datum_von: string;
   datum_bis: string;
+  zeitraum_darstellung: "wertezeitraum" | "selektionszeitraum";
   include_laborreferenz: boolean;
   include_zielbereich: boolean;
 };
@@ -48,17 +49,45 @@ const initialForm: AuswertungFormState = {
   labor_ids: [],
   datum_von: defaultDateRange.datum_von,
   datum_bis: defaultDateRange.datum_bis,
+  zeitraum_darstellung: "wertezeitraum",
   include_laborreferenz: true,
   include_zielbereich: true
 };
 
 const palette = ["#1f5a92", "#1f6a53", "#d77a2f", "#8d4aa5", "#a34848", "#4d6b1f"];
 
+function formatIsoDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function shiftDateByYears(value: string, years: number, fallbackValue: string): string {
+  const baseValue = value || fallbackValue;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(baseValue);
+  if (!match) {
+    return baseValue;
+  }
+
+  const [, yearText, monthText, dayText] = match;
+  const targetYear = Number(yearText) + years;
+  const monthIndex = Number(monthText) - 1;
+  const day = Number(dayText);
+  const maxDayInTargetMonth = new Date(targetYear, monthIndex + 1, 0).getDate();
+  const nextDate = new Date(targetYear, monthIndex, Math.min(day, maxDayInTargetMonth));
+  return formatIsoDate(nextDate);
+}
+
 function formatDate(value?: string | null): string {
   if (!value) {
     return "—";
   }
   return new Intl.DateTimeFormat("de-DE").format(new Date(value));
+}
+
+function formatTimestamp(value: number): string {
+  return new Intl.DateTimeFormat("de-DE", { timeZone: "UTC" }).format(value);
 }
 
 function formatNumber(value?: number | null): string {
@@ -94,15 +123,34 @@ function formatTargetRange(point: AuswertungPunkt): string {
   });
 }
 
+function parseDateToTimestamp(value?: string | null): number | null {
+  if (!value) {
+    return null;
+  }
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) {
+    return null;
+  }
+
+  const [, yearText, monthText, dayText] = match;
+  return Date.UTC(Number(yearText), Number(monthText) - 1, Number(dayText));
+}
+
 function buildChartData(points: AuswertungPunkt[]) {
-  const byDate = new Map<string, Record<string, string | number | null>>();
+  const byDate = new Map<number, Record<string, string | number | null>>();
   for (const point of points) {
     if (point.wert_num === null || point.wert_num === undefined) {
       continue;
     }
 
-    const dateKey = point.datum ?? `unbekannt-${point.messwert_id}`;
-    const row = byDate.get(dateKey) ?? {
+    const timestamp = parseDateToTimestamp(point.datum);
+    if (timestamp === null) {
+      continue;
+    }
+
+    const row = byDate.get(timestamp) ?? {
+      timestamp,
       datumLabel: formatDate(point.datum),
       laborreferenz_unten: point.laborreferenz_untere_num ?? null,
       laborreferenz_oben: point.laborreferenz_obere_num ?? null,
@@ -124,12 +172,49 @@ function buildChartData(points: AuswertungPunkt[]) {
     if (row.zielbereich_oben === null && point.zielbereich_obere_num !== null && point.zielbereich_obere_num !== undefined) {
       row.zielbereich_oben = point.zielbereich_obere_num;
     }
-    byDate.set(dateKey, row);
+    byDate.set(timestamp, row);
   }
 
   return Array.from(byDate.entries())
-    .sort(([left], [right]) => left.localeCompare(right))
+    .sort(([left], [right]) => left - right)
     .map(([, value]) => value);
+}
+
+function buildFilterSummary(form: AuswertungFormState): string[] {
+  const summary: string[] = [];
+
+  if (form.person_ids.length) {
+    summary.push(`${form.person_ids.length} Person${form.person_ids.length === 1 ? "" : "en"}`);
+  }
+  if (form.gruppen_ids.length) {
+    summary.push(`${form.gruppen_ids.length} Gruppe${form.gruppen_ids.length === 1 ? "" : "n"}`);
+  }
+  if (form.laborparameter_ids.length) {
+    summary.push(`${form.laborparameter_ids.length} Parameter`);
+  }
+  if (form.labor_ids.length) {
+    summary.push(`${form.labor_ids.length} Labor${form.labor_ids.length === 1 ? "" : "e"}`);
+  }
+
+  if (form.datum_von || form.datum_bis) {
+    summary.push(
+      `Zeitraum ${form.datum_von ? formatDate(form.datum_von) : "offen"} bis ${form.datum_bis ? formatDate(form.datum_bis) : "offen"}`
+    );
+  }
+  summary.push(
+    form.zeitraum_darstellung === "selektionszeitraum"
+      ? "Achse zeigt Selektionszeitraum"
+      : "Achse zeigt Wertezeitraum"
+  );
+
+  if (form.include_laborreferenz) {
+    summary.push("mit Laborreferenzen");
+  }
+  if (form.include_zielbereich) {
+    summary.push("mit Zielbereichen");
+  }
+
+  return summary.length ? summary : ["Noch keine Auswertungsfilter gesetzt."];
 }
 
 function formatTooltipValue(value: unknown): string {
@@ -169,10 +254,16 @@ function renderOperatorDot(props: {
 
 function SeriesChart({
   serie,
+  zeitraumDarstellung,
+  datumVon,
+  datumBis,
   includeLaborreferenz,
   includeZielbereich
 }: {
   serie: AuswertungsSerie;
+  zeitraumDarstellung: "wertezeitraum" | "selektionszeitraum";
+  datumVon: string;
+  datumBis: string;
   includeLaborreferenz: boolean;
   includeZielbereich: boolean;
 }) {
@@ -181,6 +272,13 @@ function SeriesChart({
     () => Array.from(new Set(serie.punkte.map((punkt) => punkt.person_anzeigename))),
     [serie.punkte]
   );
+  const axisDomain =
+    zeitraumDarstellung === "wertezeitraum"
+      ? (["dataMin", "dataMax"] as [string, string])
+      : ([
+          parseDateToTimestamp(datumVon) ?? "dataMin",
+          parseDateToTimestamp(datumBis) ?? "dataMax"
+        ] as [number | string, number | string]);
 
   if (!chartData.length) {
     return <p>Für diesen Parameter gibt es aktuell keine numerischen Punkte für ein Diagramm.</p>;
@@ -191,9 +289,17 @@ function SeriesChart({
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={chartData} margin={{ top: 16, right: 12, left: 0, bottom: 8 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#d7ccb9" />
-          <XAxis dataKey="datumLabel" tick={{ fontSize: 12 }} />
+          <XAxis
+            dataKey="timestamp"
+            type="number"
+            scale="time"
+            domain={axisDomain}
+            tick={{ fontSize: 12 }}
+            tickFormatter={(value) => (typeof value === "number" ? formatTimestamp(value) : "")}
+          />
           <YAxis tick={{ fontSize: 12 }} />
           <Tooltip
+            labelFormatter={(label) => (typeof label === "number" ? formatTimestamp(label) : String(label))}
             formatter={(value, name, item) => {
               if (typeof name === "string") {
                 const displayValue = item?.payload?.[`${name}__display`];
@@ -272,6 +378,7 @@ export function AuswertungPage() {
   const [form, setForm] = useState<AuswertungFormState>(() =>
     applySharedFilterSearchParams(initialForm, searchParams)
   );
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(() => form.person_ids.length === 0);
 
   const personenQuery = useQuery({
     queryKey: ["personen"],
@@ -325,6 +432,13 @@ export function AuswertungPage() {
         .sort((left, right) => (left.datum ?? "").localeCompare(right.datum ?? "")),
     [auswertungMutation.data]
   );
+  const filterSummary = useMemo(() => buildFilterSummary(form), [form]);
+  const setShiftedDate = (field: "datum_von" | "datum_bis", years: number) => {
+    setForm((current) => ({
+      ...current,
+      [field]: shiftDateByYears(current[field], years, initialForm[field])
+    }));
+  };
 
   const statistikCards = [
     { label: "Personen", value: gesamtzahlenQuery.data?.personen_anzahl ?? "—" },
@@ -336,11 +450,10 @@ export function AuswertungPage() {
   return (
     <section className="page">
       <header className="page__header">
-        <span className="page__kicker">Auswertung und Verlauf</span>
         <h2>Auswertung</h2>
         <p>
-          Die Auswertung kann jetzt Personen zusammenführen und gleichzeitig nach Gruppen, Parametern, Laboren und
-          Zeitraum filtern.
+          Vergleiche Verläufe über Personen, Gruppen, Parameter, Labore und Zeitraum und blende Referenz- oder
+          Zielbereiche bei Bedarf ein.
         </p>
       </header>
 
@@ -353,107 +466,184 @@ export function AuswertungPage() {
         ))}
       </div>
 
-      <article className="card">
-        <h3>Filter</h3>
-        <form
-          className="form-grid"
-          onSubmit={(event) => {
-            event.preventDefault();
-            auswertungMutation.mutate();
-          }}
-        >
-          <SelectionChecklist
-            label="Personen"
-            options={(personenQuery.data ?? []).map((person) => ({
-              id: person.id,
-              label: person.anzeigename
-            }))}
-            selectedIds={form.person_ids}
-            onChange={(person_ids) => setForm((current) => ({ ...current, person_ids }))}
-            emptyText="Noch keine Personen vorhanden."
-          />
-
-          <label className="field">
-            <span>Datum von</span>
-            <input
-              type="date"
-              value={form.datum_von}
-              onChange={(event) => setForm((current) => ({ ...current, datum_von: event.target.value }))}
-            />
-          </label>
-
-          <label className="field">
-            <span>Datum bis</span>
-            <input
-              type="date"
-              value={form.datum_bis}
-              onChange={(event) => setForm((current) => ({ ...current, datum_bis: event.target.value }))}
-            />
-          </label>
-
-          <SelectionChecklist
-            label="Gruppen"
-            options={(gruppenQuery.data ?? []).map((gruppe) => ({
-              id: gruppe.id,
-              label: gruppe.name,
-              meta: gruppe.beschreibung
-            }))}
-            selectedIds={form.gruppen_ids}
-            onChange={(gruppen_ids) => setForm((current) => ({ ...current, gruppen_ids }))}
-            emptyText="Noch keine Gruppen vorhanden."
-          />
-
-          <SelectionChecklist
-            label="Parameter"
-            options={(parameterQuery.data ?? []).map((parameter) => ({
-              id: parameter.id,
-              label: parameter.anzeigename,
-              meta: parameter.standard_einheit
-            }))}
-            selectedIds={form.laborparameter_ids}
-            onChange={(laborparameter_ids) => setForm((current) => ({ ...current, laborparameter_ids }))}
-            emptyText="Noch keine Parameter vorhanden."
-            collapsible
-            defaultExpanded={false}
-          />
-
-          <SelectionChecklist
-            label="Labore"
-            options={(laboreQuery.data ?? []).map((labor) => ({
-              id: labor.id,
-              label: labor.name
-            }))}
-            selectedIds={form.labor_ids}
-            onChange={(labor_ids) => setForm((current) => ({ ...current, labor_ids }))}
-            emptyText="Noch keine Labore vorhanden."
-          />
-
-          <label className="field">
-            <span>Laborreferenzen anzeigen</span>
-            <input
-              type="checkbox"
-              checked={form.include_laborreferenz}
-              onChange={(event) => setForm((current) => ({ ...current, include_laborreferenz: event.target.checked }))}
-            />
-          </label>
-
-          <label className="field">
-            <span>Zielbereiche anzeigen</span>
-            <input
-              type="checkbox"
-              checked={form.include_zielbereich}
-              onChange={(event) => setForm((current) => ({ ...current, include_zielbereich: event.target.checked }))}
-            />
-          </label>
-
-          <div className="form-actions">
-            <button type="submit" disabled={auswertungMutation.isPending || !form.person_ids.length}>
-              {auswertungMutation.isPending ? "Lädt..." : "Auswertung laden"}
-            </button>
-            {auswertungMutation.isError ? <p className="form-error">{auswertungMutation.error.message}</p> : null}
+      <article className="card card--soft parameter-action-panel">
+        <div className="parameter-panel__header">
+          <div>
+            <h3>Auswertungsfilter</h3>
+            <p>Die Auswahl steuert Diagramme, Kennzahlen und qualitative Ereignisse gemeinsam.</p>
           </div>
-        </form>
+          {isFilterPanelOpen ? (
+            <button
+              type="button"
+              className="icon-button"
+              onClick={() => setIsFilterPanelOpen(false)}
+              aria-label="Panel Auswertungsfilter schließen"
+              title="Panel Auswertungsfilter schließen"
+            >
+              ×
+            </button>
+          ) : (
+            <button type="button" className="inline-button" onClick={() => setIsFilterPanelOpen(true)}>
+              Filter öffnen
+            </button>
+          )}
+        </div>
+
+        {isFilterPanelOpen ? (
+          <form
+            className="form-grid"
+            onSubmit={(event) => {
+              event.preventDefault();
+              auswertungMutation.mutate();
+            }}
+          >
+            <SelectionChecklist
+              label="Personen"
+              options={(personenQuery.data ?? []).map((person) => ({
+                id: person.id,
+                label: person.anzeigename
+              }))}
+              selectedIds={form.person_ids}
+              onChange={(person_ids) => setForm((current) => ({ ...current, person_ids }))}
+              emptyText="Noch keine Personen vorhanden."
+              collapsible
+            />
+
+            <SelectionChecklist
+              label="Gruppen"
+              options={(gruppenQuery.data ?? []).map((gruppe) => ({
+                id: gruppe.id,
+                label: gruppe.name,
+                meta: gruppe.beschreibung
+              }))}
+              selectedIds={form.gruppen_ids}
+              onChange={(gruppen_ids) => setForm((current) => ({ ...current, gruppen_ids }))}
+              emptyText="Noch keine Gruppen vorhanden."
+              collapsible
+              defaultExpanded={false}
+            />
+
+            <SelectionChecklist
+              label="Parameter"
+              options={(parameterQuery.data ?? []).map((parameter) => ({
+                id: parameter.id,
+                label: parameter.anzeigename,
+                meta: parameter.standard_einheit
+              }))}
+              selectedIds={form.laborparameter_ids}
+              onChange={(laborparameter_ids) => setForm((current) => ({ ...current, laborparameter_ids }))}
+              emptyText="Noch keine Parameter vorhanden."
+              collapsible
+              defaultExpanded={false}
+            />
+
+            <SelectionChecklist
+              label="Labore"
+              options={(laboreQuery.data ?? []).map((labor) => ({
+                id: labor.id,
+                label: labor.name
+              }))}
+              selectedIds={form.labor_ids}
+              onChange={(labor_ids) => setForm((current) => ({ ...current, labor_ids }))}
+              emptyText="Noch keine Labore vorhanden."
+              collapsible
+              defaultExpanded={false}
+            />
+
+            <div className="auswertung-date-grid field--full">
+              <div className="field auswertung-date-field">
+                <span>Datum von</span>
+                <input
+                  type="date"
+                  value={form.datum_von}
+                  onChange={(event) => setForm((current) => ({ ...current, datum_von: event.target.value }))}
+                />
+                <div className="auswertung-date-field__actions">
+                  <button type="button" className="inline-button" onClick={() => setShiftedDate("datum_von", -1)}>
+                    -1 Jahr
+                  </button>
+                  <button type="button" className="inline-button" onClick={() => setShiftedDate("datum_von", 1)}>
+                    +1 Jahr
+                  </button>
+                </div>
+              </div>
+
+              <div className="field auswertung-date-field">
+                <span>Datum bis</span>
+                <input
+                  type="date"
+                  value={form.datum_bis}
+                  onChange={(event) => setForm((current) => ({ ...current, datum_bis: event.target.value }))}
+                />
+                <div className="auswertung-date-field__actions">
+                  <button type="button" className="inline-button" onClick={() => setShiftedDate("datum_bis", -1)}>
+                    -1 Jahr
+                  </button>
+                  <button type="button" className="inline-button" onClick={() => setShiftedDate("datum_bis", 1)}>
+                    +1 Jahr
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <label className="field">
+              <span>Zeitraumdarstellung im Diagramm</span>
+              <select
+                value={form.zeitraum_darstellung}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    zeitraum_darstellung: event.target.value as AuswertungFormState["zeitraum_darstellung"]
+                  }))
+                }
+              >
+                <option value="wertezeitraum">Nur Zeitraum mit Werten</option>
+                <option value="selektionszeitraum">Gewählten Selektionszeitraum fest anzeigen</option>
+              </select>
+            </label>
+
+            <label className="field">
+              <span>Laborreferenzen anzeigen</span>
+              <input
+                type="checkbox"
+                checked={form.include_laborreferenz}
+                onChange={(event) => setForm((current) => ({ ...current, include_laborreferenz: event.target.checked }))}
+              />
+            </label>
+
+            <label className="field">
+              <span>Zielbereiche anzeigen</span>
+              <input
+                type="checkbox"
+                checked={form.include_zielbereich}
+                onChange={(event) => setForm((current) => ({ ...current, include_zielbereich: event.target.checked }))}
+              />
+            </label>
+
+            <div className="form-actions">
+              <button type="button" onClick={() => setForm(initialForm)}>
+                Filter zurücksetzen
+              </button>
+              <button type="submit" disabled={auswertungMutation.isPending || !form.person_ids.length}>
+                {auswertungMutation.isPending ? "Lädt..." : "Auswertung laden"}
+              </button>
+              {auswertungMutation.isError ? <p className="form-error">{auswertungMutation.error.message}</p> : null}
+            </div>
+          </form>
+        ) : (
+          <div className="inline-actions">
+            <span className="inline-actions__label">Aktive Auswahl:</span>
+            <span>{filterSummary.join(" • ")}</span>
+          </div>
+        )}
       </article>
+
+      {auswertungMutation.data && !auswertungMutation.data.serien.length && !qualitativeEvents.length ? (
+        <article className="card">
+          <h3>Keine Ergebnisse</h3>
+          <p>Für die aktuelle Auswahl liegen derzeit keine passenden Verlaufsdaten oder qualitativen Ereignisse vor.</p>
+        </article>
+      ) : null}
 
       {auswertungMutation.data ? (
         <div className="workspace-grid">
@@ -486,6 +676,9 @@ export function AuswertungPage() {
 
               <SeriesChart
                 serie={serie}
+                zeitraumDarstellung={form.zeitraum_darstellung}
+                datumVon={form.datum_von}
+                datumBis={form.datum_bis}
                 includeLaborreferenz={form.include_laborreferenz}
                 includeZielbereich={form.include_zielbereich}
               />
@@ -521,40 +714,42 @@ export function AuswertungPage() {
         </div>
       ) : null}
 
-      <article className="card">
-        <h3>Qualitative Ereignisse</h3>
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Datum</th>
-                <th>Person</th>
-                <th>Parameter</th>
-                <th>Wert</th>
-                <th>Bemerkung</th>
-                <th>Labor</th>
-              </tr>
-            </thead>
-            <tbody>
-              {qualitativeEvents.map((event) => (
-                <tr key={event.messwert_id}>
-                  <td>{formatDate(event.datum)}</td>
-                  <td>{event.person_anzeigename}</td>
-                  <td>{event.parameter_anzeigename}</td>
-                  <td>{[event.wert_anzeige, event.einheit].filter(Boolean).join(" ")}</td>
-                  <td>{event.messwertbemerkung || event.befundbemerkung || "—"}</td>
-                  <td>{event.labor_name || "—"}</td>
-                </tr>
-              ))}
-              {!qualitativeEvents.length ? (
+      {auswertungMutation.data ? (
+        <article className="card">
+          <h3>Qualitative Ereignisse</h3>
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
                 <tr>
-                  <td colSpan={6}>Noch keine qualitativen Ereignisse für die aktuelle Auswahl.</td>
+                  <th>Datum</th>
+                  <th>Person</th>
+                  <th>Parameter</th>
+                  <th>Wert</th>
+                  <th>Bemerkung</th>
+                  <th>Labor</th>
                 </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      </article>
+              </thead>
+              <tbody>
+                {qualitativeEvents.map((event) => (
+                  <tr key={event.messwert_id}>
+                    <td>{formatDate(event.datum)}</td>
+                    <td>{event.person_anzeigename}</td>
+                    <td>{event.parameter_anzeigename}</td>
+                    <td>{[event.wert_anzeige, event.einheit].filter(Boolean).join(" ")}</td>
+                    <td>{event.messwertbemerkung || event.befundbemerkung || "—"}</td>
+                    <td>{event.labor_name || "—"}</td>
+                  </tr>
+                ))}
+                {!qualitativeEvents.length ? (
+                  <tr>
+                    <td colSpan={6}>Noch keine qualitativen Ereignisse für die aktuelle Auswahl.</td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        </article>
+      ) : null}
     </section>
   );
 }
