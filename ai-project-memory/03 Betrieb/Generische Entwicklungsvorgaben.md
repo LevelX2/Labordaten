@@ -37,6 +37,8 @@ Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitp
 - Er soll knapp erklären, was man auf der Seite grundsätzlich tun kann und wofür die Seite fachlich dient.
 - Entwickler-Narrative, Änderungsbeschreibungen oder Formulierungen wie `die Seite ist jetzt ...` sind dort zu vermeiden.
 - Der Text soll auch für Nutzer sinnvoll sein, die die Anwendung nur gelegentlich verwenden.
+- Formulierungen sollen sich am produktiven Einsatz der Anwendung orientieren und nicht an Entwicklungsstand, Scaffold-Status oder Einführungslogik.
+- Kleine Vorspann-Labels über der Hauptüberschrift sind nur sinnvoll, wenn sie einen zusätzlichen fachlichen Informationswert liefern; reine Stimmungs- oder Orientierungswörter ohne Mehrwert können entfallen.
 
 ## Stammdatenseiten als Arbeitsbereich
 - Vergleichbare Stammdatenseiten sollten als klarer Arbeitsbereich aufgebaut sein und nicht als lose Sammlung gleichrangiger Karten oder Formulare.
@@ -57,6 +59,9 @@ Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitp
 - Startseiten in arbeitsorientierten Fachsystemen sollten vor allem den nächsten sinnvollen Arbeitsschritt sichtbar machen und nicht primär die technische Implementierung erklären.
 - Prominent geeignet sind Live-Informationen wie Datenbestand, offene Prüf- oder Importlagen, Betriebszustände und direkte Anschlussaktionen in die wichtigsten Arbeitsbereiche.
 - Reine Stack- oder Scaffold-Angaben sind höchstens für Entwicklungs- oder Diagnosetexte sinnvoll, aber selten der wichtigste Inhalt einer produktiven Startseite.
+- Eine visuelle Aufwertung durch ruhige, hochwertige Bildmotive oder ein kleines Markenbild ist sinnvoll, wenn sie die Orientierung unterstützt und die arbeitsrelevanten Kennzahlen, Warnlagen und Anschlussaktionen weiterhin den inhaltlichen Fokus behalten.
+- Versionsnummern oder vergleichbare technische Metadaten sollten dezent im Branding, in der Shell oder in Einstellungen platziert werden statt als dominanter Hauptinhalt einer Start- oder Übersichtsseite.
+- Persistente Shell-Bereiche wie eine linke Navigation sollten keine erläuternden Beschreibungstexte tragen, wenn Markenname, Navigationsstruktur und Nutzungskontext die Orientierung bereits ausreichend leisten.
 
 ## Datenmodell und feste Ausprägungen
 - Beim Festlegen des Datenmodells sollte früh geprüft werden, welche Felder semantisch zu eng für Freitext sind und stattdessen feste Ausprägungen, Enums oder Lookup-Werte brauchen.

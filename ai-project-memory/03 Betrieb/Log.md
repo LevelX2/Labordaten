@@ -641,3 +641,23 @@
   - Fuer vergleichbare Stammdatenseiten wurde als generische Leitlinie festgehalten, dass links die filterbare Liste der fuehrenden Datensaetze und rechts der Detailbereich des ausgewaehlten Eintrags stehen soll.
   - Werkzeuge sollen als kompakte Leiste direkt unter dem Detailkopf liegen und nur bei Bedarf geoeffnet werden, statt als dauerhaft offene Zusatzspalten viel Raum zu verbrauchen.
   - Zugeordnete oder abhaengige Daten sollen unterhalb des Detailbereichs in einem eigenen Bereich erscheinen und bei breiteren Inhalten bevorzugt gestapelt und einklappbar dargestellt werden.
+
+## [2026-04-22] update | Generische UI-Regel fuer visuelle Startseiten und Versionsanzeige ergaenzt
+- Anlass oder Quelle: Nutzerauftrag, die Startseite visuell aufzuwerten und die Versionsanzeige sinnvoll in die Shell einzubetten
+- Neu angelegte Seiten:
+  - keine
+- Geaenderte Seiten:
+  - [[Generische Entwicklungsvorgaben]]
+- Kern der inhaltlichen Anpassung:
+  - Fuer arbeitsorientierte Start- und Uebersichtsseiten wurde festgehalten, dass ruhige, hochwertige Bildmotive oder kleine Markenbilder sinnvoll sein koennen, solange arbeitsrelevante Kennzahlen, Warnlagen und Anschlussaktionen der eigentliche Fokus bleiben.
+  - Zusaetzlich wurde als wiederverwendbare Leitlinie ergaenzt, dass Versionsnummern und aehnliche technische Metadaten dezent im Branding, in der Shell oder in Einstellungen erscheinen sollten statt als dominanter Hauptinhalt der Seite.
+
+## [2026-04-22] update | Generische UI-Regeln fuer produktive Texte und reduzierte Shell ergaenzt
+- Anlass oder Quelle: Nutzerfeedback zur verfeinerten Startseite und zur reduzierten linken Navigation
+- Neu angelegte Seiten:
+  - keine
+- Geaenderte Seiten:
+  - [[Generische Entwicklungsvorgaben]]
+- Kern der inhaltlichen Anpassung:
+  - Fuer UI-Texte wurde als wiederverwendbare Regel ergaenzt, dass Seitenkoepfe und Einleitungstexte am produktiven Einsatz der Anwendung ausgerichtet sein sollen statt an Entwicklungs- oder Einfuehrungslogik.
+  - Zusaetzlich wurde festgehalten, dass kleine Vorspann-Labels ueber Hauptueberschriften nur bei echtem fachlichem Mehrwert bleiben sollten und dass persistente Shell-Bereiche wie eine linke Navigation keine zusaetzlichen Beschreibungstexte brauchen, wenn die Orientierung bereits klar ist.
