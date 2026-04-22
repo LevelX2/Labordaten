@@ -95,4 +95,7 @@ npm run dev
 - `alembic upgrade head` ist vor allem dann nötig, wenn neue Migrationen aus dem Repository hinzugekommen sind.
 - `pip install -e .[dev]` oder `npm install` müssen im Alltag nur erneut ausgeführt werden, wenn sich Abhängigkeiten geändert haben.
 - Das Backend arbeitet mit lokaler Sperrlogik für Einzelnutzung. Eine zweite laufende Instanz kann deshalb zu Konfliktmeldungen führen.
+- Relative Backend-Defaults wie `./labordaten.runtime.json`, `./documents` und `./labordaten.db` sind an den tatsächlichen Startordner gebunden.
+- Der kanonische lokale Betriebsmodus dieses Projekts startet das Backend deshalb aus `apps/backend`; nur so bleiben Datenbank, Laufzeit-Einstellungen, Sperrdatei und Dokumentablage konsistent an einem Ort.
+- Ein Start aus dem Repository-Wurzelverzeichnis kann sonst unbeabsichtigt eine zweite lokale Laufzeitinsel mit eigener `labordaten.runtime.json`, eigener Dokumentablage und abweichenden Dateireferenzen erzeugen.
 - Im Workspace sollte unter Windows nach Möglichkeit ein Terminal mit `pwsh` als Standardprofil verwendet werden, damit Umlaute und andere UTF-8-Inhalte aus Markdown-, Skript- und Konfigurationsdateien konsistent erscheinen.

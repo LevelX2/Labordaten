@@ -22,6 +22,12 @@ apps/frontend/vite.config.d.ts
 *.db
 data/
 tmp/
+tmp_*/
+tmp_*.jsonl
+tmp_pdf_inventory.jsonl
+documents/
+apps/backend/documents/
+apps/backend/.labordaten.lock.json
 labordaten.runtime.json
 apps/backend/labordaten.runtime.json
 KI-Wissen-Labordaten/.obsidian/

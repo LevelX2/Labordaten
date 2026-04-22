@@ -815,3 +815,16 @@
   - Projektdokumentation und Agent-Hinweise verwenden nun denselben Namen, damit Einstiegspfade und Pflegehinweise wieder konsistent sind.
   - Der Backend-Default fuer den Wissensordner zeigt jetzt relativ aus `apps/backend` korrekt auf den Wissensbasis-Ordner im Repository-Wurzelverzeichnis.
   - Die lokalen Runtime-Einstellungen wurden ebenfalls auf den neuen absoluten Wissenspfad nachgezogen, damit die Anwendung die Wissensbasis weiterhin direkt findet.
+
+## [2026-04-22] update | Laufzeitartefakte bereinigt und kanonischen Backend-Startkontext festgehalten
+- Anlass oder Quelle: Nutzerfrage zu verbleibenden Laufzeitartefakten, Gitignore und dauerhaft nuetzlichen Betriebsregeln
+- Neu angelegte Seiten:
+  - keine
+- Geaenderte Seiten:
+  - [[../02 Wissen/Prozesse/Lokaler Start von Backend und Frontend]]
+  - [[Generische Entwicklungsvorgaben]]
+- Kern der inhaltlichen Anpassung:
+  - Die Betriebsdokumentation haelt nun explizit fest, dass relative Backend-Defaults an den tatsaechlichen Startordner gebunden sind und der kanonische lokale Start fuer dieses Projekt aus `apps/backend` erfolgen soll.
+  - Als generische Entwicklungsregel ist jetzt dokumentiert, dass lokale Laufzeitdaten, Sperrdateien, Dokumentablagen und temporaere Analyseartefakte nicht versioniert werden sollen.
+  - Im Workspace wurden Gitignore-Regeln fuer Dokumentablagen, Sperrdatei und `tmp_*`-Artefakte ergaenzt.
+  - Eine noch auf das Repository-Wurzelverzeichnis zeigende Dokumentreferenz wurde auf die kanonische Dokumentablage unter `apps/backend/documents` konsolidiert; zusaetzliche unreferenzierte Duplikate und temporaere Analyseordner wurden bereinigt.

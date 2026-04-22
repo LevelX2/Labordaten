@@ -57,6 +57,13 @@ Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitp
 - Für Rückmeldungen im Projektalltag ist es hilfreicher, zunächst Datenlage, Codepfad, Filterzustand, API-Antwort oder konkrete Laufzeitlogik zu prüfen als reflexhaft ein manuelles Neuladen zu empfehlen.
 - Diese Leitlinie gilt nicht nur fuer dieses eine Repository, sondern generell fuer vergleichbare lokale Entwicklungsumgebungen mit Reload- oder Hot-Reload-Betrieb.
 
+## Lokale Laufzeitartefakte und Analyseausgaben
+- Lokale Laufzeitartefakte wie Datenbankdateien, Laufzeit-Einstellungen, Sperrdateien und dokumentbezogene Ablagen sollen nicht versioniert werden.
+- Dasselbe gilt fuer temporaere Extraktions-, Vorschau-, Scan-, Inventar- und Analyseartefakte wie `tmp_*`-Ordner, JSONL-Inventare oder ad-hoc erzeugte Seitenbilder.
+- Versioniert werden nur echte Quellartefakte, bewusst gepflegte Rohquellen und dauerhafte Wissensseiten; reproduzierbare Zwischenstaende aus lokalen Arbeitslaeufen gehoeren in `.gitignore`.
+- Bei dateibasierten Fachobjekten ist vor dem Loeschen zu pruefen, ob die aktuelle Laufzeitdatenbank noch auf diese Dateien verweist.
+- Relative Default-Pfade fuer Laufzeitdaten sollten projektweit an einen klaren kanonischen Startkontext gebunden werden, damit nicht unbeabsichtigt mehrere lokale Artefaktinseln entstehen.
+
 ## Stammdatenseiten als Arbeitsbereich
 - Vergleichbare Stammdatenseiten sollten als klarer Arbeitsbereich aufgebaut sein und nicht als lose Sammlung gleichrangiger Karten oder Formulare.
 - Links steht bevorzugt eine filterbare Liste der vorhandenen Datensätze der führenden Tabelle.
