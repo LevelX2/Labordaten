@@ -110,28 +110,19 @@ Ausnahmen:
 - `KI-Wissen-Labordaten/03 Betrieb/Log.md` bleibt chronologisch und append-only und beantwortet primär, was wann passiert ist.
 - Wenn sich Statusseite und Log inhaltlich überschneiden, ist die Statusseite zu verdichten statt das Log auszudünnen.
 
-## Abschluss-Kommandos
+## Finito-Sequenz
 
-Wenn der Nutzer sinngemäß `Abschluss`, `abschließen`, `Thread abschließen`, `Dialog beenden` oder `Thread beenden` schreibt, löst das eine Abschlussprüfung aus.
+Wenn der Nutzer `Finito` schreibt, führt der Agent die Abschlusssequenz für den aktuellen Thread aus.
 
 Dabei gilt:
 
-1. Prüfen, ob noch fachliche, technische oder organisatorische Punkte offen sind, die geklärt werden sollten.
-2. Prüfen, ob neue belastbare Erkenntnisse noch in die Wissensbasis zurückgeführt werden sollten.
-3. Prüfen, ob alle zum Abschluss gehörenden Änderungen committed sind oder noch in einen konsistenten Abschlussstand überführt werden müssen.
-4. Falls noch offene Klärpunkte, ungeklärte Probleme oder uncommittete Abschlussänderungen bestehen, diese zuerst kompakt und konkret benennen und den Thread noch nicht als abgeschlossen behandeln.
-5. `Abschluss` bedeutet grundsätzlich, dass der am Ende verbleibende erfolgreiche Abschlussstand committed ist. Ein bloß teilweise bereinigter oder bewusst offen gelassener Stand gilt nicht als Abschluss.
-6. Wenn der Stand erfolgreich abgeschlossen ist, soll der Thread danach als archivierungsreif behandelt werden.
-7. Offene Änderungen oder uncommittete Dateien, die erkennbar nicht zu diesem Thread oder Abschlussstand gehören, sind dabei nicht automatisch ein Blocker. In solchen Fällen soll der Agent sie am Ende kurz als Hinweis nennen, aber den Abschluss dieses Threads nicht unnötig verzögern.
-8. Relevant blockernd sind vor allem offene Änderungen, Konflikte oder ungeklärte Risiken, die zum aktuellen Thread, zu dessen Commit-Stand oder zu unmittelbar betroffenen Dateien gehören.
+1. Der Agent teilt die Änderungen in sinnvolle Commit-Blöcke auf. Nicht direkt zusammenhängende Änderungen sollen in getrennten Commits mit jeweils eigener passender Commit-Message landen.
+2. Der Agent committet alle Teile, zu denen keine offenen Fragen mehr bestehen und die fachlich wie technisch konsistent abgeschlossen sind.
+3. Nötige Anpassungen am KI-Wissen werden nach den sonstigen Wissensregeln nachgezogen, dokumentiert und ebenfalls committed.
+4. Verbleibende offene Fragen, Konflikte oder bewusste Entscheidungsbedarfe werden danach kompakt benannt.
 
-Wenn der Nutzer sinngemäß `Abschluss mit Commit` schreibt, gilt zusätzlich:
+Zusätzlich gilt:
 
-1. Dieselbe Abschlussprüfung wird durchgeführt.
-2. Offene letzte Punkte sollen nach Möglichkeit direkt abgearbeitet werden, sofern sie im aktuellen Rahmen sinnvoll lösbar sind.
-3. Danach sollen alle zum Abschluss gehörenden Änderungen automatisch committed werden, sobald der Stand konsistent ist und keine ungeklärten Rückfragen mehr offen sind.
-4. Wenn im Verlauf des Dialogs mehrere klar trennbare Funktionalitäten umgesetzt wurden, sollen Commits nach Möglichkeit sinnvoll aufgeteilt werden, statt alles in einen Sammel-Commit zu legen.
-5. Nach erfolgreichem Abschluss mit Commit ist der Thread als archivierungsreif zu behandeln.
-6. Andere noch offene Änderungen aus parallelen Threads dürfen dabei als Statushinweis erwähnt werden, sollen aber nicht als Vorwand dienen, den Abschluss dieses Threads künstlich offen zu halten.
-
-Wenn nach der Abschlussprüfung noch relevante Unsicherheiten, Konflikte oder bewusste Entscheidungsfragen offen sind, soll der Agent nicht blind committen, sondern diese kurz benennen und auf den ausstehenden Klärbedarf hinweisen.
+- Teile, die noch von offenen Fragen abhängen, sollen nicht vorschnell committed werden.
+- Uncommittete Änderungen, die erkennbar nicht zu diesem Thread gehören, sind kein automatischer Blocker und können am Ende kurz als Hinweis genannt werden.
+- Wenn nach der Finito-Sequenz keine relevanten offenen Punkte mehr für diesen Thread übrig sind, gilt der Thread als abgeschlossen und archivierungsreif.
