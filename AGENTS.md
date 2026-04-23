@@ -112,7 +112,7 @@ Ausnahmen:
 
 ## Finito-Sequenz
 
-Wenn der Nutzer `Finito` schreibt, führt der Agent die Abschlusssequenz für den aktuellen Thread aus.
+Wenn der Nutzer `Finito` oder `Ende` schreibt, führt der Agent die Abschlusssequenz für den aktuellen Thread aus.
 
 Dabei gilt:
 
@@ -125,4 +125,5 @@ Zusätzlich gilt:
 
 - Teile, die noch von offenen Fragen abhängen, sollen nicht vorschnell committed werden.
 - Uncommittete Änderungen, die erkennbar nicht zu diesem Thread gehören, sind kein automatischer Blocker und können am Ende kurz als Hinweis genannt werden.
+- Gemachte Commits sollen im Abschluss jeweils in einer eigenen Zeile mit ihrer Commit-Message genannt werden, damit sie schnell erkennbar sind.
 - Wenn nach der Finito-Sequenz keine relevanten offenen Punkte mehr für diesen Thread übrig sind, gilt der Thread als abgeschlossen und archivierungsreif.
