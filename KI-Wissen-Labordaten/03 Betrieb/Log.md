@@ -828,3 +828,15 @@
   - Als generische Entwicklungsregel ist jetzt dokumentiert, dass lokale Laufzeitdaten, Sperrdateien, Dokumentablagen und temporaere Analyseartefakte nicht versioniert werden sollen.
   - Im Workspace wurden Gitignore-Regeln fuer Dokumentablagen, Sperrdatei und `tmp_*`-Artefakte ergaenzt.
   - Eine noch auf das Repository-Wurzelverzeichnis zeigende Dokumentreferenz wurde auf die kanonische Dokumentablage unter `apps/backend/documents` konsolidiert; zusaetzliche unreferenzierte Duplikate und temporaere Analyseordner wurden bereinigt.
+
+## [2026-04-23] update | Kompakte Datumsbereich-Komponente als Standard für Filterranges verankert
+- Anlass oder Quelle: Nutzerwunsch, die neue Datumsdarstellung nicht nur in der Auswertung zu belassen, sondern projektweit als Standard für `Datum von`- und `Datum bis`-Filter zu verankern
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - [[Generische Entwicklungsvorgaben]]
+- Kern der inhaltlichen Anpassung:
+  - Für Filterbereiche mit `Datum von` und `Datum bis` gibt es nun eine gemeinsame Frontend-Komponente mit linksbündigen kompakten Blöcken und direkt integrierten `-1 J`- und `+1 J`-Schritten.
+  - Dieses Muster ist jetzt auf Befunde, Messwerte, Auswertung und Berichte vereinheitlicht, sodass Optik, Umbruchverhalten und Bedienlogik nicht mehr pro Seite auseinanderlaufen.
+  - Als generische Entwicklungsregel ist festgehalten, dass vergleichbare Datums-Filterranges künftig dieses gemeinsame Muster und dieselbe wiederverwendbare Komponente verwenden sollen.
+  - Verifiziert wurde die Änderung durch einen erfolgreichen Frontend-Build mit `npm run build`.

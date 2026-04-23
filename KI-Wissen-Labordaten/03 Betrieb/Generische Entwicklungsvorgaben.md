@@ -1,7 +1,7 @@
 ---
 typ: betrieb
 status: aktiv
-letzte_aktualisierung: 2026-04-22
+letzte_aktualisierung: 2026-04-23
 quellen:
   - ../../00 Steuerung/Regeldatei KI-Wissenspflege.md
   - ../../02 Wissen/Prozesse/Arbeitsworkflow Wissenspflege und Projektanfragen.md
@@ -11,6 +11,7 @@ quellen:
   - ../../02 Wissen/Begriffe und Konzepte/Ist-Stand Einheiten, Normeinheiten und Umrechnung.md
   - ../../02 Wissen/Begriffe und Konzepte/Ist-Stand Loeschlogik und Deaktivierungsregeln.md
   - ../../apps/frontend/src/app/layout/AppLayout.tsx
+  - ../../apps/frontend/src/shared/components/DateRangeFilterFields.tsx
   - ../../apps/frontend/src/styles.css
 tags:
   - betrieb
@@ -80,6 +81,12 @@ Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitp
 - Zugehoerige Aktionen wie `Alle auswaehlen`, `Alle abwaehlen` oder vergleichbare Bereichsaktionen duerfen im eingeklappten Zustand nicht als losgeloeste Reste sichtbar bleiben.
 - Kleine, kompakte Eingaben wie einzelne Datumsfelder brauchen diese Einklapplogik in der Regel nicht.
 
+## Datumsbereiche in Filtern
+- Vergleichbare Filterbereiche mit `Datum von` und `Datum bis` sollen als ein gemeinsames, wiederverwendbares UI-Muster umgesetzt werden statt als pro Seite abweichende Einzellösung.
+- Jedes Datumsfeld soll als kompakter eigener Block mit klarer Beschriftung erscheinen; die beiden Blöcke stehen linksbündig nebeneinander und ziehen nicht unnötig auf volle Zeilenbreite.
+- Die Schrittaktionen `-1 J` und `+1 J` gehören direkt an das jeweilige Datumsfeld, damit Zeiträume schnell verschoben werden können, ohne dass getrennte Zusatzzeilen oder lose Button-Reihen entstehen.
+- Wenn die verfügbare Breite nicht mehr reicht, sollen ganze Datumsblöcke umbrechen; einzelne Teilstücke eines Blocks dürfen nicht unruhig auseinanderfallen.
+- Für vergleichbare Seiten soll dieselbe gemeinsame Frontend-Komponente verwendet werden, damit Optik, Verhalten, Tastaturfokus und spätere Detailanpassungen projektweit konsistent bleiben.
 ## Stammdatenpflege
 - Technische Schlüssel für neue Stammdatensätze sollten nach Möglichkeit automatisch aus fachlich sichtbaren Namen erzeugt werden, statt standardmäßig manuell eingegeben zu werden.
 - Das reduziert Tippfehler, inkonsistente Benennungen und vermeidbare Dubletten.
