@@ -13,6 +13,7 @@ import {
 } from "recharts";
 
 import { apiFetch } from "../../shared/api/client";
+import { DateRangeFilterFields } from "../../shared/components/DateRangeFilterFields";
 import { SelectionChecklist } from "../../shared/components/SelectionChecklist";
 import { getDefaultDateRange } from "../../shared/utils/dateRangeDefaults";
 import { applySharedFilterSearchParams } from "../../shared/utils/filterNavigation";
@@ -55,29 +56,6 @@ const initialForm: AuswertungFormState = {
 };
 
 const palette = ["#1f5a92", "#1f6a53", "#d77a2f", "#8d4aa5", "#a34848", "#4d6b1f"];
-
-function formatIsoDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function shiftDateByYears(value: string, years: number, fallbackValue: string): string {
-  const baseValue = value || fallbackValue;
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(baseValue);
-  if (!match) {
-    return baseValue;
-  }
-
-  const [, yearText, monthText, dayText] = match;
-  const targetYear = Number(yearText) + years;
-  const monthIndex = Number(monthText) - 1;
-  const day = Number(dayText);
-  const maxDayInTargetMonth = new Date(targetYear, monthIndex + 1, 0).getDate();
-  const nextDate = new Date(targetYear, monthIndex, Math.min(day, maxDayInTargetMonth));
-  return formatIsoDate(nextDate);
-}
 
 function formatDate(value?: string | null): string {
   if (!value) {
@@ -433,12 +411,6 @@ export function AuswertungPage() {
     [auswertungMutation.data]
   );
   const filterSummary = useMemo(() => buildFilterSummary(form), [form]);
-  const setShiftedDate = (field: "datum_von" | "datum_bis", years: number) => {
-    setForm((current) => ({
-      ...current,
-      [field]: shiftDateByYears(current[field], years, initialForm[field])
-    }));
-  };
 
   const statistikCards = [
     { label: "Personen", value: gesamtzahlenQuery.data?.personen_anzahl ?? "—" },
@@ -550,41 +522,14 @@ export function AuswertungPage() {
               defaultExpanded={false}
             />
 
-            <div className="auswertung-date-grid field--full">
-              <div className="field auswertung-date-field">
-                <span>Datum von</span>
-                <input
-                  type="date"
-                  value={form.datum_von}
-                  onChange={(event) => setForm((current) => ({ ...current, datum_von: event.target.value }))}
-                />
-                <div className="auswertung-date-field__actions">
-                  <button type="button" className="inline-button" onClick={() => setShiftedDate("datum_von", -1)}>
-                    -1 Jahr
-                  </button>
-                  <button type="button" className="inline-button" onClick={() => setShiftedDate("datum_von", 1)}>
-                    +1 Jahr
-                  </button>
-                </div>
-              </div>
-
-              <div className="field auswertung-date-field">
-                <span>Datum bis</span>
-                <input
-                  type="date"
-                  value={form.datum_bis}
-                  onChange={(event) => setForm((current) => ({ ...current, datum_bis: event.target.value }))}
-                />
-                <div className="auswertung-date-field__actions">
-                  <button type="button" className="inline-button" onClick={() => setShiftedDate("datum_bis", -1)}>
-                    -1 Jahr
-                  </button>
-                  <button type="button" className="inline-button" onClick={() => setShiftedDate("datum_bis", 1)}>
-                    +1 Jahr
-                  </button>
-                </div>
-              </div>
-            </div>
+            <DateRangeFilterFields
+              fromValue={form.datum_von}
+              toValue={form.datum_bis}
+              fallbackFromValue={initialForm.datum_von}
+              fallbackToValue={initialForm.datum_bis}
+              onFromChange={(datum_von) => setForm((current) => ({ ...current, datum_von }))}
+              onToChange={(datum_bis) => setForm((current) => ({ ...current, datum_bis }))}
+            />
 
             <label className="field">
               <span>Zeitraumdarstellung im Diagramm</span>

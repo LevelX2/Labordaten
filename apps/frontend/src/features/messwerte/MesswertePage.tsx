@@ -7,6 +7,7 @@ import {
   buildMesswertCreatePayload,
   buildMesswertReferenzCreatePayload
 } from "../../shared/api/payloadBuilders";
+import { DateRangeFilterFields } from "../../shared/components/DateRangeFilterFields";
 import { SelectionChecklist } from "../../shared/components/SelectionChecklist";
 import { BefundDetailCard } from "../../shared/components/BefundDetailCard";
 import {
@@ -711,23 +712,14 @@ export function MesswertePage() {
               defaultExpanded={false}
             />
 
-            <label className="field">
-              <span>Datum von</span>
-              <input
-                type="date"
-                value={filter.datum_von}
-                onChange={(event) => setFilter((current) => ({ ...current, datum_von: event.target.value }))}
-              />
-            </label>
-
-            <label className="field">
-              <span>Datum bis</span>
-              <input
-                type="date"
-                value={filter.datum_bis}
-                onChange={(event) => setFilter((current) => ({ ...current, datum_bis: event.target.value }))}
-              />
-            </label>
+            <DateRangeFilterFields
+              fromValue={filter.datum_von}
+              toValue={filter.datum_bis}
+              fallbackFromValue={initialFilter.datum_von}
+              fallbackToValue={initialFilter.datum_bis}
+              onFromChange={(datum_von) => setFilter((current) => ({ ...current, datum_von }))}
+              onToChange={(datum_bis) => setFilter((current) => ({ ...current, datum_bis }))}
+            />
 
             <div className="form-actions">
               <button type="button" onClick={() => setFilter(initialFilter)}>

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { apiFetch, apiFetchBlob } from "../../shared/api/client";
+import { DateRangeFilterFields } from "../../shared/components/DateRangeFilterFields";
 import { MesswertDetailCard } from "../../shared/components/MesswertDetailCard";
 import { SelectionChecklist } from "../../shared/components/SelectionChecklist";
 import { getDefaultDateRange } from "../../shared/utils/dateRangeDefaults";
@@ -656,25 +657,14 @@ export function BerichtePage() {
                     defaultExpanded={false}
                   />
 
-                  <div className="auswertung-date-grid field--full">
-                    <label className="field auswertung-date-field">
-                      <span>Datum von</span>
-                      <input
-                        type="date"
-                        value={form.datum_von}
-                        onChange={(event) => setForm((current) => ({ ...current, datum_von: event.target.value }))}
-                      />
-                    </label>
-
-                    <label className="field auswertung-date-field">
-                      <span>Datum bis</span>
-                      <input
-                        type="date"
-                        value={form.datum_bis}
-                        onChange={(event) => setForm((current) => ({ ...current, datum_bis: event.target.value }))}
-                      />
-                    </label>
-                  </div>
+                  <DateRangeFilterFields
+                    fromValue={form.datum_von}
+                    toValue={form.datum_bis}
+                    fallbackFromValue={initialForm.datum_von}
+                    fallbackToValue={initialForm.datum_bis}
+                    onFromChange={(datum_von) => setForm((current) => ({ ...current, datum_von }))}
+                    onToChange={(datum_bis) => setForm((current) => ({ ...current, datum_bis }))}
+                  />
 
                   <div className="field field--full">
                     <span>Arztbericht-Inhalte</span>
