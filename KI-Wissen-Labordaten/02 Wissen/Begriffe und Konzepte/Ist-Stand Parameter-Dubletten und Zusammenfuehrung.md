@@ -1,7 +1,7 @@
 ---
 typ: architektur
 status: aktiv
-letzte_aktualisierung: 2026-04-22
+letzte_aktualisierung: 2026-04-24
 quellen:
   - ../../01 Rohquellen/fachkonzepte/2026-04-21 Rueckmeldung Parameter-Dubletten und Zusammenfuehrung.md
   - ../../../apps/backend/src/labordaten_backend/modules/parameter/normalization.py
@@ -21,7 +21,7 @@ tags:
 # Ist-Stand Parameter-Dubletten und Zusammenführung
 
 ## Kurzfassung
-Seit dem 2026-04-21 kann die Parameteroberfläche wahrscheinliche Dubletten vorhandener Parameter vorschlagen und nach Bestätigung zusammenführen. Die Zusammenführung hängt bestehende Verwendungen auf einen Zielparameter um und übernimmt nicht mehr verwendete Namen nach Möglichkeit als Alias.
+Seit dem 2026-04-21 kann die Parameteroberfläche wahrscheinliche Dubletten vorhandener Parameter vorschlagen und nach Bestätigung zusammenführen. Die Zusammenführung hängt bestehende Verwendungen auf einen Zielparameter um und übernimmt nicht mehr verwendete Namen nach Möglichkeit als Alias. Seit dem 2026-04-24 lässt sich die Prüfschärfe der Dublettenvorschläge in der Oberfläche zusätzlich zwischen `Sicher`, `Ausgewogen` und `Großzügig` umschalten.
 
 ## Vorschlagslogik
 - Die Dublettenprüfung arbeitet auf vorhandenen aktiven Parametern, nicht auf Importentwürfen.
@@ -29,6 +29,10 @@ Seit dem 2026-04-21 kann die Parameteroberfläche wahrscheinliche Dubletten vorh
   - gleiche oder sehr ähnliche Namen nach Normalisierung
   - stark überlappende Namensbestandteile
   - gleichen Standard-Werttyp
+- Die Oberfläche bietet dafür drei Prüfschärfen:
+  - `Sicher`: zeigt nur besonders belastbare Vorschläge mit klarer Namens- oder Kontextnähe
+  - `Ausgewogen`: ist der Standard und entspricht der bisherigen mittleren Dublettenprüfung
+  - `Großzügig`: zeigt zusätzlich weichere Namensvarianten, etwa enthaltene Zusatzbegriffe wie `im Serum`, sofern kein klarer Kontextkonflikt vorliegt
 - Zusätzlich werden Referenzkontexte als starker Kontextfaktor verwendet:
   - Stimmen aktive Zielbereiche exakt überein, kann das auch bei enthaltenen Zusatzbegriffen wie `im Serum` einen Vorschlag auslösen.
   - Wenn keine Zielbereiche gepflegt sind, können identische Messwert-Referenzbereiche aus vorhandenen Messwerten denselben Effekt auslösen.
@@ -61,6 +65,7 @@ Seit dem 2026-04-21 kann die Parameteroberfläche wahrscheinliche Dubletten vorh
 - Die Funktion löst nur die Parameter-Stammdatendublette, nicht automatisch jede mögliche fachliche Dublette in Zielbereichen oder Planungen.
 - Ein `Labor` kann in der aktuellen Parameter-Dublettensuche nicht als Kriterium genutzt werden, weil der Parameterstammsatz selbst keine Laborbindung trägt.
 - Ältere interne Schlüssel ohne trennende Tokens sollen weichere Namenserkennungen nicht blockieren; dafür wird der Containment-Fall auf Basis der Anzeigenamen bewertet.
+- Auch die großzügige Prüfschärfe macht aus dem Ergebnis keine automatische Wahrheit, sondern nur eine breitere manuelle Prüfliste. Die eigentliche Zusammenführung bleibt weiterhin ein bewusster Bestätigungsschritt.
 - Unterschiedliche Standardeinheiten werden bewusst nicht stillschweigend geglättet; sie bleiben als Hinweis sichtbar und sind Teil der Anwenderentscheidung.
 - Der gemeinsame Name darf nicht mit Namen, Schlüsseln oder Aliasen anderer Parameter kollidieren.
 
@@ -69,3 +74,4 @@ Seit dem 2026-04-21 kann die Parameteroberfläche wahrscheinliche Dubletten vorh
 - Bereits erfasste Messwerte, Gruppen- und Planungsbezüge bleiben dabei erhalten.
 - Die Zusammenführung ergänzt die bereits vorhandene Alias-Verwaltung sinnvoll: Erst wird der Stammdatensatz vereinheitlicht, danach werden alte Namen als Import-Rückfall abgesichert.
 - Die sichtbare Messwert-Anzahl im Parameter-Detail hilft zusätzlich bei der Entscheidung, wie relevant ein Parameter bereits im Bestand verankert ist.
+- Die wählbare Prüfschärfe hilft dabei, je nach Aufräumphase zwischen konservativer Sichtung und bewusst breiterem Dubletten-Screening zu wechseln, ohne dass dafür die Zusammenführungslogik selbst umgebaut werden muss.

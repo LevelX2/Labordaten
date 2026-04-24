@@ -840,3 +840,15 @@
   - Dieses Muster ist jetzt auf Befunde, Messwerte, Auswertung und Berichte vereinheitlicht, sodass Optik, Umbruchverhalten und Bedienlogik nicht mehr pro Seite auseinanderlaufen.
   - Als generische Entwicklungsregel ist festgehalten, dass vergleichbare Datums-Filterranges künftig dieses gemeinsame Muster und dieselbe wiederverwendbare Komponente verwenden sollen.
   - Verifiziert wurde die Änderung durch einen erfolgreichen Frontend-Build mit `npm run build`.
+
+## [2026-04-24] update | Parameter-Dublettenprüfung um wählbare Prüfschärfe erweitert
+- Anlass oder Quelle: Nutzerwunsch, weichere Dublettenvorschläge wie `Progesteron` versus `Progesteron im Serum` gezielt zuschaltbar zu machen
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - [[../02 Wissen/Begriffe und Konzepte/Ist-Stand Parameter-Dubletten und Zusammenfuehrung]]
+- Kern der inhaltlichen Anpassung:
+  - Die Parameteroberfläche bietet im Dubletten-Bereich jetzt die drei Prüfschärfen `Sicher`, `Ausgewogen` und `Großzügig`.
+  - Backend und API werten diese Stufe bei der Dublettenprüfung aus, sodass die Kandidatenmenge nicht nur optisch gefiltert, sondern fachlich anders berechnet wird.
+  - Die bisherige mittlere Logik bleibt als Standard unter `Ausgewogen` erhalten; `Großzügig` zeigt zusätzlich weichere Containment-Fälle ohne klaren Kontextkonflikt.
+  - Verifiziert wurde dies durch `pytest apps/backend/tests/test_parameter_duplicate_merge.py`, einen erfolgreichen Frontend-Build mit `npm run build` sowie eine Live-Prüfung gegen den lokalen API-Endpunkt, bei der `Progesteron` und `Progesteron im Serum` nur unter `grosszuegig` als Vorschlag erschienen.

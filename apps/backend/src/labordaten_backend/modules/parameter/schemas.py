@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
@@ -7,6 +8,9 @@ from labordaten_backend.core.field_options import (
     WERT_TYPEN,
     validate_required_code,
 )
+
+
+ParameterDuplicatePruefschaerfe = Literal["sicher", "ausgewogen", "grosszuegig"]
 
 
 class ParameterCreate(BaseModel):

@@ -89,6 +89,7 @@ type ParameterPanelKey =
 
 type RelatedDataSectionKey = "aliases" | "conversions" | "ranges" | "groups";
 type DuplicateViewScope = "all" | "selected";
+type DuplicateCheckSensitivity = "sicher" | "ausgewogen" | "grosszuegig";
 
 const initialForm: ParameterFormState = {
   anzeigename: "",
@@ -142,6 +143,28 @@ const UMRECHNUNGSREGEL_TYP_OPTIONS: Array<{ value: UmrechnungsregelTyp; label: s
   { value: "faktor", label: "Faktor" },
   { value: "faktor_plus_offset", label: "Faktor + Offset" },
   { value: "formel", label: "Formel" }
+];
+
+const DUPLICATE_CHECK_SENSITIVITY_OPTIONS: Array<{
+  value: DuplicateCheckSensitivity;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "sicher",
+    label: "Sicher",
+    description: "Zeigt nur sehr belastbare Paare mit klarer Namens- oder Kontextnähe."
+  },
+  {
+    value: "ausgewogen",
+    label: "Ausgewogen",
+    description: "Der Standard. Gute Balance zwischen verpassten und zu großzügigen Vorschlägen."
+  },
+  {
+    value: "grosszuegig",
+    label: "Großzügig",
+    description: "Zeigt auch weichere Namensvarianten wie enthaltene Zusatzbegriffe zur manuellen Prüfung."
+  }
 ];
 
 function formatDateTime(value?: string | null): string {
@@ -232,6 +255,7 @@ export function ParameterPage() {
     groups: false
   });
   const [duplicateViewScope, setDuplicateViewScope] = useState<DuplicateViewScope>("all");
+  const [duplicateSensitivity, setDuplicateSensitivity] = useState<DuplicateCheckSensitivity>("ausgewogen");
 
   const parameterQuery = useQuery({
     queryKey: ["parameter"],
@@ -382,8 +406,11 @@ export function ParameterPage() {
   });
 
   const duplicateSuggestionsQuery = useQuery({
-    queryKey: ["parameter-dublettenvorschlaege"],
-    queryFn: () => apiFetch<ParameterDuplicateSuggestion[]>("/api/parameter/dublettenvorschlaege"),
+    queryKey: ["parameter-dublettenvorschlaege", duplicateSensitivity],
+    queryFn: () =>
+      apiFetch<ParameterDuplicateSuggestion[]>(
+        `/api/parameter/dublettenvorschlaege?pruefschaerfe=${encodeURIComponent(duplicateSensitivity)}`
+      ),
     enabled: false
   });
   const duplicateSuppressionsQuery = useQuery({
@@ -428,6 +455,10 @@ export function ParameterPage() {
       }),
     [duplicateSuppressionsQuery.data, selectedParameterId]
   );
+
+  const activeDuplicateSensitivityOption =
+    DUPLICATE_CHECK_SENSITIVITY_OPTIONS.find((option) => option.value === duplicateSensitivity) ??
+    DUPLICATE_CHECK_SENSITIVITY_OPTIONS[1];
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -687,7 +718,7 @@ export function ParameterPage() {
 
     const nextPanel = activePanel === panel ? null : panel;
     if (panel === "duplicates" && nextPanel === "duplicates" && activePanel !== "duplicates") {
-      queryClient.removeQueries({ queryKey: ["parameter-dublettenvorschlaege"], exact: true });
+      queryClient.removeQueries({ queryKey: ["parameter-dublettenvorschlaege"] });
     }
     setActivePanel(nextPanel);
   };
@@ -1399,6 +1430,28 @@ export function ParameterPage() {
           >
             {duplicateSuggestionsQuery.isFetching ? "Prüft..." : "Dubletten suchen"}
           </button>
+        </div>
+        <div className="parameter-duplicate-sensitivity">
+          <div className="parameter-duplicate-sensitivity__header">
+            <strong>Prüfschärfe</strong>
+            <span>{activeDuplicateSensitivityOption.label}</span>
+          </div>
+          <div className="parameter-panel__toolbar">
+            {DUPLICATE_CHECK_SENSITIVITY_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                className={`parameter-toolrail__button ${
+                  duplicateSensitivity === option.value ? "parameter-toolrail__button--active" : ""
+                }`}
+                onClick={() => setDuplicateSensitivity(option.value)}
+                aria-pressed={duplicateSensitivity === option.value}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <p className="form-hint">{activeDuplicateSensitivityOption.description}</p>
         </div>
         {selectedParameter ? (
           <div className="table-wrap">

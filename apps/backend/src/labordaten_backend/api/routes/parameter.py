@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from labordaten_backend.api.deps import get_db
@@ -21,9 +21,10 @@ def list_parameter_alias_suggestions(
 
 @router.get("/dublettenvorschlaege", response_model=list[schemas.ParameterDuplicateSuggestionRead])
 def list_parameter_duplicate_suggestions(
+    pruefschaerfe: schemas.ParameterDuplicatePruefschaerfe = Query(default="ausgewogen"),
     db: Session = Depends(get_db),
 ) -> list[schemas.ParameterDuplicateSuggestionRead]:
-    return service.list_parameter_duplicate_suggestions(db)
+    return service.list_parameter_duplicate_suggestions(db, pruefschaerfe)
 
 
 @router.post(

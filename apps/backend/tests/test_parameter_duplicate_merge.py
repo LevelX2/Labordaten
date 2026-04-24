@@ -252,6 +252,38 @@ def test_parameter_duplicate_suggestions_detect_name_containment_with_same_measu
         assert "Referenzbereiche stimmen" in suggestion.begruendung
 
 
+def test_parameter_duplicate_suggestions_respect_duplicate_sensitivity_levels(tmp_path: Path) -> None:
+    with _make_session(tmp_path) as db:
+        einheiten_service.create_einheit(db, einheiten_schemas.EinheitCreate(kuerzel="ng/ml"))
+        first = parameter_service.create_parameter(
+            db,
+            parameter_schemas.ParameterCreate(
+                anzeigename="Progesteron",
+                standard_einheit="ng/ml",
+                wert_typ_standard="numerisch",
+            ),
+        )
+        second = parameter_service.create_parameter(
+            db,
+            parameter_schemas.ParameterCreate(
+                anzeigename="Progesteron im Serum",
+                standard_einheit="ng/ml",
+                wert_typ_standard="numerisch",
+            ),
+        )
+
+        assert parameter_service.list_parameter_duplicate_suggestions(db, "sicher") == []
+        assert parameter_service.list_parameter_duplicate_suggestions(db, "ausgewogen") == []
+
+        suggestions = parameter_service.list_parameter_duplicate_suggestions(db, "grosszuegig")
+
+        assert len(suggestions) == 1
+        suggestion = suggestions[0]
+        assert {suggestion.ziel_parameter_id, suggestion.quell_parameter_id} == {first.id, second.id}
+        assert suggestion.aehnlichkeit >= 0.72
+        assert "großzügige Prüfschärfe" in suggestion.begruendung
+
+
 def test_parameter_duplicate_suggestions_skip_suppressed_pairs_and_list_suppressions(tmp_path: Path) -> None:
     with _make_session(tmp_path) as db:
         first = parameter_service.create_parameter(

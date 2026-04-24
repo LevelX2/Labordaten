@@ -26,6 +26,7 @@ from labordaten_backend.modules.parameter.normalization import (
 from labordaten_backend.modules.parameter.schemas import (
     ParameterAliasCreate,
     ParameterAliasSuggestionRead,
+    ParameterDuplicatePruefschaerfe,
     ParameterDuplicateSuppressionCreate,
     ParameterDuplicateSuppressionRead,
     ParameterDuplicateSuggestionRead,
@@ -282,7 +283,10 @@ def list_parameter_alias_suggestions(db: Session) -> list[ParameterAliasSuggesti
     return suggestions
 
 
-def list_parameter_duplicate_suggestions(db: Session) -> list[ParameterDuplicateSuggestionRead]:
+def list_parameter_duplicate_suggestions(
+    db: Session,
+    pruefschaerfe: ParameterDuplicatePruefschaerfe = "ausgewogen",
+) -> list[ParameterDuplicateSuggestionRead]:
     parameters = list(
         db.scalars(
             select(Laborparameter)
@@ -311,6 +315,7 @@ def list_parameter_duplicate_suggestions(db: Session) -> list[ParameterDuplicate
                 target_range_signatures.get(right.id, set()),
                 reference_signatures.get(left.id, set()),
                 reference_signatures.get(right.id, set()),
+                pruefschaerfe,
             )
             if duplicate_assessment is None:
                 continue
@@ -821,6 +826,7 @@ def _assess_parameter_duplicate(
     right_target_ranges: set[str],
     left_references: set[str],
     right_references: set[str],
+    pruefschaerfe: ParameterDuplicatePruefschaerfe = "ausgewogen",
 ) -> dict[str, str | float | None] | None:
     if left.wert_typ_standard != right.wert_typ_standard:
         return None
@@ -854,6 +860,22 @@ def _assess_parameter_duplicate(
         and right_name_tokens
         and (left_name_tokens <= right_name_tokens or right_name_tokens <= left_name_tokens)
     )
+    allow_unknown_context_for_containment = pruefschaerfe == "grosszuegig"
+    overlap_similarity_min = 0.72
+    overlap_min = 0.75
+    containment_similarity_min = 0.72
+    containment_min_token_count = 2
+
+    if pruefschaerfe == "sicher":
+        overlap_similarity_min = 0.78
+        overlap_min = 0.8
+        containment_similarity_min = 0.78
+    elif pruefschaerfe == "grosszuegig":
+        overlap_similarity_min = 0.68
+        overlap_min = 0.68
+        containment_similarity_min = 0.74
+        containment_min_token_count = 1
+
     name_contains_other = bool(
         left_name_normalized
         and right_name_normalized
@@ -869,20 +891,22 @@ def _assess_parameter_duplicate(
     elif left_key_normalized == right_key_normalized:
         score = 0.97
         reason = "Sehr ähnlicher interner Schlüssel nach Normalisierung."
-    elif overlap >= 0.75 and similarity >= 0.72:
+    elif overlap >= overlap_min and similarity >= overlap_similarity_min:
         score = round((overlap * 0.55) + (similarity * 0.45), 2)
         reason = f"Hohe Namensaehnlichkeit mit {int(round(similarity * 100))} % und stark ueberlappenden Begriffen."
     elif (
         name_contains_other
         and token_subset
-        and smaller_token_count >= 2
-        and similarity >= 0.72
-        and context_status == "exact"
+        and smaller_token_count >= containment_min_token_count
+        and similarity >= containment_similarity_min
+        and (context_status == "exact" or (allow_unknown_context_for_containment and context_status != "conflict"))
     ):
-        score = round(min(max(similarity, 0.76) + 0.08, 0.95), 2)
-        reason = (
-            "Ein Parametername ist im anderen enthalten und die Referenzkontexte stimmen überein."
-        )
+        score_floor = 0.76 if context_status == "exact" else 0.72
+        score_boost = 0.08 if context_status == "exact" else 0.03
+        score = round(min(max(similarity, score_floor) + score_boost, 0.95), 2)
+        reason = "Ein Parametername ist im anderen enthalten."
+        if allow_unknown_context_for_containment and context_status != "exact":
+            reason = f"{reason} Die großzügige Prüfschärfe zeigt auch weichere Namensvarianten."
     else:
         return None
 
