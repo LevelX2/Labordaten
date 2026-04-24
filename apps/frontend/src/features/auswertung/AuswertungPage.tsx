@@ -507,6 +507,10 @@ export function AuswertungPage() {
               emptyText="Noch keine Parameter vorhanden."
               collapsible
               defaultExpanded={false}
+              searchable
+              searchPlaceholder="Parameter filtern"
+              showSelectedOnlyToggle
+              selectedOnlyLabel="Nur ausgewählte anzeigen"
             />
 
             <SelectionChecklist

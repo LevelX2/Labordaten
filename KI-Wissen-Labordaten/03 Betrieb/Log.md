@@ -852,3 +852,16 @@
   - Backend und API werten diese Stufe bei der Dublettenprüfung aus, sodass die Kandidatenmenge nicht nur optisch gefiltert, sondern fachlich anders berechnet wird.
   - Die bisherige mittlere Logik bleibt als Standard unter `Ausgewogen` erhalten; `Großzügig` zeigt zusätzlich weichere Containment-Fälle ohne klaren Kontextkonflikt.
   - Verifiziert wurde dies durch `pytest apps/backend/tests/test_parameter_duplicate_merge.py`, einen erfolgreichen Frontend-Build mit `npm run build` sowie eine Live-Prüfung gegen den lokalen API-Endpunkt, bei der `Progesteron` und `Progesteron im Serum` nur unter `grosszuegig` als Vorschlag erschienen.
+
+## [2026-04-24] update | Lokale Suche und Ausgewählt-Ansicht für große Filter-Checklisten ergänzt
+- Anlass oder Quelle: Nutzerwunsch, die Parameterauswahl in der Auswertung bei großen Mengen gezielt nach Begriff zu filtern und optional nur die bereits ausgewählten Einträge anzuzeigen
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - [[Generische Entwicklungsvorgaben]]
+- Kern der inhaltlichen Anpassung:
+  - Die gemeinsame Mehrfachauswahl-Komponente unterstützt jetzt optional eine lokale Suche mit Löschfunktion sowie eine Ansicht `Nur ausgewählte anzeigen`.
+  - Die lokale Suche filtert nur die Anzeige und lässt die bestehende Auswahl unverändert, sodass nacheinander verschiedene Suchbegriffe abgearbeitet werden können.
+  - Bei aktiver lokaler Filterung beziehen sich `Alle auswählen` und `Alle abwählen` bewusst auf die aktuell sichtbare Teilmenge statt auf die Gesamtliste.
+  - Auf der Auswertungsseite ist dieses Muster jetzt für den eingeklappten Parameterfilter aktiv.
+  - Verifiziert wurde die Änderung durch einen erfolgreichen Frontend-Build mit `npm run build`.

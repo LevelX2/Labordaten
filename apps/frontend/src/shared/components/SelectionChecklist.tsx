@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 type SelectionOption = {
   id: string;
@@ -14,7 +14,15 @@ type SelectionChecklistProps = {
   emptyText?: string;
   collapsible?: boolean;
   defaultExpanded?: boolean;
+  searchable?: boolean;
+  searchPlaceholder?: string;
+  showSelectedOnlyToggle?: boolean;
+  selectedOnlyLabel?: string;
 };
+
+function buildSelectionOptionSearchText(option: SelectionOption): string {
+  return [option.label, option.meta ?? ""].join(" ").toLocaleLowerCase("de-DE");
+}
 
 export function SelectionChecklist({
   label,
@@ -23,11 +31,51 @@ export function SelectionChecklist({
   onChange,
   emptyText = "Noch keine Einträge vorhanden.",
   collapsible = false,
-  defaultExpanded = true
+  defaultExpanded = true,
+  searchable = false,
+  searchPlaceholder,
+  showSelectedOnlyToggle = false,
+  selectedOnlyLabel = "Nur ausgewählte"
 }: SelectionChecklistProps) {
-  const selectedCount = selectedIds.filter((id) => options.some((option) => option.id === id)).length;
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showSelectedOnly, setShowSelectedOnly] = useState(false);
+  const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const selectedCount = options.filter((option) => selectedIdSet.has(option.id)).length;
   const [isExpanded, setIsExpanded] = useState(defaultExpanded || selectedCount > 0);
   const hasOptions = options.length > 0;
+  const normalizedSearchQuery = searchQuery.trim().toLocaleLowerCase("de-DE");
+  const isLocalFilterActive = normalizedSearchQuery.length > 0 || showSelectedOnly;
+  const visibleOptions = useMemo(
+    () =>
+      options.filter((option) => {
+        if (showSelectedOnly && !selectedIdSet.has(option.id)) {
+          return false;
+        }
+        if (!normalizedSearchQuery) {
+          return true;
+        }
+        return buildSelectionOptionSearchText(option).includes(normalizedSearchQuery);
+      }),
+    [normalizedSearchQuery, options, selectedIdSet, showSelectedOnly]
+  );
+  const actionOptions = isLocalFilterActive ? visibleOptions : options;
+  const actionOptionIdSet = new Set(actionOptions.map((option) => option.id));
+  const canSelectActionOptions =
+    actionOptions.length > 0 && actionOptions.some((option) => !selectedIdSet.has(option.id));
+  const canDeselectActionOptions =
+    actionOptions.length > 0 && actionOptions.some((option) => selectedIdSet.has(option.id));
+  const visibilitySummary = isLocalFilterActive ? `${visibleOptions.length} sichtbar` : null;
+  const toggleHint = [visibilitySummary, isExpanded ? "Liste einklappen" : "Liste aufklappen"].filter(Boolean).join(" • ");
+  const toolbarSummary = [selectedCount === options.length && options.length > 0 ? "Alle ausgewählt" : `${selectedCount} von ${options.length} ausgewählt`, visibilitySummary]
+    .filter(Boolean)
+    .join(" • ");
+  const visibleEmptyText = showSelectedOnly
+    ? normalizedSearchQuery
+      ? "Keine ausgewählten Einträge passen zur Suche."
+      : "Noch keine ausgewählten Einträge vorhanden."
+    : normalizedSearchQuery
+      ? "Keine Einträge passen zur Suche."
+      : emptyText;
 
   return (
     <div className="field field--full">
@@ -42,7 +90,7 @@ export function SelectionChecklist({
           >
             <span>
               <strong>{selectedCount} von {options.length} ausgewählt</strong>
-              <small>{isExpanded ? "Liste einklappen" : "Liste aufklappen"}</small>
+              <small>{toggleHint}</small>
             </span>
             <span className="selection-checklist__chevron" aria-hidden="true">
               ▾
@@ -50,24 +98,75 @@ export function SelectionChecklist({
           </button>
         ) : (
           <div className="selection-checklist__toolbar">
-            <p>{selectedCount} von {options.length} ausgewählt</p>
+            <p>{toolbarSummary}</p>
           </div>
         )}
 
         {!collapsible || isExpanded ? (
-          <div className="selection-checklist__actions">
-            <button type="button" onClick={() => onChange(options.map((option) => option.id))} disabled={!hasOptions}>
-              Alle auswählen
-            </button>
-            <button type="button" onClick={() => onChange([])} disabled={!selectedIds.length}>
-              Alle abwählen
-            </button>
-          </div>
+          <>
+            {searchable || showSelectedOnlyToggle ? (
+              <div className="selection-checklist__filterbar">
+                {searchable ? (
+                  <div className="clearable-field">
+                    <input
+                      className="clearable-field__input"
+                      value={searchQuery}
+                      onChange={(event) => setSearchQuery(event.target.value)}
+                      placeholder={searchPlaceholder ?? `${label} filtern`}
+                    />
+                    <button
+                      type="button"
+                      className="clearable-field__clear"
+                      onClick={() => setSearchQuery("")}
+                      aria-label={`${label}suche löschen`}
+                      disabled={!searchQuery}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ) : null}
+                {showSelectedOnlyToggle ? (
+                  <div className="selection-checklist__toolbar">
+                    <button
+                      type="button"
+                      className={`selection-checklist__filter-toggle${showSelectedOnly ? " selection-checklist__filter-toggle--active" : ""}`}
+                      onClick={() => setShowSelectedOnly((current) => !current)}
+                      aria-pressed={showSelectedOnly}
+                      disabled={!showSelectedOnly && selectedCount === 0}
+                    >
+                      {selectedOnlyLabel}
+                    </button>
+                    <p>{toolbarSummary}</p>
+                  </div>
+                ) : searchable ? (
+                  <p className="selection-checklist__meta">{toolbarSummary}</p>
+                ) : null}
+              </div>
+            ) : null}
+            <div className="selection-checklist__actions">
+              <button
+                type="button"
+                onClick={() =>
+                  onChange(Array.from(new Set([...selectedIds, ...actionOptions.map((option) => option.id)])))
+                }
+                disabled={!canSelectActionOptions}
+              >
+                {isLocalFilterActive ? "Sichtbare auswählen" : "Alle auswählen"}
+              </button>
+              <button
+                type="button"
+                onClick={() => onChange(selectedIds.filter((id) => !actionOptionIdSet.has(id)))}
+                disabled={!canDeselectActionOptions}
+              >
+                {isLocalFilterActive ? "Sichtbare abwählen" : "Alle abwählen"}
+              </button>
+            </div>
+          </>
         ) : null}
 
-        {hasOptions && isExpanded ? (
+        {hasOptions && isExpanded && visibleOptions.length > 0 ? (
           <div className="selection-checklist__options">
-            {options.map((option) => {
+            {visibleOptions.map((option) => {
               const checked = selectedIds.includes(option.id);
               return (
                 <label
@@ -80,7 +179,7 @@ export function SelectionChecklist({
                     onChange={(event) =>
                       onChange(
                         event.target.checked
-                          ? [...selectedIds, option.id]
+                          ? Array.from(new Set([...selectedIds, option.id]))
                           : selectedIds.filter((item) => item !== option.id)
                       )
                     }
@@ -98,6 +197,9 @@ export function SelectionChecklist({
         ) : (
           <p className="selection-checklist__empty">{emptyText}</p>
         )}
+        {hasOptions && isExpanded && visibleOptions.length === 0 ? (
+          <p className="selection-checklist__empty">{visibleEmptyText}</p>
+        ) : null}
       </div>
     </div>
   );

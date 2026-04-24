@@ -1,7 +1,7 @@
 ---
 typ: betrieb
 status: aktiv
-letzte_aktualisierung: 2026-04-23
+letzte_aktualisierung: 2026-04-24
 quellen:
   - ../../00 Steuerung/Regeldatei KI-Wissenspflege.md
   - ../../02 Wissen/Prozesse/Arbeitsworkflow Wissenspflege und Projektanfragen.md
@@ -11,6 +11,7 @@ quellen:
   - ../../02 Wissen/Begriffe und Konzepte/Ist-Stand Einheiten, Normeinheiten und Umrechnung.md
   - ../../02 Wissen/Begriffe und Konzepte/Ist-Stand Loeschlogik und Deaktivierungsregeln.md
   - ../../apps/frontend/src/app/layout/AppLayout.tsx
+  - ../../apps/frontend/src/shared/components/SelectionChecklist.tsx
   - ../../apps/frontend/src/shared/components/DateRangeFilterFields.tsx
   - ../../apps/frontend/src/styles.css
 tags:
@@ -80,6 +81,13 @@ Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitp
 - Alles, was fachlich zu einem einklappbaren Block gehoert, soll gemeinsam ein- und ausgeklappt werden.
 - Zugehoerige Aktionen wie `Alle auswaehlen`, `Alle abwaehlen` oder vergleichbare Bereichsaktionen duerfen im eingeklappten Zustand nicht als losgeloeste Reste sichtbar bleiben.
 - Kleine, kompakte Eingaben wie einzelne Datumsfelder brauchen diese Einklapplogik in der Regel nicht.
+
+## Grosse Mehrfachauswahllisten in Filtern
+- Wenn eine einklappbare Mehrfachauswahlliste viele Eintraege enthalten kann, sollte sie innerhalb des aufgeklappten Bereichs eine lokale Suche anbieten.
+- Die Suche darf nur die sichtbare Liste filtern, nicht still die bereits ausgewaehlten Werte loeschen oder die fachliche Filterauswahl zuruecksetzen.
+- Fuer lange Listen ist zusaetzlich eine Ansicht `nur ausgewaehlte` sinnvoll, damit bereits getroffene Auswahlen schnell kontrolliert und angepasst werden koennen.
+- Bereichsaktionen wie `Alle auswaehlen` und `Alle abwaehlen` sollen sich bei aktiver lokaler Suche oder `nur ausgewaehlte` auf die aktuell sichtbare Teilmenge beziehen, nicht blind auf die Gesamtliste.
+- Solche Such- und Sichtfilter gehoeren in gemeinsame Auswahlkomponenten, damit das Verhalten ueber vergleichbare Filterseiten hinweg gleich bleibt.
 
 ## Datumsbereiche in Filtern
 - Vergleichbare Filterbereiche mit `Datum von` und `Datum bis` sollen als ein gemeinsames, wiederverwendbares UI-Muster umgesetzt werden statt als pro Seite abweichende Einzellösung.
@@ -161,3 +169,4 @@ Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitp
 - Nutzungsprüfungen dürfen sich nicht nur auf Fremdschlüssel verlassen, wenn fachliche Verwendungen bewusst in denormalisierten Feldern gespeichert werden.
 - Physische Dateien und Datenbankdatensätze sollen getrennt behandelt werden; ein Fachobjekt darf nicht still nebenbei die Quelle auf Platte mitvernichten.
 - Löschlogik braucht eigene Regressionstests mit Positiv- und Negativpaaren, weil Fehler in diesem Bereich besonders teuer und unangenehm sind.
+
