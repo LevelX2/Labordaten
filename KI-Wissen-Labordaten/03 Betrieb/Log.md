@@ -11,6 +11,31 @@
 
 ## 2026-04
 
+### [2026-04-25] update | KI-Prompt ohne Person und mit zwei Quellenvarianten
+- Anlass oder Quelle: Nutzerentscheidung, dass der Prompt nur Regeln und Stammdaten exportieren soll und die Person erst beim JSON-Import gewählt wird
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - keine fachliche Wissensseite, nur Log-Eintrag
+- Kern der inhaltlichen Anpassung:
+  - Die Prompt-Erzeugung benötigt keine Person, keinen Dokumenthinweis und keinen Freitext-Hinweis mehr.
+  - Der Promptbereich bietet zwei Varianten: `Laborbericht, PDF oder Bild` und `Tabelle, CSV oder Excel`.
+  - Beide Varianten enthalten denselben technischen Importvertrag und denselben Stammdatenkontext aus Laboren, Parametern, Aliasen, Einheiten und Gruppen; nur die Eingangs-Anweisung für die Quelle unterscheidet sich.
+  - Der Prompt weist die KI nun an, `befund.personId` wegzulassen, außer eine Person-ID wurde ausdrücklich vorgegeben. Die Person wird beim Einfügen des JSON-Ergebnisses in der Anwendung ausgewählt oder überschrieben.
+  - Verifiziert wurde die Änderung durch `npm run build`, die gezielten Import-Backendtests und eine Browserprüfung des Promptbereichs.
+
+### [2026-04-25] update | Sichtbaren Import auf KI-/JSON-Weg vereinheitlicht
+- Anlass oder Quelle: Nutzerentscheidung, den direkten CSV-/Excel-Import aus der Oberfläche zu entfernen und CSV/Excel stattdessen über KI-Umwandlung in Import-JSON zu behandeln
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - keine fachliche Wissensseite, nur Log-Eintrag
+- Kern der inhaltlichen Anpassung:
+  - Die sichtbaren Import-Tabs sind nun `KI-Prompt`, `KI-Ergebnis / JSON`, `Import prüfen` und `Historie`.
+  - Der bisher sichtbare Tab `CSV/Excel` wurde aus der Importoberfläche entfernt; die Backend-Strecke bleibt vorerst technisch vorhanden.
+  - Die allgemeine JSON-Schnittstellenbeschreibung weist nun ausdrücklich darauf hin, dass CSV, Excel, kopierte Tabellen, PDFs, Bilder oder Laborberichte durch eine externe KI in dasselbe Import-V1-JSON überführt werden können.
+  - Verifiziert wurde die Änderung durch `npm run build`, `python -m pytest apps/backend/tests/test_import_prompt.py` und eine Browserprüfung der Import-Tabs.
+
 ### [2026-04-25] update | Übergang von KI-Chat zu KI-Ergebnis erklärt
 - Anlass oder Quelle: Nutzerfeedback, dass der Zusammenhang zwischen `KI-Chat` und dem anschließenden Einfügen des Ergebnisses im JSON-Tab nicht ausreichend verständlich war
 - Neu angelegte Seiten:

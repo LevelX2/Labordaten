@@ -1,9 +1,11 @@
 ---
 typ: architektur
 status: aktiv
-letzte_aktualisierung: 2026-04-22
+letzte_aktualisierung: 2026-04-25
 quellen:
   - ../00 Uebersichten/Aktueller Projektstatus.md
+  - ../../01 Rohquellen/fachkonzepte/2026-04-24 Dreiwege-Importkonzept und KI-Prompt.md
+  - Zielbild Dreiwege-Import und KI-Extraktion.md
   - ../../../apps/backend/src/labordaten_backend/api/routes/importe.py
   - ../../../apps/backend/src/labordaten_backend/modules/importe/schemas.py
   - ../../../apps/backend/src/labordaten_backend/modules/importe/service.py
@@ -21,13 +23,15 @@ tags:
 # Ist-Stand Importstrecke und PDF-Grenzen
 
 ## Kurzfassung
-Der aktuelle Stand vom 2026-04-22 unterstützt eine echte Importprüfung und bewusste Übernahme für strukturierte JSON-Importe sowie dateibasierte CSV- und Excel-Importe. Zusätzlich kann die Importstrecke jetzt Gruppenvorschläge aus Importdaten ableiten und auf ähnliche vorhandene Gruppen beziehen. Ein direkter PDF-Upload mit automatischer Extraktion von Laborwerten ist weiterhin noch nicht umgesetzt.
+Der aktuelle Stand vom 2026-04-24 unterstützt eine echte Importprüfung und bewusste Übernahme für strukturierte JSON-Importe sowie dateibasierte CSV- und Excel-Importe. Zusätzlich gibt es nun einen geführten Prompt-Weg für externe KI-Chats: Die Anwendung erzeugt einen konkreten Prompt mit sparsamem Personenkontext und Stammdatenkontext, der Nutzer lässt Dokument und Prompt extern analysieren und fügt das resultierende Import-V1-JSON wieder ein. Ein direkter PDF-Upload mit automatischer interner Extraktion von Laborwerten ist weiterhin noch nicht umgesetzt.
 
 ## Was aktuell technisch vorhanden ist
 - Importentwürfe können im Frontend als JSON eingegeben und an `/api/importe/entwurf` gesendet werden.
+- Für externe KI-Chats kann über `POST /api/importe/prompt` ein Prompt erzeugt werden, der `personId`, optionale Dokumenthinweise, bekannte Labore, Parameteraliase, Einheitenaliase und Gruppen enthält.
+- Der Prompt-Weg gibt der externen KI klare Regeln vor: vollständige Dokumentauswertung, ausschließlich valides Import-V1-JSON, `quelleTyp: "ki_json"`, keine Zusatzfelder und sichtbarer Prüfbedarf über bestehende Importfelder.
 - Importentwürfe können zusätzlich aus hochgeladenen `csv`- und `excel`-Dateien erzeugt werden.
 - Das Backend prüft das JSON gegen das erwartete Importschema und erzeugt Prüfpunkte, Warnungen und Fehler.
-- Vor der Übernahme können Messwerte manuell vorhandenen Parametern zugeordnet werden.
+- Vor der Übernahme können Messwerte manuell vorhandenen Parametern zugeordnet werden; wenn kein passender Parameter gefunden wurde, kann im Importdialog bewusst eine Parameter-Neuanlage gewählt werden.
 - Bei der Übernahme werden `Befund`, `Messwert` und gegebenenfalls `MesswertReferenz` erzeugt.
 - Warnungen wie fehlende Zuordnung, unparsebare Zahlenwerte oder mögliche Dubletten werden sichtbar gemacht.
 - Wenn ein numerischer Messwert bereits einem Parameter zugeordnet ist, für seine Berichtseinheit aber noch keine saubere Umrechnung in die führende Normeinheit dieses Parameters vorhanden ist, erzeugt die Importprüfung jetzt ebenfalls eine sichtbare Warnung.
@@ -37,22 +41,26 @@ Der aktuelle Stand vom 2026-04-22 unterstützt eine echte Importprüfung und bew
 - JSON-Importe können ebenfalls explizite `gruppenVorschlaege` mitgeben.
 - Vorhandene Importdetails zeigen pro Gruppenvorschlag bereits aufgelöste Parameter, fehlende Zuordnungen und ähnliche vorhandene Gruppen mit gemeinsamer Parameterbasis.
 - Nach der Übernahme können Gruppenvorschläge auf bestehende Gruppen gemappt, als neue Gruppen angelegt oder bewusst ignoriert werden.
+- Die Importoberfläche trennt die Startwege `KI-Chat`, `CSV/Excel` und `JSON` sichtbar von den Bearbeitungsbereichen `Import prüfen` und `Historie`.
+- `Import prüfen` ist die gemeinsame Prüfansicht für den aktuell ausgewählten Import, zählt offene Importe per Badge und bietet bei mehreren offenen Importen eine Auswahl im Prüftab.
+- Die anschließende Prüfansicht ist in einklappbare Abschnitte für Befund, Messwerte, Warnungen und Übernahme, Gruppenentscheidung und Abschluss gegliedert.
 
 ## Was für den Import bereits günstig ist
 - Ein Labor muss nicht zwingend vorab existieren, wenn im Import `laborName` angegeben wird; das Backend kann ein passendes Labor finden oder neu anlegen.
 - Die Person sollte vor dem Import bereits existieren, weil die Übernahme eine gültige Personenzuordnung benötigt.
-- Parameter sollten im Regelfall vorab als Stammdaten vorhanden sein, weil die Importseite aktuell nur die Zuordnung zu bestehenden Parametern erlaubt.
+- Parameter sollten im Regelfall vorab als Stammdaten vorhanden sein. Für echte neue Messgrößen kann der Importdialog inzwischen aber eine bewusste Neuanlage vormerken; dabei werden Anzeigename aus dem Originalnamen, Werttyp aus dem Messwert und die Berichtseinheit als Standardeinheit verwendet.
 - Das Importschema unterstützt numerische und textuelle Messwerte sowie Referenzangaben.
 - Gruppenvorschläge profitieren davon, wenn Parameter bereits aufgelöst sind, weil dadurch ähnliche vorhandene Gruppen zuverlässiger erkannt und vorgeschlagen werden können.
 
 ## Was aktuell noch fehlt
 - Kein PDF-Upload-Endpunkt für Laborberichte.
 - Keine OCR- oder Parser-Stufe, die aus einem PDF automatisch Import-JSON ableitet.
-- Keine automatische Neuanlage von Personen oder Parametern innerhalb des Importdialogs.
-- Kein echter Ein-Klick-Fluss `PDF hochladen -> Parser -> Importentwurf`; die Dokumentverknüpfung setzt aktuell weiterhin voraus, dass die inhaltliche Extraktion außerhalb des Backends erfolgt.
+- Keine automatische Neuanlage von Personen innerhalb des Importdialogs. Parameter können nur bewusst über die Messwertklärung neu angelegt werden, nicht stillschweigend automatisch.
+- Kein echter Ein-Klick-Fluss `PDF hochladen -> Parser -> Importentwurf`; die Dokumentverknüpfung setzt aktuell weiterhin voraus, dass die inhaltliche Extraktion außerhalb des Backends oder über den externen Prompt-Weg erfolgt.
 
 ## Praktische Einordnung
 - Denkbar ist bereits ein halbmanueller Workflow: Aus einem Laborbericht wird außerhalb des aktuellen Importdialogs ein JSON im V1-Schema erzeugt, das anschließend in der Anwendung geprüft und übernommen wird.
+- Produktiv unterstützt ist nun auch der externe KI-Chat-Weg: Die Anwendung erzeugt den Prompt, der Nutzer gibt Prompt und Dokument in ein KI-Tool, kopiert das reine JSON zurück und durchläuft danach dieselbe Prüfroutine wie bei anderen Importentwürfen.
 - Denkbar ist zusätzlich ein tabellarischer Importworkflow: Strukturierte CSV- oder Excel-Dateien werden hochgeladen, in einen Importentwurf übersetzt und anschließend über dieselbe Prüf- und Freigabestrecke übernommen.
 - Dieser JSON-Weg kann jetzt auch das lokale Originaldokument sauber in die Dokumentablage übernehmen und mit dem resultierenden Befund verknüpfen.
 - Noch nicht denkbar als fertiger Produktfluss ist: PDF hochladen, Werte automatisch extrahieren, Mapping direkt vorschlagen und das Originaldokument vollständig mit dem Befund verknüpfen.
@@ -91,6 +99,7 @@ Der aktuelle Stand vom 2026-04-22 unterstützt eine echte Importprüfung und bew
   - Match über gepflegte Parameter-Aliase
 - Bei eindeutiger Übereinstimmung wird der Messwert bereits im Importentwurf automatisch dem kanonischen Parameter zugeordnet.
 - Bei Mehrdeutigkeit bleibt die Zuordnung offen und wird als Warnung sichtbar gemacht.
+- Bei fehlendem Match ohne erkennbare Alternative kann die Oberfläche `Neuen Parameter anlegen` als sinnvolle Vorbelegung wählen; die finale Anlage passiert erst bei der bewussten Importübernahme.
 - Dabei bleibt der kanonische Parameter die Auswertungs- und Stammdatenebene, während der originale Laborname weiterhin je Messwert gespeichert wird.
 - Der neue Ablauf wurde am 2026-04-21 auch praktisch verifiziert: Für `Vitamin D3 (25-OH) LCMS` wurde ein Alias auf den kanonischen Parameter `Vitamin D3 (25-OH)` angelegt, und ein nachfolgender Importentwurf wurde automatisch über diesen Alias zugeordnet.
 
@@ -119,7 +128,7 @@ Der aktuelle Stand vom 2026-04-22 unterstützt eine echte Importprüfung und bew
 ## Hauptgrenzen für diesen Agentenfluss
 - Kein direkter PDF-Upload mit Extraktionspipeline.
 - Keine eingebaute Logik, die für neue Personen aus unvollständigen Dokumentdaten sichere Stammdatensätze ableitet.
-- Keine dedizierte Konflikt- oder Dublettenentscheidung für neu anzulegende Personen, Labore und Parameter vor der Anlage.
+- Keine dedizierte Konflikt- oder Dublettenentscheidung für neu anzulegende Personen und Labore vor der Anlage. Für Parameter gibt es im Importdialog eine bewusste Neuanlageoption, aber noch keinen eigenen mehrstufigen Dubletten- oder Stammdatenassistenten innerhalb dieser Importstrecke.
 - Beim getesteten Import wurde ein Dateipfad mit Emoji im JSON-Kontext nicht sauber codiert zurückgegeben. Für `dokumentPfad` über Unicode-reiche Pfade sollte die Zeichenkodierung gesondert geprüft werden.
 
 ## Konsequenz für die weitere Umsetzung
@@ -128,3 +137,9 @@ Der aktuelle Stand vom 2026-04-22 unterstützt eine echte Importprüfung und bew
   - optional OCR oder strukturierte Extraktion
   - Erzeugung eines Import-JSON nach `import-v1.schema.json`
   - Übergabe in die bestehende Prüf- und Freigabestrecke
+
+## Zielbild für den weiteren Importausbau
+- Für den weiteren Ausbau ist jetzt ein Dreiwege-Zielbild dokumentiert: Dokument-Upload mit OCR, Dokument-Upload mit angebundener KI-Schnittstelle und ein externer Prompt-Weg, bei dem der Nutzer Prompt und Dokument in einem KI-Chat verwendet und das Ergebnis anschließend in die Importfunktion einfügt.
+- Alle drei Wege sollen in denselben Importentwurf und dieselbe Prüfansicht münden.
+- Die bevorzugte Austauschstruktur ist für V1 JSON nach `import-v1.schema.json`, weil dieser Vertrag bereits existiert und direkt verarbeitet werden kann.
+- Details zum Zielbild, zum optionalen Stammdatenkontext und zur Prompt-Vorlage stehen in [[Zielbild Dreiwege-Import und KI-Extraktion]].

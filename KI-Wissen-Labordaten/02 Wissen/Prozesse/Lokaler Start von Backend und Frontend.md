@@ -1,10 +1,12 @@
 ---
 typ: prozess
 status: aktiv
-letzte_aktualisierung: 2026-04-22
+letzte_aktualisierung: 2026-04-23
 quellen:
   - ../../../README.md
   - ../../../scripts/start-dev.ps1
+  - ../../../.vscode/launch.json
+  - ../../../.vscode/tasks.json
   - ../../../apps/backend/pyproject.toml
   - ../../../apps/backend/src/labordaten_backend/core/config.py
   - ../../../apps/frontend/package.json
@@ -69,6 +71,11 @@ Das Skript öffnet bevorzugt zwei neue PowerShell-7-Fenster, startet darin Backe
 
 ### Desktop-Verknüpfung
 Auf dem Desktop kann eine Verknüpfung `Labordaten starten.lnk` liegen, die genau diesen Modus startet. Sie ruft `scripts/start-dev.ps1 -OpenFrontend` auf, startet damit beide Entwicklungsprozesse und öffnet danach das Frontend im Browser.
+
+### Run-Aktion im Workspace
+Im Workspace gibt es zusätzlich eine Run-Aktion `Labordaten starten`, die denselben Startweg verwendet. Sie ruft über `.vscode/launch.json` ebenfalls `scripts/start-dev.ps1 -OpenFrontend` auf und ist damit der direkte Einstieg aus dem Run-Bereich der Entwicklungsumgebung.
+
+Zusätzlich liegt unter `.vscode/tasks.json` eine gleichnamige Task `Labordaten starten`, falls der Start lieber über die Task-Ausführung statt über die Run-Aktion ausgelöst werden soll.
 
 ### Backend
 ```pwsh

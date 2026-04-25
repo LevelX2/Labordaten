@@ -95,6 +95,14 @@ Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitp
 - Die Schrittaktionen `-1 J` und `+1 J` gehören direkt an das jeweilige Datumsfeld, damit Zeiträume schnell verschoben werden können, ohne dass getrennte Zusatzzeilen oder lose Button-Reihen entstehen.
 - Wenn die verfügbare Breite nicht mehr reicht, sollen ganze Datumsblöcke umbrechen; einzelne Teilstücke eines Blocks dürfen nicht unruhig auseinanderfallen.
 - Für vergleichbare Seiten soll dieselbe gemeinsame Frontend-Komponente verwendet werden, damit Optik, Verhalten, Tastaturfokus und spätere Detailanpassungen projektweit konsistent bleiben.
+
+## Kompakte Listensortierung in Arbeitsseiten
+- Auf arbeitsorientierten Seiten mit linker Auswahlliste und rechtem Detailbereich sollte die Sortierung als kompakte Zusatzsteuerung in oder nahe der Liste erscheinen statt als dauerhaft breite Werkzeugleiste.
+- Sichtbar bleiben sollte in der Grundansicht vor allem eine kurze Zusammenfassung der aktiven Sortierung; die eigentliche Konfiguration wird erst bei Bedarf aufgeklappt oder geöffnet.
+- Wenn mehrstufige Sortierung sinnvoll ist, sollten wenige klare Standardsortierungen angeboten und zusätzlich maximal einige explizite Sortierebenen konfigurierbar sein, statt eine offene oder überladene Regeloberfläche zu zeigen.
+- Sortierfelder sollen sich auf fachlich sinnvolle und für den Nutzer erkennbare Felder beschränken; technische Felder oder seltene Expertenkriterien gehören nur in bewusst vertiefte Ansichten.
+- Dasselbe Sortiermuster sollte über vergleichbare Listenbereiche hinweg technologisch und visuell möglichst gleich funktionieren, etwa über gemeinsame Search-Params, wiederverwendbare Komponenten und serverseitig passende Mehrfachsortierung.
+
 ## Stammdatenpflege
 - Technische Schlüssel für neue Stammdatensätze sollten nach Möglichkeit automatisch aus fachlich sichtbaren Namen erzeugt werden, statt standardmäßig manuell eingegeben zu werden.
 - Das reduziert Tippfehler, inkonsistente Benennungen und vermeidbare Dubletten.
@@ -169,4 +177,3 @@ Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitp
 - Nutzungsprüfungen dürfen sich nicht nur auf Fremdschlüssel verlassen, wenn fachliche Verwendungen bewusst in denormalisierten Feldern gespeichert werden.
 - Physische Dateien und Datenbankdatensätze sollen getrennt behandelt werden; ein Fachobjekt darf nicht still nebenbei die Quelle auf Platte mitvernichten.
 - Löschlogik braucht eigene Regressionstests mit Positiv- und Negativpaaren, weil Fehler in diesem Bereich besonders teuer und unangenehm sind.
-

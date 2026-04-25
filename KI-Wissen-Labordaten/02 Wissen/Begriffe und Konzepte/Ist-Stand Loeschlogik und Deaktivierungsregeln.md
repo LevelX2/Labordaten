@@ -1,13 +1,14 @@
 ---
 typ: architektur
 status: aktiv
-letzte_aktualisierung: 2026-04-22
+letzte_aktualisierung: 2026-04-23
 quellen:
   - ../../01 Rohquellen/fachkonzepte/2026-04-22 Rueckmeldung Loeschlogik und Deaktivierungsregeln.md
   - ../../../apps/backend/src/labordaten_backend/modules/loeschlogik/schemas.py
   - ../../../apps/backend/src/labordaten_backend/modules/loeschlogik/service.py
   - ../../../apps/backend/src/labordaten_backend/api/routes/loeschlogik.py
   - ../../../apps/backend/tests/test_delete_logic_api.py
+  - ../../../apps/frontend/src/features/planung/PlanungPage.tsx
 tags:
   - loeschlogik
   - deaktivierung
@@ -20,7 +21,7 @@ tags:
 # Ist-Stand Löschlogik und Deaktivierungsregeln
 
 ## Kurzfassung
-Seit dem 2026-04-22 enthält das Backend eine zentrale Löschprüfung mit getrennter Ausführung für die wichtigsten risikoreichen Fachobjekte. Der aktuelle Zuschnitt deckt `person`, `befund`, `messwert`, `importvorgang`, `einheit`, `labor`, `laborparameter`, `parameter_gruppe`, `zielbereich` und `parameter_umrechnungsregel` ab und unterscheidet konsequent zwischen `direkt`, `kaskade` und `blockiert`.
+Seit dem 2026-04-22 enthält das Backend eine zentrale Löschprüfung mit getrennter Ausführung für die wichtigsten risikoreichen Fachobjekte. Der aktuelle Zuschnitt deckt `person`, `befund`, `messwert`, `importvorgang`, `einheit`, `labor`, `laborparameter`, `parameter_gruppe`, `zielbereich`, `parameter_umrechnungsregel`, `planung_zyklisch` und `planung_einmalig` ab und unterscheidet konsequent zwischen `direkt`, `kaskade` und `blockiert`.
 
 ## Technischer Zuschnitt
 - Die API stellt einen einheitlichen Prüf- und Ausführungspfad bereit:
@@ -91,6 +92,16 @@ Seit dem 2026-04-22 enthält das Backend eine zentrale Löschprüfung mit getren
 - Eine unbenutzte Umrechnungsregel ist löschbar.
 - Sobald `messwert.umrechnungsregel_id` noch auf sie verweist, wird normales Löschen blockiert und `deaktivieren` empfohlen.
 
+### `planung_zyklisch`
+- Eine zyklische Planung ist direkt löschbar.
+- Beim Löschen entfällt die wiederkehrende Termin- und Fälligkeitslogik für genau diese Person-Parameter-Kombination.
+- Die Planung wird nicht deaktiviert, sondern als eigenständige Arbeitsplanung vollständig entfernt.
+
+### `planung_einmalig`
+- Eine einmalige Vormerkung ist direkt löschbar.
+- Beim Löschen entfällt diese einzelne Termin- oder Aufgabenposition vollständig.
+- Auch erledigte oder mit einem Messwert verknüpfte Vormerkungen können als eigene Planung gelöscht werden, ohne dass der Messwert selbst betroffen ist.
+
 ## Nutzungsprüfung bei Einheiten
 - Die Nutzungsprüfung für `einheit` stützt sich nicht nur auf relationale Verknüpfungen.
 - Zusätzlich werden bekannte fachliche Verwendungen in denormalisierten Feldern berücksichtigt:
@@ -118,6 +129,10 @@ Seit dem 2026-04-22 enthält das Backend eine zentrale Löschprüfung mit getren
 - Die aktuelle erste Backend-Runde behandelt Dokumentdatensätze noch nicht als eigene Löschentität.
 - Verknüpfte Dokumente an `befund` oder `importvorgang` bleiben bei den jetzt umgesetzten Löschpfaden unverändert erhalten.
 - Die spätere gesonderte Dokumentlöschung soll weiterhin Datenbankdatensatz und physische Datei getrennt behandeln.
+
+## Anbindung an die Oberfläche
+- Die Oberfläche zeigt die Löschprüfung inzwischen nicht mehr nur für Stammdaten, Befunde, Messwerte und Importvorgänge, sondern auch direkt im Planungsbereich.
+- Dort kann für `planung_zyklisch` und `planung_einmalig` dieselbe Zwei-Schritt-Logik aus Vorschau und anschließender Ausführung genutzt werden.
 
 ## Bewusste Grenzen des aktuellen Stands
 - Die zentrale Löschlogik deckt bereits die wichtigsten Fachobjekte ab, aber noch nicht den kompletten Projektumfang.
