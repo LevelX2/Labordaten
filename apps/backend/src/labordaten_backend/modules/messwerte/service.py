@@ -14,6 +14,13 @@ from labordaten_backend.modules.einheiten import service as einheiten_service
 from labordaten_backend.modules.parameter import conversions as parameter_conversions
 from labordaten_backend.modules.messwerte.schemas import MesswertCreate, MesswertRead
 
+DEFAULT_SORT = [
+    ("entnahmedatum", "desc"),
+    ("person", "asc"),
+    ("parameter", "asc"),
+]
+ALLOWED_SORT_FIELDS = {"entnahmedatum", "person", "parameter", "labor"}
+
 
 def list_messwerte(
     db: Session,
@@ -25,6 +32,7 @@ def list_messwerte(
     labor_ids: list[str] | None = None,
     datum_von=None,
     datum_bis=None,
+    sort: list[str] | None = None,
 ) -> list[MesswertRead]:
     stmt: Select = (
         select(Messwert, Person, Laborparameter, Befund, Labor)
@@ -53,7 +61,7 @@ def list_messwerte(
         )
         stmt = stmt.where(Messwert.laborparameter_id.in_(parameter_subquery))
 
-    stmt = stmt.order_by(Befund.entnahmedatum.desc(), Messwert.erstellt_am.desc())
+    stmt = stmt.order_by(*_build_order_by(sort))
     rows = list(db.execute(stmt))
     gruppen_map = _load_group_names(db, [messwert.laborparameter_id for messwert, *_ in rows])
 
@@ -140,3 +148,56 @@ def _load_group_names(db: Session, laborparameter_ids: list[str]) -> dict[str, l
     for laborparameter_id, gruppen_name in db.execute(stmt):
         grouped[laborparameter_id].append(gruppen_name)
     return grouped
+
+
+def _build_order_by(sort: list[str] | None) -> list:
+    requested_sorts = _parse_sort_specs(sort)
+    field_columns = {
+        "entnahmedatum": [Befund.entnahmedatum],
+        "person": [Person.anzeigename],
+        "parameter": [Laborparameter.anzeigename],
+        "labor": [Labor.name],
+    }
+    fallback_sorts = DEFAULT_SORT + [("erstellt_am", "desc")]
+    fallback_columns = {
+        "erstellt_am": [Messwert.erstellt_am],
+    }
+    order_by = []
+    seen_fields: set[str] = set()
+
+    for field_name, direction in requested_sorts + fallback_sorts:
+        if field_name in seen_fields:
+            continue
+        seen_fields.add(field_name)
+        columns = field_columns.get(field_name) or fallback_columns.get(field_name) or []
+        for column in columns:
+            order_by.extend(_build_column_ordering(column, direction))
+
+    return order_by
+
+
+def _parse_sort_specs(sort: list[str] | None) -> list[tuple[str, str]]:
+    if not sort:
+        return DEFAULT_SORT.copy()
+
+    parsed: list[tuple[str, str]] = []
+    for item in sort:
+        field_name, separator, direction = item.partition(":")
+        if not separator or not field_name or direction not in {"asc", "desc"}:
+            raise ValueError("Ungültige Sortierung. Erwartet wird Feld:richtung.")
+        if field_name not in ALLOWED_SORT_FIELDS:
+            raise ValueError(f"Sortierfeld '{field_name}' wird für Messwerte nicht unterstützt.")
+        if any(existing_field == field_name for existing_field, _ in parsed):
+            continue
+        parsed.append((field_name, direction))
+        if len(parsed) >= 3:
+            break
+
+    return parsed or DEFAULT_SORT.copy()
+
+
+def _build_column_ordering(column, direction: str) -> list:
+    if direction == "asc":
+        return [column.is_(None), column.asc()]
+
+    return [column.is_(None), column.desc()]

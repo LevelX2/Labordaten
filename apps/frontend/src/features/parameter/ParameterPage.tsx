@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { apiFetch } from "../../shared/api/client";
 import { buildZielbereichCreatePayload } from "../../shared/api/payloadBuilders";
+import { LoeschAktionPanel } from "../../shared/components/LoeschAktionPanel";
 import {
   KONTEXT_GESCHLECHT_OPTIONS,
   WERT_TYP_OPTIONS,
@@ -85,7 +86,8 @@ type ParameterPanelKey =
   | "conversion"
   | "zielbereich"
   | "aliasSuggestions"
-  | "duplicates";
+  | "duplicates"
+  | "delete";
 
 type RelatedDataSectionKey = "aliases" | "conversions" | "ranges" | "groups";
 type DuplicateViewScope = "all" | "selected";
@@ -738,6 +740,29 @@ export function ParameterPage() {
   const renderActionPanel = () => {
     if (!activePanel) {
       return null;
+    }
+
+    if (activePanel === "delete") {
+      return (
+        <LoeschAktionPanel
+          entitaetTyp="laborparameter"
+          entitaetId={selectedParameterId}
+          title="Parameter prüfen, löschen oder deaktivieren"
+          emptyText="Bitte wähle zuerst links einen Parameter aus."
+          onClose={() => setActivePanel(null)}
+          invalidateQueryKeys={[
+            ["parameter"],
+            ["parameter-aliase", selectedParameterId],
+            ["parameter-umrechnungsregeln", selectedParameterId],
+            ["zielbereiche", selectedParameterId],
+            ["parameter-gruppen", selectedParameterId],
+            ["parameter-dublettenausschluesse", selectedParameterId],
+            ["gruppen"],
+            ["messwerte"],
+            ["planung"]
+          ]}
+        />
+      );
     }
 
     if (activePanel === "create") {
@@ -1758,6 +1783,13 @@ export function ParameterPage() {
                       onClick={() => handleOpenPanel("duplicates")}
                     >
                       Dubletten
+                    </button>
+                    <button
+                      type="button"
+                      className={`parameter-toolrail__button ${activePanel === "delete" ? "parameter-toolrail__button--active" : ""}`}
+                      onClick={() => handleOpenPanel("delete")}
+                    >
+                      Löschprüfung
                     </button>
                 </div>
 

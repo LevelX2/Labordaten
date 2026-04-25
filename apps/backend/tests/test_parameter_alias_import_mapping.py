@@ -9,6 +9,7 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
 from labordaten_backend.models.base import Base
+from labordaten_backend.models.laborparameter import Laborparameter
 from labordaten_backend.models.laborparameter_alias import LaborparameterAlias
 from labordaten_backend.models.messwert import Messwert
 from labordaten_backend.models.person import Person
@@ -211,6 +212,149 @@ def test_import_manual_mapping_can_create_alias_for_future_imports(tmp_path: Pat
         assert second_detail.warnung_anzahl == 0
         assert second_detail.messwerte[0].parameter_id == parameter.id
         assert second_detail.messwerte[0].parameter_mapping_herkunft == "alias"
+
+
+def test_import_takeover_can_create_missing_parameter_from_mapping(tmp_path: Path) -> None:
+    with _make_session(tmp_path) as db:
+        person = Person(
+            anzeigename="Ludwig",
+            vollname="Ludwig Hirth",
+            geburtsdatum=date(1964, 1, 12),
+            geschlecht_code="Männlich",
+        )
+        db.add(person)
+        db.commit()
+        db.refresh(person)
+
+        detail = import_service.create_import_entwurf(
+            db,
+            import_schemas.ImportEntwurfCreate(
+                payload_json=json.dumps(
+                    {
+                        "schemaVersion": "1.0",
+                        "quelleTyp": "ki_json",
+                        "befund": {
+                            "personId": person.id,
+                            "laborName": "Neues Labor",
+                            "entnahmedatum": "2026-04-24",
+                        },
+                        "messwerte": [
+                            {
+                                "originalParametername": "Neuer Spezialwert",
+                                "wertTyp": "numerisch",
+                                "wertRohText": "12.4",
+                                "wertNum": 12.4,
+                                "einheitOriginal": "mg/l",
+                            }
+                        ],
+                    }
+                )
+            ),
+        )
+
+        assert detail.warnung_anzahl == 1
+        assert detail.messwerte[0].parameter_id is None
+
+        uebernommen = import_service.uebernehmen_import(
+            db,
+            detail.id,
+            import_schemas.ImportUebernehmenRequest(
+                bestaetige_warnungen=True,
+                parameter_mappings=[
+                    import_schemas.ImportParameterMapping(
+                        messwert_index=0,
+                        aktion="neu",
+                    )
+                ],
+            ),
+        )
+
+        assert uebernommen.status == "uebernommen"
+
+        parameter = db.scalar(select(Laborparameter).where(Laborparameter.anzeigename == "Neuer Spezialwert"))
+        assert parameter is not None
+        assert parameter.standard_einheit == "mg/l"
+        assert parameter.wert_typ_standard == "numerisch"
+
+        messwert = db.scalar(select(Messwert).where(Messwert.importvorgang_id == detail.id))
+        assert messwert is not None
+        assert messwert.laborparameter_id == parameter.id
+
+
+def test_import_takeover_uses_parameter_suggestion_for_new_parameter(tmp_path: Path) -> None:
+    with _make_session(tmp_path) as db:
+        person = Person(
+            anzeigename="Ludwig",
+            vollname="Ludwig Hirth",
+            geburtsdatum=date(1964, 1, 12),
+            geschlecht_code="Männlich",
+        )
+        db.add(person)
+        db.commit()
+        db.refresh(person)
+
+        detail = import_service.create_import_entwurf(
+            db,
+            import_schemas.ImportEntwurfCreate(
+                payload_json=json.dumps(
+                    {
+                        "schemaVersion": "1.0",
+                        "quelleTyp": "ki_json",
+                        "befund": {
+                            "personId": person.id,
+                            "laborName": "Neues Labor",
+                            "entnahmedatum": "2026-04-24",
+                        },
+                        "messwerte": [
+                            {
+                                "originalParametername": "Lp(a)",
+                                "wertTyp": "numerisch",
+                                "wertRohText": "42",
+                                "wertNum": 42,
+                                "einheitOriginal": "mg/dl",
+                            }
+                        ],
+                        "parameterVorschlaege": [
+                            {
+                                "anzeigename": "Lipoprotein a",
+                                "wertTypStandard": "numerisch",
+                                "standardEinheit": "mg/dl",
+                                "beschreibungKurz": "Lipoprotein a ist ein lipoproteinbezogener Laborparameter.",
+                                "moeglicheAliase": ["Lp(a)"],
+                                "begruendungAusDokument": "Im Dokument steht Lp(a) mit mg/dl.",
+                                "messwertIndizes": [0],
+                            }
+                        ],
+                    }
+                )
+            ),
+        )
+
+        assert detail.messwerte[0].parameter_vorschlag is not None
+        assert detail.messwerte[0].parameter_vorschlag.anzeigename == "Lipoprotein a"
+        assert detail.messwerte[0].parameter_vorschlag.beschreibung_kurz is not None
+
+        uebernommen = import_service.uebernehmen_import(
+            db,
+            detail.id,
+            import_schemas.ImportUebernehmenRequest(
+                bestaetige_warnungen=True,
+                parameter_mappings=[
+                    import_schemas.ImportParameterMapping(
+                        messwert_index=0,
+                        aktion="neu",
+                    )
+                ],
+            ),
+        )
+
+        assert uebernommen.status == "uebernommen"
+
+        parameter = db.scalar(select(Laborparameter).where(Laborparameter.anzeigename == "Lipoprotein a"))
+        assert parameter is not None
+        assert parameter.standard_einheit == "mg/dl"
+        assert parameter.wert_typ_standard == "numerisch"
+        assert parameter.beschreibung == "Lipoprotein a ist ein lipoproteinbezogener Laborparameter."
 
 
 def test_import_alias_creation_conflict_blocks_takeover(tmp_path: Path) -> None:

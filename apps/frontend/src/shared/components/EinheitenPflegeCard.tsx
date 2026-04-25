@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { apiFetch } from "../api/client";
+import { LoeschAktionPanel } from "./LoeschAktionPanel";
 import type {
   Einheit,
   EinheitAlias,
@@ -33,6 +34,7 @@ export function EinheitenPflegeCard({
   const queryClient = useQueryClient();
   const [kuerzel, setKuerzel] = useState("");
   const [aliasForm, setAliasForm] = useState<AliasFormState>(initialAliasForm);
+  const [selectedEinheitId, setSelectedEinheitId] = useState<string | null>(null);
 
   const einheitenQuery = useQuery({
     queryKey: ["einheiten"],
@@ -46,6 +48,18 @@ export function EinheitenPflegeCard({
       ),
     [einheitenQuery.data]
   );
+
+  useEffect(() => {
+    if (!sortedEinheiten.length) {
+      setSelectedEinheitId(null);
+      return;
+    }
+
+    const selectionStillExists = sortedEinheiten.some((einheit) => einheit.id === selectedEinheitId);
+    if (!selectedEinheitId || !selectionStillExists) {
+      setSelectedEinheitId(sortedEinheiten[0].id);
+    }
+  }, [selectedEinheitId, sortedEinheiten]);
 
   const createEinheitMutation = useMutation({
     mutationFn: () =>
@@ -210,6 +224,39 @@ export function EinheitenPflegeCard({
           </tbody>
         </table>
       </div>
+
+      <article className="card card--soft parameter-action-panel">
+        <div className="parameter-panel__header">
+          <div>
+            <h3>Einheit prüfen oder deaktivieren</h3>
+            <p>
+              Nicht verwendete Einheiten können gelöscht werden. Sobald eine Einheit fachlich genutzt wird, zeigt die
+              Prüfung stattdessen die Deaktivierung als sichere Standardaktion.
+            </p>
+          </div>
+        </div>
+
+        <label className="field">
+          <span>Einheit auswählen</span>
+          <select value={selectedEinheitId ?? ""} onChange={(event) => setSelectedEinheitId(event.target.value || null)}>
+            <option value="">Bitte wählen</option>
+            {sortedEinheiten.map((einheit) => (
+              <option key={einheit.id} value={einheit.id}>
+                {einheit.kuerzel}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <LoeschAktionPanel
+          entitaetTyp="einheit"
+          entitaetId={selectedEinheitId}
+          title="Löschprüfung für Einheiten"
+          emptyText="Bitte zuerst eine Einheit auswählen."
+          className="card card--soft"
+          invalidateQueryKeys={[["einheiten"], ["parameter"], ["messwerte"]]}
+        />
+      </article>
     </article>
   );
 }

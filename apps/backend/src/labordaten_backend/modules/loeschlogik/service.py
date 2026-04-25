@@ -58,6 +58,10 @@ def get_loeschpruefung(db: Session, entitaet_typ: str, entitaet_id: str) -> sche
         return _pruefe_zielbereich(db, entitaet_id)
     if normalized == "parameter_umrechnungsregel":
         return _pruefe_parameter_umrechnungsregel(db, entitaet_id)
+    if normalized == "planung_zyklisch":
+        return _pruefe_planung_zyklisch(db, entitaet_id)
+    if normalized == "planung_einmalig":
+        return _pruefe_planung_einmalig(db, entitaet_id)
     raise ValueError(f"Die Entitaet '{entitaet_typ}' wird fuer die Loeschpruefung noch nicht unterstuetzt.")
 
 
@@ -102,6 +106,10 @@ def execute_loeschaktion(
         return _execute_delete_zielbereich(db, entitaet_id)
     if normalized == "parameter_umrechnungsregel":
         return _execute_delete_parameter_umrechnungsregel(db, entitaet_id)
+    if normalized == "planung_zyklisch":
+        return _execute_delete_planung_zyklisch(db, entitaet_id)
+    if normalized == "planung_einmalig":
+        return _execute_delete_planung_einmalig(db, entitaet_id)
 
     raise ValueError(f"Die Entitaet '{entitaet_typ}' wird fuer die Loeschaktion noch nicht unterstuetzt.")
 
@@ -121,6 +129,12 @@ def _normalize_entity_type(entitaet_typ: str) -> str:
         "gruppen_parameter": "parameter_gruppe",
         "zielbereiche": "zielbereich",
         "umrechnungsregeln": "parameter_umrechnungsregel",
+        "planungzyklisch": "planung_zyklisch",
+        "planungeinmalig": "planung_einmalig",
+        "planungen_zyklisch": "planung_zyklisch",
+        "planungen_einmalig": "planung_einmalig",
+        "zyklisch": "planung_zyklisch",
+        "einmalig": "planung_einmalig",
     }
     return aliases.get(normalized, normalized)
 
@@ -675,6 +689,42 @@ def _pruefe_parameter_umrechnungsregel(db: Session, regel_id: str) -> schemas.Lo
     )
 
 
+def _pruefe_planung_zyklisch(db: Session, planung_id: str) -> schemas.LoeschPruefungRead:
+    planung = db.get(PlanungZyklisch, planung_id)
+    if planung is None:
+        raise LookupError("Zyklische Planung nicht gefunden.")
+
+    return schemas.LoeschPruefungRead(
+        entitaet_typ="planung_zyklisch",
+        entitaet_id=planung.id,
+        anzeige_name=f"Zyklische Planung {planung.intervall_wert} {planung.intervall_typ}",
+        modus="direkt",
+        empfehlung="loeschen",
+        standard_aktion="loeschen",
+        hinweise=[
+            "Beim Loeschen entfaellt die wiederkehrende Terminlogik fuer diese Person-Parameter-Kombination.",
+        ],
+    )
+
+
+def _pruefe_planung_einmalig(db: Session, planung_id: str) -> schemas.LoeschPruefungRead:
+    planung = db.get(PlanungEinmalig, planung_id)
+    if planung is None:
+        raise LookupError("Einmalige Vormerkung nicht gefunden.")
+
+    return schemas.LoeschPruefungRead(
+        entitaet_typ="planung_einmalig",
+        entitaet_id=planung.id,
+        anzeige_name="Einmalige Vormerkung",
+        modus="direkt",
+        empfehlung="loeschen",
+        standard_aktion="loeschen",
+        hinweise=[
+            "Beim Loeschen entfaellt diese einzelne Vormerkung oder Terminnotiz.",
+        ],
+    )
+
+
 def _execute_deaktivieren(db: Session, entitaet_typ: str, entitaet_id: str) -> schemas.LoeschAusfuehrungRead:
     if entitaet_typ == "person":
         person = db.get(Person, entitaet_id)
@@ -1041,6 +1091,34 @@ def _execute_delete_parameter_umrechnungsregel(db: Session, regel_id: str) -> sc
         geloeschte_objekte=[
             _dependency("parameter_umrechnungsregel", 1, "folge", "Umrechnungsregel wurde geloescht.")
         ],
+    )
+
+
+def _execute_delete_planung_zyklisch(db: Session, planung_id: str) -> schemas.LoeschAusfuehrungRead:
+    planung = db.get(PlanungZyklisch, planung_id)
+    if planung is None:
+        raise LookupError("Zyklische Planung nicht gefunden.")
+    db.delete(planung)
+    db.commit()
+    return schemas.LoeschAusfuehrungRead(
+        entitaet_typ="planung_zyklisch",
+        entitaet_id=planung_id,
+        aktion="loeschen",
+        geloeschte_objekte=[_dependency("planung_zyklisch", 1, "folge", "Zyklische Planung wurde geloescht.")],
+    )
+
+
+def _execute_delete_planung_einmalig(db: Session, planung_id: str) -> schemas.LoeschAusfuehrungRead:
+    planung = db.get(PlanungEinmalig, planung_id)
+    if planung is None:
+        raise LookupError("Einmalige Vormerkung nicht gefunden.")
+    db.delete(planung)
+    db.commit()
+    return schemas.LoeschAusfuehrungRead(
+        entitaet_typ="planung_einmalig",
+        entitaet_id=planung_id,
+        aktion="loeschen",
+        geloeschte_objekte=[_dependency("planung_einmalig", 1, "folge", "Einmalige Vormerkung wurde geloescht.")],
     )
 
 

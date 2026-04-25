@@ -5,6 +5,7 @@ import hashlib
 import io
 import json
 import re
+import unicodedata
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
@@ -17,10 +18,12 @@ from labordaten_backend.core.labor_value_formatting import (
     DEFAULT_LOWER_REFERENCE_OPERATOR,
     DEFAULT_UPPER_REFERENCE_OPERATOR,
 )
-from labordaten_backend.core.documents import store_document_file, store_existing_document_path
+from labordaten_backend.core.documents import get_documents_root, store_document_file, store_existing_document_path
 from labordaten_backend.models.base import utcnow
 from labordaten_backend.models.befund import Befund
 from labordaten_backend.models.dokument import Dokument
+from labordaten_backend.models.einheit import Einheit
+from labordaten_backend.models.einheit_alias import EinheitAlias
 from labordaten_backend.models.gruppen_parameter import GruppenParameter
 from labordaten_backend.models.import_pruefpunkt import ImportPruefpunkt
 from labordaten_backend.models.importvorgang import Importvorgang
@@ -41,17 +44,22 @@ from labordaten_backend.modules.importe.schemas import (
     ImportGruppenvorschlaegeAnwendenRequest,
     ImportGruppenvorschlaegeAnwendenResponse,
     ImportGruppenvorschlagErgebnisRead,
+    ImportKomplettEntfernenRead,
     ImportMesswertPayload,
     ImportMesswertPreviewRead,
     ImportParameterMapping,
+    ImportParameterVorschlagPayload,
+    ImportParameterVorschlagRead,
     ImportPayload,
+    ImportPromptCreate,
+    ImportPromptRead,
     ImportPruefpunktRead,
     ImportUebernehmenRequest,
     ImportvorgangDetailRead,
     ImportvorgangListRead,
     ImportGruppenvorschlagRead,
 )
-from labordaten_backend.modules.parameter.normalization import normalize_parameter_name
+from labordaten_backend.modules.parameter.normalization import build_parameter_key_candidate, normalize_parameter_name
 from labordaten_backend.modules.parameter import conversions as parameter_conversions
 
 
@@ -247,6 +255,28 @@ def get_import_detail(db: Session, import_id: str) -> ImportvorgangDetailRead | 
     return _build_detail(db, importvorgang)
 
 
+def create_import_prompt(db: Session, payload: ImportPromptCreate) -> ImportPromptRead:
+    context = {
+        "bekannteLabore": _build_prompt_labor_context(db),
+        "bekannteParameter": _build_prompt_parameter_context(db),
+        "bekannteEinheiten": _build_prompt_unit_context(db),
+        "bekannteGruppen": _build_prompt_group_context(db),
+    }
+    context_json = json.dumps(context, ensure_ascii=False, indent=2, sort_keys=True)
+    summary = (
+        f"Labore: {len(context['bekannteLabore'])}; "
+        f"Parameter: {len(context['bekannteParameter'])}; "
+        f"Einheiten: {len(context['bekannteEinheiten'])}; "
+        f"Gruppen: {len(context['bekannteGruppen'])}; "
+        f"Prompt: {_format_prompt_type(payload.prompt_typ)}"
+    )
+    return ImportPromptRead(
+        promptText=_build_import_prompt_text(context_json, prompt_typ=payload.prompt_typ),
+        kontextZusammenfassung=summary,
+        schemaVersion="1.0",
+    )
+
+
 def list_pruefpunkte(db: Session, import_id: str) -> list[ImportPruefpunkt]:
     stmt = (
         select(ImportPruefpunkt)
@@ -274,6 +304,56 @@ def create_import_entwurf(db: Session, payload: ImportEntwurfCreate) -> Importvo
         db,
         import_payload=import_payload,
         bemerkung=payload.bemerkung,
+        dokument_id=dokument_id,
+    )
+
+
+def create_import_entwurf_from_json_upload(
+    db: Session,
+    *,
+    payload_json: str,
+    person_id_override: str | None,
+    import_bemerkung: str | None,
+    document_filename: str | None,
+    document_content_type: str | None,
+    document_content: bytes | None,
+    document_name_override: str | None,
+) -> ImportvorgangDetailRead:
+    import_payload = _parse_payload(payload_json, person_id_override)
+    dokument_id: str | None = None
+
+    if document_content:
+        dokument = store_document_file(
+            content=document_content,
+            original_filename=_build_import_document_filename(
+                db,
+                payload=import_payload,
+                original_filename=document_filename or "Laborbericht",
+                override_name=document_name_override,
+            ),
+            content_type=document_content_type,
+            dokument_typ="importquelle",
+            originalquelle_behalten=True,
+            bemerkung=import_bemerkung,
+        )
+        db.add(dokument)
+        db.flush()
+        dokument_id = dokument.id
+    elif import_payload.befund.dokument_pfad:
+        dokument = store_existing_document_path(
+            source_path=import_payload.befund.dokument_pfad,
+            dokument_typ="importquelle",
+            originalquelle_behalten=True,
+            bemerkung=import_bemerkung,
+        )
+        db.add(dokument)
+        db.flush()
+        dokument_id = dokument.id
+
+    return _create_import_entwurf_record(
+        db,
+        import_payload=import_payload,
+        bemerkung=import_bemerkung,
         dokument_id=dokument_id,
     )
 
@@ -368,36 +448,12 @@ def uebernehmen_import(
     db.flush()
 
     mapping_lookup = {item.messwert_index: item for item in mappings}
+    parameter_suggestion_by_index = _build_parameter_suggestion_by_measurement_index(import_payload)
     parameter_resolver = ParameterResolver(db)
     created_measurements: list[Messwert] = []
 
     for index, item in enumerate(import_payload.messwerte):
         mapping_request = mapping_lookup.get(index)
-        resolution = parameter_resolver.resolve(
-            original_name=item.original_parametername,
-            explicit_parameter_id=item.parameter_id,
-            manual_parameter_id=mapping_request.laborparameter_id if mapping_request is not None else None,
-        )
-        parameter_id = resolution.parameter_id
-        if parameter_id is None:
-            raise ValueError("Es fehlt noch mindestens eine Parameterzuordnung.")
-
-        alias_resolution = _resolve_alias_request(
-            db,
-            parameter_id=parameter_id,
-            original_name=item.original_parametername,
-            alias_requested=item.alias_uebernehmen or bool(mapping_request and mapping_request.alias_uebernehmen),
-        )
-        if alias_resolution.conflict_message:
-            raise ValueError(alias_resolution.conflict_message)
-        if alias_resolution.requested and alias_resolution.alias_text and not alias_resolution.already_present:
-            _create_import_alias(
-                db,
-                parameter_id=parameter_id,
-                alias_text=alias_resolution.alias_text,
-                bemerkung="Bei Import-Zuordnung übernommen",
-            )
-
         measurement_unit = (
             einheiten_service.ensure_einheit_exists(db, item.einheit_original)
             if item.wert_typ == "numerisch"
@@ -408,6 +464,40 @@ def uebernehmen_import(
             if item.wert_typ == "numerisch"
             else None
         )
+        if _is_new_parameter_mapping(mapping_request):
+            parameter_id = _create_parameter_from_import_mapping(
+                db,
+                item=item,
+                mapping_request=mapping_request,
+                standard_einheit=measurement_unit,
+                parameter_vorschlag=parameter_suggestion_by_index.get(index),
+            )
+        else:
+            resolution = parameter_resolver.resolve(
+                original_name=item.original_parametername,
+                explicit_parameter_id=item.parameter_id,
+                manual_parameter_id=mapping_request.laborparameter_id if mapping_request is not None else None,
+            )
+            parameter_id = resolution.parameter_id
+            if parameter_id is None:
+                raise ValueError("Es fehlt noch mindestens eine Parameterzuordnung.")
+
+            alias_resolution = _resolve_alias_request(
+                db,
+                parameter_id=parameter_id,
+                original_name=item.original_parametername,
+                alias_requested=item.alias_uebernehmen or bool(mapping_request and mapping_request.alias_uebernehmen),
+            )
+            if alias_resolution.conflict_message:
+                raise ValueError(alias_resolution.conflict_message)
+            if alias_resolution.requested and alias_resolution.alias_text and not alias_resolution.already_present:
+                _create_import_alias(
+                    db,
+                    parameter_id=parameter_id,
+                    alias_text=alias_resolution.alias_text,
+                    bemerkung="Bei Import-Zuordnung übernommen",
+                )
+
         normalized = parameter_conversions.resolve_measurement_normalization(
             db,
             laborparameter_id=parameter_id,
@@ -484,6 +574,60 @@ def verwerfen_import(db: Session, import_id: str) -> ImportvorgangDetailRead:
     db.commit()
     db.refresh(importvorgang)
     return _build_detail(db, importvorgang)
+
+
+def komplett_entfernen_import(
+    db: Session,
+    import_id: str,
+    *,
+    dokument_entfernen: bool,
+) -> ImportKomplettEntfernenRead:
+    importvorgang = db.get(Importvorgang, import_id)
+    if importvorgang is None:
+        raise ValueError("Importvorgang nicht gefunden.")
+    if importvorgang.status == "uebernommen":
+        raise ValueError("Übernommene Importe können nicht komplett entfernt werden. Bitte die Löschprüfung verwenden.")
+
+    messwerte_anzahl = db.scalar(select(func.count(Messwert.id)).where(Messwert.importvorgang_id == import_id)) or 0
+    befunde_anzahl = db.scalar(select(func.count(Befund.id)).where(Befund.importvorgang_id == import_id)) or 0
+    if messwerte_anzahl or befunde_anzahl:
+        raise ValueError("Dieser Import hat bereits übernommene Daten. Bitte die Löschprüfung verwenden.")
+
+    pruefpunkte = list(db.scalars(select(ImportPruefpunkt).where(ImportPruefpunkt.importvorgang_id == import_id)))
+    pruefpunkte_entfernt = len(pruefpunkte)
+    for pruefpunkt in pruefpunkte:
+        db.delete(pruefpunkt)
+
+    dokument_id = importvorgang.dokument_id
+    dokument_entfernt = False
+    dokument = db.get(Dokument, dokument_id) if dokument_id and dokument_entfernen else None
+    if dokument is not None:
+        other_imports = (
+            db.scalar(
+                select(func.count(Importvorgang.id))
+                .where(Importvorgang.dokument_id == dokument.id)
+                .where(Importvorgang.id != import_id)
+            )
+            or 0
+        )
+        befund_refs = db.scalar(select(func.count(Befund.id)).where(Befund.dokument_id == dokument.id)) or 0
+        if other_imports or befund_refs:
+            raise ValueError("Das Dokument wird noch an anderer Stelle verwendet und kann nicht entfernt werden.")
+
+    db.delete(importvorgang)
+
+    if dokument is not None:
+        _delete_stored_document_file(dokument)
+        db.delete(dokument)
+        dokument_entfernt = True
+
+    db.commit()
+    return ImportKomplettEntfernenRead(
+        import_id=import_id,
+        dokument_id=dokument_id,
+        dokument_entfernt=dokument_entfernt,
+        pruefpunkte_entfernt=pruefpunkte_entfernt,
+    )
 
 
 def anwenden_gruppenvorschlaege(
@@ -639,6 +783,245 @@ def _build_list_item(db: Session, importvorgang: Importvorgang) -> Importvorgang
     )
 
 
+def _build_prompt_labor_context(db: Session) -> list[dict[str, str]]:
+    stmt = select(Labor).where(Labor.aktiv.is_(True)).order_by(Labor.name.asc())
+    return [{"id": labor.id, "name": labor.name} for labor in db.scalars(stmt)]
+
+
+def _build_prompt_parameter_context(db: Session) -> list[dict[str, object]]:
+    aliases_by_parameter: dict[str, list[str]] = {}
+    alias_stmt = select(LaborparameterAlias).order_by(LaborparameterAlias.alias_text.asc())
+    for alias in db.scalars(alias_stmt):
+        aliases_by_parameter.setdefault(alias.laborparameter_id, []).append(alias.alias_text)
+
+    stmt = select(Laborparameter).where(Laborparameter.aktiv.is_(True)).order_by(Laborparameter.anzeigename.asc())
+    return [
+        {
+            "id": parameter.id,
+            "anzeigename": parameter.anzeigename,
+            "internerSchluessel": parameter.interner_schluessel,
+            "standardEinheit": parameter.standard_einheit,
+            "wertTypStandard": parameter.wert_typ_standard,
+            "aliase": aliases_by_parameter.get(parameter.id, []),
+        }
+        for parameter in db.scalars(stmt)
+    ]
+
+
+def _build_prompt_unit_context(db: Session) -> list[dict[str, object]]:
+    aliases_by_unit: dict[str, list[str]] = {}
+    alias_stmt = select(EinheitAlias).order_by(EinheitAlias.alias_text.asc())
+    for alias in db.scalars(alias_stmt):
+        aliases_by_unit.setdefault(alias.einheit_id, []).append(alias.alias_text)
+
+    stmt = select(Einheit).where(Einheit.aktiv.is_(True)).order_by(Einheit.kuerzel.asc())
+    return [{"kuerzel": einheit.kuerzel, "aliase": aliases_by_unit.get(einheit.id, [])} for einheit in db.scalars(stmt)]
+
+
+def _build_prompt_group_context(db: Session) -> list[dict[str, object]]:
+    parameter_names_by_id = {
+        parameter.id: parameter.anzeigename
+        for parameter in db.scalars(select(Laborparameter).where(Laborparameter.aktiv.is_(True)))
+    }
+    group_parameters: dict[str, list[str]] = {}
+    assignment_stmt = select(GruppenParameter).order_by(GruppenParameter.sortierung.asc().nulls_last())
+    for assignment in db.scalars(assignment_stmt):
+        parameter_name = parameter_names_by_id.get(assignment.laborparameter_id)
+        if parameter_name:
+            group_parameters.setdefault(assignment.parameter_gruppe_id, []).append(parameter_name)
+
+    stmt = select(ParameterGruppe).where(ParameterGruppe.aktiv.is_(True)).order_by(ParameterGruppe.name.asc())
+    return [
+        {
+            "name": gruppe.name,
+            "beschreibung": gruppe.beschreibung,
+            "parameter": group_parameters.get(gruppe.id, []),
+        }
+        for gruppe in db.scalars(stmt)
+    ]
+
+
+def _delete_stored_document_file(dokument: Dokument) -> None:
+    if not dokument.pfad_relativ:
+        return
+
+    root = get_documents_root()
+    file_path = (root / dokument.pfad_relativ).resolve()
+    try:
+        file_path.relative_to(root)
+    except ValueError as exc:
+        raise ValueError("Der relative Dokumentpfad liegt außerhalb der konfigurierten Dokumentablage.") from exc
+
+    if file_path.exists() and file_path.is_file():
+        file_path.unlink()
+
+
+def _format_prompt_type(prompt_typ: str) -> str:
+    if prompt_typ == "tabelle":
+        return "Tabelle/CSV/Excel"
+    return "Laborbericht"
+
+
+def _build_prompt_source_instruction(prompt_typ: str) -> str:
+    if prompt_typ == "tabelle":
+        return """Aufgabe:
+Analysiere die bereitgestellte Tabelle, CSV- oder Excel-Datei vollständig und erzeuge daraus eine kurze Auswertung für den Anwender sowie ein gültiges JSON-Objekt nach dem Labordaten-Importvertrag V1.
+
+Was mit der Quelle zu tun ist:
+- Werte alle relevanten Tabellenblätter, Spalten, Überschriften, Einheiten- und Referenzspalten aus.
+- Erkenne Spalten wie Parameter, Wert, Einheit, Referenzbereich, Entnahmedatum, Befunddatum, Labor, Kommentar und Gruppierung auch bei abweichender Benennung.
+- Wenn mehrere Tabellenblätter oder Blöcke enthalten sind, überführe sie in eine gemeinsame Messwertliste und nutze erkennbare Blöcke als optionale "gruppenVorschlaege".
+- Erfasse Laborwerte, Referenzwerte, Einheiten, qualitative Werte und fachlich relevante textliche Kommentare.
+- Interpretiere die Werte nicht medizinisch. Es geht nur um strukturierte Datenerfassung."""
+
+    return """Aufgabe:
+Analysiere das angehängte Laborbericht-Dokument vollständig und erzeuge daraus eine kurze Auswertung für den Anwender sowie ein gültiges JSON-Objekt nach dem Labordaten-Importvertrag V1.
+
+Was mit der Datei zu tun ist:
+- Werte das komplette angehängte Dokument aus, nicht nur die erste sichtbare Tabelle.
+- Berücksichtige Kopfbereich, Laborangaben, Person-/Auftragsangaben, Entnahmedatum, Befunddatum, Tabellen, Fußnoten, Methodenhinweise, Kommentare und erkennbare Berichtsblöcke.
+- Erfasse Laborwerte, Referenzwerte, Einheiten, qualitative Werte und alle fachlich relevanten textlichen Ausführungen.
+- Interpretiere den Befund nicht medizinisch. Es geht nur um strukturierte Datenerfassung."""
+
+
+def _build_import_prompt_text(context_json: str, *, prompt_typ: str) -> str:
+    source_instruction = _build_prompt_source_instruction(prompt_typ)
+    return f"""Du bist ein Extraktionshelfer für die Anwendung "Labordaten".
+
+{source_instruction}
+
+Harte Ausgabevorgaben:
+- Gib zuerst einen kurzen Überblick mit maximal 5 Stichpunkten aus.
+- Nenne im Überblick die Zahl der erkannten Messwerte, fehlende oder unlesbare Pflichtangaben, unsichere Messwerte, nicht eindeutig gematchte Parameter und auffällige Widersprüche.
+- Wenn keine Probleme erkennbar sind, schreibe das ausdrücklich kurz.
+- Gib danach das Import-JSON in genau einem Markdown-Codeblock mit Sprache "json" aus, also ```json ... ```.
+- Im JSON-Codeblock steht ausschließlich valides JSON ohne Kommentarzeilen.
+- Verwende im JSON genau die Feldnamen aus dem Importvertrag.
+- Erfinde keine Werte, Datumsangaben, Labore, Parameter, Referenzen, Einheiten oder IDs.
+- Entferne Felder, für die es keinen Wert gibt. Setze keine Platzhalter wie "unbekannt".
+- Zusätzliche Felder sind nicht erlaubt.
+- Datumsformat ist immer YYYY-MM-DD.
+- Zahlen im JSON verwenden Dezimalpunkt, auch wenn im Dokument ein Dezimalkomma steht.
+
+Importvertrag V1:
+- Wurzelobjekt: "schemaVersion", "quelleTyp", "personHinweis", "befund", "messwerte", optional "gruppenVorschlaege", optional "parameterVorschlaege".
+- "schemaVersion" muss "1.0" sein.
+- "quelleTyp" muss "ki_json" sein.
+- "befund" braucht mindestens "entnahmedatum".
+- "befund.personId" soll weggelassen werden, außer eine Person-ID wurde ausdrücklich in der Quelle oder durch den Nutzer vorgegeben. Die Person wird in der Anwendung beim Import ausgewählt oder überschrieben.
+- "messwerte" ist eine Liste; jeder Eintrag braucht "originalParametername", "wertTyp" und "wertRohText".
+- Erlaubte "wertTyp"-Werte: "numerisch", "text".
+- Erlaubte "wertOperator"-Werte: "exakt", "kleiner_als", "kleiner_gleich", "groesser_als", "groesser_gleich", "ungefaehr".
+- Erlaubte Referenz-Grenzoperatoren: "groesser_als", "groesser_gleich" für untere Grenzen; "kleiner_als", "kleiner_gleich" für obere Grenzen.
+- Erlaubte Geschlechtscodes in Referenzen: "w", "m", "d"; sonst Feld weglassen.
+
+Person:
+- Setze "befund.personId" nicht, außer eine konkrete Person-ID wurde ausdrücklich mitgegeben.
+- Wenn in der Quelle eine Person erkennbar ist, setze sie als Originaltext in "personHinweis".
+- Die Anwendung kann beim Import eine Person auswählen oder überschreiben. Deshalb keine Person raten und keine Person aus vorhandenen Stammdaten ableiten.
+
+Labor:
+- Setze "befund.laborId" nur, wenn der Laborname im Dokument eindeutig zu einem bekannten Labor passt.
+- Wenn kein eindeutiger Match möglich ist, setze "befund.laborName" mit dem erkannten Originalnamen.
+
+Parameter und Werte:
+- Setze "parameterId" nur bei eindeutigem Match auf einen bekannten Parameter, Anzeigenamen, internen Schlüssel oder Alias.
+- Wenn der Match unsicher oder mehrdeutig ist, lasse "parameterId" weg, übernimm "originalParametername" exakt aus dem Dokument und setze "pruefbedarfFlag": true.
+- "wertRohText" bleibt in der Originalschreibweise aus dem Dokument.
+- Bei "<5" setze "wertOperator": "kleiner_als", "wertRohText": "<5" und "wertNum": 5.
+- Bei ">200" setze "wertOperator": "groesser_als", "wertRohText": ">200" und "wertNum": 200.
+- Bei qualitativen Werten wie "positiv", "negativ", "++", "nicht nachweisbar" nutze "wertTyp": "text" und fülle "wertText".
+- Markiere unleserliche, widersprüchliche oder geschätzte Werte mit "unsicherFlag": true oder "pruefbedarfFlag": true und erkläre den Grund in "bemerkungKurz" oder "bemerkungLang".
+- Wenn ein Originalname offensichtlich nur eine alternative Schreibweise eines sicher gematchten Parameters ist, darf "aliasUebernehmen": true vorgeschlagen werden. Die Anwendung fragt später noch einmal nach.
+
+Parameter-Vorschläge:
+- Wenn ein Messwert nicht eindeutig zu einem bekannten Parameter passt, darfst Du ergänzend "parameterVorschlaege" anlegen.
+- Ein Parameter-Vorschlag ist nur ein Vorschlag für die spätere Prüfung. Er ersetzt keinen sicheren Match und legt nichts automatisch an.
+- Setze "anzeigename" als gut lesbaren Parameternamen, nicht nur als Abkürzung aus dem Dokument.
+- Setze "messwertIndizes" mit allen Messwertpositionen, auf die sich der Vorschlag bezieht.
+- Setze "wertTypStandard", "standardEinheit", "beschreibungKurz", "moeglicheAliase" und "begruendungAusDokument" nur, wenn dies aus Dokument, üblicher Laborbezeichnung oder klarer Fachkenntnis belastbar ableitbar ist.
+- "beschreibungKurz" ist ausschließlich eine allgemeine, vom konkreten Bericht und Import unabhängige Fachbeschreibung: Was misst der Parameter oder wofür steht er typischerweise als Laborparameter?
+- Schreibe in "beschreibungKurz" keine Sätze wie "Der Befund nennt...", "Im Bericht steht...", keine Methode aus diesem konkreten Dokument, keine Referenzbereiche, keine konkreten Werte, keine Diagnose und keine Bewertung des konkreten Messwerts.
+- Wenn Du eine Anmerkung loswerden willst, warum der Vorschlag aus diesem Bericht abgeleitet wurde, schreibe sie ausschließlich in "begruendungAusDokument".
+- "begruendungAusDokument" darf berichtsbezogen sein, z. B. Abschnitt, Methode, Einheit, Originalname oder warum mehrere Messwerte zu demselben Vorschlag gehören.
+- Recherchiere nicht frei ins Blaue und erfinde keine Bedeutung. Wenn Du unsicher bist, setze "unsicherFlag": true oder lasse den Vorschlag weg.
+
+Referenzen und Kommentare:
+- Den originalen Referenztext immer in "referenzTextOriginal" erhalten, wenn vorhanden.
+- Strukturierte "untereGrenzeNum" und "obereGrenzeNum" nur setzen, wenn die Grenzen eindeutig sind.
+- Referenzeinheit in "referenzEinheit" setzen, wenn sie erkennbar ist.
+- Alters- und geschlechtsbezogene Referenzkontexte in "referenzAlterMinTage", "referenzAlterMaxTage", "referenzGeschlechtCode" oder "referenzBemerkung" ablegen.
+- Labor-Kommentare zu einzelnen Werten in "bemerkungKurz" oder "bemerkungLang" übernehmen.
+
+Gruppen:
+- Wenn das Dokument erkennbare Berichtsabschnitte oder Blöcke enthält, erstelle "gruppenVorschlaege".
+- "messwertIndizes" beziehen sich auf die Positionen im "messwerte"-Array, beginnend bei 0.
+- Verwende Gruppen nur als Vorschläge; die Anwendung fragt später nach Übernahme, Zusammenführung oder Ignorieren.
+
+Beispielstruktur:
+{{
+  "schemaVersion": "1.0",
+  "quelleTyp": "ki_json",
+  "personHinweis": "optional erkannte Person oder leer",
+  "befund": {{
+    "personId": "optional, nur wenn ausdrücklich vorgegeben",
+    "laborId": "optional, nur bei sicherem Labor-Match",
+    "laborName": "optional, wenn kein laborId-Match sicher ist",
+    "entnahmedatum": "YYYY-MM-DD",
+    "befunddatum": "YYYY-MM-DD",
+    "bemerkung": "optional"
+  }},
+  "messwerte": [
+    {{
+      "parameterId": "optional, nur bei eindeutigem Parameter-Match",
+      "originalParametername": "Name exakt aus dem Bericht",
+      "wertTyp": "numerisch",
+      "wertOperator": "exakt",
+      "wertRohText": "41",
+      "wertNum": 41,
+      "einheitOriginal": "ng/ml",
+      "referenzTextOriginal": "30-400 ng/ml",
+      "untereGrenzeNum": 30,
+      "obereGrenzeNum": 400,
+      "referenzEinheit": "ng/ml",
+      "bemerkungKurz": "optional",
+      "bemerkungLang": "optional",
+      "aliasUebernehmen": false,
+      "unsicherFlag": false,
+      "pruefbedarfFlag": false
+    }}
+  ],
+  "gruppenVorschlaege": [
+    {{
+      "name": "Berichtsabschnitt",
+      "beschreibung": "optional",
+      "messwertIndizes": [0]
+    }}
+  ],
+  "parameterVorschlaege": [
+    {{
+      "anzeigename": "Gut lesbarer Parametername",
+      "wertTypStandard": "numerisch",
+      "standardEinheit": "optionale Einheit",
+      "beschreibungKurz": "Allgemeine, berichtsunabhängige Fachbeschreibung des Parameters",
+      "moeglicheAliase": ["Name aus dem Bericht"],
+      "begruendungAusDokument": "Berichtsbezogene Anmerkung, warum der Vorschlag zu den Messwerten passt",
+      "unsicherFlag": false,
+      "messwertIndizes": [0]
+    }}
+  ]
+}}
+
+Antwortformat:
+1. Kurzer Überblick für den Anwender.
+2. Danach ein einzelner ```json-Codeblock mit dem vollständigen Import-JSON. Der Codeblock ist die Kopiervorlage für die Anwendung.
+
+Bekannte Stammdaten und Kontext:
+{context_json}
+
+Erzeuge jetzt aus der bereitgestellten Quelle den kurzen Überblick und danach das vollständige Import-JSON im json-Codeblock."""
+
+
 def _build_detail(db: Session, importvorgang: Importvorgang) -> ImportvorgangDetailRead:
     payload = _parse_payload(importvorgang.roh_payload_text or "")
     checks = list_pruefpunkte(db, importvorgang.id)
@@ -662,6 +1045,12 @@ def _build_detail(db: Session, importvorgang: Importvorgang) -> ImportvorgangDet
         imported_measurements=imported_measurements,
         parameter_resolver=parameter_resolver,
     )
+    parameter_vorschlaege = _build_parameter_suggestion_previews(payload)
+    parameter_suggestion_by_index = {
+        messwert_index: suggestion
+        for suggestion in parameter_vorschlaege
+        for messwert_index in suggestion.messwert_indizes
+    }
 
     return ImportvorgangDetailRead(
         id=importvorgang.id,
@@ -700,10 +1089,12 @@ def _build_detail(db: Session, importvorgang: Importvorgang) -> ImportvorgangDet
                 item=item,
                 imported_measurements=imported_measurements,
                 parameter_resolver=parameter_resolver,
+                parameter_vorschlag=parameter_suggestion_by_index.get(index),
             )
             for index, item in enumerate(payload.messwerte)
         ],
         gruppenvorschlaege=gruppenvorschlaege,
+        parameter_vorschlaege=parameter_vorschlaege,
         pruefpunkte=[ImportPruefpunktRead.model_validate(item) for item in checks],
     )
 
@@ -714,6 +1105,7 @@ def _build_measurement_preview(
     item: ImportMesswertPayload,
     imported_measurements: list[Messwert],
     parameter_resolver: ParameterResolver,
+    parameter_vorschlag: ImportParameterVorschlagRead | None = None,
 ) -> ImportMesswertPreviewRead:
     imported_parameter_id = imported_measurements[index].laborparameter_id if index < len(imported_measurements) else None
     resolution = parameter_resolver.resolve(
@@ -755,7 +1147,35 @@ def _build_measurement_preview(
         referenz_alter_min_tage=item.referenz_alter_min_tage,
         referenz_alter_max_tage=item.referenz_alter_max_tage,
         referenz_bemerkung=item.referenz_bemerkung,
+        parameter_vorschlag=parameter_vorschlag,
     )
+
+
+def _build_parameter_suggestion_previews(payload: ImportPayload) -> list[ImportParameterVorschlagRead]:
+    return [
+        ImportParameterVorschlagRead(
+            index=index,
+            anzeigename=suggestion.anzeigename,
+            wert_typ_standard=suggestion.wert_typ_standard,
+            standard_einheit=suggestion.standard_einheit,
+            beschreibung_kurz=suggestion.beschreibung_kurz,
+            moegliche_aliase=suggestion.moegliche_aliase,
+            begruendung_aus_dokument=suggestion.begruendung_aus_dokument,
+            unsicher_flag=suggestion.unsicher_flag,
+            messwert_indizes=suggestion.messwert_indizes,
+        )
+        for index, suggestion in enumerate(payload.parameter_vorschlaege)
+    ]
+
+
+def _build_parameter_suggestion_by_measurement_index(
+    payload: ImportPayload,
+) -> dict[int, ImportParameterVorschlagPayload]:
+    suggestions_by_index: dict[int, ImportParameterVorschlagPayload] = {}
+    for suggestion in payload.parameter_vorschlaege:
+        for messwert_index in suggestion.messwert_indizes:
+            suggestions_by_index.setdefault(messwert_index, suggestion)
+    return suggestions_by_index
 
 
 def _build_group_suggestion_previews(
@@ -933,6 +1353,22 @@ def _generate_checks(
         )
     elif db.get(Person, person_id) is None:
         checks.append(Pruefregel("befund", "befund", "person_zuordnung", "fehler", "Die zugeordnete Person existiert nicht."))
+    else:
+        person = db.get(Person, person_id)
+        if (
+            payload.person_hinweis
+            and person is not None
+            and not _person_hint_matches_context(payload.person_hinweis, person.anzeigename)
+        ):
+            checks.append(
+                Pruefregel(
+                    "befund",
+                    "befund",
+                    "person_hinweis",
+                    "warnung",
+                    f"Der im Dokument erkannte Personenhinweis '{payload.person_hinweis}' passt nicht eindeutig zur zugeordneten Person '{person.anzeigename}'.",
+                )
+            )
 
     if payload.befund.labor_id and db.get(Labor, payload.befund.labor_id) is None:
         checks.append(Pruefregel("befund", "befund", "labor_zuordnung", "fehler", "Das angegebene Labor existiert nicht."))
@@ -955,14 +1391,34 @@ def _generate_checks(
 
     for index, item in enumerate(payload.messwerte):
         mapping_request = mapping_lookup.get(index)
-        resolution = parameter_resolver.resolve(
-            original_name=item.original_parametername,
-            explicit_parameter_id=item.parameter_id,
-            manual_parameter_id=mapping_request.laborparameter_id if mapping_request is not None else None,
+        resolution = (
+            ParameterResolution(parameter_id=None, herkunft="neu")
+            if _is_new_parameter_mapping(mapping_request)
+            else parameter_resolver.resolve(
+                original_name=item.original_parametername,
+                explicit_parameter_id=item.parameter_id,
+                manual_parameter_id=mapping_request.laborparameter_id if mapping_request is not None else None,
+            )
         )
         parameter_id = resolution.parameter_id
         key = f"messwert:{index}"
-        if parameter_id is None:
+        if _is_new_parameter_mapping(mapping_request):
+            existing_resolution = parameter_resolver.resolve(
+                original_name=item.original_parametername,
+                explicit_parameter_id=item.parameter_id,
+                manual_parameter_id=None,
+            )
+            if existing_resolution.parameter_id is not None:
+                checks.append(
+                    Pruefregel(
+                        "messwert",
+                        key,
+                        "parameter_neuanlage",
+                        "warnung",
+                        f"Für '{item.original_parametername}' wurde Neuanlage gewählt, obwohl ein bestehender Parameter passt.",
+                    )
+                )
+        elif parameter_id is None:
             meldung = (
                 f"Für '{item.original_parametername}' gibt es mehrere passende Parameter"
                 + (f": {resolution.hinweis}." if resolution.mehrdeutig and resolution.hinweis else ".")
@@ -1049,6 +1505,24 @@ def _generate_checks(
             )
 
     return checks
+
+
+def _person_hint_matches_context(person_hinweis: str, anzeigename: str) -> bool:
+    normalized_hint = _normalize_person_hint(person_hinweis)
+    normalized_name = _normalize_person_hint(anzeigename)
+    if not normalized_hint or not normalized_name:
+        return True
+    if normalized_name in normalized_hint:
+        return True
+
+    name_tokens = {token for token in normalized_name.split() if len(token) >= 3}
+    return any(token in normalized_hint for token in name_tokens)
+
+
+def _normalize_person_hint(value: str) -> str:
+    decomposed = unicodedata.normalize("NFKD", value)
+    ascii_value = "".join(char for char in decomposed if not unicodedata.combining(char))
+    return re.sub(r"[^a-z0-9]+", " ", ascii_value.casefold()).strip()
 
 
 def _has_duplicate_measurement(db: Session, person_id: str, entnahmedatum, parameter_id: str) -> bool:
@@ -1173,6 +1647,60 @@ def _resolve_alias_request(
     return AliasResolution(requested=True, alias_text=alias_text)
 
 
+def _is_new_parameter_mapping(mapping_request: ImportParameterMapping | None) -> bool:
+    return bool(mapping_request and mapping_request.aktion == "neu")
+
+
+def _create_parameter_from_import_mapping(
+    db: Session,
+    *,
+    item: ImportMesswertPayload,
+    mapping_request: ImportParameterMapping | None,
+    standard_einheit: str | None,
+    parameter_vorschlag: ImportParameterVorschlagPayload | None,
+) -> str:
+    anzeigename = (
+        (mapping_request.neuer_parameter_name if mapping_request else None)
+        or (parameter_vorschlag.anzeigename if parameter_vorschlag is not None else None)
+        or item.original_parametername
+    )
+    anzeigename = anzeigename.strip()
+    if not anzeigename:
+        raise ValueError("Für einen neu anzulegenden Parameter fehlt der Name.")
+
+    beschreibung = parameter_vorschlag.beschreibung_kurz if parameter_vorschlag is not None else None
+    standard_einheit_value = (
+        standard_einheit
+        or (parameter_vorschlag.standard_einheit if parameter_vorschlag is not None else None)
+    )
+    wert_typ_standard = (
+        parameter_vorschlag.wert_typ_standard
+        if parameter_vorschlag is not None and parameter_vorschlag.wert_typ_standard
+        else item.wert_typ
+    )
+
+    parameter = Laborparameter(
+        interner_schluessel=_build_unique_import_parameter_key(db, anzeigename),
+        anzeigename=anzeigename,
+        beschreibung=beschreibung,
+        standard_einheit=standard_einheit_value,
+        wert_typ_standard=wert_typ_standard,
+    )
+    db.add(parameter)
+    db.flush()
+    return parameter.id
+
+
+def _build_unique_import_parameter_key(db: Session, source_value: str | None) -> str:
+    base_key = build_parameter_key_candidate(source_value)
+    candidate = base_key
+    suffix = 2
+    while db.scalar(select(Laborparameter.id).where(Laborparameter.interner_schluessel == candidate)) is not None:
+        candidate = f"{base_key}_{suffix}"
+        suffix += 1
+    return candidate
+
+
 def _create_import_alias(
     db: Session,
     *,
@@ -1249,6 +1777,7 @@ def _count_checks(db: Session, import_id: str) -> dict[str, int]:
 
 
 def _parse_payload(payload_json: str, person_id_override: str | None = None) -> ImportPayload:
+    payload_json = _extract_import_json_text(payload_json)
     try:
         data = json.loads(payload_json)
     except json.JSONDecodeError as exc:
@@ -1264,8 +1793,70 @@ def _parse_payload(payload_json: str, person_id_override: str | None = None) -> 
         raise ValueError(f"Das Import-JSON passt nicht zum erwarteten Schema: {exc}") from exc
 
 
+def _extract_import_json_text(raw_text: str) -> str:
+    text = raw_text.strip()
+    if text.startswith("{"):
+        return text
+
+    fenced_blocks = re.findall(r"```(?:json)?\s*(.*?)```", text, flags=re.IGNORECASE | re.DOTALL)
+    for block in fenced_blocks:
+        candidate = block.strip()
+        if candidate.startswith("{"):
+            return candidate
+
+    first_brace = text.find("{")
+    last_brace = text.rfind("}")
+    if first_brace >= 0 and last_brace > first_brace:
+        return text[first_brace : last_brace + 1]
+
+    return text
+
+
 def _serialize_payload(payload: ImportPayload) -> str:
     return json.dumps(payload.model_dump(mode="json", by_alias=True), ensure_ascii=False, sort_keys=True)
+
+
+def _build_import_document_filename(
+    db: Session,
+    *,
+    payload: ImportPayload,
+    original_filename: str,
+    override_name: str | None,
+) -> str:
+    original_path = Path(original_filename)
+    extension = original_path.suffix or ".pdf"
+    if override_name and override_name.strip():
+        return _ensure_filename_extension(_sanitize_document_filename(override_name.strip()), extension)
+
+    person_name = None
+    if payload.befund.person_id:
+        person = db.get(Person, payload.befund.person_id)
+        person_name = person.anzeigename if person is not None else None
+
+    labor_name = payload.befund.labor_name
+    if not labor_name and payload.befund.labor_id:
+        labor = db.get(Labor, payload.befund.labor_id)
+        labor_name = labor.name if labor is not None else None
+
+    date_value = payload.befund.entnahmedatum or payload.befund.befunddatum
+    parts = [
+        date_value.isoformat() if date_value else None,
+        person_name,
+        labor_name,
+        "Laborbericht",
+    ]
+    filename = "_".join(_sanitize_document_filename(part) for part in parts if part)
+    return _ensure_filename_extension(filename or original_path.stem or "Laborbericht", extension)
+
+
+def _sanitize_document_filename(value: str) -> str:
+    return re.sub(r"[^A-Za-z0-9ÄÖÜäöüß._-]+", "_", value).strip("._")
+
+
+def _ensure_filename_extension(filename: str, extension: str) -> str:
+    if Path(filename).suffix:
+        return filename
+    return f"{filename}{extension}"
 
 
 def _resolve_labor(db: Session, payload: ImportPayload) -> str | None:

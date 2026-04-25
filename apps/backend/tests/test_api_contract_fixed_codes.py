@@ -198,3 +198,92 @@ def test_create_zielbereich_api_enforces_fixed_value_and_gender_codes(monkeypatc
         )
 
         assert invalid_response.status_code == 422
+
+
+def test_list_messwerte_api_supports_multilevel_sorting(monkeypatch, tmp_path: Path) -> None:
+    client, test_session_factory = _make_client(monkeypatch, tmp_path)
+    with test_session_factory() as db:
+        person_anna = Person(anzeigename="Anna", geburtsdatum=date(1980, 1, 1), geschlecht_code="w")
+        person_berta = Person(anzeigename="Berta", geburtsdatum=date(1982, 1, 1), geschlecht_code="w")
+        parameter_crp = Laborparameter(
+            interner_schluessel="crp",
+            anzeigename="CRP",
+            wert_typ_standard="numerisch",
+        )
+        parameter_ferritin = Laborparameter(
+            interner_schluessel="ferritin",
+            anzeigename="Ferritin",
+            wert_typ_standard="numerisch",
+        )
+        db.add_all([person_anna, person_berta, parameter_crp, parameter_ferritin])
+        db.commit()
+        db.refresh(person_anna)
+        db.refresh(person_berta)
+        db.refresh(parameter_crp)
+        db.refresh(parameter_ferritin)
+
+        befund_anna_neu = Befund(person_id=person_anna.id, entnahmedatum=date(2026, 4, 22), quelle_typ="manuell")
+        befund_anna_alt = Befund(person_id=person_anna.id, entnahmedatum=date(2026, 4, 20), quelle_typ="manuell")
+        befund_berta = Befund(person_id=person_berta.id, entnahmedatum=date(2026, 4, 23), quelle_typ="manuell")
+        db.add_all([befund_anna_neu, befund_anna_alt, befund_berta])
+        db.commit()
+        db.refresh(befund_anna_neu)
+        db.refresh(befund_anna_alt)
+        db.refresh(befund_berta)
+
+        db.add_all(
+            [
+                Messwert(
+                    person_id=person_anna.id,
+                    befund_id=befund_anna_neu.id,
+                    laborparameter_id=parameter_ferritin.id,
+                    original_parametername="Ferritin",
+                    wert_typ="numerisch",
+                    wert_operator="exakt",
+                    wert_roh_text="41",
+                    wert_num=41.0,
+                ),
+                Messwert(
+                    person_id=person_anna.id,
+                    befund_id=befund_anna_alt.id,
+                    laborparameter_id=parameter_crp.id,
+                    original_parametername="CRP",
+                    wert_typ="numerisch",
+                    wert_operator="exakt",
+                    wert_roh_text="5",
+                    wert_num=5.0,
+                ),
+                Messwert(
+                    person_id=person_berta.id,
+                    befund_id=befund_berta.id,
+                    laborparameter_id=parameter_crp.id,
+                    original_parametername="CRP",
+                    wert_typ="numerisch",
+                    wert_operator="exakt",
+                    wert_roh_text="8",
+                    wert_num=8.0,
+                ),
+            ]
+        )
+        db.commit()
+
+    with client:
+        response = client.get(
+            "/api/messwerte",
+            params=[
+                ("sort", "person:asc"),
+                ("sort", "entnahmedatum:desc"),
+                ("sort", "parameter:asc"),
+            ],
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert [(item["person_anzeigename"], item["parameter_anzeigename"]) for item in body] == [
+            ("Anna", "Ferritin"),
+            ("Anna", "CRP"),
+            ("Berta", "CRP"),
+        ]
+
+        invalid_response = client.get("/api/messwerte", params={"sort": "wert:desc"})
+        assert invalid_response.status_code == 400

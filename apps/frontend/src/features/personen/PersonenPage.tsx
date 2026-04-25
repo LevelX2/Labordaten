@@ -7,6 +7,7 @@ import {
   PERSON_GESCHLECHT_OPTIONS,
   formatGeschlechtCode
 } from "../../shared/constants/fieldOptions";
+import { LoeschAktionPanel } from "../../shared/components/LoeschAktionPanel";
 import type { Parameter, Person, WertTyp, Zielbereich, ZielbereichOverride } from "../../shared/types/api";
 
 type PersonFormState = {
@@ -29,7 +30,7 @@ type OverrideFormState = {
   bemerkung: string;
 };
 
-type PersonenPanelKey = "create" | "override";
+type PersonenPanelKey = "create" | "override" | "delete";
 
 const initialForm: PersonFormState = {
   anzeigename: "",
@@ -343,6 +344,19 @@ export function PersonenPage() {
       );
     }
 
+    if (activePanel === "delete") {
+      return (
+        <LoeschAktionPanel
+          entitaetTyp="person"
+          entitaetId={selectedPersonId}
+          title="Person prüfen oder deaktivieren"
+          emptyText="Bitte wähle zuerst links eine Person aus."
+          onClose={() => setActivePanel(null)}
+          invalidateQueryKeys={[["personen"]]}
+        />
+      );
+    }
+
     if (!selectedPersonId || !selectedPerson) {
       return (
         <article className="card card--soft">
@@ -603,6 +617,13 @@ export function PersonenPage() {
                     onClick={() => handleOpenPanel("override")}
                   >
                     Zielbereich pflegen
+                  </button>
+                  <button
+                    type="button"
+                    className={`parameter-toolrail__button ${activePanel === "delete" ? "parameter-toolrail__button--active" : ""}`}
+                    onClick={() => handleOpenPanel("delete")}
+                  >
+                    Löschprüfung
                   </button>
                 </div>
 

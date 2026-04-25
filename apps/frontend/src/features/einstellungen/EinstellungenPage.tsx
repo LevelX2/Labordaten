@@ -5,6 +5,14 @@ import { apiFetch } from "../../shared/api/client";
 import { EinheitenPflegeCard } from "../../shared/components/EinheitenPflegeCard";
 import type { LockStatus, RuntimeSettings, SystemHealth } from "../../shared/types/api";
 
+type EinstellungenAnsichtKey =
+  | "uebersicht"
+  | "sperre"
+  | "pfade"
+  | "standards"
+  | "einheiten"
+  | "technik";
+
 function formatDate(value?: string | null): string {
   if (!value) {
     return "—";
@@ -15,9 +23,58 @@ function formatDate(value?: string | null): string {
   }).format(new Date(value));
 }
 
+function formatBoolean(value: boolean): string {
+  return value ? "Ja" : "Nein";
+}
+
+function getSectionMeta(section: EinstellungenAnsichtKey): { title: string; description: string; badge: string } {
+  if (section === "uebersicht") {
+    return {
+      title: "Übersicht",
+      description: "Hier siehst Du den aktuellen Betriebszustand der lokalen Instanz in verdichteter Form.",
+      badge: "Status und Zusammenfassung"
+    };
+  }
+  if (section === "sperre") {
+    return {
+      title: "Datenbasis-Sperre",
+      description: "Hier prüfst Du Besitz, Heartbeat und Sperrpfad und kannst die Sperre kontrolliert zurücksetzen.",
+      badge: "Sperre und Wiederherstellung"
+    };
+  }
+  if (section === "pfade") {
+    return {
+      title: "Pfade und Speicherorte",
+      description: "Hier pflegst Du die lokalen Zielorte für Daten, Dokumente, Wissensbasis und Berichtsvorlagen.",
+      badge: "Laufzeit-Pfade"
+    };
+  }
+  if (section === "standards") {
+    return {
+      title: "Standardvorgaben",
+      description: "Hier legst Du die typischen Voreinstellungen für Import, Berichte und technische Freigaben fest.",
+      badge: "Vorgaben für neue Abläufe"
+    };
+  }
+  if (section === "einheiten") {
+    return {
+      title: "Einheiten",
+      description: "Hier pflegst Du kanonische Einheiten und deren Alias-Schreibweisen für Import und manuelle Erfassung.",
+      badge: "Zentrale Fachstammdaten"
+    };
+  }
+  return {
+    title: "Technischer Zugang",
+    description: "Hier erreichst Du die technischen Backend-Schnittstellen für Prüfungen und Diagnosezwecke.",
+    badge: "API und Schema"
+  };
+}
+
 export function EinstellungenPage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<RuntimeSettings | null>(null);
+  const [showPageInfo, setShowPageInfo] = useState(false);
+  const [selectedAnsicht, setSelectedAnsicht] = useState<EinstellungenAnsichtKey>("uebersicht");
   const backendDocsUrl = "/api/docs";
   const backendOpenApiUrl = "/api/openapi.json";
 
@@ -68,74 +125,115 @@ export function EinstellungenPage() {
     }
   });
 
-  return (
-    <section className="page">
-      <header className="page__header">
-        <span className="page__kicker">Betrieb</span>
-        <h2>Einstellungen</h2>
-        <p>
-          Lokale Pfade, Importvorgaben und der Status der Datenbasis-Sperre lassen sich hier prüfen und steuern.
-        </p>
-      </header>
+  const sectionMeta = getSectionMeta(selectedAnsicht);
 
-      <div className="workspace-grid">
-        <article className="card">
-          <h3>Systemstatus</h3>
-          <p>
-            Anwendung: <strong>{healthQuery.data?.app ?? "—"}</strong>
-          </p>
-          <p>
-            Umgebung: <strong>{healthQuery.data?.environment ?? "—"}</strong>
-          </p>
-          <p>
-            Sperrstatus: <strong>{healthQuery.data?.lock_status ?? "—"}</strong>
-          </p>
-          <p>{healthQuery.data?.lock_message ?? "Kein Status verfügbar."}</p>
-        </article>
+  const renderSection = () => {
+    if (selectedAnsicht === "uebersicht") {
+      return (
+        <>
+          {healthQuery.isError ? <p className="form-error">{healthQuery.error.message}</p> : null}
+          {settingsQuery.isError ? <p className="form-error">{settingsQuery.error.message}</p> : null}
+          {lockQuery.isError ? <p className="form-error">{lockQuery.error.message}</p> : null}
 
-        <article className="card">
-          <h3>Datenbasis-Sperre</h3>
-          <p>
-            Besitzer: <strong>{lockQuery.data?.owner_hostname ?? "—"}</strong>
-            {lockQuery.data?.owner_pid ? ` · PID ${lockQuery.data.owner_pid}` : ""}
-          </p>
-          <p>
-            Aktiv seit: <strong>{formatDate(lockQuery.data?.acquired_at)}</strong>
-          </p>
-          <p>
-            Letzter Heartbeat: <strong>{formatDate(lockQuery.data?.heartbeat_at)}</strong>
-          </p>
-          <p>
-            Sperrdatei: <strong>{lockQuery.data?.lock_path ?? "—"}</strong>
-          </p>
+          <div className="detail-grid">
+            <div className="detail-grid__item">
+              <span>Anwendung</span>
+              <strong>{healthQuery.data?.app ?? "—"}</strong>
+            </div>
+            <div className="detail-grid__item">
+              <span>Umgebung</span>
+              <strong>{healthQuery.data?.environment ?? "—"}</strong>
+            </div>
+            <div className="detail-grid__item">
+              <span>Sperrstatus</span>
+              <strong>{healthQuery.data?.lock_status ?? "—"}</strong>
+            </div>
+            <div className="detail-grid__item">
+              <span>Sperrzustand</span>
+              <strong>{lockQuery.data?.stale ? "Veraltet" : "Aktiv"}</strong>
+            </div>
+            <div className="detail-grid__item">
+              <span>Berichte mit Laborangabe</span>
+              <strong>{form ? formatBoolean(form.report_include_labor_default) : "—"}</strong>
+            </div>
+            <div className="detail-grid__item">
+              <span>Normierte Darstellung</span>
+              <strong>{form ? formatBoolean(form.darstellung_normierte_vergleiche) : "—"}</strong>
+            </div>
+          </div>
+
+          <article className="card card--soft parameter-action-panel">
+            <div className="parameter-panel__header">
+              <div>
+                <h3>Betriebslage</h3>
+                <p>{healthQuery.data?.lock_message ?? "Kein Status verfügbar."}</p>
+              </div>
+            </div>
+
+            <div className="detail-grid">
+              <div className="detail-grid__item">
+                <span>Besitzer</span>
+                <strong>{lockQuery.data?.owner_hostname ?? "—"}</strong>
+              </div>
+              <div className="detail-grid__item">
+                <span>Letzter Heartbeat</span>
+                <strong>{formatDate(lockQuery.data?.heartbeat_at)}</strong>
+              </div>
+              <div className="detail-grid__item detail-grid__item--full">
+                <span>Sperrdatei</span>
+                <strong className="detail-grid__value--break">{lockQuery.data?.lock_path ?? "—"}</strong>
+              </div>
+            </div>
+          </article>
+        </>
+      );
+    }
+
+    if (selectedAnsicht === "sperre") {
+      return (
+        <>
+          {lockQuery.isError ? <p className="form-error">{lockQuery.error.message}</p> : null}
+          <div className="detail-grid">
+            <div className="detail-grid__item">
+              <span>Besitzer</span>
+              <strong>{lockQuery.data?.owner_hostname ?? "—"}</strong>
+            </div>
+            <div className="detail-grid__item">
+              <span>PID</span>
+              <strong>{lockQuery.data?.owner_pid ?? "—"}</strong>
+            </div>
+            <div className="detail-grid__item">
+              <span>Aktiv seit</span>
+              <strong>{formatDate(lockQuery.data?.acquired_at)}</strong>
+            </div>
+            <div className="detail-grid__item">
+              <span>Letzter Heartbeat</span>
+              <strong>{formatDate(lockQuery.data?.heartbeat_at)}</strong>
+            </div>
+            <div className="detail-grid__item">
+              <span>Zustand</span>
+              <strong>{lockQuery.data?.stale ? "Veraltet" : "Aktiv"}</strong>
+            </div>
+            <div className="detail-grid__item detail-grid__item--full">
+              <span>Sperrdatei</span>
+              <strong className="detail-grid__value--break">{lockQuery.data?.lock_path ?? "—"}</strong>
+            </div>
+          </div>
+
           <div className="form-actions">
             <button type="button" onClick={() => resetLockMutation.mutate()} disabled={resetLockMutation.isPending}>
               {resetLockMutation.isPending ? "Setzt zurück..." : "Sperre kontrolliert zurücksetzen"}
             </button>
           </div>
           {resetLockMutation.isError ? <p className="form-error">{resetLockMutation.error.message}</p> : null}
-        </article>
+        </>
+      );
+    }
 
-        <article className="card">
-          <h3>Technischer Zugang</h3>
-          <p>
-            Die eigentliche Pflegeoberfläche ist diese Anwendung. Für technische Prüfungen kannst du hier direkt die
-            Backend-API-Doku öffnen, ohne die Adresse separat aufzurufen.
-          </p>
-          <div className="form-actions">
-            <a className="card__link" href={backendDocsUrl} target="_blank" rel="noreferrer">
-              Backend-API öffnen
-            </a>
-            <a className="card__link" href={backendOpenApiUrl} target="_blank" rel="noreferrer">
-              OpenAPI-JSON öffnen
-            </a>
-          </div>
-        </article>
-
-        <EinheitenPflegeCard className="card card--wide" />
-
-        <article className="card card--wide">
-          <h3>Laufzeit-Einstellungen</h3>
+    if (selectedAnsicht === "pfade") {
+      return (
+        <>
+          {settingsQuery.isError ? <p className="form-error">{settingsQuery.error.message}</p> : null}
           {!form ? <p>Einstellungen werden geladen…</p> : null}
           {form ? (
             <form
@@ -149,7 +247,9 @@ export function EinstellungenPage() {
                 <span>Datenpfad</span>
                 <input
                   value={form.data_path}
-                  onChange={(event) => setForm((current) => (current ? { ...current, data_path: event.target.value } : current))}
+                  onChange={(event) =>
+                    setForm((current) => (current ? { ...current, data_path: event.target.value } : current))
+                  }
                 />
               </label>
 
@@ -195,92 +295,261 @@ export function EinstellungenPage() {
                 />
               </label>
 
-              <label className="field field--full">
-                <span>Quelldateien standardmäßig ablegen</span>
-                <input
-                  type="checkbox"
-                  checked={form.import_store_source_files_default}
-                  onChange={(event) =>
-                    setForm((current) =>
-                      current ? { ...current, import_store_source_files_default: event.target.checked } : current
-                    )
-                  }
-                />
-              </label>
-
-              <label className="field field--full">
-                <span>Labore beim Import standardmäßig automatisch anlegen</span>
-                <input
-                  type="checkbox"
-                  checked={form.import_auto_create_lab_default}
-                  onChange={(event) =>
-                    setForm((current) =>
-                      current ? { ...current, import_auto_create_lab_default: event.target.checked } : current
-                    )
-                  }
-                />
-              </label>
-
-              <label className="field field--full">
-                <span>Berichte standardmäßig mit Laborangabe</span>
-                <input
-                  type="checkbox"
-                  checked={form.report_include_labor_default}
-                  onChange={(event) =>
-                    setForm((current) =>
-                      current ? { ...current, report_include_labor_default: event.target.checked } : current
-                    )
-                  }
-                />
-              </label>
-
-              <label className="field field--full">
-                <span>Berichte standardmäßig mit Referenzangabe</span>
-                <input
-                  type="checkbox"
-                  checked={form.report_include_reference_default}
-                  onChange={(event) =>
-                    setForm((current) =>
-                      current ? { ...current, report_include_reference_default: event.target.checked } : current
-                    )
-                  }
-                />
-              </label>
-
-              <label className="field field--full">
-                <span>Normierte Vergleichsdarstellung bevorzugen</span>
-                <input
-                  type="checkbox"
-                  checked={form.darstellung_normierte_vergleiche}
-                  onChange={(event) =>
-                    setForm((current) =>
-                      current ? { ...current, darstellung_normierte_vergleiche: event.target.checked } : current
-                    )
-                  }
-                />
-              </label>
-
-              <label className="field field--full">
-                <span>API-Key-Nutzung grundsätzlich erlauben</span>
-                <input
-                  type="checkbox"
-                  checked={form.allow_api_key_usage}
-                  onChange={(event) =>
-                    setForm((current) => (current ? { ...current, allow_api_key_usage: event.target.checked } : current))
-                  }
-                />
-              </label>
-
               <div className="form-actions">
                 <button type="submit" disabled={saveMutation.isPending}>
-                  {saveMutation.isPending ? "Speichert..." : "Einstellungen speichern"}
+                  {saveMutation.isPending ? "Speichert..." : "Pfade speichern"}
                 </button>
               </div>
               {saveMutation.isError ? <p className="form-error">{saveMutation.error.message}</p> : null}
             </form>
           ) : null}
-        </article>
-      </div>
+        </>
+      );
+    }
+
+    if (selectedAnsicht === "standards") {
+      return (
+        <>
+          {settingsQuery.isError ? <p className="form-error">{settingsQuery.error.message}</p> : null}
+          {!form ? <p>Einstellungen werden geladen…</p> : null}
+          {form ? (
+            <>
+              <div className="detail-grid">
+                <div className="detail-grid__item">
+                  <span>Quelldateien ablegen</span>
+                  <strong>{formatBoolean(form.import_store_source_files_default)}</strong>
+                </div>
+                <div className="detail-grid__item">
+                  <span>Labore automatisch anlegen</span>
+                  <strong>{formatBoolean(form.import_auto_create_lab_default)}</strong>
+                </div>
+                <div className="detail-grid__item">
+                  <span>Berichte mit Laborangabe</span>
+                  <strong>{formatBoolean(form.report_include_labor_default)}</strong>
+                </div>
+                <div className="detail-grid__item">
+                  <span>Berichte mit Referenzangabe</span>
+                  <strong>{formatBoolean(form.report_include_reference_default)}</strong>
+                </div>
+                <div className="detail-grid__item">
+                  <span>Normierte Vergleichsdarstellung</span>
+                  <strong>{formatBoolean(form.darstellung_normierte_vergleiche)}</strong>
+                </div>
+                <div className="detail-grid__item">
+                  <span>API-Key-Nutzung erlaubt</span>
+                  <strong>{formatBoolean(form.allow_api_key_usage)}</strong>
+                </div>
+              </div>
+
+              <form
+                className="form-grid"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  saveMutation.mutate();
+                }}
+              >
+                <div className="field field--full">
+                  <span>Standardvorgaben</span>
+                  <div className="checkbox-grid">
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={form.import_store_source_files_default}
+                        onChange={(event) =>
+                          setForm((current) =>
+                            current ? { ...current, import_store_source_files_default: event.target.checked } : current
+                          )
+                        }
+                      />
+                      <span>Quelldateien standardmäßig ablegen</span>
+                    </label>
+
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={form.import_auto_create_lab_default}
+                        onChange={(event) =>
+                          setForm((current) =>
+                            current ? { ...current, import_auto_create_lab_default: event.target.checked } : current
+                          )
+                        }
+                      />
+                      <span>Labore beim Import standardmäßig automatisch anlegen</span>
+                    </label>
+
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={form.report_include_labor_default}
+                        onChange={(event) =>
+                          setForm((current) =>
+                            current ? { ...current, report_include_labor_default: event.target.checked } : current
+                          )
+                        }
+                      />
+                      <span>Berichte standardmäßig mit Laborangabe</span>
+                    </label>
+
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={form.report_include_reference_default}
+                        onChange={(event) =>
+                          setForm((current) =>
+                            current ? { ...current, report_include_reference_default: event.target.checked } : current
+                          )
+                        }
+                      />
+                      <span>Berichte standardmäßig mit Referenzangabe</span>
+                    </label>
+
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={form.darstellung_normierte_vergleiche}
+                        onChange={(event) =>
+                          setForm((current) =>
+                            current ? { ...current, darstellung_normierte_vergleiche: event.target.checked } : current
+                          )
+                        }
+                      />
+                      <span>Normierte Vergleichsdarstellung bevorzugen</span>
+                    </label>
+
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={form.allow_api_key_usage}
+                        onChange={(event) =>
+                          setForm((current) =>
+                            current ? { ...current, allow_api_key_usage: event.target.checked } : current
+                          )
+                        }
+                      />
+                      <span>API-Key-Nutzung grundsätzlich erlauben</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="form-actions">
+                  <button type="submit" disabled={saveMutation.isPending}>
+                    {saveMutation.isPending ? "Speichert..." : "Vorgaben speichern"}
+                  </button>
+                </div>
+                {saveMutation.isError ? <p className="form-error">{saveMutation.error.message}</p> : null}
+              </form>
+            </>
+          ) : null}
+        </>
+      );
+    }
+
+    if (selectedAnsicht === "einheiten") {
+      return <EinheitenPflegeCard className="card card--soft" />;
+    }
+
+    return (
+      <article className="card card--soft parameter-action-panel">
+        <div className="parameter-panel__header">
+          <div>
+            <h3>Backend-Zugänge</h3>
+            <p>Die eigentliche Pflegeoberfläche ist diese Anwendung. Für technische Prüfungen stehen hier die Rohzugänge bereit.</p>
+          </div>
+        </div>
+
+        <div className="parameter-panel__actions">
+          <a className="inline-button" href={backendDocsUrl} target="_blank" rel="noreferrer">
+            Backend-API öffnen
+          </a>
+          <a className="inline-button" href={backendOpenApiUrl} target="_blank" rel="noreferrer">
+            OpenAPI-JSON öffnen
+          </a>
+        </div>
+      </article>
+    );
+  };
+
+  return (
+    <section className="page">
+      <header className="page__header page__header--compact">
+        <h2>Einstellungen</h2>
+        <div className="page__info">
+          <button
+            type="button"
+            className="icon-button page__info-button"
+            aria-label="Hinweis zur Einstellungsseite"
+            aria-expanded={showPageInfo}
+            onClick={() => setShowPageInfo((current) => !current)}
+          >
+            i
+          </button>
+          {showPageInfo ? (
+            <div className="page__info-popover">
+              Hier prüfst Du Betriebszustand, Datenbasis-Sperre, zentrale Laufzeitvorgaben und technische Zugänge der
+              lokalen Anwendung.
+            </div>
+          ) : null}
+        </div>
+      </header>
+
+      <article className="card">
+        <div className="parameter-detail__header">
+          <div>
+            <h3 className="parameter-detail__title">{sectionMeta.title}</h3>
+            <p>{sectionMeta.description}</p>
+          </div>
+          <div className="parameter-header-controls">
+            <span className="parameter-pill parameter-pill--accent">{sectionMeta.badge}</span>
+          </div>
+        </div>
+
+        <div className="parameter-toolrail">
+          <button
+            type="button"
+            className={`parameter-toolrail__button ${selectedAnsicht === "uebersicht" ? "parameter-toolrail__button--active" : ""}`}
+            onClick={() => setSelectedAnsicht("uebersicht")}
+          >
+            Übersicht
+          </button>
+          <button
+            type="button"
+            className={`parameter-toolrail__button ${selectedAnsicht === "sperre" ? "parameter-toolrail__button--active" : ""}`}
+            onClick={() => setSelectedAnsicht("sperre")}
+          >
+            Sperre
+          </button>
+          <button
+            type="button"
+            className={`parameter-toolrail__button ${selectedAnsicht === "pfade" ? "parameter-toolrail__button--active" : ""}`}
+            onClick={() => setSelectedAnsicht("pfade")}
+          >
+            Pfade
+          </button>
+          <button
+            type="button"
+            className={`parameter-toolrail__button ${selectedAnsicht === "standards" ? "parameter-toolrail__button--active" : ""}`}
+            onClick={() => setSelectedAnsicht("standards")}
+          >
+            Standards
+          </button>
+          <button
+            type="button"
+            className={`parameter-toolrail__button ${selectedAnsicht === "einheiten" ? "parameter-toolrail__button--active" : ""}`}
+            onClick={() => setSelectedAnsicht("einheiten")}
+          >
+            Einheiten
+          </button>
+          <button
+            type="button"
+            className={`parameter-toolrail__button ${selectedAnsicht === "technik" ? "parameter-toolrail__button--active" : ""}`}
+            onClick={() => setSelectedAnsicht("technik")}
+          >
+            Technik
+          </button>
+        </div>
+
+        {renderSection()}
+      </article>
     </section>
   );
 }

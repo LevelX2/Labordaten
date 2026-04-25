@@ -494,6 +494,19 @@ export type ImportMesswertPreview = {
   referenz_alter_min_tage?: number | null;
   referenz_alter_max_tage?: number | null;
   referenz_bemerkung?: string | null;
+  parameter_vorschlag?: ImportParameterVorschlag | null;
+};
+
+export type ImportParameterVorschlag = {
+  index: number;
+  anzeigename: string;
+  wert_typ_standard?: WertTyp | null;
+  standard_einheit?: string | null;
+  beschreibung_kurz?: string | null;
+  moegliche_aliase: string[];
+  begruendung_aus_dokument?: string | null;
+  unsicher_flag: boolean;
+  messwert_indizes: number[];
 };
 
 export type ImportAehnlicheGruppe = {
@@ -553,6 +566,7 @@ export type ImportVorgangDetail = {
   befund: ImportBefundPreview;
   messwerte: ImportMesswertPreview[];
   gruppenvorschlaege: ImportGruppenvorschlag[];
+  parameter_vorschlaege: ImportParameterVorschlag[];
   pruefpunkte: ImportPruefpunkt[];
 };
 
@@ -571,6 +585,23 @@ export type ImportGruppenvorschlaegeAnwendenResponse = {
     gruppenname?: string | null;
     zugeordnete_parameter_anzahl: number;
   }>;
+};
+
+export type ImportKomplettEntfernenResponse = {
+  import_id: string;
+  dokument_id?: string | null;
+  dokument_entfernt: boolean;
+  pruefpunkte_entfernt: number;
+};
+
+export type ImportPromptPayload = {
+  promptTyp: "laborbericht" | "tabelle";
+};
+
+export type ImportPromptResponse = {
+  promptText: string;
+  kontextZusammenfassung: string;
+  schemaVersion: string;
 };
 
 export type ArztberichtEintrag = {
@@ -730,4 +761,43 @@ export type WissensseiteListItem = {
 export type WissensseiteDetail = WissensseiteListItem & {
   frontmatter: Record<string, unknown>;
   inhalt_markdown: string;
+};
+
+export type Loeschmodus = "direkt" | "kaskade" | "blockiert";
+export type Loeschaktion = "loeschen" | "deaktivieren";
+export type Loeschempfehlung = "loeschen" | "deaktivieren" | "nicht_loeschen";
+export type LoeschAbhaengigkeitKategorie = "kind" | "nutzung" | "folge";
+
+export type LoeschAbhaengigkeit = {
+  objekt_typ: string;
+  anzahl: number;
+  kategorie: LoeschAbhaengigkeitKategorie;
+  beschreibung?: string | null;
+};
+
+export type LoeschOptionen = {
+  deaktivieren_verfuegbar: boolean;
+  leeren_befund_mitloeschen_standard: boolean;
+};
+
+export type LoeschPruefung = {
+  entitaet_typ: string;
+  entitaet_id: string;
+  anzeige_name: string;
+  modus: Loeschmodus;
+  empfehlung: Loeschempfehlung;
+  standard_aktion?: Loeschaktion | null;
+  abhaengigkeiten: LoeschAbhaengigkeit[];
+  blockierungsgruende: string[];
+  hinweise: string[];
+  optionen: LoeschOptionen;
+};
+
+export type LoeschAusfuehrung = {
+  entitaet_typ: string;
+  entitaet_id: string;
+  aktion: Loeschaktion;
+  geloeschte_objekte: LoeschAbhaengigkeit[];
+  aktualisierte_objekte: LoeschAbhaengigkeit[];
+  hinweise: string[];
 };

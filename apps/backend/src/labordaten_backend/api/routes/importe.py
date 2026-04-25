@@ -57,6 +57,41 @@ async def create_import_entwurf_from_file(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
 
+@router.post("/json-entwurf", response_model=schemas.ImportvorgangDetailRead, status_code=status.HTTP_201_CREATED)
+async def create_import_entwurf_from_json_upload(
+    payload_json: str = Form(...),
+    person_id_override: str | None = Form(default=None),
+    import_bemerkung: str | None = Form(default=None),
+    dokument_name: str | None = Form(default=None),
+    dokument: UploadFile | None = File(default=None),
+    db: Session = Depends(get_db),
+) -> schemas.ImportvorgangDetailRead:
+    try:
+        return service.create_import_entwurf_from_json_upload(
+            db,
+            payload_json=payload_json,
+            person_id_override=person_id_override,
+            import_bemerkung=import_bemerkung,
+            document_filename=dokument.filename if dokument is not None else None,
+            document_content_type=dokument.content_type if dokument is not None else None,
+            document_content=await dokument.read() if dokument is not None else None,
+            document_name_override=dokument_name,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@router.post("/prompt", response_model=schemas.ImportPromptRead)
+def create_import_prompt(
+    payload: schemas.ImportPromptCreate,
+    db: Session = Depends(get_db),
+) -> schemas.ImportPromptRead:
+    try:
+        return service.create_import_prompt(db, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
 @router.get("/{import_id}", response_model=schemas.ImportvorgangDetailRead)
 def get_import_detail(import_id: str, db: Session = Depends(get_db)) -> schemas.ImportvorgangDetailRead:
     detail = service.get_import_detail(db, import_id)
@@ -86,6 +121,22 @@ def uebernehmen_import(
 def verwerfen_import(import_id: str, db: Session = Depends(get_db)) -> schemas.ImportvorgangDetailRead:
     try:
         return service.verwerfen_import(db, import_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@router.post("/{import_id}/komplett-entfernen", response_model=schemas.ImportKomplettEntfernenRead)
+def komplett_entfernen_import(
+    import_id: str,
+    payload: schemas.ImportKomplettEntfernenRequest,
+    db: Session = Depends(get_db),
+) -> schemas.ImportKomplettEntfernenRead:
+    try:
+        return service.komplett_entfernen_import(
+            db,
+            import_id,
+            dokument_entfernen=payload.dokument_entfernen,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 

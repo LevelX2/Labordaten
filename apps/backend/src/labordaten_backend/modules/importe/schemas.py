@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -35,6 +36,24 @@ class ImportGruppenvorschlagPayload(BaseModel):
     beschreibung: str | None = None
     sortierschluessel: str | None = Field(default=None, alias="sortierschluessel")
     messwert_indizes: list[int] = Field(alias="messwertIndizes")
+
+
+class ImportParameterVorschlagPayload(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    anzeigename: str
+    wert_typ_standard: str | None = Field(default=None, alias="wertTypStandard")
+    standard_einheit: str | None = Field(default=None, alias="standardEinheit")
+    beschreibung_kurz: str | None = Field(default=None, alias="beschreibungKurz")
+    moegliche_aliase: list[str] = Field(default_factory=list, alias="moeglicheAliase")
+    begruendung_aus_dokument: str | None = Field(default=None, alias="begruendungAusDokument")
+    unsicher_flag: bool = Field(default=False, alias="unsicherFlag")
+    messwert_indizes: list[int] = Field(alias="messwertIndizes")
+
+    @field_validator("wert_typ_standard")
+    @classmethod
+    def validate_wert_typ_standard(cls, value: str | None) -> str | None:
+        return validate_optional_code(value, valid_values=WERT_TYPEN, field_label="Werttyp")
 
 
 class ImportMesswertPayload(BaseModel):
@@ -130,6 +149,10 @@ class ImportPayload(BaseModel):
     befund: ImportBefundPayload
     messwerte: list[ImportMesswertPayload]
     gruppen_vorschlaege: list[ImportGruppenvorschlagPayload] = Field(default_factory=list, alias="gruppenVorschlaege")
+    parameter_vorschlaege: list[ImportParameterVorschlagPayload] = Field(
+        default_factory=list,
+        alias="parameterVorschlaege",
+    )
 
     @field_validator("schema_version")
     @classmethod
@@ -146,15 +169,44 @@ class ImportEntwurfCreate(BaseModel):
     bemerkung: str | None = None
 
 
+class ImportPromptCreate(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    prompt_typ: Literal["laborbericht", "tabelle"] = Field(default="laborbericht", alias="promptTyp")
+
+
+class ImportPromptRead(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    prompt_text: str = Field(alias="promptText")
+    kontext_zusammenfassung: str = Field(alias="kontextZusammenfassung")
+    schema_version: str = Field(alias="schemaVersion")
+
+
 class ImportParameterMapping(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     messwert_index: int
-    laborparameter_id: str
+    aktion: Literal["vorhanden", "neu"] = "vorhanden"
+    laborparameter_id: str | None = None
+    neuer_parameter_name: str | None = Field(default=None, alias="neuerParameterName")
     alias_uebernehmen: bool = False
 
 
 class ImportUebernehmenRequest(BaseModel):
     bestaetige_warnungen: bool = False
     parameter_mappings: list[ImportParameterMapping] = []
+
+
+class ImportKomplettEntfernenRequest(BaseModel):
+    dokument_entfernen: bool = False
+
+
+class ImportKomplettEntfernenRead(BaseModel):
+    import_id: str
+    dokument_id: str | None = None
+    dokument_entfernt: bool = False
+    pruefpunkte_entfernt: int = 0
 
 
 class ImportPruefpunktRead(BaseModel):
@@ -193,6 +245,18 @@ class ImportGruppenvorschlagRead(BaseModel):
     anwendbar: bool = False
 
 
+class ImportParameterVorschlagRead(BaseModel):
+    index: int
+    anzeigename: str
+    wert_typ_standard: str | None = None
+    standard_einheit: str | None = None
+    beschreibung_kurz: str | None = None
+    moegliche_aliase: list[str] = Field(default_factory=list)
+    begruendung_aus_dokument: str | None = None
+    unsicher_flag: bool = False
+    messwert_indizes: list[int] = Field(default_factory=list)
+
+
 class ImportMesswertPreviewRead(BaseModel):
     messwert_index: int
     parameter_id: str | None = None
@@ -217,6 +281,7 @@ class ImportMesswertPreviewRead(BaseModel):
     referenz_alter_min_tage: int | None = None
     referenz_alter_max_tage: int | None = None
     referenz_bemerkung: str | None = None
+    parameter_vorschlag: ImportParameterVorschlagRead | None = None
 
 
 class ImportBefundPreviewRead(BaseModel):
@@ -268,6 +333,7 @@ class ImportvorgangDetailRead(BaseModel):
     befund: ImportBefundPreviewRead
     messwerte: list[ImportMesswertPreviewRead]
     gruppenvorschlaege: list[ImportGruppenvorschlagRead] = []
+    parameter_vorschlaege: list[ImportParameterVorschlagRead] = Field(default_factory=list)
     pruefpunkte: list[ImportPruefpunktRead]
 
 

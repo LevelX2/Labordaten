@@ -2,8 +2,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
 import { apiFetch } from "../../shared/api/client";
+import { DateRangeFilterFields } from "../../shared/components/DateRangeFilterFields";
+import { LoeschAktionPanel } from "../../shared/components/LoeschAktionPanel";
+import { SelectionChecklist } from "../../shared/components/SelectionChecklist";
 import { formatBefundQuelleTyp } from "../../shared/constants/fieldOptions";
-import type { Befund, Labor, Messwert, Person } from "../../shared/types/api";
+import type { Befund, BefundQuelleTyp, Labor, Messwert, Person } from "../../shared/types/api";
+import { getDefaultDateRange } from "../../shared/utils/dateRangeDefaults";
+import { getDocumentContentUrl } from "../../shared/utils/documents";
 
 type BefundFormState = {
   person_id: string;
@@ -13,7 +18,19 @@ type BefundFormState = {
   bemerkung: string;
 };
 
-type BefundePanelKey = "create";
+type BefundFilterState = {
+  person_ids: string[];
+  labor_ids: string[];
+  datum_von: string;
+  datum_bis: string;
+  dokument_status: "alle" | "mit" | "ohne";
+  duplikat_status: "alle" | "nur_warnung" | "ohne_warnung";
+  quelle_typen: string[];
+};
+
+type BefundePanelKey = "create" | "delete" | "filters";
+
+const defaultDateRange = getDefaultDateRange();
 
 const initialForm: BefundFormState = {
   person_id: "",
@@ -22,6 +39,18 @@ const initialForm: BefundFormState = {
   befunddatum: "",
   bemerkung: ""
 };
+
+const initialFilter: BefundFilterState = {
+  person_ids: [],
+  labor_ids: [],
+  datum_von: "",
+  datum_bis: "",
+  dokument_status: "alle",
+  duplikat_status: "alle",
+  quelle_typen: []
+};
+
+const befundQuelleOptionen: BefundQuelleTyp[] = ["manuell", "import", "ki_import"];
 
 function formatDate(value?: string | null): string {
   if (!value) {
@@ -47,11 +76,6 @@ function formatDateTime(value?: string | null): string {
     hour: "2-digit",
     minute: "2-digit"
   }).format(new Date(value));
-}
-
-function toFileUrl(path: string): string {
-  const normalizedPath = path.replace(/\\/g, "/");
-  return normalizedPath.startsWith("/") ? `file://${normalizedPath}` : `file:///${normalizedPath}`;
 }
 
 function summarizeBefund(befund: Befund): string {
@@ -81,9 +105,49 @@ function formatMesswertAnzeige(messwert: Messwert): string {
   return messwert.wert_text || "—";
 }
 
+function getBefundFilterDate(befund: Befund): string {
+  return befund.entnahmedatum ?? befund.befunddatum ?? "";
+}
+
+function buildBefundFilterSummary(filter: BefundFilterState): string[] {
+  const summary: string[] = [];
+
+  if (filter.person_ids.length) {
+    summary.push(`${filter.person_ids.length} Person${filter.person_ids.length === 1 ? "" : "en"}`);
+  }
+  if (filter.labor_ids.length) {
+    summary.push(`${filter.labor_ids.length} Labor${filter.labor_ids.length === 1 ? "" : "e"}`);
+  }
+  if (filter.quelle_typen.length) {
+    summary.push(
+      filter.quelle_typen.length === befundQuelleOptionen.length
+        ? "alle Quellen"
+        : `${filter.quelle_typen.length} Quelle${filter.quelle_typen.length === 1 ? "" : "n"}`
+    );
+  }
+  if (filter.datum_von || filter.datum_bis) {
+    summary.push(`Zeitraum ${formatDate(filter.datum_von)} bis ${formatDate(filter.datum_bis)}`);
+  }
+  if (filter.dokument_status === "mit") {
+    summary.push("nur mit Dokument");
+  }
+  if (filter.dokument_status === "ohne") {
+    summary.push("nur ohne Dokument");
+  }
+  if (filter.duplikat_status === "nur_warnung") {
+    summary.push("nur mit Dublettenwarnung");
+  }
+  if (filter.duplikat_status === "ohne_warnung") {
+    summary.push("ohne Dublettenwarnung");
+  }
+
+  return summary.length ? summary : ["Keine Zusatzfilter aktiv."];
+}
+
 export function BefundePage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<BefundFormState>(initialForm);
+  const [filter, setFilter] = useState<BefundFilterState>(initialFilter);
   const [selectedBefundId, setSelectedBefundId] = useState<string | null>(null);
   const [befundSearchQuery, setBefundSearchQuery] = useState("");
   const [activePanel, setActivePanel] = useState<BefundePanelKey | null>(null);
@@ -114,26 +178,11 @@ export function BefundePage() {
 
   const sortedBefunde = useMemo(() => befundeQuery.data ?? [], [befundeQuery.data]);
 
-  useEffect(() => {
-    if (!sortedBefunde.length) {
-      setSelectedBefundId(null);
-      return;
-    }
-
-    const selectionStillExists = sortedBefunde.some((befund) => befund.id === selectedBefundId);
-    if (!selectedBefundId || !selectionStillExists) {
-      setSelectedBefundId(sortedBefunde[0].id);
-    }
-  }, [selectedBefundId, sortedBefunde]);
-
   const filteredBefunde = useMemo(() => {
     const normalizedSearchQuery = befundSearchQuery.trim().toLocaleLowerCase("de-DE");
-    if (!normalizedSearchQuery) {
-      return sortedBefunde;
-    }
 
-    return sortedBefunde.filter((befund) =>
-      [
+    return sortedBefunde.filter((befund) => {
+      const searchText = [
         befund.person_anzeigename ?? "",
         befund.labor_name ?? "",
         befund.bemerkung ?? "",
@@ -142,20 +191,75 @@ export function BefundePage() {
         befund.befunddatum ?? ""
       ]
         .join(" ")
-        .toLocaleLowerCase("de-DE")
-        .includes(normalizedSearchQuery)
-    );
-  }, [befundSearchQuery, sortedBefunde]);
+        .toLocaleLowerCase("de-DE");
+      const hasDocument = Boolean(befund.dokument_id || befund.dokument_dateiname);
+      const filterDate = getBefundFilterDate(befund);
+
+      if (normalizedSearchQuery && !searchText.includes(normalizedSearchQuery)) {
+        return false;
+      }
+      if (filter.person_ids.length && !filter.person_ids.includes(befund.person_id)) {
+        return false;
+      }
+      if (filter.labor_ids.length && (!befund.labor_id || !filter.labor_ids.includes(befund.labor_id))) {
+        return false;
+      }
+      if (filter.quelle_typen.length && !filter.quelle_typen.includes(befund.quelle_typ)) {
+        return false;
+      }
+      if (filter.dokument_status === "mit" && !hasDocument) {
+        return false;
+      }
+      if (filter.dokument_status === "ohne" && hasDocument) {
+        return false;
+      }
+      if (filter.duplikat_status === "nur_warnung" && !befund.duplikat_warnung) {
+        return false;
+      }
+      if (filter.duplikat_status === "ohne_warnung" && befund.duplikat_warnung) {
+        return false;
+      }
+      if (filter.datum_von && (!filterDate || filterDate < filter.datum_von)) {
+        return false;
+      }
+      if (filter.datum_bis && (!filterDate || filterDate > filter.datum_bis)) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [befundSearchQuery, filter, sortedBefunde]);
+
+  useEffect(() => {
+    if (!filteredBefunde.length) {
+      setSelectedBefundId(null);
+      return;
+    }
+
+    const selectionStillExists = filteredBefunde.some((befund) => befund.id === selectedBefundId);
+    if (!selectedBefundId || !selectionStillExists) {
+      setSelectedBefundId(filteredBefunde[0].id);
+    }
+  }, [filteredBefunde, selectedBefundId]);
 
   const selectedBefund = useMemo(
-    () => sortedBefunde.find((befund) => befund.id === selectedBefundId) ?? null,
-    [selectedBefundId, sortedBefunde]
+    () => filteredBefunde.find((befund) => befund.id === selectedBefundId) ?? null,
+    [filteredBefunde, selectedBefundId]
   );
 
-  const hasActiveBefundFilter = befundSearchQuery.trim().length > 0;
+  const hasStructuredBefundFilter =
+    filter.person_ids.length > 0 ||
+    filter.labor_ids.length > 0 ||
+    filter.quelle_typen.length > 0 ||
+    filter.datum_von.length > 0 ||
+    filter.datum_bis.length > 0 ||
+    filter.dokument_status !== "alle" ||
+    filter.duplikat_status !== "alle";
+  const hasActiveBefundFilter = hasStructuredBefundFilter || befundSearchQuery.trim().length > 0;
   const befundCountLabel = hasActiveBefundFilter
     ? `${filteredBefunde.length} von ${sortedBefunde.length} Befunden`
     : `${sortedBefunde.length} Befunde`;
+  const filterSummary = useMemo(() => buildBefundFilterSummary(filter), [filter]);
 
   useEffect(() => {
     setShowRelatedMesswerte(true);
@@ -197,6 +301,122 @@ export function BefundePage() {
   );
 
   const renderActionPanel = () => {
+    if (activePanel === "delete") {
+      return (
+        <LoeschAktionPanel
+          entitaetTyp="befund"
+          entitaetId={selectedBefundId}
+          title="Befund prüfen oder löschen"
+          emptyText="Bitte wähle zuerst links einen Befund aus."
+          onClose={() => setActivePanel(null)}
+          invalidateQueryKeys={[["befunde"], ["messwerte"]]}
+        />
+      );
+    }
+
+    if (activePanel === "filters") {
+      return (
+        <article className="card card--soft parameter-action-panel">
+          <div className="parameter-panel__header">
+            <div>
+              <h3>Befundfilter</h3>
+              <p>Die Filter wirken direkt auf Befundliste und Detailauswahl.</p>
+            </div>
+            {renderPanelCloseButton("Panel Befundfilter schließen")}
+          </div>
+
+          <div className="form-grid">
+            <SelectionChecklist
+              label="Personen"
+              options={(personenQuery.data ?? []).map((person) => ({
+                id: person.id,
+                label: person.anzeigename
+              }))}
+              selectedIds={filter.person_ids}
+              onChange={(person_ids) => setFilter((current) => ({ ...current, person_ids }))}
+              emptyText="Noch keine Personen vorhanden."
+              collapsible
+            />
+
+            <SelectionChecklist
+              label="Labore"
+              options={(laboreQuery.data ?? []).map((labor) => ({
+                id: labor.id,
+                label: labor.name
+              }))}
+              selectedIds={filter.labor_ids}
+              onChange={(labor_ids) => setFilter((current) => ({ ...current, labor_ids }))}
+              emptyText="Noch keine Labore vorhanden."
+              collapsible
+              defaultExpanded={false}
+            />
+
+            <SelectionChecklist
+              label="Quellen"
+              options={befundQuelleOptionen.map((quelle) => ({
+                id: quelle,
+                label: formatBefundQuelleTyp(quelle)
+              }))}
+              selectedIds={filter.quelle_typen}
+              onChange={(quelle_typen) => setFilter((current) => ({ ...current, quelle_typen }))}
+              emptyText="Keine Quellen verfügbar."
+              collapsible
+              defaultExpanded={false}
+            />
+
+            <DateRangeFilterFields
+              fromValue={filter.datum_von}
+              toValue={filter.datum_bis}
+              fallbackFromValue={defaultDateRange.datum_von}
+              fallbackToValue={defaultDateRange.datum_bis}
+              onFromChange={(datum_von) => setFilter((current) => ({ ...current, datum_von }))}
+              onToChange={(datum_bis) => setFilter((current) => ({ ...current, datum_bis }))}
+            />
+
+            <label className="field">
+              <span>Dokumentstatus</span>
+              <select
+                value={filter.dokument_status}
+                onChange={(event) =>
+                  setFilter((current) => ({
+                    ...current,
+                    dokument_status: event.target.value as BefundFilterState["dokument_status"]
+                  }))
+                }
+              >
+                <option value="alle">Alle Befunde</option>
+                <option value="mit">Nur mit Dokument</option>
+                <option value="ohne">Nur ohne Dokument</option>
+              </select>
+            </label>
+
+            <label className="field">
+              <span>Dublettenwarnung</span>
+              <select
+                value={filter.duplikat_status}
+                onChange={(event) =>
+                  setFilter((current) => ({
+                    ...current,
+                    duplikat_status: event.target.value as BefundFilterState["duplikat_status"]
+                  }))
+                }
+              >
+                <option value="alle">Alle Befunde</option>
+                <option value="nur_warnung">Nur mit Warnung</option>
+                <option value="ohne_warnung">Nur ohne Warnung</option>
+              </select>
+            </label>
+
+            <div className="form-actions">
+              <button type="button" onClick={() => setFilter(initialFilter)}>
+                Filter zurücksetzen
+              </button>
+            </div>
+          </div>
+        </article>
+      );
+    }
+
     if (activePanel !== "create") {
       return null;
     }
@@ -316,6 +536,7 @@ export function BefundePage() {
             <div>
               <h3>Vorhandene Befunde</h3>
               <p>{befundCountLabel}</p>
+              {hasStructuredBefundFilter ? <p>{filterSummary.join(" • ")}</p> : null}
             </div>
           </div>
 
@@ -326,7 +547,7 @@ export function BefundePage() {
                 className="clearable-field__input"
                 value={befundSearchQuery}
                 onChange={(event) => setBefundSearchQuery(event.target.value)}
-                placeholder="Person, Labor, Datum oder Dokument"
+                placeholder="Person, Labor, Datum, Quelle oder Dokument"
               />
               <button
                 type="button"
@@ -364,7 +585,7 @@ export function BefundePage() {
             ))}
             {!filteredBefunde.length ? (
               <div className="parameter-list__empty">
-                <p>Keine Befunde passen zur aktuellen Suche.</p>
+                <p>Keine Befunde passen zu Suche oder Filter.</p>
               </div>
             ) : null}
           </div>
@@ -372,32 +593,51 @@ export function BefundePage() {
 
         <div className="parameter-main">
           <article className="card">
+            <div className="parameter-toolrail">
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "create" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => setActivePanel((current) => (current === "create" ? null : "create"))}
+              >
+                Neuer Befund
+              </button>
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "filters" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => setActivePanel((current) => (current === "filters" ? null : "filters"))}
+              >
+                Filter
+              </button>
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "delete" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => setActivePanel((current) => (current === "delete" ? null : "delete"))}
+                disabled={!selectedBefundId}
+              >
+                Löschprüfung
+              </button>
+              {selectedBefund?.dokument_id ? (
+                <a
+                  className="parameter-toolrail__button"
+                  href={getDocumentContentUrl(selectedBefund.dokument_id)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Dokument öffnen
+                </a>
+              ) : null}
+            </div>
+
+            {renderActionPanel()}
+
             {!selectedBefund ? (
-              <p>Noch keine Befunde vorhanden. Lege über die Werkzeugleiste den ersten Befund an.</p>
+              <p>
+                {sortedBefunde.length
+                  ? "Aktuell ist kein Befund aus der gefilterten Liste ausgewählt."
+                  : "Noch keine Befunde vorhanden. Lege über die Werkzeugleiste den ersten Befund an."}
+              </p>
             ) : (
               <>
-                <div className="parameter-toolrail">
-                  <button
-                    type="button"
-                    className={`parameter-toolrail__button ${activePanel === "create" ? "parameter-toolrail__button--active" : ""}`}
-                    onClick={() => setActivePanel((current) => (current === "create" ? null : "create"))}
-                  >
-                    Neuer Befund
-                  </button>
-                  {selectedBefund.dokument_pfad ? (
-                    <a
-                      className="parameter-toolrail__button"
-                      href={toFileUrl(selectedBefund.dokument_pfad)}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Dokument öffnen
-                    </a>
-                  ) : null}
-                </div>
-
-                {renderActionPanel()}
-
                 <div className="parameter-detail__header">
                   <div>
                     <h3 className="parameter-detail__title">
@@ -454,7 +694,20 @@ export function BefundePage() {
                   </div>
                   <div className="detail-grid__item">
                     <span>Dokument</span>
-                    <strong>{selectedBefund.dokument_dateiname || "Nicht verknüpft"}</strong>
+                    <strong>
+                      {selectedBefund.dokument_id && selectedBefund.dokument_dateiname ? (
+                        <a
+                          className="text-link"
+                          href={getDocumentContentUrl(selectedBefund.dokument_id)}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {selectedBefund.dokument_dateiname}
+                        </a>
+                      ) : (
+                        selectedBefund.dokument_dateiname || "Nicht verknüpft"
+                      )}
+                    </strong>
                   </div>
                 </div>
 

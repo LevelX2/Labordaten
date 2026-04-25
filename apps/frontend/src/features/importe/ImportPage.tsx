@@ -1,12 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { apiFetch } from "../../shared/api/client";
+import { LoeschAktionPanel } from "../../shared/components/LoeschAktionPanel";
 import { formatGeschlechtCode, formatWertTyp } from "../../shared/constants/fieldOptions";
+import { getDocumentContentUrl } from "../../shared/utils/documents";
 import { formatReferenzAnzeige } from "../../shared/utils/laborFormatting";
 import type {
   Gruppe,
   ImportGruppenvorschlaegeAnwendenResponse,
+  ImportKomplettEntfernenResponse,
+  ImportPromptPayload,
+  ImportPromptResponse,
+  ImportPruefpunkt,
   ImportVorgangDetail,
   ImportMesswertPreview,
   ImportVorgangListItem,
@@ -19,27 +25,20 @@ type ImportFormState = {
   payload_json: string;
   person_id_override: string;
   bemerkung: string;
-};
-
-type DateiImportFormState = {
-  file: File | null;
-  person_id_override: string;
-  labor_id_override: string;
-  labor_name_override: string;
-  entnahmedatum_override: string;
-  befunddatum_override: string;
-  befund_bemerkung_override: string;
-  import_bemerkung: string;
-  quelle_behalten: boolean;
+  dokument_file: File | null;
+  dokument_name: string;
 };
 
 type GruppenVorschlagAktion = "neu" | "vorhanden" | "ignorieren";
+type ImportMode = "ki" | "json" | "pruefen" | "historie";
 
 type GruppenVorschlagState = {
   aktion: GruppenVorschlagAktion;
   gruppe_id: string;
   gruppenname: string;
 };
+
+const NEW_PARAMETER_MAPPING_VALUE = "__new_parameter__";
 
 const examplePayload = `{
   "schemaVersion": "1.0",
@@ -58,22 +57,88 @@ const examplePayload = `{
   ]
 }`;
 
+const jsonInterfaceGuide = `Ziel: Erzeuge ein JSON-Objekt für den Import in die Anwendung "Labordaten".
+Quelle kann ein Laborbericht, PDF, Bild, CSV, Excel, eine kopierte Tabelle oder ein anderes strukturiertes Dokument sein.
+
+Ausgabe:
+- Gib ausschließlich valides JSON aus, wenn das Ergebnis direkt importiert werden soll.
+- Wenn Du zusätzlich erklärenden Text ausgibst, muss das JSON in genau einem Markdown-Codeblock mit Sprache json stehen.
+- Keine zusätzlichen Felder verwenden.
+- Keine Platzhalter wie "unbekannt" setzen.
+- Datumsformat: YYYY-MM-DD.
+- Zahlen im JSON mit Dezimalpunkt schreiben.
+
+Wurzelstruktur:
+{
+  "schemaVersion": "1.0",
+  "quelleTyp": "ki_json",
+  "personHinweis": "optional erkannte Person als Text",
+  "befund": {
+    "personId": "optional, wenn von der Anwendung oder vom Nutzer vorgegeben",
+    "laborId": "optional, nur bei eindeutigem Match",
+    "laborName": "optional, wenn kein sicherer laborId-Match möglich ist",
+    "entnahmedatum": "YYYY-MM-DD",
+    "befunddatum": "YYYY-MM-DD",
+    "bemerkung": "optional"
+  },
+  "messwerte": [
+    {
+      "parameterId": "optional, nur bei eindeutigem Match",
+      "originalParametername": "Name exakt aus der Quelle",
+      "wertTyp": "numerisch",
+      "wertOperator": "exakt",
+      "wertRohText": "41",
+      "wertNum": 41,
+      "einheitOriginal": "ng/ml",
+      "referenzTextOriginal": "30-400 ng/ml",
+      "untereGrenzeNum": 30,
+      "obereGrenzeNum": 400,
+      "referenzEinheit": "ng/ml",
+      "bemerkungKurz": "optional",
+      "bemerkungLang": "optional",
+      "aliasUebernehmen": false,
+      "unsicherFlag": false,
+      "pruefbedarfFlag": false
+    }
+  ],
+  "gruppenVorschlaege": [
+    {
+      "name": "Berichtsabschnitt",
+      "beschreibung": "optional",
+      "messwertIndizes": [0]
+    }
+  ],
+  "parameterVorschlaege": [
+    {
+      "anzeigename": "Gut lesbarer Parametername",
+      "wertTypStandard": "numerisch",
+      "standardEinheit": "optionale Einheit",
+      "beschreibungKurz": "Allgemeine, berichtsunabhängige Fachbeschreibung des Parameters",
+      "moeglicheAliase": ["Name aus der Quelle"],
+      "begruendungAusDokument": "Warum der Vorschlag zu den Messwerten passt",
+      "unsicherFlag": false,
+      "messwertIndizes": [0]
+    }
+  ]
+}
+
+Regeln:
+- Wenn die Quelle CSV, Excel oder eine Tabelle ist, erkenne Spalten wie Parameter, Wert, Einheit, Referenz und Datum und überführe sie in dieselbe JSON-Struktur.
+- "messwerte" enthält alle erkannten Laborwerte.
+- "originalParametername" und "wertRohText" bleiben nah an der Quelle.
+- "parameterId" nur setzen, wenn ein vorhandener Parameter eindeutig bekannt ist.
+- Bei unsicheren Zuordnungen "parameterId" weglassen und "pruefbedarfFlag": true setzen.
+- Qualitative Werte wie "positiv", "negativ" oder "nicht nachweisbar" mit "wertTyp": "text" und "wertText" abbilden.
+- Referenzbereiche als Originaltext erhalten; strukturierte Grenzen nur setzen, wenn sie eindeutig sind.
+- "beschreibungKurz" bei Parameter-Vorschlägen darf keine konkrete Befundbewertung enthalten und muss unabhängig vom konkreten Import verständlich sein.
+- Berichtsspezifische Hinweise zu einem Parameter-Vorschlag gehören in "begruendungAusDokument".`;
+
 const initialForm: ImportFormState = {
   payload_json: examplePayload,
   person_id_override: "",
-  bemerkung: ""
-};
-
-const initialDateiForm: DateiImportFormState = {
-  file: null,
-  person_id_override: "",
-  labor_id_override: "",
-  labor_name_override: "",
-  entnahmedatum_override: "",
-  befunddatum_override: "",
-  befund_bemerkung_override: "",
-  import_bemerkung: "",
-  quelle_behalten: true
+  bemerkung: "",
+  dokument_file: null,
+  dokument_name: ""
 };
 
 function formatDate(value?: string | null): string {
@@ -118,6 +183,9 @@ function formatImportReference(messwert: ImportMesswertPreview): string {
 }
 
 function formatMappingInfo(messwert: ImportMesswertPreview, currentParameterId?: string): string {
+  if (currentParameterId === NEW_PARAMETER_MAPPING_VALUE) {
+    return "Neuanlage vorgesehen";
+  }
   if (currentParameterId && currentParameterId !== (messwert.parameter_id ?? "")) {
     return "Manuell angepasst";
   }
@@ -163,7 +231,7 @@ function getAliasRecommendation(args: {
   parameterById: Map<string, Parameter>;
 }): { recommended: boolean; note: string | null } {
   const { messwert, parameterId, parameterById } = args;
-  if (!parameterId) {
+  if (!parameterId || parameterId === NEW_PARAMETER_MAPPING_VALUE) {
     return { recommended: false, note: null };
   }
 
@@ -215,27 +283,55 @@ function getGruppenVorschlagDefault(args: {
   };
 }
 
-function buildDefaultImportRemark(args: {
-  filename?: string;
-  personName?: string | null;
-  laborName?: string | null;
-  entnahmedatum?: string;
-}): string {
-  if (!args.filename) {
-    return "";
-  }
+function getMesswertIndexFromCheck(item: ImportPruefpunkt): number | null {
+  const match = item.objekt_schluessel_temp?.match(/^messwert:(\d+)$/);
+  return match ? Number(match[1]) : null;
+}
 
-  const parts = [`Import aus Datei ${args.filename}`];
-  if (args.personName) {
-    parts.push(`für ${args.personName}`);
+function isResolvedMissingParameterCheck(item: ImportPruefpunkt, mappingState: Record<number, string>): boolean {
+  if (item.objekt_typ !== "messwert" || item.pruefart !== "parameter_mapping") {
+    return false;
   }
-  if (args.entnahmedatum) {
-    parts.push(`mit Entnahmedatum ${args.entnahmedatum}`);
+  const messwertIndex = getMesswertIndexFromCheck(item);
+  return messwertIndex !== null && Boolean(mappingState[messwertIndex]);
+}
+
+function getVisibleImportChecks(
+  importDetail: ImportVorgangDetail | undefined | null,
+  mappingState: Record<number, string>
+): ImportPruefpunkt[] {
+  if (!importDetail || !Array.isArray(importDetail.pruefpunkte)) {
+    return [];
   }
-  if (args.laborName) {
-    parts.push(`Labor ${args.laborName}`);
+  return importDetail.pruefpunkte.filter((item) => !isResolvedMissingParameterCheck(item, mappingState));
+}
+
+function getImportChecksBySeverity(items: ImportPruefpunkt[]): {
+  errors: number;
+  warnings: number;
+} {
+  if (!Array.isArray(items)) {
+    return { errors: 0, warnings: 0 };
   }
-  return parts.join(" · ");
+  return items.reduce(
+    (counts, item) => ({
+      errors: counts.errors + (item.status === "fehler" ? 1 : 0),
+      warnings: counts.warnings + (item.status === "warnung" ? 1 : 0)
+    }),
+    { errors: 0, warnings: 0 }
+  );
+}
+
+function getOpenMappingCount(importDetail: ImportVorgangDetail | undefined, mappingState: Record<number, string>): number {
+  if (!importDetail || importDetail.status === "uebernommen" || !Array.isArray(importDetail.messwerte)) {
+    return 0;
+  }
+  return importDetail.messwerte.filter((messwert) => !(mappingState[messwert.messwert_index] || messwert.parameter_id))
+    .length;
+}
+
+function shouldPreselectNewParameter(messwert: ImportMesswertPreview): boolean {
+  return !messwert.parameter_id && !messwert.parameter_mapping_hinweis;
 }
 
 function formatImportReferenceResolved(messwert: ImportMesswertPreview): string {
@@ -260,15 +356,36 @@ function formatImportReferenceResolved(messwert: ImportMesswertPreview): string 
   return range;
 }
 
+function formatPruefpunktStatus(status: string): string {
+  if (status === "warnung") {
+    return "Hinweis";
+  }
+  if (status === "fehler") {
+    return "Fehler";
+  }
+  return status;
+}
+
 export function ImportPage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<ImportFormState>(initialForm);
-  const [dateiForm, setDateiForm] = useState<DateiImportFormState>(initialDateiForm);
+  const [promptText, setPromptText] = useState("");
+  const [promptSummary, setPromptSummary] = useState("");
+  const [promptKind, setPromptKind] = useState<"laborbericht" | "tabelle">("laborbericht");
+  const [copyStatus, setCopyStatus] = useState<string | null>(null);
+  const [interfaceCopyStatus, setInterfaceCopyStatus] = useState<string | null>(null);
+  const [promptExpanded, setPromptExpanded] = useState(false);
+  const [importMode, setImportMode] = useState<ImportMode>("ki");
   const [selectedImportId, setSelectedImportId] = useState<string | null>(null);
   const [mappingState, setMappingState] = useState<Record<number, string>>({});
   const [aliasState, setAliasState] = useState<Record<number, boolean>>({});
   const [gruppenState, setGruppenState] = useState<Record<number, GruppenVorschlagState>>({});
+  const [gruppenResult, setGruppenResult] = useState<ImportGruppenvorschlaegeAnwendenResponse | null>(null);
   const [warningsConfirmed, setWarningsConfirmed] = useState(false);
+  const [showDeletePanel, setShowDeletePanel] = useState(false);
+  const [showDiscardPanel, setShowDiscardPanel] = useState(false);
+  const [removeLinkedDocument, setRemoveLinkedDocument] = useState(false);
+  const promptTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const personenQuery = useQuery({
     queryKey: ["personen"],
@@ -298,9 +415,16 @@ export function ImportPage() {
 
   useEffect(() => {
     if (!selectedImportId && importsQuery.data?.length) {
-      setSelectedImportId(importsQuery.data[0].id);
+      setSelectedImportId(importsQuery.data.find((item) => item.status === "in_pruefung")?.id ?? importsQuery.data[0].id);
     }
   }, [importsQuery.data, selectedImportId]);
+
+  useEffect(() => {
+    setShowDeletePanel(false);
+    setShowDiscardPanel(false);
+    setRemoveLinkedDocument(false);
+    setGruppenResult(null);
+  }, [selectedImportId]);
 
   const personById = useMemo(
     () => new Map((personenQuery.data ?? []).map((person) => [person.id, person])),
@@ -314,15 +438,6 @@ export function ImportPage() {
     () => new Map((laboreQuery.data ?? []).map((labor) => [labor.id, labor])),
     [laboreQuery.data]
   );
-  const selectedLaborName = laborById.get(dateiForm.labor_id_override)?.name ?? null;
-  const manualLaborName = dateiForm.labor_name_override.trim() ? dateiForm.labor_name_override.trim() : null;
-  const defaultImportRemark = buildDefaultImportRemark({
-    filename: dateiForm.file?.name,
-    personName: personById.get(dateiForm.person_id_override)?.anzeigename ?? null,
-    laborName: selectedLaborName ?? manualLaborName,
-    entnahmedatum: dateiForm.entnahmedatum_override
-  });
-
   useEffect(() => {
     const nextMappings: Record<number, string> = {};
     const nextAliases: Record<number, boolean> = {};
@@ -330,6 +445,8 @@ export function ImportPage() {
     selectedImportQuery.data?.messwerte.forEach((messwert) => {
       if (messwert.parameter_id) {
         nextMappings[messwert.messwert_index] = messwert.parameter_id;
+      } else if (shouldPreselectNewParameter(messwert)) {
+        nextMappings[messwert.messwert_index] = NEW_PARAMETER_MAPPING_VALUE;
       }
       const resolvedParameterId = messwert.parameter_id ?? undefined;
       const recommendation = getAliasRecommendation({
@@ -351,77 +468,50 @@ export function ImportPage() {
     setWarningsConfirmed(false);
   }, [selectedImportQuery.data, parameterById, gruppenQuery.data]);
 
-  useEffect(() => {
-    if (!defaultImportRemark) {
-      return;
-    }
-
-    setDateiForm((current) => {
-      if (current.import_bemerkung && current.import_bemerkung !== defaultImportRemark) {
-        return current;
-      }
-      return { ...current, import_bemerkung: defaultImportRemark };
-    });
-  }, [defaultImportRemark]);
-
   const createDraftMutation = useMutation({
-    mutationFn: () =>
-      apiFetch<ImportVorgangDetail>("/api/importe/entwurf", {
-        method: "POST",
-        body: JSON.stringify({
-          payload_json: form.payload_json,
-          person_id_override: form.person_id_override || null,
-          bemerkung: form.bemerkung || null
-        })
-      }),
-    onSuccess: async (detail) => {
-      setSelectedImportId(detail.id);
-      await queryClient.invalidateQueries({ queryKey: ["importe"] });
-      await queryClient.invalidateQueries({ queryKey: ["importe", detail.id] });
-    }
-  });
-
-  const createFileDraftMutation = useMutation({
-    mutationFn: async () => {
-      if (!dateiForm.file) {
-        throw new Error("Bitte eine CSV- oder Excel-Datei auswählen.");
-      }
-
+    mutationFn: () => {
       const formData = new FormData();
-      formData.append("file", dateiForm.file);
-      if (dateiForm.person_id_override) {
-        formData.append("person_id_override", dateiForm.person_id_override);
+      formData.append("payload_json", form.payload_json);
+      if (form.person_id_override) {
+        formData.append("person_id_override", form.person_id_override);
       }
-      if (dateiForm.labor_id_override) {
-        formData.append("labor_id_override", dateiForm.labor_id_override);
+      if (form.bemerkung) {
+        formData.append("import_bemerkung", form.bemerkung);
       }
-      if (dateiForm.labor_name_override) {
-        formData.append("labor_name_override", dateiForm.labor_name_override);
+      if (form.dokument_name) {
+        formData.append("dokument_name", form.dokument_name);
       }
-      if (dateiForm.entnahmedatum_override) {
-        formData.append("entnahmedatum_override", dateiForm.entnahmedatum_override);
+      if (form.dokument_file) {
+        formData.append("dokument", form.dokument_file);
       }
-      if (dateiForm.befunddatum_override) {
-        formData.append("befunddatum_override", dateiForm.befunddatum_override);
-      }
-      if (dateiForm.befund_bemerkung_override) {
-        formData.append("befund_bemerkung_override", dateiForm.befund_bemerkung_override);
-      }
-      if (dateiForm.import_bemerkung) {
-        formData.append("import_bemerkung", dateiForm.import_bemerkung);
-      }
-      formData.append("quelle_behalten", String(dateiForm.quelle_behalten));
-
-      return apiFetch<ImportVorgangDetail>("/api/importe/datei-entwurf", {
+      return apiFetch<ImportVorgangDetail>("/api/importe/json-entwurf", {
         method: "POST",
         body: formData
       });
     },
     onSuccess: async (detail) => {
       setSelectedImportId(detail.id);
-      setDateiForm((current) => ({ ...initialDateiForm, person_id_override: current.person_id_override }));
+      setImportMode("pruefen");
       await queryClient.invalidateQueries({ queryKey: ["importe"] });
       await queryClient.invalidateQueries({ queryKey: ["importe", detail.id] });
+    }
+  });
+
+  const createPromptMutation = useMutation({
+    mutationFn: (promptTyp: "laborbericht" | "tabelle") => {
+      const payload: ImportPromptPayload = {
+        promptTyp
+      };
+      return apiFetch<ImportPromptResponse>("/api/importe/prompt", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+    },
+    onSuccess: (response) => {
+      setPromptText(response.promptText);
+      setPromptSummary(response.kontextZusammenfassung);
+      setCopyStatus(null);
+      setPromptExpanded(false);
     }
   });
 
@@ -431,11 +521,26 @@ export function ImportPage() {
         method: "POST",
         body: JSON.stringify({
           bestaetige_warnungen: warningsConfirmed,
-          parameter_mappings: Object.entries(mappingState).map(([messwert_index, laborparameter_id]) => ({
-            messwert_index: Number(messwert_index),
-            laborparameter_id,
-            alias_uebernehmen: Boolean(aliasState[Number(messwert_index)])
-          }))
+          parameter_mappings: Object.entries(mappingState)
+            .filter(([, mappingValue]) => Boolean(mappingValue))
+            .map(([messwert_index, mappingValue]) =>
+              mappingValue === NEW_PARAMETER_MAPPING_VALUE
+                ? {
+                    messwert_index: Number(messwert_index),
+                    aktion: "neu",
+                    neuerParameterName:
+                      selectedImportQuery.data?.messwerte.find(
+                        (messwert) => messwert.messwert_index === Number(messwert_index)
+                      )?.parameter_vorschlag?.anzeigename,
+                    alias_uebernehmen: false
+                  }
+                : {
+                    messwert_index: Number(messwert_index),
+                    aktion: "vorhanden",
+                    laborparameter_id: mappingValue,
+                    alias_uebernehmen: Boolean(aliasState[Number(messwert_index)])
+                  }
+            )
         })
       }),
     onSuccess: async (detail) => {
@@ -454,9 +559,35 @@ export function ImportPage() {
         method: "POST"
       }),
     onSuccess: async (detail) => {
+      setShowDiscardPanel(false);
+      setRemoveLinkedDocument(false);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["importe"] }),
         queryClient.invalidateQueries({ queryKey: ["importe", detail.id] })
+      ]);
+    }
+  });
+
+  const komplettEntfernenMutation = useMutation({
+    mutationFn: () =>
+      apiFetch<ImportKomplettEntfernenResponse>(`/api/importe/${selectedImportId}/komplett-entfernen`, {
+        method: "POST",
+        body: JSON.stringify({
+          dokument_entfernen: removeLinkedDocument
+        })
+      }),
+    onSuccess: async (response) => {
+      queryClient.setQueryData<ImportVorgangListItem[]>(["importe"], (current) =>
+        current?.filter((item) => item.id !== response.import_id) ?? current
+      );
+      queryClient.removeQueries({ queryKey: ["importe", response.import_id] });
+      setShowDiscardPanel(false);
+      setRemoveLinkedDocument(false);
+      setSelectedImportId(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["importe"] }),
+        queryClient.invalidateQueries({ queryKey: ["befunde"] }),
+        queryClient.invalidateQueries({ queryKey: ["messwerte"] })
       ]);
     }
   });
@@ -483,7 +614,8 @@ export function ImportPage() {
           })
         }
       ),
-    onSuccess: async () => {
+    onSuccess: async (response) => {
+      setGruppenResult(response);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["gruppen"] }),
         queryClient.invalidateQueries({ queryKey: ["importe", selectedImportId] })
@@ -492,7 +624,112 @@ export function ImportPage() {
   });
 
   const selectedImport = selectedImportQuery.data;
-  const hasWarnings = Boolean(selectedImport?.warnung_anzahl);
+  const visibleImportChecks = useMemo(
+    () => getVisibleImportChecks(selectedImport, mappingState),
+    [selectedImport, mappingState]
+  );
+  const selectedImportChecks = getImportChecksBySeverity(visibleImportChecks);
+  const hasWarnings = selectedImportChecks.warnings > 0;
+  const openImports = useMemo(
+    () => (importsQuery.data ?? []).filter((item) => item.status === "in_pruefung"),
+    [importsQuery.data]
+  );
+  const openImportCount = openImports.length;
+  const isStartMode = importMode === "ki" || importMode === "json";
+  const selectedImportDocumentId = selectedImport?.befund.dokument_id ?? selectedImport?.dokument_id ?? null;
+  const selectedImportDocumentName =
+    selectedImport?.dokument_dateiname ?? selectedImport?.befund.dokument_dateiname ?? null;
+  const openMappingCount = getOpenMappingCount(selectedImport, mappingState);
+  const groupsAvailable = Boolean(selectedImport?.gruppenvorschlaege.length);
+  const groupsDone = Boolean(groupsAvailable && gruppenResult);
+  const openBefundSection = Boolean(selectedImport && selectedImportChecks.errors > 0);
+  const openMesswerteSection = Boolean(selectedImport && selectedImport.status !== "uebernommen" && openMappingCount > 0);
+  const openUebernahmeSection = Boolean(
+    selectedImport && selectedImport.status !== "uebernommen"
+  );
+  const importTakeoverBlocked = Boolean(
+    selectedImportChecks.errors > 0 || openMappingCount > 0 || (hasWarnings && !warningsConfirmed)
+  );
+  const openGruppenSection = Boolean(
+    selectedImport && selectedImport.status === "uebernommen" && groupsAvailable && !groupsDone
+  );
+  const openAbschlussSection = Boolean(
+    selectedImport && selectedImport.status === "uebernommen" && (!groupsAvailable || groupsDone)
+  );
+
+  async function copyPromptToClipboard(): Promise<void> {
+    if (!promptText) {
+      return;
+    }
+    const copyWithTemporaryTextarea = (): boolean => {
+      const textarea = document.createElement("textarea");
+      textarea.value = promptText;
+      textarea.setAttribute("readonly", "true");
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      textarea.style.top = "0";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      let copied = false;
+      try {
+        copied = document.execCommand("copy");
+      } finally {
+        document.body.removeChild(textarea);
+      }
+      return copied;
+    };
+
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error("Clipboard API nicht verfügbar.");
+      }
+      await navigator.clipboard.writeText(promptText);
+      setCopyStatus("Prompt wurde kopiert.");
+    } catch {
+      if (copyWithTemporaryTextarea()) {
+        setCopyStatus("Prompt wurde kopiert.");
+        return;
+      }
+
+      setPromptExpanded(true);
+      window.setTimeout(() => {
+        promptTextareaRef.current?.focus();
+        promptTextareaRef.current?.select();
+      }, 0);
+      setCopyStatus("Der Browser blockiert direktes Kopieren. Der Prompt ist markiert und kann mit Strg+C kopiert werden.");
+    }
+  }
+
+  async function copyInterfaceGuideToClipboard(): Promise<void> {
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error("Clipboard API nicht verfügbar.");
+      }
+      await navigator.clipboard.writeText(jsonInterfaceGuide);
+      setInterfaceCopyStatus("Schnittstellenbeschreibung wurde kopiert.");
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = jsonInterfaceGuide;
+      textarea.setAttribute("readonly", "true");
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      const copied = document.execCommand("copy");
+      document.body.removeChild(textarea);
+      setInterfaceCopyStatus(
+        copied
+          ? "Schnittstellenbeschreibung wurde kopiert."
+          : "Kopieren nicht möglich. Bitte den Text aus der Anzeige manuell markieren."
+      );
+    }
+  }
+
+  function getImportModeTabClass(mode: ImportMode): string {
+    return importMode === mode ? "import-mode-tab import-mode-tab--active" : "import-mode-tab";
+  }
 
   return (
     <section className="page">
@@ -500,148 +737,206 @@ export function ImportPage() {
         <span className="page__kicker">Importprüfung</span>
         <h2>Import</h2>
         <p>
-          JSON-Importe können als Entwurf angelegt werden. Zusätzlich lassen sich jetzt CSV- und Excel-Dateien mit
-          Metadaten ergänzen, prüfen und erst danach bewusst übernehmen.
+          Bereite eine KI-Extraktion vor oder importiere ein KI-/JSON-Ergebnis. Angelegte Importe werden anschließend
+          im Tab <strong>Import prüfen</strong> kontrolliert.
         </p>
       </header>
 
-      <div className="workspace-grid">
-        <article className="card card--wide">
-          <h3>Dateiimport für CSV und Excel</h3>
-          <p>
-            Unterstützt werden tabellarische Dateien mit Spalten wie <code>Parameter</code>, <code>Wert</code>,{" "}
-            <code>Einheit</code>, <code>Referenzuntere</code> und <code>Referenzobere</code>. Entnahmedatum und Person
-            können hier direkt ergänzt oder überschrieben werden.
-          </p>
-          <form
-            className="form-grid"
-            onSubmit={(event) => {
-              event.preventDefault();
-              createFileDraftMutation.mutate();
-            }}
-          >
-            <label className="field field--full">
-              <span>Datei</span>
-              <input
-                type="file"
-                accept=".csv,.xlsx,.xlsm"
-                onChange={(event) =>
-                  setDateiForm((current) => ({ ...current, file: event.target.files?.[0] ?? null }))
-                }
-              />
-            </label>
-
-            <label className="field">
-              <span>Person</span>
-              <select
-                value={dateiForm.person_id_override}
-                onChange={(event) =>
-                  setDateiForm((current) => ({ ...current, person_id_override: event.target.value }))
-                }
-              >
-                <option value="">Aus Datei oder später zuordnen</option>
-                {personenQuery.data?.map((person) => (
-                  <option key={person.id} value={person.id}>
-                    {person.anzeigename}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="field">
-              <span>Vorhandenes Labor</span>
-              <select
-                value={dateiForm.labor_id_override}
-                onChange={(event) =>
-                  setDateiForm((current) => ({ ...current, labor_id_override: event.target.value }))
-                }
-              >
-                <option value="">Kein festes Labor</option>
-                {laboreQuery.data?.map((labor) => (
-                  <option key={labor.id} value={labor.id}>
-                    {labor.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="field">
-              <span>Laborname neu oder frei</span>
-              <input
-                value={dateiForm.labor_name_override}
-                onChange={(event) =>
-                  setDateiForm((current) => ({ ...current, labor_name_override: event.target.value }))
-                }
-                placeholder="z. B. Labor XY"
-              />
-            </label>
-
-            <label className="field">
-              <span>Entnahmedatum</span>
-              <input
-                type="date"
-                value={dateiForm.entnahmedatum_override}
-                onChange={(event) =>
-                  setDateiForm((current) => ({ ...current, entnahmedatum_override: event.target.value }))
-                }
-              />
-            </label>
-
-            <label className="field">
-              <span>Befunddatum</span>
-              <input
-                type="date"
-                value={dateiForm.befunddatum_override}
-                onChange={(event) =>
-                  setDateiForm((current) => ({ ...current, befunddatum_override: event.target.value }))
-                }
-              />
-            </label>
-
-            <label className="field field--full">
-              <span>Befundbemerkung</span>
-              <input
-                value={dateiForm.befund_bemerkung_override}
-                onChange={(event) =>
-                  setDateiForm((current) => ({ ...current, befund_bemerkung_override: event.target.value }))
-                }
-              />
-            </label>
-
-            <label className="field field--full">
-              <span>Importbemerkung</span>
-              <input
-                value={dateiForm.import_bemerkung}
-                onChange={(event) =>
-                  setDateiForm((current) => ({ ...current, import_bemerkung: event.target.value }))
-                }
-              />
-            </label>
-
-            <label className="field field--full">
-              <span>Quelldatei als Dokument ablegen</span>
-              <input
-                type="checkbox"
-                checked={dateiForm.quelle_behalten}
-                onChange={(event) =>
-                  setDateiForm((current) => ({ ...current, quelle_behalten: event.target.checked }))
-                }
-              />
-            </label>
-
-            <div className="form-actions">
-              <button type="submit" disabled={createFileDraftMutation.isPending}>
-                {createFileDraftMutation.isPending ? "Analysiert..." : "Datei als Entwurf prüfen"}
+      <article className="card card--wide import-mode-panel" aria-label="Importbereich">
+        <h3>Importbereich</h3>
+        <div className="import-mode-groups">
+          <div className="import-mode-group">
+            <span className="import-mode-group__label">KI und JSON</span>
+            <div className="import-mode-tabs">
+              <button type="button" className={getImportModeTabClass("ki")} onClick={() => setImportMode("ki")}>
+                KI-Prompt
               </button>
-              {createFileDraftMutation.isError ? (
-                <p className="form-error">{createFileDraftMutation.error.message}</p>
+              <button type="button" className={getImportModeTabClass("json")} onClick={() => setImportMode("json")}>
+                KI-Ergebnis / JSON
+              </button>
+            </div>
+          </div>
+          <div className="import-mode-group">
+            <span className="import-mode-group__label">Importe bearbeiten</span>
+            <div className="import-mode-tabs">
+              <button type="button" className={getImportModeTabClass("pruefen")} onClick={() => setImportMode("pruefen")}>
+                <span>Import prüfen</span>
+                {openImportCount ? <span className="import-mode-tab__badge">{openImportCount}</span> : null}
+              </button>
+              <button type="button" className={getImportModeTabClass("historie")} onClick={() => setImportMode("historie")}>
+                Historie
+              </button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      {isStartMode && openImportCount ? (
+        <aside className="import-open-notice">
+          <span>
+            {openImportCount === 1
+              ? "1 offener Import wartet auf Prüfung."
+              : `${openImportCount} offene Importe warten auf Prüfung.`}
+          </span>
+          <button type="button" className="inline-button" onClick={() => setImportMode("pruefen")}>
+            Importe prüfen
+          </button>
+        </aside>
+      ) : null}
+
+      <div className="workspace-grid">
+        {importMode === "ki" ? (
+        <article className="card card--wide">
+          <h3>KI-Prompt vorbereiten</h3>
+          <p>
+            Dieser Bereich legt noch keinen Import an. Er exportiert Arbeitsanweisungen und Importregeln für eine
+            externe KI oder ein anderes Extraktionswerkzeug. Das kann für Laborberichte, PDF/Bilder, CSV, Excel oder
+            kopierte Tabellen genutzt werden. Das erzeugte Ergebnis wird danach im Tab{" "}
+            <strong>KI-Ergebnis / JSON</strong> eingefügt.
+          </p>
+          <details className="import-review-section" open>
+            <summary>1. Promptvariante wählen</summary>
+            <div className="prompt-help">
+              <p>
+                Beide Varianten enthalten denselben technischen Importvertrag und dieselben vorhandenen Stammdaten für
+                Labore, Parameter, Aliasse, Einheiten und Gruppen. Sie unterscheiden sich nur in der Eingangs-Anweisung
+                für die Quelle.
+              </p>
+              <div className="import-prompt-choice">
+                <button
+                  type="button"
+                  className={promptKind === "laborbericht" ? "import-prompt-choice__button import-prompt-choice__button--active" : "import-prompt-choice__button"}
+                  onClick={() => setPromptKind("laborbericht")}
+                >
+                  <strong>Laborbericht, PDF oder Bild</strong>
+                  <span>Für einzelne Laborberichte, Scans oder Fotos.</span>
+                </button>
+                <button
+                  type="button"
+                  className={promptKind === "tabelle" ? "import-prompt-choice__button import-prompt-choice__button--active" : "import-prompt-choice__button"}
+                  onClick={() => setPromptKind("tabelle")}
+                >
+                  <strong>Tabelle, CSV oder Excel</strong>
+                  <span>Für strukturierte Tabellen, Arbeitsblätter oder kopierte Spalten.</span>
+                </button>
+              </div>
+            <div className="form-actions">
+              <button type="button" onClick={() => createPromptMutation.mutate(promptKind)} disabled={createPromptMutation.isPending}>
+                {createPromptMutation.isPending ? "Erzeugt..." : "Prompt erzeugen"}
+              </button>
+              {createPromptMutation.isError ? (
+                <p className="form-error">{createPromptMutation.error.message}</p>
               ) : null}
             </div>
-          </form>
-        </article>
+            </div>
+          </details>
 
-        <article className="card">
-          <h3>JSON-Entwurf anlegen</h3>
+          {promptText ? (
+            <details className="import-review-section" open>
+              <summary>2. Prompt im KI-Chat verwenden</summary>
+              <div className="prompt-ready field--full">
+                <strong>Prompt liegt bereit.</strong>
+                <span>{promptSummary || "Kopiere ihn und füge ihn zusammen mit dem Laborbericht im externen KI-Chat ein."}</span>
+              </div>
+              <div className="form-actions">
+              {promptText ? (
+                <button type="button" onClick={() => void copyPromptToClipboard()}>
+                  Prompt kopieren
+                </button>
+              ) : null}
+              {promptText ? (
+                <button type="button" className="button--secondary" onClick={() => setPromptExpanded((current) => !current)}>
+                  {promptExpanded ? "Prompt ausblenden" : "Prompt anzeigen"}
+                </button>
+              ) : null}
+              {copyStatus ? <p>{copyStatus}</p> : null}
+              </div>
+
+            {promptText && promptExpanded ? (
+              <label className="field field--full">
+                <span>Prompt für den externen KI-Chat</span>
+                <textarea
+                  ref={promptTextareaRef}
+                  className="prompt-copy-field"
+                  rows={16}
+                  value={promptText}
+                  readOnly
+                />
+              </label>
+            ) : null}
+            </details>
+          ) : null}
+
+          {promptText ? (
+            <details className="import-review-section" open>
+              <summary>3. Ergebnis in die Anwendung übernehmen</summary>
+              <p>
+                Wenn der externe KI-Chat fertig ist, gehe zum Tab <strong>KI-Ergebnis / JSON</strong>. Dort fügst Du die
+                komplette Chat-Antwort oder nur den JSON-Codeblock ein. Falls vorhanden, lädst Du dort auch das
+                analysierte Dokument hoch.
+              </p>
+              <div className="form-actions">
+                <button type="button" onClick={() => setImportMode("json")}>
+                  Zu KI-Ergebnis / JSON
+                </button>
+              </div>
+            </details>
+          ) : null}
+
+          <details className="import-review-section">
+            <summary>Technische JSON-Struktur anzeigen</summary>
+            <div className="prompt-help">
+              <p>
+                Nutze diese Beschreibung, wenn nicht der konkrete Personen-Prompt benötigt wird, sondern eine allgemeine
+                Anleitung für eine KI, ein Skript oder eine andere Quelle. Damit kann zum Beispiel auch eine CSV-,
+                Excel- oder Tabellenquelle in Import-JSON umgewandelt werden. Die Beschreibung legt fest, wie Daten
+                aufgebaut sein müssen, damit sie im Tab <strong>KI-Ergebnis / JSON</strong> importiert werden können.
+              </p>
+              <div className="form-actions">
+                <button type="button" className="button--secondary" onClick={() => void copyInterfaceGuideToClipboard()}>
+                  JSON-Schnittstelle kopieren
+                </button>
+                {interfaceCopyStatus ? <p>{interfaceCopyStatus}</p> : null}
+              </div>
+              <textarea className="prompt-copy-field interface-guide-preview" rows={10} value={jsonInterfaceGuide} readOnly />
+            </div>
+          </details>
+
+          <details className="import-review-section">
+            <summary>Ablauf</summary>
+            <div className="prompt-help">
+              <p>
+                Der Prompt erzeugt noch keinen Import. Er beschreibt einer externen KI, wie sie eine Quelle analysieren
+                und in das gemeinsame Import-JSON überführen soll. Die vorhandenen Stammdaten werden mitgegeben, damit
+                die KI vorhandene Labore, Parameter, Aliasse, Einheiten und Gruppen konservativ erkennen kann.
+              </p>
+              <p>
+                Die Person wird nicht im Prompt ausgewählt. Beim Einfügen des KI-Ergebnisses wählst oder überschreibst
+                Du die Person in der Anwendung. Danach prüfst Du Befund, Messwerte, neue Parameter, Prüfhinweise und
+                Gruppen vor der Übernahme.
+              </p>
+            </div>
+          </details>
+        </article>
+        ) : null}
+
+        {importMode === "json" ? (
+        <article className="card card--wide">
+          <h3>KI-Ergebnis oder JSON einfügen</h3>
+          <div className="import-flow-note">
+            <strong>Weiter nach dem KI-Chat</strong>
+            <p>
+              Wenn Du den Prompt im Tab <strong>KI-Prompt</strong> verwendet hast, ist dies der nächste Schritt: Antwort
+              aus dem externen Chat einfügen, optional das analysierte Dokument hochladen und daraus einen Import zur
+              Prüfung anlegen.
+            </p>
+          </div>
+          <p>
+            Dieser Bereich ist der eigentliche JSON-Import. Er verarbeitet Ergebnisse aus dem KI-Prompt, aber auch JSON
+            aus anderen Quellen, wenn es dem Importformat entspricht. Wenn die Antwort einen <code>json</code>-Codeblock
+            enthält, übernimmt die Anwendung automatisch diesen Block. Das analysierte Dokument kannst Du hier direkt
+            mit hochladen; es wird mit dem Import und später mit dem übernommenen Befund verknüpft.
+          </p>
           <form
             className="form-grid"
             onSubmit={(event) => {
@@ -673,24 +968,52 @@ export function ImportPage() {
             </label>
 
             <label className="field field--full">
-              <span>Import-JSON</span>
+              <span>KI-Ergebnis oder Import-JSON</span>
               <textarea
                 rows={18}
                 value={form.payload_json}
+                placeholder="Komplette KI-Antwort mit json-Codeblock oder reines Import-JSON einfügen"
                 onChange={(event) => setForm((current) => ({ ...current, payload_json: event.target.value }))}
               />
             </label>
 
+            <details className="import-review-section field--full" open>
+              <summary>Analysiertes Dokument zuordnen</summary>
+              <div className="form-grid">
+                <label className="field field--full">
+                  <span>Dokumentdatei (optional)</span>
+                  <input
+                    type="file"
+                    accept=".pdf,.png,.jpg,.jpeg,.webp,.tif,.tiff"
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, dokument_file: event.target.files?.[0] ?? null }))
+                    }
+                  />
+                </label>
+
+                <label className="field field--full">
+                  <span>Dokumentname (optional)</span>
+                  <input
+                    value={form.dokument_name}
+                    onChange={(event) => setForm((current) => ({ ...current, dokument_name: event.target.value }))}
+                    placeholder="Leer lassen, dann wird aus Person, Labor und Datum ein Name vorgeschlagen"
+                  />
+                </label>
+              </div>
+            </details>
+
             <div className="form-actions">
               <button type="submit" disabled={createDraftMutation.isPending}>
-                {createDraftMutation.isPending ? "Prüft..." : "Entwurf anlegen"}
+                {createDraftMutation.isPending ? "Prüft..." : "Import prüfen"}
               </button>
               {createDraftMutation.isError ? <p className="form-error">{createDraftMutation.error.message}</p> : null}
             </div>
           </form>
         </article>
+        ) : null}
 
-        <article className="card">
+        {importMode === "historie" ? (
+        <article className="card card--wide">
           <h3>Import-Historie</h3>
           <div className="table-wrap">
             <table className="data-table">
@@ -709,14 +1032,31 @@ export function ImportPage() {
                 {importsQuery.data?.map((item) => (
                   <tr
                     key={item.id}
-                    onClick={() => setSelectedImportId(item.id)}
+                    onClick={() => {
+                      setSelectedImportId(item.id);
+                      setImportMode("pruefen");
+                    }}
                     className={item.id === selectedImportId ? "row-selected" : undefined}
                     style={{ cursor: "pointer" }}
                   >
                     <td>{item.status}</td>
                     <td>{item.quelle_typ}</td>
                     <td>{personById.get(item.person_id_vorschlag || "")?.anzeigename ?? "—"}</td>
-                    <td>{item.dokument_dateiname ?? "—"}</td>
+                    <td>
+                      {item.dokument_id && item.dokument_dateiname ? (
+                        <a
+                          className="text-link"
+                          href={getDocumentContentUrl(item.dokument_id)}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          {item.dokument_dateiname}
+                        </a>
+                      ) : (
+                        item.dokument_dateiname ?? "—"
+                      )}
+                    </td>
                     <td>{item.messwerte_anzahl}</td>
                     <td>{item.fehler_anzahl}</td>
                     <td>{item.warnung_anzahl}</td>
@@ -724,19 +1064,85 @@ export function ImportPage() {
                 ))}
                 {!importsQuery.data?.length ? (
                   <tr>
-                    <td colSpan={7}>Noch keine Importentwürfe vorhanden.</td>
+                    <td colSpan={7}>Noch keine Importe vorhanden.</td>
                   </tr>
                 ) : null}
               </tbody>
             </table>
           </div>
         </article>
+        ) : null}
 
+        {importMode === "pruefen" ? (
         <article className="card card--wide">
-          <h3>Prüfansicht</h3>
-          {!selectedImport ? <p>Bitte einen Importentwurf auswählen.</p> : null}
+          <h3>Import prüfen</h3>
+          {!selectedImport ? (
+            <div className="empty-state">
+              <p>Bitte lege zuerst einen Import an oder wähle einen Eintrag aus der Historie.</p>
+              <div className="inline-actions">
+                <button type="button" className="inline-button" onClick={() => setImportMode("ki")}>
+                  KI-Prompt vorbereiten
+                </button>
+                <button type="button" className="inline-button" onClick={() => setImportMode("json")}>
+                  KI-Ergebnis / JSON einfügen
+                </button>
+                <button type="button" className="inline-button" onClick={() => setImportMode("historie")}>
+                  Historie öffnen
+                </button>
+              </div>
+            </div>
+          ) : null}
           {selectedImport ? (
             <>
+              {openImports.length > 1 || (openImports.length === 1 && selectedImport.status !== "in_pruefung") ? (
+                <label className="field import-open-select">
+                  <span>Offene Importe</span>
+                  <select value={selectedImportId ?? ""} onChange={(event) => setSelectedImportId(event.target.value)}>
+                    {selectedImport.status !== "in_pruefung" ? (
+                      <option value={selectedImport.id}>Aktuell gewählter Historieneintrag</option>
+                    ) : null}
+                    {openImports.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {personById.get(item.person_id_vorschlag || "")?.anzeigename ?? "Unbekannte Person"} ·{" "}
+                        {item.quelle_typ} · {item.dokument_dateiname ?? item.bemerkung ?? formatDate(item.erstellt_am)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+              {openImports.length && selectedImport.status !== "in_pruefung" ? (
+                <aside className="import-open-notice import-open-notice--compact">
+                  <span>
+                    Du siehst gerade einen abgeschlossenen Historieneintrag. Es gibt noch{" "}
+                    {openImports.length === 1 ? "einen offenen Import" : `${openImports.length} offene Importe`}.
+                  </span>
+                  <button type="button" className="inline-button" onClick={() => setSelectedImportId(openImports[0].id)}>
+                    Offenen Import prüfen
+                  </button>
+                </aside>
+              ) : null}
+              <h4>Aktueller Import</h4>
+              <div className="import-review-summary">
+                <span className="parameter-pill">{selectedImport.status}</span>
+                <span className="parameter-pill">{selectedImport.quelle_typ}</span>
+                <span className="parameter-pill">
+                  {personById.get(selectedImport.befund.person_id || selectedImport.person_id_vorschlag || "")?.anzeigename ??
+                    "Person offen"}
+                </span>
+                <span className="parameter-pill">{selectedImport.messwerte_anzahl} Messwerte</span>
+                <span className={selectedImportChecks.errors ? "parameter-pill parameter-pill--danger" : "parameter-pill"}>
+                  {selectedImportChecks.errors} Fehler
+                </span>
+                <span className={selectedImportChecks.warnings ? "parameter-pill parameter-pill--warning" : "parameter-pill"}>
+                  {selectedImportChecks.warnings} Prüfhinweise
+                </span>
+                <span className={openMappingCount ? "parameter-pill parameter-pill--warning" : "parameter-pill"}>
+                  {openMappingCount} offene Zuordnungen
+                </span>
+              </div>
+
+              <details className="import-review-section" open={openBefundSection}>
+                <summary>Befund prüfen</summary>
               <p>
                 Befund für{" "}
                 <strong>{personById.get(selectedImport.befund.person_id || "")?.anzeigename ?? "nicht zugeordnet"}</strong>
@@ -753,12 +1159,47 @@ export function ImportPage() {
                 </strong>
               </p>
               <p>
-                Quelldatei: <strong>{selectedImport.dokument_dateiname ?? selectedImport.befund.dokument_dateiname ?? "—"}</strong>
+                Quelldatei:{" "}
+                <strong>
+                  {selectedImportDocumentId && selectedImportDocumentName ? (
+                    <a
+                      className="text-link"
+                      href={getDocumentContentUrl(selectedImportDocumentId)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {selectedImportDocumentName}
+                    </a>
+                  ) : (
+                    selectedImportDocumentName ?? "—"
+                  )}
+                </strong>
               </p>
               <p>
                 Dokumentpfad: <strong>{selectedImport.befund.dokument_pfad ?? "—"}</strong>
               </p>
+              {selectedImportDocumentId ? (
+                <div className="inline-actions">
+                  <a
+                    className="inline-button"
+                    href={getDocumentContentUrl(selectedImportDocumentId)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Dokument öffnen
+                  </a>
+                  <a
+                    className="inline-button"
+                    href={getDocumentContentUrl(selectedImportDocumentId, { download: true })}
+                  >
+                    Dokument herunterladen
+                  </a>
+                </div>
+              ) : null}
+              </details>
 
+              <details className="import-review-section" open={openMesswerteSection}>
+                <summary>Messwerte klären</summary>
               <div className="table-wrap">
                 <table className="data-table">
                   <thead>
@@ -815,7 +1256,7 @@ export function ImportPage() {
                                   [messwert.messwert_index]: nextValue
                                 }));
                                 setAliasState((current) => {
-                                  if (!nextValue) {
+                                  if (!nextValue || nextValue === NEW_PARAMETER_MAPPING_VALUE) {
                                     return { ...current, [messwert.messwert_index]: false };
                                   }
                                   const nextRecommendation = getAliasRecommendation({
@@ -835,15 +1276,47 @@ export function ImportPage() {
                             }
                           >
                             <option value="">Bitte wählen</option>
+                            <option value={NEW_PARAMETER_MAPPING_VALUE}>
+                              Neuen Parameter anlegen:{" "}
+                              {messwert.parameter_vorschlag?.anzeigename ?? messwert.original_parametername}
+                            </option>
                             {parameterQuery.data?.map((parameter) => (
                               <option key={parameter.id} value={parameter.id}>
                                 {parameter.anzeigename}
                               </option>
                             ))}
                           </select>
-                          {mappingState[messwert.messwert_index]
+                          {mappingState[messwert.messwert_index] === NEW_PARAMETER_MAPPING_VALUE
+                            ? ` (wird neu angelegt, ${formatWertTyp(
+                                messwert.parameter_vorschlag?.wert_typ_standard ?? messwert.wert_typ
+                              )}${
+                                messwert.parameter_vorschlag?.standard_einheit || messwert.einheit_original
+                                  ? `, ${messwert.parameter_vorschlag?.standard_einheit ?? messwert.einheit_original}`
+                                  : ""
+                              })`
+                            : mappingState[messwert.messwert_index]
                             ? ` (${parameterById.get(mappingState[messwert.messwert_index])?.anzeigename ?? "zugeordnet"})`
                             : ""}
+                          {messwert.parameter_vorschlag ? (
+                            <div className="import-parameter-suggestion">
+                              <strong>Vorschlag: {messwert.parameter_vorschlag.anzeigename}</strong>
+                              {messwert.parameter_vorschlag.unsicher_flag ? <span>Prüfbedarf</span> : null}
+                              {messwert.parameter_vorschlag.beschreibung_kurz ? (
+                                <p>
+                                  <strong>Fachbeschreibung:</strong> {messwert.parameter_vorschlag.beschreibung_kurz}
+                                </p>
+                              ) : null}
+                              {messwert.parameter_vorschlag.begruendung_aus_dokument ? (
+                                <p>
+                                  <strong>Anmerkung aus dem Bericht:</strong>{" "}
+                                  {messwert.parameter_vorschlag.begruendung_aus_dokument}
+                                </p>
+                              ) : null}
+                              {messwert.parameter_vorschlag.moegliche_aliase.length ? (
+                                <p>Alias-Vorschläge: {messwert.parameter_vorschlag.moegliche_aliase.join(", ")}</p>
+                              ) : null}
+                            </div>
+                          ) : null}
                         </td>
                         <td>
                           <label className="field" style={{ minWidth: 0 }}>
@@ -851,7 +1324,10 @@ export function ImportPage() {
                             <input
                               type="checkbox"
                               checked={Boolean(aliasState[messwert.messwert_index])}
-                              disabled={!mappingState[messwert.messwert_index]}
+                              disabled={
+                                !mappingState[messwert.messwert_index] ||
+                                mappingState[messwert.messwert_index] === NEW_PARAMETER_MAPPING_VALUE
+                              }
                               onChange={(event) =>
                                 setAliasState((current) => ({
                                   ...current,
@@ -869,10 +1345,11 @@ export function ImportPage() {
                   </tbody>
                 </table>
               </div>
+              </details>
 
-              {selectedImport.gruppenvorschlaege.length ? (
-                <>
-                  <h4>Gruppenvorschläge</h4>
+              {selectedImport.status === "uebernommen" && selectedImport.gruppenvorschlaege.length ? (
+                <details className="import-review-section" open={openGruppenSection}>
+                  <summary>Gruppen entscheiden</summary>
                   <p>
                     Berichtsblöcke können nach der Importübernahme als Gruppen angelegt oder mit vorhandenen Gruppen
                     zusammengeführt werden.
@@ -1003,52 +1480,147 @@ export function ImportPage() {
                     {gruppenVorschlaegeMutation.isError ? (
                       <p className="form-error">{gruppenVorschlaegeMutation.error.message}</p>
                     ) : null}
+                    {gruppenResult ? (
+                      <p>
+                        Gruppenentscheidungen verarbeitet:{" "}
+                        {gruppenResult.ergebnisse
+                          .map((item) => item.gruppenname || item.gruppe_id || item.aktion)
+                          .join(", ")}
+                      </p>
+                    ) : null}
                   </div>
-                </>
+                </details>
               ) : null}
 
-              <h4>Prüfpunkte</h4>
-              <ul>
-                {selectedImport.pruefpunkte.map((item) => (
-                  <li key={item.id}>
-                    <strong>{item.status}</strong>: {item.meldung}
-                  </li>
-                ))}
-              </ul>
-              {!selectedImport.pruefpunkte.length ? <p>Keine Prüfpunkte vorhanden.</p> : null}
+              {selectedImport.status === "in_pruefung" ? (
+              <details className="import-review-section" open={openUebernahmeSection}>
+                <summary>Übernahme</summary>
+                <div className="form-actions">
+                  <button
+                    type="button"
+                    onClick={() => uebernehmenMutation.mutate()}
+                    disabled={uebernehmenMutation.isPending || !selectedImportId || importTakeoverBlocked}
+                  >
+                    {uebernehmenMutation.isPending ? "Übernimmt..." : "Import übernehmen"}
+                  </button>
+                  <button
+                    type="button"
+                    className="button--secondary"
+                    onClick={() => setShowDiscardPanel((current) => !current)}
+                    disabled={
+                      verwerfenMutation.isPending || komplettEntfernenMutation.isPending || !selectedImportId
+                    }
+                  >
+                    {showDiscardPanel ? "Verwerfen ausblenden" : "Import verwerfen"}
+                  </button>
+                </div>
+                {showDiscardPanel ? (
+                  <div className="import-discard-panel">
+                    <h5>Was soll mit dem Importversuch passieren?</h5>
+                    <p>
+                      Du kannst den Versuch dokumentiert verwerfen oder komplett entfernen. Dokumentiert verworfene
+                      Versuche bleiben in der Historie nachvollziehbar. Komplett entfernte Versuche werden aus der
+                      Importliste gelöscht.
+                    </p>
+                    {selectedImportDocumentId ? (
+                      <label className="field field--full">
+                        <span>Verknüpftes Dokument ebenfalls entfernen</span>
+                        <input
+                          type="checkbox"
+                          checked={removeLinkedDocument}
+                          onChange={(event) => setRemoveLinkedDocument(event.target.checked)}
+                        />
+                      </label>
+                    ) : null}
+                    <div className="form-actions">
+                      <button
+                        type="button"
+                        className="button--secondary"
+                        onClick={() => verwerfenMutation.mutate()}
+                        disabled={verwerfenMutation.isPending || komplettEntfernenMutation.isPending}
+                      >
+                        {verwerfenMutation.isPending ? "Verwirft..." : "Dokumentiert verwerfen"}
+                      </button>
+                      <button
+                        type="button"
+                        className="button--danger"
+                        onClick={() => komplettEntfernenMutation.mutate()}
+                        disabled={verwerfenMutation.isPending || komplettEntfernenMutation.isPending}
+                      >
+                        {komplettEntfernenMutation.isPending ? "Entfernt..." : "Komplett entfernen"}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+                {openMappingCount > 0 ? (
+                  <p className="form-hint">
+                    Übernahme ist möglich, sobald alle Messwerte einem vorhandenen oder neuen Parameter zugeordnet sind.
+                  </p>
+                ) : null}
+                {selectedImportChecks.errors > 0 ? (
+                  <p className="form-error">Fehler blockieren die Übernahme.</p>
+                ) : null}
+                {hasWarnings && !warningsConfirmed ? (
+                  <p className="form-hint">Bitte bestätige die offenen Prüfhinweise vor der Übernahme.</p>
+                ) : null}
+                {uebernehmenMutation.isError ? <p className="form-error">{uebernehmenMutation.error.message}</p> : null}
+                {verwerfenMutation.isError ? <p className="form-error">{verwerfenMutation.error.message}</p> : null}
+                {komplettEntfernenMutation.isError ? (
+                  <p className="form-error">{komplettEntfernenMutation.error.message}</p>
+                ) : null}
 
-              {hasWarnings ? (
-                <label className="field field--full">
-                  <span>Warnungen bewusst bestätigen</span>
-                  <input
-                    type="checkbox"
-                    checked={warningsConfirmed}
-                    onChange={(event) => setWarningsConfirmed(event.target.checked)}
-                  />
-                </label>
+                <h5>Prüfhinweise</h5>
+                <ul>
+                  {visibleImportChecks.map((item) => (
+                    <li key={item.id}>
+                      <strong>{formatPruefpunktStatus(item.status)}</strong>: {item.meldung}
+                    </li>
+                  ))}
+                </ul>
+                {!visibleImportChecks.length ? <p>Keine offenen Prüfpunkte vorhanden.</p> : null}
+
+                {hasWarnings ? (
+                  <label className="field field--full">
+                    <span>Prüfhinweise bewusst bestätigen</span>
+                    <input
+                      type="checkbox"
+                      checked={warningsConfirmed}
+                      onChange={(event) => setWarningsConfirmed(event.target.checked)}
+                    />
+                  </label>
+                ) : null}
+              </details>
               ) : null}
 
-              <div className="form-actions">
-                <button
-                  type="button"
-                  onClick={() => uebernehmenMutation.mutate()}
-                  disabled={uebernehmenMutation.isPending || !selectedImportId}
-                >
-                  {uebernehmenMutation.isPending ? "Übernimmt..." : "Import übernehmen"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => verwerfenMutation.mutate()}
-                  disabled={verwerfenMutation.isPending || !selectedImportId}
-                >
-                  {verwerfenMutation.isPending ? "Verwirft..." : "Import verwerfen"}
+              {selectedImport.status === "uebernommen" ? (
+                <details className="import-review-section" open={openAbschlussSection}>
+                  <summary>Abschluss</summary>
+                  <p>
+                    Der Import ist übernommen. Prüfe bei vorhandenen Gruppenvorschlägen noch, ob neue Gruppen angelegt,
+                    vorhandene Gruppen verwendet oder Vorschläge ignoriert werden sollen.
+                  </p>
+                </details>
+              ) : null}
+
+              <div className="inline-actions">
+                <button type="button" className="inline-button" onClick={() => setShowDeletePanel((current) => !current)}>
+                  {showDeletePanel ? "Löschprüfung ausblenden" : "Löschprüfung öffnen"}
                 </button>
               </div>
-              {uebernehmenMutation.isError ? <p className="form-error">{uebernehmenMutation.error.message}</p> : null}
-              {verwerfenMutation.isError ? <p className="form-error">{verwerfenMutation.error.message}</p> : null}
+
+              {showDeletePanel ? (
+                <LoeschAktionPanel
+                  entitaetTyp="importvorgang"
+                  entitaetId={selectedImportId}
+                  title="Importvorgang prüfen oder löschen"
+                  emptyText="Bitte zuerst einen Import auswählen."
+                  invalidateQueryKeys={[["importe"], ["importe", selectedImportId], ["befunde"], ["messwerte"]]}
+                />
+              ) : null}
             </>
           ) : null}
         </article>
+        ) : null}
       </div>
     </section>
   );

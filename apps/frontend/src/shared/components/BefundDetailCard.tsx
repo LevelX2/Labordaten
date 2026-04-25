@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "../api/client";
 import { formatBefundQuelleTyp } from "../constants/fieldOptions";
 import type { Befund } from "../types/api";
+import { getDocumentContentUrl } from "../utils/documents";
 
 type BefundDetailCardProps = {
   befundId: string | null;
@@ -16,11 +17,6 @@ function formatDate(value?: string | null): string {
     return "—";
   }
   return new Intl.DateTimeFormat("de-DE").format(new Date(value));
-}
-
-function toFileUrl(path: string): string {
-  const normalizedPath = path.replace(/\\/g, "/");
-  return normalizedPath.startsWith("/") ? `file://${normalizedPath}` : `file:///${normalizedPath}`;
 }
 
 export function BefundDetailCard({
@@ -80,14 +76,19 @@ export function BefundDetailCard({
             <span className="inline-actions__label">
               Dokument: <strong>{befund.dokument_dateiname || "nicht verknüpft"}</strong>
             </span>
-            {befund.dokument_pfad ? (
+            {befund.dokument_id ? (
               <a
                 className="inline-button"
-                href={toFileUrl(befund.dokument_pfad)}
+                href={getDocumentContentUrl(befund.dokument_id)}
                 target="_blank"
                 rel="noreferrer"
               >
                 Dokument öffnen
+              </a>
+            ) : null}
+            {befund.dokument_id ? (
+              <a className="inline-button" href={getDocumentContentUrl(befund.dokument_id, { download: true })}>
+                Herunterladen
               </a>
             ) : null}
           </div>

@@ -4,6 +4,7 @@ from labordaten_backend.api.routes import (
     auswertung,
     befunde,
     berichte,
+    dokumente,
     einheiten,
     gruppen,
     importe,
@@ -23,6 +24,7 @@ api_router = APIRouter()
 api_router.include_router(system.router, tags=["system"])
 api_router.include_router(wissensbasis.router, tags=["wissensbasis"])
 api_router.include_router(loeschlogik.router, tags=["loeschlogik"])
+api_router.include_router(dokumente.router, tags=["dokumente"])
 api_router.include_router(einheiten.router, tags=["einheiten"])
 api_router.include_router(personen.router, prefix="/personen", tags=["personen"])
 api_router.include_router(labore.router, prefix="/labore", tags=["labore"])

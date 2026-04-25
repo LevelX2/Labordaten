@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
 import { apiFetch } from "../../shared/api/client";
+import { LoeschAktionPanel } from "../../shared/components/LoeschAktionPanel";
 import type {
   Parameter,
   Person,
@@ -30,7 +31,7 @@ type EinmaligFormState = {
   bemerkung: string;
 };
 
-type PlanungPanelKey = "zyklisch-create" | "einmalig-create";
+type PlanungPanelKey = "zyklisch-create" | "einmalig-create" | "delete";
 
 type PlanungListItem =
   | {
@@ -385,6 +386,19 @@ export function PlanungPage() {
   );
 
   const renderActionPanel = () => {
+    if (activePanel === "delete") {
+      return (
+        <LoeschAktionPanel
+          entitaetTyp={selectedPlan?.typ === "zyklisch" ? "planung_zyklisch" : "planung_einmalig"}
+          entitaetId={selectedPlan?.typ === "zyklisch" ? selectedPlan.zyklisch.id : selectedPlan?.einmalig.id ?? null}
+          title={selectedPlan?.typ === "zyklisch" ? "Zyklische Planung löschen" : "Einmalvormerkung löschen"}
+          emptyText="Bitte wähle zuerst links eine Planung aus."
+          onClose={() => setActivePanel(null)}
+          invalidateQueryKeys={[["planung", "zyklisch"], ["planung", "einmalig"], ["planung", "faelligkeiten"]]}
+        />
+      );
+    }
+
     if (activePanel === "zyklisch-create") {
       return (
         <article className="card card--soft parameter-action-panel">
@@ -813,6 +827,13 @@ export function PlanungPage() {
                     onClick={() => setActivePanel((current) => (current === "einmalig-create" ? null : "einmalig-create"))}
                   >
                     Einmalig anlegen
+                  </button>
+                  <button
+                    type="button"
+                    className={`parameter-toolrail__button ${activePanel === "delete" ? "parameter-toolrail__button--active" : ""}`}
+                    onClick={() => setActivePanel((current) => (current === "delete" ? null : "delete"))}
+                  >
+                    Löschprüfung
                   </button>
                   {renderPrimaryAction()}
                 </div>

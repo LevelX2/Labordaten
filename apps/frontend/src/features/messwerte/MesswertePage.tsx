@@ -10,6 +10,8 @@ import {
 import { DateRangeFilterFields } from "../../shared/components/DateRangeFilterFields";
 import { SelectionChecklist } from "../../shared/components/SelectionChecklist";
 import { BefundDetailCard } from "../../shared/components/BefundDetailCard";
+import { ListSortControl } from "../../shared/components/ListSortControl";
+import { LoeschAktionPanel } from "../../shared/components/LoeschAktionPanel";
 import {
   KONTEXT_GESCHLECHT_OPTIONS,
   REFERENZ_GRENZ_OPERATOR_OPTIONS,
@@ -25,6 +27,15 @@ import {
   applySharedFilterSearchParams,
   buildSharedFilterSearchParams
 } from "../../shared/utils/filterNavigation";
+import {
+  appendSortClauses,
+  formatSortSummary,
+  normalizeSortClauses,
+  readSortClauses,
+  type SortClause,
+  type SortOption,
+  type SortPreset
+} from "../../shared/utils/listSorting";
 import type {
   Befund,
   Einheit,
@@ -75,7 +86,8 @@ type ReferenzFormState = {
   bemerkung: string;
 };
 
-type MesswertePanelKey = "create" | "filters" | "reference";
+type MesswertePanelKey = "create" | "filters" | "reference" | "delete";
+type MesswertSortField = "entnahmedatum" | "person" | "parameter" | "labor";
 
 const initialForm: MesswertFormState = {
   person_id: "",
@@ -112,6 +124,79 @@ const initialReferenzForm: ReferenzFormState = {
   geschlecht_code: "",
   bemerkung: ""
 };
+
+const messwertSortFields = ["entnahmedatum", "person", "parameter", "labor"] as const satisfies readonly MesswertSortField[];
+
+const messwertSortOptions: SortOption<MesswertSortField>[] = [
+  {
+    value: "entnahmedatum",
+    label: "Entnahmedatum",
+    directionLabels: {
+      asc: "Älteste zuerst",
+      desc: "Neueste zuerst"
+    },
+    defaultDirection: "desc"
+  },
+  {
+    value: "person",
+    label: "Person",
+    directionLabels: {
+      asc: "A-Z",
+      desc: "Z-A"
+    }
+  },
+  {
+    value: "parameter",
+    label: "Parameter",
+    directionLabels: {
+      asc: "A-Z",
+      desc: "Z-A"
+    }
+  },
+  {
+    value: "labor",
+    label: "Labor",
+    directionLabels: {
+      asc: "A-Z",
+      desc: "Z-A"
+    }
+  }
+];
+
+const defaultMesswertSortClauses: SortClause<MesswertSortField>[] = [
+  { field: "entnahmedatum", direction: "desc" },
+  { field: "person", direction: "asc" },
+  { field: "parameter", direction: "asc" }
+];
+
+const messwertSortPresets: SortPreset<MesswertSortField>[] = [
+  {
+    id: "neueste-zuerst",
+    label: "Neueste zuerst",
+    description: "Erst das aktuelle Entnahmedatum, dann Person und Parameter.",
+    clauses: defaultMesswertSortClauses
+  },
+  {
+    id: "personenliste",
+    label: "Personenliste",
+    description: "Nach Person gruppiert und innerhalb der Person nach Datum sortiert.",
+    clauses: [
+      { field: "person", direction: "asc" },
+      { field: "entnahmedatum", direction: "desc" },
+      { field: "parameter", direction: "asc" }
+    ]
+  },
+  {
+    id: "parameterliste",
+    label: "Parameterliste",
+    description: "Nach Parameter gebündelt und dann nach Person und Datum sortiert.",
+    clauses: [
+      { field: "parameter", direction: "asc" },
+      { field: "person", direction: "asc" },
+      { field: "entnahmedatum", direction: "desc" }
+    ]
+  }
+];
 
 function appendMany(searchParams: URLSearchParams, key: string, values: string[]) {
   values.forEach((value) => searchParams.append(key, value));
@@ -215,6 +300,9 @@ export function MesswertePage() {
   const [filter, setFilter] = useState<ListenFilterState>(() =>
     applySharedFilterSearchParams(initialFilter, searchParams)
   );
+  const [sortClauses, setSortClauses] = useState<SortClause<MesswertSortField>[]>(() =>
+    readSortClauses(searchParams, messwertSortFields, defaultMesswertSortClauses)
+  );
   const [referenzForm, setReferenzForm] = useState<ReferenzFormState>(initialReferenzForm);
   const [selectedMesswertId, setSelectedMesswertId] = useState<string | null>(null);
   const [listSearchQuery, setListSearchQuery] = useState("");
@@ -223,6 +311,7 @@ export function MesswertePage() {
   const [showPageInfo, setShowPageInfo] = useState(false);
   const [showRelatedReferences, setShowRelatedReferences] = useState(true);
   const [showRelatedBefund, setShowRelatedBefund] = useState(false);
+  const [showSortPanel, setShowSortPanel] = useState(false);
 
   const personenQuery = useQuery({
     queryKey: ["personen"],
@@ -249,7 +338,7 @@ export function MesswertePage() {
     queryFn: () => apiFetch<Einheit[]>("/api/einheiten")
   });
   const messwerteQuery = useQuery({
-    queryKey: ["messwerte", filter],
+    queryKey: ["messwerte", filter, sortClauses],
     queryFn: () => {
       const nextSearchParams = new URLSearchParams();
       appendMany(nextSearchParams, "person_ids", filter.person_ids);
@@ -262,6 +351,7 @@ export function MesswertePage() {
       if (filter.datum_bis) {
         nextSearchParams.set("datum_bis", filter.datum_bis);
       }
+      appendSortClauses(nextSearchParams, sortClauses);
 
       const queryString = nextSearchParams.toString();
       return apiFetch<Messwert[]>(`/api/messwerte${queryString ? `?${queryString}` : ""}`);
@@ -296,30 +386,7 @@ export function MesswertePage() {
   );
   const einheiten = einheitenQuery.data ?? [];
 
-  const availableMesswerte = useMemo(
-    () =>
-      [...(messwerteQuery.data ?? [])].sort((left, right) => {
-        const leftTimestamp = left.entnahmedatum ? new Date(left.entnahmedatum).getTime() : 0;
-        const rightTimestamp = right.entnahmedatum ? new Date(right.entnahmedatum).getTime() : 0;
-        if (leftTimestamp !== rightTimestamp) {
-          return rightTimestamp - leftTimestamp;
-        }
-
-        const byPerson = (left.person_anzeigename ?? "").localeCompare(right.person_anzeigename ?? "", "de-DE", {
-          sensitivity: "base"
-        });
-        if (byPerson !== 0) {
-          return byPerson;
-        }
-
-        return (left.parameter_anzeigename ?? left.original_parametername).localeCompare(
-          right.parameter_anzeigename ?? right.original_parametername,
-          "de-DE",
-          { sensitivity: "base" }
-        );
-      }),
-    [messwerteQuery.data]
-  );
+  const availableMesswerte = useMemo(() => messwerteQuery.data ?? [], [messwerteQuery.data]);
 
   const filteredMesswerte = useMemo(() => {
     const normalizedSearchQuery = listSearchQuery.trim().toLocaleLowerCase("de-DE");
@@ -351,8 +418,10 @@ export function MesswertePage() {
   );
 
   useEffect(() => {
-    setSearchParams(buildSharedFilterSearchParams(filter), { replace: true });
-  }, [filter, setSearchParams]);
+    const nextSearchParams = buildSharedFilterSearchParams(filter);
+    appendSortClauses(nextSearchParams, sortClauses);
+    setSearchParams(nextSearchParams, { replace: true });
+  }, [filter, setSearchParams, sortClauses]);
 
   useEffect(() => {
     if (!selectedMesswert) {
@@ -376,6 +445,7 @@ export function MesswertePage() {
   const messwertCountLabel = hasActiveListSearch
     ? `${filteredMesswerte.length} von ${availableMesswerte.length} Messwerten`
     : `${availableMesswerte.length} Messwerte`;
+  const sortSummary = formatSortSummary(sortClauses, messwertSortOptions);
   const selectedMesswertValue = selectedMesswert ? formatMesswertAnzeige(selectedMesswert) : "—";
   const selectedMesswertQueryString = buildSharedFilterSearchParams(filter).toString();
   const selectedPersonLabel = selectedMesswert
@@ -431,6 +501,14 @@ export function MesswertePage() {
 
   const handleOpenPanel = (panel: MesswertePanelKey) => {
     setActivePanel((current) => (current === panel ? null : panel));
+  };
+
+  const handleSortChange = (nextClauses: SortClause<MesswertSortField>[]) => {
+    setSortClauses(normalizeSortClauses(nextClauses, messwertSortFields, defaultMesswertSortClauses));
+  };
+
+  const resetSortClauses = () => {
+    setSortClauses(defaultMesswertSortClauses.map((clause) => ({ ...clause })));
   };
 
   const renderPanelCloseButton = (label = "Werkzeug schließen") => (
@@ -756,6 +834,19 @@ export function MesswertePage() {
       );
     }
 
+    if (activePanel === "delete") {
+      return (
+        <LoeschAktionPanel
+          entitaetTyp="messwert"
+          entitaetId={selectedMesswertId}
+          title="Messwert prüfen oder löschen"
+          emptyText="Bitte wähle zuerst links einen Messwert aus."
+          onClose={() => setActivePanel(null)}
+          invalidateQueryKeys={[["messwerte"], ["befunde"]]}
+        />
+      );
+    }
+
     return (
       <article className="card card--soft parameter-action-panel">
         <div className="parameter-panel__header">
@@ -1011,6 +1102,41 @@ export function MesswertePage() {
             </div>
           </label>
 
+          <section className="list-sort-card">
+            <div className="list-sort-card__header">
+              <div>
+                <span className="list-sort-card__label">Sortierung</span>
+                <p>{sortSummary}</p>
+              </div>
+              <button type="button" className="inline-button" onClick={() => setShowSortPanel((current) => !current)}>
+                {showSortPanel ? "Schließen" : "Anpassen"}
+              </button>
+            </div>
+
+            {showSortPanel ? (
+              <div className="list-sort-card__content">
+                <p className="list-sort-card__hint">
+                  Du kannst bis zu drei Sortierebenen kombinieren, ohne die Liste dauerhaft breiter zu machen.
+                </p>
+
+                <ListSortControl
+                  options={messwertSortOptions}
+                  clauses={sortClauses}
+                  onChange={handleSortChange}
+                  presets={messwertSortPresets}
+                  maxLevels={3}
+                  addLabel="Sortierebene hinzufügen"
+                />
+
+                <div className="list-sort-card__actions">
+                  <button type="button" onClick={resetSortClauses}>
+                    Standard wiederherstellen
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </section>
+
           {messwerteQuery.isError ? <p className="form-error">{messwerteQuery.error.message}</p> : null}
 
           <div className="parameter-list">
@@ -1064,6 +1190,14 @@ export function MesswertePage() {
                 disabled={!selectedMesswert}
               >
                 Laborreferenz
+              </button>
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "delete" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => handleOpenPanel("delete")}
+                disabled={!selectedMesswert}
+              >
+                Löschprüfung
               </button>
               <button
                 type="button"

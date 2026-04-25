@@ -601,3 +601,86 @@ def test_conversion_rule_used_by_measurements_is_blocked_and_can_be_deactivated(
         regel = db.get(ParameterUmrechnungsregel, regel_id)
         assert regel is not None
         assert regel.aktiv is False
+
+
+def test_cyclic_planning_is_directly_deletable(monkeypatch, tmp_path: Path) -> None:
+    client, test_session_factory = _make_client(monkeypatch, tmp_path)
+    with test_session_factory() as db:
+        person = Person(anzeigename="Jule", geburtsdatum=date(1994, 5, 12))
+        parameter = Laborparameter(
+            interner_schluessel="ferritin",
+            anzeigename="Ferritin",
+            wert_typ_standard="numerisch",
+        )
+        db.add_all([person, parameter])
+        db.commit()
+        db.refresh(person)
+        db.refresh(parameter)
+        planung = PlanungZyklisch(
+            person_id=person.id,
+            laborparameter_id=parameter.id,
+            intervall_wert=6,
+            intervall_typ="monate",
+            startdatum=date(2026, 4, 1),
+            status="aktiv",
+            karenz_tage=14,
+        )
+        db.add(planung)
+        db.commit()
+        planung_id = planung.id
+
+    with client:
+        pruefung = client.get(f"/api/loeschpruefung/planung_zyklisch/{planung_id}")
+        assert pruefung.status_code == 200
+        body = pruefung.json()
+        assert body["modus"] == "direkt"
+        assert body["empfehlung"] == "loeschen"
+
+        ausfuehrung = client.post(
+            f"/api/loeschpruefung/planung_zyklisch/{planung_id}/ausfuehren",
+            json={"aktion": "loeschen"},
+        )
+        assert ausfuehrung.status_code == 200
+
+    with test_session_factory() as db:
+        assert db.get(PlanungZyklisch, planung_id) is None
+
+
+def test_one_time_planning_is_directly_deletable(monkeypatch, tmp_path: Path) -> None:
+    client, test_session_factory = _make_client(monkeypatch, tmp_path)
+    with test_session_factory() as db:
+        person = Person(anzeigename="Kira", geburtsdatum=date(1995, 9, 21))
+        parameter = Laborparameter(
+            interner_schluessel="vitamin_b12",
+            anzeigename="Vitamin B12",
+            wert_typ_standard="numerisch",
+        )
+        db.add_all([person, parameter])
+        db.commit()
+        db.refresh(person)
+        db.refresh(parameter)
+        planung = PlanungEinmalig(
+            person_id=person.id,
+            laborparameter_id=parameter.id,
+            status="offen",
+            zieltermin_datum=date(2026, 5, 1),
+        )
+        db.add(planung)
+        db.commit()
+        planung_id = planung.id
+
+    with client:
+        pruefung = client.get(f"/api/loeschpruefung/planung_einmalig/{planung_id}")
+        assert pruefung.status_code == 200
+        body = pruefung.json()
+        assert body["modus"] == "direkt"
+        assert body["empfehlung"] == "loeschen"
+
+        ausfuehrung = client.post(
+            f"/api/loeschpruefung/planung_einmalig/{planung_id}/ausfuehren",
+            json={"aktion": "loeschen"},
+        )
+        assert ausfuehrung.status_code == 200
+
+    with test_session_factory() as db:
+        assert db.get(PlanungEinmalig, planung_id) is None

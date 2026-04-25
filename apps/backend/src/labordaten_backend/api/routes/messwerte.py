@@ -18,18 +18,23 @@ def list_messwerte(
     labor_ids: list[str] | None = Query(default=None),
     datum_von: date | None = Query(default=None),
     datum_bis: date | None = Query(default=None),
+    sort: list[str] | None = Query(default=None),
     db: Session = Depends(get_db),
 ) -> list[schemas.MesswertRead]:
-    return service.list_messwerte(
-        db,
-        person_ids=person_ids,
-        befund_ids=befund_ids,
-        laborparameter_ids=laborparameter_ids,
-        gruppen_ids=gruppen_ids,
-        labor_ids=labor_ids,
-        datum_von=datum_von,
-        datum_bis=datum_bis,
-    )
+    try:
+        return service.list_messwerte(
+            db,
+            person_ids=person_ids,
+            befund_ids=befund_ids,
+            laborparameter_ids=laborparameter_ids,
+            gruppen_ids=gruppen_ids,
+            labor_ids=labor_ids,
+            datum_von=datum_von,
+            datum_bis=datum_bis,
+            sort=sort,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
 
 @router.post("", response_model=schemas.MesswertRead, status_code=status.HTTP_201_CREATED)

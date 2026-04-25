@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
 import { apiFetch } from "../../shared/api/client";
+import { LoeschAktionPanel } from "../../shared/components/LoeschAktionPanel";
 import type { Gruppe, GruppenParameter, Parameter } from "../../shared/types/api";
 
 type GruppenFormState = {
@@ -15,7 +16,7 @@ type ZuordnungState = {
   sortierung: string;
 };
 
-type GruppenPanelKey = "create" | "assignments";
+type GruppenPanelKey = "create" | "assignments" | "delete";
 type AssignmentViewMode = "all" | "assigned";
 
 const initialForm: GruppenFormState = {
@@ -250,6 +251,19 @@ export function GruppenPage() {
   const renderActionPanel = () => {
     if (!activePanel) {
       return null;
+    }
+
+    if (activePanel === "delete") {
+      return (
+        <LoeschAktionPanel
+          entitaetTyp="parameter_gruppe"
+          entitaetId={selectedGroupId}
+          title="Gruppe prüfen oder löschen"
+          emptyText="Bitte wähle zuerst links eine Gruppe aus."
+          onClose={() => setActivePanel(null)}
+          invalidateQueryKeys={[["gruppen"], ["gruppen-parameter", selectedGroupId], ["parameter"]]}
+        />
+      );
     }
 
     if (activePanel === "create") {
@@ -548,6 +562,13 @@ export function GruppenPage() {
                     onClick={() => handleOpenPanel("assignments")}
                   >
                     Parameter zuordnen
+                  </button>
+                  <button
+                    type="button"
+                    className={`parameter-toolrail__button ${activePanel === "delete" ? "parameter-toolrail__button--active" : ""}`}
+                    onClick={() => handleOpenPanel("delete")}
+                  >
+                    Löschprüfung
                   </button>
                 </div>
 

@@ -91,6 +91,33 @@
         },
         "additionalProperties": false
       }
+    },
+    "parameterVorschlaege": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["anzeigename", "messwertIndizes"],
+        "properties": {
+          "anzeigename": { "type": "string" },
+          "wertTypStandard": {
+            "type": "string",
+            "enum": ["numerisch", "text"]
+          },
+          "standardEinheit": { "type": "string" },
+          "beschreibungKurz": { "type": "string" },
+          "moeglicheAliase": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "begruendungAusDokument": { "type": "string" },
+          "unsicherFlag": { "type": "boolean" },
+          "messwertIndizes": {
+            "type": "array",
+            "items": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "additionalProperties": false
+      }
     }
   },
   "additionalProperties": false
