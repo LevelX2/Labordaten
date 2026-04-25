@@ -17,6 +17,7 @@ apps/frontend/vite.config.js
 apps/frontend/vite.config.d.ts
 
 # Local data and builds
+.codex/
 *.sqlite
 *.sqlite3
 *.db
