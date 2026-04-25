@@ -1,7 +1,7 @@
 ---
 typ: prozess
 status: aktiv
-letzte_aktualisierung: 2026-04-20
+letzte_aktualisierung: 2026-04-25
 quellen:
   - ../../00 Steuerung/Regeldatei KI-Wissenspflege.md
   - Quellenverarbeitung in dieser Wissensbasis.md
@@ -27,6 +27,7 @@ Dieser Workflow beschreibt, wie die Wissensbasis im Alltag genutzt und gepflegt 
 - Projektfragen werden zuerst gegen die Wissensbasis beantwortet.
 - Wiederverwendbare Ergebnisse aus Analysen, Entscheidungen oder Aufgaben fließen zurück in die Wissensbasis.
 - Zustandsübersichten und Chronik bleiben getrennt: `Aktueller Projektstatus` zeigt den verdichteten Ist-Zustand, das `Log` hält die zeitliche Abfolge fest.
+- Das `Log` bleibt dabei schnell lesbar: Monatsblöcke stehen absteigend, und neue Einträge werden im neuesten passenden Monatsblock oben ergänzt.
 
 ## Wann der Workflow genutzt wird
 - wenn eine neue Quelle zum Projekt auftaucht
@@ -45,7 +46,7 @@ Dieser Workflow beschreibt, wie die Wissensbasis im Alltag genutzt und gepflegt 
 4. Bestehende Seiten aktualisieren oder neue Seiten anlegen.
 5. Verlinkungen und Quellenbasis ergänzen.
 6. Index aktualisieren, falls neue relevante Seiten entstanden sind.
-7. Eintrag im Log schreiben.
+7. Eintrag im Log im neuesten passenden Monatsblock oben ergänzen.
 
 ## Fall 2: Frage zum Projekt beantworten
 ### Typischer Auslöser
@@ -67,7 +68,7 @@ Dieser Workflow beschreibt, wie die Wissensbasis im Alltag genutzt und gepflegt 
 2. Passende Wissensseite aktualisieren oder neue Seite anlegen.
 3. Bei Statuswissen bewusst trennen:
    - `Aktueller Projektstatus` nur als verdichteten Snapshot aktualisieren.
-   - `Log` für zeitliche Abfolge, Verifikation und konkrete Änderungsschritte ergänzen.
+   - `Log` für zeitliche Abfolge, Verifikation und konkrete Änderungsschritte ergänzen; neue Einträge stehen im passenden Monatsblock oben.
 4. Quellenbasis ergänzen:
    - Chat-Ergebnis nur dann, wenn es auf klar benennbaren Projektquellen oder verifizierter Analyse beruht.
    - Bei Codebezug bevorzugt auf Repo-Quellen oder konkrete Dateien verweisen.
