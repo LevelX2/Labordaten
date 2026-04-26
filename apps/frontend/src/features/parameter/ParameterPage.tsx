@@ -233,7 +233,7 @@ function formatUsageSummary(summary: ParameterUsageSummary): string {
   const parts = [
     `${summary.messwerte_anzahl} Messwerte`,
     `${summary.zielbereiche_anzahl} Zielbereiche`,
-    `${summary.gruppen_anzahl} Gruppen`,
+    `${summary.gruppen_anzahl} Parametergruppen`,
     `${summary.planung_zyklisch_anzahl + summary.planung_einmalig_anzahl} Planungen`
   ];
   return parts.join(" • ");
@@ -2318,7 +2318,7 @@ export function ParameterPage() {
                     <strong>{selectedParameter.messwerte_anzahl}</strong>
                   </div>
                   <div className="detail-grid__item">
-                    <span>Verwendet in Gruppen</span>
+                    <span>Verwendet in Parametergruppen</span>
                     <strong>{parameterGruppenQuery.data?.length ?? 0}</strong>
                   </div>
                 </div>
@@ -2629,7 +2629,7 @@ export function ParameterPage() {
                         aria-expanded={expandedRelatedSections.groups}
                       >
                         <span>
-                          <strong>Gruppen</strong>
+                          <strong>Parametergruppen</strong>
                           <small>{formatCountLabel(parameterGruppenQuery.data?.length ?? 0, "Eintrag", "Einträge")}</small>
                         </span>
                         <span className="parameter-related__chevron" aria-hidden="true">
@@ -2642,7 +2642,7 @@ export function ParameterPage() {
                             <table className="data-table parameter-summary-table">
                               <thead>
                                 <tr>
-                                  <th>Gruppe</th>
+                                  <th>Parametergruppe</th>
                                   <th>Sortierung</th>
                                 </tr>
                               </thead>
@@ -2655,7 +2655,7 @@ export function ParameterPage() {
                                 ))}
                                 {!parameterGruppenQuery.data?.length ? (
                                   <tr>
-                                    <td colSpan={2}>Dieser Parameter ist aktuell keiner Gruppe zugeordnet.</td>
+                                    <td colSpan={2}>Dieser Parameter ist aktuell keiner Parametergruppe zugeordnet.</td>
                                   </tr>
                                 ) : null}
                               </tbody>

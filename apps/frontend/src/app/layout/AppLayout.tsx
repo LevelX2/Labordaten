@@ -10,7 +10,7 @@ const navItems = [
   { to: "/befunde", label: "Befunde", shortLabel: "Be" },
   { to: "/messwerte", label: "Messwerte", shortLabel: "Mw" },
   { to: "/parameter", label: "Parameter", shortLabel: "Pa" },
-  { to: "/gruppen", label: "Gruppen", shortLabel: "Gr" },
+  { to: "/gruppen", label: "Parametergruppen", shortLabel: "Pg" },
   { to: "/planung", label: "Planung", shortLabel: "Pl" },
   { to: "/auswertung", label: "Auswertung", shortLabel: "Au" },
   { to: "/berichte", label: "Berichte", shortLabel: "Br" },

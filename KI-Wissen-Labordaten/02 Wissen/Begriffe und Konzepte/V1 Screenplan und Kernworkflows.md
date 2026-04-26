@@ -42,12 +42,12 @@ Die V1-Oberfläche soll arbeitsbereichsorientiert und sachlich aufgebaut sein. D
 - `Befunde`
 - `Messwerte`
 - `Parameter`
-- `Gruppen`
+- `Parametergruppen`
 - `Planung`
 - `Auswertung`
 - `Berichte`
 - `Import`
-- `Wissensbasis`
+- `Laborwissen`
 - `Einstellungen`
 
 ## Grundmuster der Oberfläche
@@ -133,7 +133,7 @@ Die V1-Oberfläche soll arbeitsbereichsorientiert und sachlich aufgebaut sein. D
 
 ### Messwertliste
 - Starke Filterbarkeit, da dies die wichtigste Fachliste wird
-- Filter: Person, Parameter, Gruppe, Labor, Zeitraum, numerisch oder textlich, mit Unsicherheitsflag, mit Referenzabweichung
+- Filter: Person, Parameter, Parametergruppe, Labor, Zeitraum, numerisch oder textlich, mit Unsicherheitsflag, mit Referenzabweichung
 - Spalten: Datum, Person, Parameter, Rohwert, normierter Wert, Einheit, Labor, Befund, Warnungen
 
 ### Messwertdetail
@@ -156,7 +156,7 @@ Die V1-Oberfläche soll arbeitsbereichsorientiert und sachlich aufgebaut sein. D
 ### Parameterliste
 - Suche
 - Filter: aktiv, Werttyp, mit Zielbereich, mit Wissensseite, mit Umrechnungsregel
-- Spalten: Anzeigename, interner Schlüssel, Standardeinheit, Werttyp, Gruppenanzahl
+- Spalten: Anzeigename, interner Schlüssel, Standardeinheit, Werttyp, Parametergruppenanzahl
 
 ### Parameterdetail
 - Stammdaten
@@ -164,7 +164,7 @@ Die V1-Oberfläche soll arbeitsbereichsorientiert und sachlich aufgebaut sein. D
 - Umrechnungsregeln
 - Verwandte Parameter
 - Allgemeine Zielbereiche
-- Gruppenmitgliedschaften
+- Parametergruppenmitgliedschaften
 - Wissensseitenlink
 
 ### Aktionen
@@ -174,12 +174,12 @@ Die V1-Oberfläche soll arbeitsbereichsorientiert und sachlich aufgebaut sein. D
 - `Zielbereich anlegen`
 - bestehenden Zielbereich bearbeiten, wobei Parameterbezug, technische ID und Werttyp stabil bleiben
 
-## Gruppen
+## Parametergruppen
 
-### Gruppenliste
+### Parametergruppenliste
 - Name, Beschreibung, Parameteranzahl, Wissensseite
 
-### Gruppendetail
+### Parametergruppendetail
 - Stammdaten
 - Parameterliste mit Sortierung
 - Aktionen für Name/Beschreibung bearbeiten, Parameter zuordnen, Löschprüfung sowie Nutzung in Berichten, Auswertung und Planung
@@ -195,8 +195,8 @@ Die V1-Oberfläche soll arbeitsbereichsorientiert und sachlich aufgebaut sein. D
 - Beim Anlegen zyklischer Planungen und einmaliger Vormerkungen muss die Parameterauswahl für große Parameterbestände suchbar sein.
 - Die Parametersuche soll mindestens Anzeigename, internen Schlüssel, Beschreibung oder fachlichen Bemerkungstext und Einheit berücksichtigen.
 - Lange Parameterbezeichnungen und ergänzende Metadaten müssen in Auswahlkacheln innerhalb des rechten Rands umbrechen.
-- Gruppen dürfen in der Planung als Eingabehilfe verwendet werden, um mehrere gleichartig zu planende Parameter in einem Schritt auszuwählen.
-- Die gespeicherte Planung bleibt dabei auf Einzelparametern; eine Gruppe ist Auswahlhilfe und keine eigene Planungsziel-Entität.
+- Parametergruppen dürfen in der Planung als Eingabehilfe verwendet werden, um mehrere gleichartig zu planende Parameter in einem Schritt auszuwählen.
+- Die gespeicherte Planung bleibt dabei auf Einzelparametern; eine Parametergruppe ist Auswahlhilfe und keine eigene Planungsziel-Entität.
 - Im Bereich `Vorhandene Planungen` soll die Textsuche kurz und eindeutig auf Person und Parameter ausgerichtet sein.
 - Der primäre Zusatzfilter in `Vorhandene Planungen` soll nach Planungstyp unterscheiden: `Zyklisch` oder `Einmalig`.
 - Fälligkeit und Status bleiben Informationen am einzelnen Planungseintrag, sind dort aber nicht der primäre Bestandsfilter.
@@ -204,10 +204,10 @@ Die V1-Oberfläche soll arbeitsbereichsorientiert und sachlich aufgebaut sein. D
 - Sichtbare Beschreibungstexte im Planungsbereich sollen neutral von Laborterminen oder Laboruntersuchungen sprechen, wenn nicht ausdrücklich eine Blutprobe gemeint ist.
 
 ### Zyklische Planung
-- Filter: Person, Gruppe, Parameter, Status, fällig oder bald fällig
+- Filter: Person, Parametergruppe, Parameter, Status, fällig oder bald fällig
 - Spalten: Person, Parameter, Intervall, letzte Messung, nächste Fälligkeit, Priorität, Status
-- Beim Übernehmen einer Gruppe darf eine leere Bemerkung automatisch mit einer sprechenden Kombination aus Zyklus und Gruppenname vorbelegt werden, zum Beispiel `Alle 6 Monate Eisenwerte kontrollieren.`
-- Eine bereits manuell ausgefüllte Bemerkung wird durch die Gruppenübernahme nicht überschrieben.
+- Beim Übernehmen einer Parametergruppe darf eine leere Bemerkung automatisch mit einer sprechenden Kombination aus Zyklus und Parametergruppenname vorbelegt werden, zum Beispiel `Alle 6 Monate Eisenwerte kontrollieren.`
+- Eine bereits manuell ausgefüllte Bemerkung wird durch die Parametergruppenübernahme nicht überschrieben.
 
 ### Einmalige Vormerkungen
 - Spalten: Person, Parameter, Status, Zieltermin, Bemerkung
@@ -238,7 +238,7 @@ Die V1-Oberfläche soll arbeitsbereichsorientiert und sachlich aufgebaut sein. D
 
 ### Filter
 - Person Pflicht
-- Parameter oder Gruppe
+- Parameter oder Parametergruppe
 - Zeitraum
 - Anzeigeart: absolut, normiert, nur numerisch, numerisch plus qualitative Ereignisse
 - Referenzanzeige: Labor, Zielbereich, beides, keines
@@ -264,7 +264,7 @@ Die V1-Oberfläche soll arbeitsbereichsorientiert und sachlich aufgebaut sein. D
 - später erweiterbar
 
 ### Arztbericht Liste
-- Filter: Person, Gruppe, Parameter, Zeitraum, Labor
+- Filter: Person, Parametergruppe, Parameter, Zeitraum, Labor
 - Mehrfachauswahl kompakt statt breitflächiger Checkbox-Zeilen, inklusive `Alle auswählen` und `Alle abwählen`
 - Standardmäßig aktiv:
   - Parameter
@@ -277,7 +277,7 @@ Die V1-Oberfläche soll arbeitsbereichsorientiert und sachlich aufgebaut sein. D
   - Messwertbemerkung
 - Felder einzeln abwählbar
 - Vorschau enthält zusätzlich Kennzahlen wie Anzahl enthaltener Werte und Anzahl referenzauffälliger Werte
-- Vorschau enthält eine kurze Charakterisierung des Berichtsinhalts, bevorzugt aus Gruppen oder Schwerpunkten abgeleitet
+- Vorschau enthält eine kurze Charakterisierung des Berichtsinhalts, bevorzugt aus Parametergruppen oder Schwerpunkten abgeleitet
 - Ausgabe als sachlicher PDF-Bericht
 - PDF-Berichte sollen eine einheitliche Kopf- und Fußzeilenform verwenden: App-Icon vor `Labordaten`, rechts die Berichtsart, unten die Ausgabeart und die Seitennummer.
 
@@ -307,15 +307,17 @@ Die V1-Oberfläche soll arbeitsbereichsorientiert und sachlich aufgebaut sein. D
 - `Verwerfen`
 - Bei Dublettenwarnungen bewusste Bestätigung erforderlich
 
-## Wissensbasis
+## Laborwissen
 
 ### V1-Funktion
-- Liste verknüpfter Wissensseiten
-- Anzeige ausgewählter Markdown-Seiten
-- Öffnen im Dateisystem oder externen Editor
+- Liste fachlicher Laborwissen-Seiten aus `Labordaten-Wissen/`
+- Anzeige ausgewählter Markdown-Seiten mit internen Links
+- Rücknavigation zum Index und zur nächsthöheren Ebene im Seitenkopf
+- automatische Anlage und Verknüpfung einer Parameter-Wissensseite bei neuen Parametern
+- Anwendungshilfe als eigener Bereich für die Hauptfunktionen der App
 
 ### Filter
-- Bezugstyp Parameter oder Gruppe
+- Bezugstyp Parameter oder Parametergruppe
 - Nur verknüpfte oder alle bekannten Seiten
 
 ## Einstellungen
@@ -357,7 +359,7 @@ Die V1-Oberfläche soll arbeitsbereichsorientiert und sachlich aufgebaut sein. D
 
 ### Workflow 4: Verlauf auswerten
 1. Person wählen
-2. Parameter oder Gruppe wählen
+2. Parameter oder Parametergruppe wählen
 3. Zeitraum und Referenzanzeige setzen
 4. Diagramm und Kennzahlen prüfen
 5. optional Bericht erzeugen

@@ -298,7 +298,7 @@ function buildFilterSummary(
 
   const summary = [
     formatSelectedSummary(form.person_ids, personenById, "Pers.", 6, "Keine Person"),
-    formatSelectedSummary(form.gruppen_ids, gruppenById, "Grp.", 6),
+    formatSelectedSummary(form.gruppen_ids, gruppenById, "Parametergruppen", 6),
     formatSelectedSummary(form.laborparameter_ids, parameterById, "Param.", 20),
     formatSelectedSummary(form.klassifikationen, klassifikationById, "KSG", 6),
     formatSelectedSummary(form.labor_ids, laboreById, "Lab.", 6)
@@ -814,7 +814,7 @@ export function AuswertungPage() {
       <header className="page__header">
         <h2>Auswertung</h2>
         <p>
-          Vergleiche Verläufe über Personen, Gruppen, Parameter, Labore und Zeitraum und blende Referenz- oder
+          Vergleiche Verläufe über Personen, Parametergruppen, Parameter, Labore und Zeitraum und blende Referenz- oder
           Zielbereiche bei Bedarf ein.
         </p>
       </header>
@@ -883,7 +883,7 @@ export function AuswertungPage() {
             />
 
             <SelectionChecklist
-              label="Gruppen"
+              label="Parametergruppen"
               options={(gruppenQuery.data ?? []).map((gruppe) => ({
                 id: gruppe.id,
                 label: gruppe.name,
@@ -891,7 +891,7 @@ export function AuswertungPage() {
               }))}
               selectedIds={form.gruppen_ids}
               onChange={(gruppen_ids) => setForm((current) => ({ ...current, gruppen_ids }))}
-              emptyText="Noch keine Gruppen vorhanden."
+              emptyText="Noch keine Parametergruppen vorhanden."
               collapsible
               defaultExpanded={false}
               compactWhenEmptyCollapsed

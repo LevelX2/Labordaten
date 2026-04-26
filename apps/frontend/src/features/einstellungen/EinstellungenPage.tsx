@@ -55,7 +55,7 @@ function getSectionMeta(section: EinstellungenAnsichtKey): { title: string; desc
   if (section === "pfade") {
     return {
       title: "Pfade und Speicherorte",
-      description: "Hier pflegst Du die lokalen Zielorte für Daten, Dokumente, Wissensbasis und Berichtsvorlagen.",
+      description: "Hier pflegst Du die lokalen Zielorte für Daten, Dokumente, Laborwissen und Berichtsvorlagen.",
       badge: "Laufzeit-Pfade"
     };
   }

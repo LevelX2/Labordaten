@@ -93,7 +93,7 @@ export function MesswertDetailCard({
               <strong>{messwert.original_parametername}</strong>
             </div>
             <div className="detail-grid__item">
-              <span>Gruppen</span>
+              <span>Parametergruppen</span>
               <strong>{messwert.gruppen_namen.length ? messwert.gruppen_namen.join(", ") : "—"}</strong>
             </div>
             <div className="detail-grid__item detail-grid__item--full">

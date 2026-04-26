@@ -591,10 +591,10 @@ export function PlanungPage() {
             </label>
 
             <div className="field field--full">
-              <span>Gruppe übernehmen</span>
+              <span>Parametergruppe übernehmen</span>
               <div className="inline-actions">
                 <select value={zyklischGruppeId} onChange={(event) => setZyklischGruppeId(event.target.value)}>
-                  <option value="">Keine Gruppe gewählt</option>
+                  <option value="">Keine Parametergruppe gewählt</option>
                   {gruppenQuery.data?.map((gruppe) => (
                     <option key={gruppe.id} value={gruppe.id}>
                       {gruppe.name} ({gruppe.parameter_anzahl})
@@ -615,7 +615,7 @@ export function PlanungPage() {
                 </button>
               </div>
               <small>
-                Die Gruppe dient nur zur schnellen Auswahl. Gespeichert werden einzelne Planungen pro Parameter.
+                Die Parametergruppe dient nur zur schnellen Auswahl. Gespeichert werden einzelne Planungen pro Parameter.
               </small>
             </div>
 
@@ -761,10 +761,10 @@ export function PlanungPage() {
             </label>
 
             <div className="field field--full">
-              <span>Gruppe übernehmen</span>
+              <span>Parametergruppe übernehmen</span>
               <div className="inline-actions">
                 <select value={einmaligGruppeId} onChange={(event) => setEinmaligGruppeId(event.target.value)}>
-                  <option value="">Keine Gruppe gewählt</option>
+                  <option value="">Keine Parametergruppe gewählt</option>
                   {gruppenQuery.data?.map((gruppe) => (
                     <option key={gruppe.id} value={gruppe.id}>
                       {gruppe.name} ({gruppe.parameter_anzahl})
@@ -785,7 +785,7 @@ export function PlanungPage() {
                 </button>
               </div>
               <small>
-                Die Gruppe dient nur zur schnellen Auswahl. Gespeichert werden einzelne Vormerkungen pro Parameter.
+                Die Parametergruppe dient nur zur schnellen Auswahl. Gespeichert werden einzelne Vormerkungen pro Parameter.
               </small>
             </div>
 

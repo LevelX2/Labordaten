@@ -187,8 +187,8 @@ export function GruppenPage() {
   const assignedParameterCount = Object.values(effectiveAssignments).filter((item) => item.aktiv).length;
   const hasActiveGroupFilter = groupSearchQuery.trim().length > 0;
   const groupCountLabel = hasActiveGroupFilter
-    ? `${filteredGroups.length} von ${sortedGroups.length} Gruppen`
-    : `${sortedGroups.length} Gruppen`;
+    ? `${filteredGroups.length} von ${sortedGroups.length} Parametergruppen`
+    : `${sortedGroups.length} Parametergruppen`;
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -286,8 +286,8 @@ export function GruppenPage() {
         <LoeschAktionPanel
           entitaetTyp="parameter_gruppe"
           entitaetId={selectedGroupId}
-          title="Gruppe prüfen oder löschen"
-          emptyText="Bitte wähle zuerst links eine Gruppe aus."
+          title="Parametergruppe prüfen oder löschen"
+          emptyText="Bitte wähle zuerst links eine Parametergruppe aus."
           onClose={() => setActivePanel(null)}
           invalidateQueryKeys={[["gruppen"], ["gruppen-parameter", selectedGroupId], ["parameter"]]}
         />
@@ -299,10 +299,10 @@ export function GruppenPage() {
         <article className="card card--soft parameter-action-panel">
           <div className="parameter-panel__header">
             <div>
-              <h3>Neue Gruppe</h3>
-              <p>Gruppen bündeln fachlich zusammengehörige Parameter für Filter, Berichte und Auswertungen.</p>
+              <h3>Neue Parametergruppe</h3>
+              <p>Parametergruppen bündeln fachlich zusammengehörige Parameter für Filter, Berichte und Auswertungen.</p>
             </div>
-            {renderPanelCloseButton("Panel Neue Gruppe schließen")}
+            {renderPanelCloseButton("Panel Neue Parametergruppe schließen")}
           </div>
           <form
             className="form-grid"
@@ -331,7 +331,7 @@ export function GruppenPage() {
 
             <div className="form-actions">
               <button type="submit" disabled={createMutation.isPending}>
-                {createMutation.isPending ? "Speichert..." : "Gruppe anlegen"}
+                {createMutation.isPending ? "Speichert..." : "Parametergruppe anlegen"}
               </button>
               {createMutation.isError ? <p className="form-error">{createMutation.error.message}</p> : null}
             </div>
@@ -344,7 +344,7 @@ export function GruppenPage() {
       return (
         <article className="card card--soft">
           <h3>Parameter zuordnen</h3>
-          <p>Bitte wähle zuerst links eine Gruppe aus.</p>
+          <p>Bitte wähle zuerst links eine Parametergruppe aus.</p>
         </article>
       );
     }
@@ -354,10 +354,10 @@ export function GruppenPage() {
         <article className="card card--soft parameter-action-panel">
           <div className="parameter-panel__header">
             <div>
-              <h3>Gruppe bearbeiten</h3>
-              <p>Ändere Name und Beschreibung der ausgewählten Gruppe.</p>
+              <h3>Parametergruppe bearbeiten</h3>
+              <p>Ändere Name und Beschreibung der ausgewählten Parametergruppe.</p>
             </div>
-            {renderPanelCloseButton("Panel Gruppe bearbeiten schließen")}
+            {renderPanelCloseButton("Panel Parametergruppe bearbeiten schließen")}
           </div>
           <form
             className="form-grid"
@@ -400,7 +400,7 @@ export function GruppenPage() {
         <div className="parameter-panel__header">
           <div>
             <h3>Parameter zuordnen</h3>
-            <p>Lege fest, welche Parameter in dieser Gruppe enthalten sind und in welcher Reihenfolge sie erscheinen.</p>
+            <p>Lege fest, welche Parameter in dieser Parametergruppe enthalten sind und in welcher Reihenfolge sie erscheinen.</p>
           </div>
           {renderPanelCloseButton("Panel Parameter zuordnen schließen")}
         </div>
@@ -530,12 +530,12 @@ export function GruppenPage() {
   return (
     <section className="page">
       <header className="page__header page__header--compact">
-        <h2>Gruppen</h2>
+        <h2>Parametergruppen</h2>
         <div className="page__info">
           <button
             type="button"
             className="icon-button page__info-button"
-            aria-label="Hinweis zur Gruppenseite"
+            aria-label="Hinweis zur Parametergruppen-Seite"
             aria-expanded={showPageInfo}
             onClick={() => setShowPageInfo((current) => !current)}
           >
@@ -543,7 +543,7 @@ export function GruppenPage() {
           </button>
           {showPageInfo ? (
             <div className="page__info-popover">
-              Hier verwaltest Du Gruppen, ordnest Parameter zu und prüfst die bereits zugeordneten Daten.
+              Hier verwaltest Du Parametergruppen, ordnest Parameter zu und prüfst die bereits zugeordneten Daten.
             </div>
           ) : null}
         </div>
@@ -553,7 +553,7 @@ export function GruppenPage() {
         <aside className="card parameter-sidebar">
           <div className="parameter-sidebar__header">
             <div>
-              <h3>Vorhandene Gruppen</h3>
+              <h3>Vorhandene Parametergruppen</h3>
               <p>{groupCountLabel}</p>
             </div>
           </div>
@@ -601,7 +601,7 @@ export function GruppenPage() {
             ))}
             {!filteredGroups.length ? (
               <div className="parameter-list__empty">
-                <p>Keine Gruppen passen zur aktuellen Suche.</p>
+                <p>Keine Parametergruppen passen zur aktuellen Suche.</p>
               </div>
             ) : null}
           </div>
@@ -610,7 +610,7 @@ export function GruppenPage() {
         <div className="parameter-main">
           <article className="card">
             {!selectedGroup ? (
-              <p>Noch keine Gruppen vorhanden. Lege über die Werkzeugleiste die erste Gruppe an.</p>
+              <p>Noch keine Parametergruppen vorhanden. Lege über die Werkzeugleiste die erste Parametergruppe an.</p>
             ) : (
               <>
                 <div className="parameter-toolrail">
@@ -619,14 +619,14 @@ export function GruppenPage() {
                     className={`parameter-toolrail__button ${activePanel === "create" ? "parameter-toolrail__button--active" : ""}`}
                     onClick={() => handleOpenPanel("create")}
                   >
-                    Neue Gruppe
+                    Neue Parametergruppe
                   </button>
                   <button
                     type="button"
                     className={`parameter-toolrail__button ${activePanel === "edit" ? "parameter-toolrail__button--active" : ""}`}
                     onClick={() => handleOpenPanel("edit")}
                   >
-                    Gruppe bearbeiten
+                    Parametergruppe bearbeiten
                   </button>
                   <button
                     type="button"
@@ -649,7 +649,7 @@ export function GruppenPage() {
                 <div className="parameter-detail__header">
                   <div>
                     <h3 className="parameter-detail__title">{selectedGroup.name}</h3>
-                <p>{selectedGroup.beschreibung?.trim() || "Zu dieser Gruppe ist noch keine Erläuterung hinterlegt."}</p>
+                <p>{selectedGroup.beschreibung?.trim() || "Zu dieser Parametergruppe ist noch keine Erläuterung hinterlegt."}</p>
                   </div>
                   <div className="parameter-header-controls">
                     <button
@@ -747,7 +747,7 @@ export function GruppenPage() {
                                 ))}
                                 {!gruppenParameterQuery.data?.length ? (
                                   <tr>
-                                    <td colSpan={4}>Noch keine Parameter für diese Gruppe zugeordnet.</td>
+                                    <td colSpan={4}>Noch keine Parameter für diese Parametergruppe zugeordnet.</td>
                                   </tr>
                                 ) : null}
                               </tbody>

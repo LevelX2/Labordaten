@@ -757,7 +757,7 @@ export function MesswertePage() {
             />
 
             <SelectionChecklist
-              label="Gruppen"
+              label="Parametergruppen"
               options={(gruppenQuery.data ?? []).map((gruppe) => ({
                 id: gruppe.id,
                 label: gruppe.name,
@@ -765,7 +765,7 @@ export function MesswertePage() {
               }))}
               selectedIds={filter.gruppen_ids}
               onChange={(gruppen_ids) => setFilter((current) => ({ ...current, gruppen_ids }))}
-              emptyText="Noch keine Gruppen vorhanden."
+              emptyText="Noch keine Parametergruppen vorhanden."
               collapsible
               defaultExpanded={false}
             />
@@ -1112,7 +1112,7 @@ export function MesswertePage() {
                 className="clearable-field__input"
                 value={listSearchQuery}
                 onChange={(event) => setListSearchQuery(event.target.value)}
-                placeholder="Person, Parameter, Labor, Gruppe oder Wert"
+                placeholder="Person, Parameter, Labor, Parametergruppe oder Wert"
               />
               <button
                 type="button"
@@ -1330,7 +1330,7 @@ export function MesswertePage() {
                     <strong>{referenzenQuery.data?.length ?? 0}</strong>
                   </div>
                   <div className="detail-grid__item">
-                    <span>Gruppen</span>
+                    <span>Parametergruppen</span>
                     <strong>{selectedMesswert.gruppen_namen.length}</strong>
                   </div>
                 </div>

@@ -15,7 +15,7 @@ type ActionCard = {
 const actionCards: ActionCard[] = [
   {
     title: "Stammdaten pflegen",
-    text: "Personen, Parameter und Gruppen bilden die fachliche Grundlage für Importe, Planung und Auswertung.",
+    text: "Personen, Parameter und Parametergruppen bilden die fachliche Grundlage für Importe, Planung und Auswertung.",
     to: "/personen",
     cta: "Personen öffnen"
   },

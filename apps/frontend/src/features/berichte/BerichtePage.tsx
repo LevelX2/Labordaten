@@ -116,7 +116,7 @@ function buildFilterSummary(form: BerichtFormState): string[] {
   );
 
   if (form.gruppen_ids.length) {
-    summary.push(formatCount(form.gruppen_ids.length, "Gruppe", "Gruppen"));
+    summary.push(formatCount(form.gruppen_ids.length, "Parametergruppe", "Parametergruppen"));
   }
   if (form.laborparameter_ids.length) {
     summary.push(formatCount(form.laborparameter_ids.length, "Parameter", "Parameter"));
@@ -640,7 +640,7 @@ export function BerichtePage() {
                   />
 
                   <SelectionChecklist
-                    label="Gruppen"
+                    label="Parametergruppen"
                     options={(gruppenQuery.data ?? []).map((gruppe) => ({
                       id: gruppe.id,
                       label: gruppe.name,
@@ -648,7 +648,7 @@ export function BerichtePage() {
                     }))}
                     selectedIds={form.gruppen_ids}
                     onChange={(gruppen_ids) => setForm((current) => ({ ...current, gruppen_ids }))}
-                    emptyText="Noch keine Gruppen vorhanden."
+                    emptyText="Noch keine Parametergruppen vorhanden."
                     collapsible
                     defaultExpanded={false}
                   />
@@ -772,9 +772,9 @@ export function BerichtePage() {
                 <strong>{formatCount(form.person_ids.length, "Person", "Personen")}</strong>
               </div>
               <div className="detail-grid__item">
-                <span>Gruppen und Parameter</span>
+                <span>Parametergruppen und Parameter</span>
                 <strong>
-                  {formatCount(form.gruppen_ids.length, "Gruppe", "Gruppen")} •{" "}
+                  {formatCount(form.gruppen_ids.length, "Parametergruppe", "Parametergruppen")} •{" "}
                   {formatCount(form.laborparameter_ids.length, "Parameter", "Parameter")} •{" "}
                   {formatCount(form.klassifikationen.length, "KSG-Klasse", "KSG-Klassen")}
                 </strong>

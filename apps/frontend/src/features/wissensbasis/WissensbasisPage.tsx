@@ -40,12 +40,12 @@ const KNOWLEDGE_TARGET_AREAS = [
     label: "Grundlagen"
   },
   {
-    value: "03 Testprofile und Kombinationen",
-    label: "Testprofile und Kombinationen"
+    value: "03 Parametergruppen",
+    label: "Parametergruppen"
   },
   {
-    value: "04 Teststrategien",
-    label: "Teststrategien"
+    value: "04 Messplanung",
+    label: "Messplanung"
   },
   {
     value: "05 Zielbereiche und Gesundheitswerte",
@@ -467,6 +467,21 @@ export function WissensbasisPage() {
     ? renderMarkdown(detailQuery.data.inhalt_markdown, detailQuery.data.pfad_relativ, pageLookup, openPage)
     : null;
   const pathSegments = detailQuery.data?.pfad_relativ.split("/") ?? [];
+  const currentPagePath = detailQuery.data?.pfad_relativ ?? "";
+  const currentFileName = pathSegments[pathSegments.length - 1] ?? "";
+  const rootIndexPath =
+    pageLookup.byPath.get(normalizeKnowledgePath("00 Einstieg/Index.md")) ?? findDirectoryIndexPath("00 Einstieg", pageLookup);
+  const isDirectoryIndexPage = /^(README|Index)\.md$/i.test(currentFileName);
+  const parentDirectorySegments = isDirectoryIndexPage ? pathSegments.slice(0, -2) : pathSegments.slice(0, -1);
+  const directParentPath = parentDirectorySegments.length
+    ? findDirectoryIndexPath(parentDirectorySegments.join("/"), pageLookup)
+    : rootIndexPath;
+  const parentNavigationPath =
+    directParentPath && directParentPath !== currentPagePath
+      ? directParentPath
+      : rootIndexPath && rootIndexPath !== currentPagePath
+        ? rootIndexPath
+        : null;
   const breadcrumbSegments = pathSegments.slice(0, -1).map((segment, index) => {
     const path = pathSegments.slice(0, index + 1).join("/");
     return {
@@ -557,10 +572,10 @@ export function WissensbasisPage() {
                     setPathEditedManually(true);
                     setForm((current) => ({ ...current, pfad_relativ: event.target.value }));
                   }}
-                  placeholder="02 Wissen/Parameter/Ferritin.md"
+                  placeholder="02 Parameter/Allgemein/Ferritin.md"
                 />
                 <small>
-                  Der Pfad liegt innerhalb des Wissensordners. Aus Zielbereich und Titel wird automatisch ein Vorschlag
+                  Der Pfad liegt innerhalb des Laborwissen-Ordners. Aus Zielbereich und Titel wird automatisch ein Vorschlag
                   erzeugt.
                 </small>
               </label>
@@ -618,7 +633,28 @@ export function WissensbasisPage() {
           {detailQuery.data ? (
             <>
               <div className="knowledge-reader__topline">
-                <div className="knowledge-reader__meta knowledge-reader__meta--stacked">
+                <div className="knowledge-reader__navigation">
+                  <div className="knowledge-reader__nav-actions">
+                    {parentNavigationPath ? (
+                      <button
+                        type="button"
+                        className="inline-button inline-button--compact"
+                        onClick={() => openPage(parentNavigationPath)}
+                        aria-label="Eine Ebene höher"
+                      >
+                        ← Ebene höher
+                      </button>
+                    ) : null}
+                    {rootIndexPath && rootIndexPath !== currentPagePath ? (
+                      <button
+                        type="button"
+                        className="inline-button inline-button--compact"
+                        onClick={() => openPage(rootIndexPath)}
+                      >
+                        Index
+                      </button>
+                    ) : null}
+                  </div>
                   <nav className="knowledge-breadcrumb" aria-label="Laborwissen-Pfad">
                     {breadcrumbSegments.map((segment) => {
                       const targetPath = segment.targetPath;
@@ -642,7 +678,7 @@ export function WissensbasisPage() {
                       {pathSegments[pathSegments.length - 1]}
                     </span>
                   </nav>
-                  <span>Geändert: {formatDate(detailQuery.data.geaendert_am)}</span>
+                  <span className="knowledge-reader__changed-at">Geändert: {formatDate(detailQuery.data.geaendert_am)}</span>
                 </div>
                 {detailQuery.data.loeschbar ? (
                   <button

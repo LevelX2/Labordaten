@@ -1054,6 +1054,24 @@ a {
   gap: 6px;
 }
 
+.knowledge-reader__navigation {
+  display: grid;
+  min-width: min(100%, 320px);
+  gap: 8px;
+}
+
+.knowledge-reader__nav-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.knowledge-reader__changed-at {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .knowledge-breadcrumb {
   display: flex;
   flex-wrap: wrap;
@@ -2080,6 +2098,12 @@ a {
 .inline-button:hover {
   border-color: rgba(31, 106, 83, 0.3);
   transform: translateY(-1px);
+}
+
+.inline-button--compact {
+  min-height: 34px;
+  padding: 6px 10px;
+  font-size: 0.88rem;
 }
 
 .inline-button--danger {

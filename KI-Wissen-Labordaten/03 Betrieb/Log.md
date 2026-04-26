@@ -11,6 +11,80 @@
 
 ## 2026-04
 
+### [2026-04-26] update | Messwerte im Import bewusst nicht übernehmen
+- Anlass oder Quelle: Nutzerhinweis, dass KI-Importe auch Hinweise oder Fremdleistungsvermerke enthalten können, die keinen sinnvollen Messwert darstellen und pro Zeile bewusst ausgelassen werden müssen.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../../apps/backend/src/labordaten_backend/modules/importe/schemas.py
+  - ../../../apps/backend/src/labordaten_backend/modules/importe/service.py
+  - ../../../apps/backend/tests/test_parameter_alias_import_mapping.py
+  - ../../../apps/frontend/src/features/importe/ImportPage.tsx
+  - ../02 Wissen/Begriffe und Konzepte/Ist-Stand Importstrecke und PDF-Grenzen.md
+- Kern der inhaltlichen Anpassung:
+  - In der Messwertklärung gibt es pro Zeile nun die explizite Aktion `Nicht übernehmen`, einen passenden Filter und eine Statusleisten-Zählung der bewusst ausgelassenen Messwerte.
+  - Das Backend akzeptiert dafür die Mapping-Aktion `ignorieren`, überspringt diese Messwerte bei der Übernahme und persistiert den Status im Importpayload, damit die Entscheidung später nachvollziehbar bleibt.
+  - Fehlende Zuordnung bedeutet weiterhin nicht stillschweigend ignorieren, sondern blockiert die Übernahme, bis der Messwert zugeordnet, als neuer Parameter markiert oder bewusst nicht übernommen wird.
+  - Verifiziert mit `python -m pytest apps/backend/tests/test_parameter_alias_import_mapping.py -q`, `python -m pytest apps/backend/tests/test_import_group_suggestions.py apps/backend/tests/test_import_prompt.py -q`, `npm run build` und `npm test` im Frontend.
+
+### [2026-04-26] update | Laborwissen-Anwendungshilfe und Fachbereichsnamen geschärft
+- Anlass oder Quelle: Nutzerfeedback zur zu knappen Anwendungshilfe, fehlenden Rücknavigation im Laborwissen-Seitenkopf und missverständlichen Begriffen `Testprofile`/`Teststrategien`.
+- Neu angelegte Seiten:
+  - ../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Laborwissen Anwendungshilfe Navigation und Fachbereichsnamen.md
+- Geänderte Seiten:
+  - ../../Labordaten-Wissen/README.md
+  - ../../Labordaten-Wissen/00 Einstieg/Index.md
+  - ../../Labordaten-Wissen/03 Parametergruppen/README.md
+  - ../../Labordaten-Wissen/04 Messplanung/README.md
+  - ../../Labordaten-Wissen/10 Anwendungshilfe/README.md
+  - ../../Labordaten-Wissen/10 Anwendungshilfe/*.md
+  - ../../../apps/frontend/src/app/layout/AppLayout.tsx
+  - ../../../apps/frontend/src/shared/components/StartPage.tsx
+  - ../../../apps/frontend/src/shared/components/MesswertDetailCard.tsx
+  - ../../../apps/frontend/src/features/auswertung/AuswertungPage.tsx
+  - ../../../apps/frontend/src/features/befunde/BefundePage.tsx
+  - ../../../apps/frontend/src/features/berichte/BerichtePage.tsx
+  - ../../../apps/frontend/src/features/einstellungen/EinstellungenPage.tsx
+  - ../../../apps/frontend/src/features/gruppen/GruppenPage.tsx
+  - ../../../apps/frontend/src/features/importe/ImportPage.tsx
+  - ../../../apps/frontend/src/features/messwerte/MesswertePage.tsx
+  - ../../../apps/frontend/src/features/parameter/ParameterPage.tsx
+  - ../../../apps/frontend/src/features/planung/PlanungPage.tsx
+  - ../../../apps/frontend/src/features/wissensbasis/WissensbasisPage.tsx
+  - ../../../apps/frontend/src/styles.css
+  - ../02 Wissen/Begriffe und Konzepte/V1 Screenplan und Kernworkflows.md
+- Kern der inhaltlichen Anpassung:
+  - `03 Testprofile und Kombinationen` wurde fachlich als `03 Parametergruppen` benannt.
+  - `04 Teststrategien` wurde als `04 Messplanung` benannt, damit der Bereich Labor-Messüberlegungen statt Softwaretests beschreibt.
+  - Die sichtbare Hauptnavigation und fachliche UI-Texte verwenden nun `Parametergruppen` statt des unspezifischen Begriffs `Gruppen`; technische Routen und API-Namen bleiben stabil.
+  - Die Anwendungshilfe-Seiten enthalten nun jeweils erklärende Einführungstexte und einen Abschnitt `Möglichkeiten`.
+  - Der Laborwissen-Seitenkopf bietet zusätzlich eine Navigation zur nächsthöheren Ebene und zurück zum Index.
+
+### [2026-04-26] update | Doppelten Importversuch-Löschbereich entfernt
+- Anlass oder Quelle: Nutzerhinweis, dass `Importversuch löschen` unten in der Importprüfung nach Einführung des Verwerfen-Dialogs doppelt ist.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../../apps/frontend/src/features/importe/ImportPage.tsx
+  - ../02 Wissen/Begriffe und Konzepte/Ist-Stand Importstrecke und PDF-Grenzen.md
+- Kern der inhaltlichen Anpassung:
+  - Der untere allgemeine Löschbereich `Importversuch löschen` wurde aus der Importprüfung entfernt.
+  - Noch nicht übernommene Importversuche werden sichtbar über `Import verwerfen` abgeschlossen; dort stehen `Dokumentiert verwerfen` und `Komplett entfernen` inklusive optionaler Dokumententfernung zur Verfügung.
+  - Verifiziert mit `npm run build` im Frontend.
+
+### [2026-04-26] update | Fehlende Parameterbeschreibungen ergänzt
+- Anlass oder Quelle: Nutzerauftrag, Parameter ohne echte Beschreibung oder mit Platzhalterbeschreibung zu prüfen und kurze fachliche Beschreibungen zu ergänzen.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../../apps/backend/labordaten.db
+- Kern der inhaltlichen Anpassung:
+  - Vor der Änderung wurde eine lokale Sicherung `apps/backend/labordaten.pre-parameter-descriptions-20260426-214009.db` angelegt.
+  - Von 344 aktiven Parametern hatten 207 bereits eine echte Beschreibung und wurden unverändert gelassen.
+  - 137 zuvor leere Beschreibungen wurden als kurze Stammdatenbeschreibung ergänzt.
+  - Es wurden keine Platzhalterbeschreibungen wie `liegt nicht vor` gefunden, daher musste keine vorhandene Platzhalterbeschreibung angepasst werden.
+  - Verifiziert mit direkter DB-Abfrage: 344 aktive Parameter haben nun eine Beschreibung, 0 aktive Parameter bleiben ohne Beschreibung oder mit erkanntem Platzhalter.
+
 ### [2026-04-26] update | Datumsbereiche in Auswertung und Berichten validiert
 - Anlass oder Quelle: Abschlussprüfung offener Frontend-Änderungen nach dem Finito-Abschluss.
 - Neu angelegte Seiten:

@@ -12,11 +12,11 @@
 - [[../02 Parameter/README]]
 - [[../02 Parameter/Allgemein/README]]
 
-## Testprofile und Kombinationen
-- [[../03 Testprofile und Kombinationen/README]]
+## Parametergruppen
+- [[../03 Parametergruppen/README]]
 
-## Teststrategien
-- [[../04 Teststrategien/README]]
+## Messplanung
+- [[../04 Messplanung/README]]
 
 ## Zielbereiche und Gesundheitswerte
 - [[../05 Zielbereiche und Gesundheitswerte/README]]
