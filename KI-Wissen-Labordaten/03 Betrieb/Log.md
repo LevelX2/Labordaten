@@ -11,6 +11,18 @@
 
 ## 2026-04
 
+### [2026-04-25] update | UI-Leitlinien aus Thread als generische Regeln verdichtet
+- Anlass oder Quelle: Nutzerauftrag, eine in einem anderen Thread erarbeitete UI-Regelliste auf Konsistenz zu prüfen, prägnanter zu formulieren und passend in der KI-Wissensbasis zu verankern
+- Neu angelegte Seiten:
+  - [[../01 Rohquellen/fachkonzepte/2026-04-25 Rueckmeldung UI-Leitlinien fuer arbeitsorientierte Weboberflaechen]]
+- Geänderte Seiten:
+  - [[../03 Betrieb/Generische Entwicklungsvorgaben]]
+- Kern der inhaltlichen Anpassung:
+  - Die neue Regelliste wurde als Rohquelle aufgenommen, damit Herkunft und vollständiger Ursprungsinhalt nachvollziehbar bleiben.
+  - Der dauerhaft wiederverwendbare Teil wurde in den generischen Entwicklungsvorgaben als Regelgruppe für Arbeitswege, Benennung, sichtbare nächste Schritte, Status, Historie, Warnklassifikation, vollständige Handlungsmöglichkeiten, robuste Copy-Flows sowie bewusst kurze und einheitlich einklappbare Oberflächen verankert.
+  - Eine zwischenzeitlich ergänzte importspezifische Ableitung wurde wieder verworfen, weil sie für die generische Wissenspflege zu speziell ist.
+  - Bewusst nicht als eigene Wissensseite angelegt wurde eine parallele UI-Regelsammlung, damit die generischen Vorgaben die zentrale Regelbasis bleiben.
+
 ### [2026-04-25] update | KI-Prompt ohne Person und mit zwei Quellenvarianten
 - Anlass oder Quelle: Nutzerentscheidung, dass der Prompt nur Regeln und Stammdaten exportieren soll und die Person erst beim JSON-Import gewählt wird
 - Neu angelegte Seiten:

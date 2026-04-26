@@ -1,7 +1,7 @@
 ---
 typ: prozess
 status: aktiv
-letzte_aktualisierung: 2026-04-23
+letzte_aktualisierung: 2026-04-25
 quellen:
   - ../../../README.md
   - ../../../scripts/start-dev.ps1
@@ -34,7 +34,7 @@ Für den lokalen Betrieb wird zuerst das Backend in `apps/backend` und danach da
 ### Backend einmalig einrichten
 ```pwsh
 pwsh
-cd C:\Users\Lui\OneDrive\Documents\Labordaten\apps\backend
+cd .\apps\backend
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -e .[dev]
@@ -45,7 +45,7 @@ uvicorn labordaten_backend.main:app --reload --app-dir src
 ### Frontend einmalig einrichten
 ```pwsh
 pwsh
-cd C:\Users\Lui\OneDrive\Documents\Labordaten\apps\frontend
+cd .\apps\frontend
 npm install
 npm run dev
 ```
@@ -54,17 +54,17 @@ npm run dev
 
 ### Beide Prozesse mit einem Aufruf starten
 ```pwsh
-pwsh -File C:\Users\Lui\OneDrive\Documents\Labordaten\scripts\start-dev.ps1
+pwsh -File .\scripts\start-dev.ps1
 ```
 
 Optional mit Migrationen vor dem Backend-Start:
 ```pwsh
-pwsh -File C:\Users\Lui\OneDrive\Documents\Labordaten\scripts\start-dev.ps1 -RunMigrations
+pwsh -File .\scripts\start-dev.ps1 -RunMigrations
 ```
 
 Optional mit automatischem Öffnen des Frontends im Browser:
 ```pwsh
-pwsh -File C:\Users\Lui\OneDrive\Documents\Labordaten\scripts\start-dev.ps1 -OpenFrontend
+pwsh -File .\scripts\start-dev.ps1 -OpenFrontend
 ```
 
 Das Skript öffnet bevorzugt zwei neue PowerShell-7-Fenster, startet darin Backend und Frontend getrennt und nutzt für das Backend direkt den Python-Interpreter aus `apps/backend/.venv`. Falls `pwsh` lokal noch nicht vorhanden ist, fällt es aus Kompatibilitätsgründen auf Windows PowerShell 5.1 zurück. Mit `-OpenFrontend` wartet es kurz, prüft die lokale Frontend-URL und öffnet anschließend `http://localhost:5173` im Standardbrowser.
@@ -80,7 +80,7 @@ Zusätzlich liegt unter `.vscode/tasks.json` eine gleichnamige Task `Labordaten 
 ### Backend
 ```pwsh
 pwsh
-cd C:\Users\Lui\OneDrive\Documents\Labordaten\apps\backend
+cd .\apps\backend
 .venv\Scripts\Activate.ps1
 uvicorn labordaten_backend.main:app --reload --app-dir src
 ```
@@ -88,7 +88,7 @@ uvicorn labordaten_backend.main:app --reload --app-dir src
 ### Frontend
 ```pwsh
 pwsh
-cd C:\Users\Lui\OneDrive\Documents\Labordaten\apps\frontend
+cd .\apps\frontend
 npm run dev
 ```
 

@@ -1,10 +1,11 @@
 ---
 typ: betrieb
 status: aktiv
-letzte_aktualisierung: 2026-04-24
+letzte_aktualisierung: 2026-04-25
 quellen:
   - ../../00 Steuerung/Regeldatei KI-Wissenspflege.md
   - ../../02 Wissen/Prozesse/Arbeitsworkflow Wissenspflege und Projektanfragen.md
+  - ../../01 Rohquellen/fachkonzepte/2026-04-25 Rueckmeldung UI-Leitlinien fuer arbeitsorientierte Weboberflaechen.md
   - ../../01 Rohquellen/fachkonzepte/2026-04-21 Rueckmeldung Automatische interne Parameterschluessel.md
   - ../../01 Rohquellen/fachkonzepte/2026-04-21 Rueckmeldung Alias-Vorschlaege und Berichtseinheiten.md
   - ../../01 Rohquellen/fachkonzepte/2026-04-22 Rueckmeldung Loeschlogik und Deaktivierungsregeln.md
@@ -47,6 +48,27 @@ Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitp
 - Kleine Vorspann-Labels über der Hauptüberschrift sind nur sinnvoll, wenn sie einen zusätzlichen fachlichen Informationswert liefern; reine Stimmungs- oder Orientierungswörter ohne Mehrwert können entfallen.
 
 ## Shell und Zeichencodierung unter Windows
+## Arbeitswege und Entscheidungsführung in Weboberflächen
+- Eine Oberfläche soll zuerst die gedankliche Aufgabe des Anwenders und seine Arbeitswege abbilden, nicht die technische Architektur der Anwendung.
+- Wenn ein Nutzer zwischen unterschiedlichen Wegen wählen muss, sollen diese Wege als klar getrennte Einstiege erscheinen; ein gemeinsamer Prüf- oder Bearbeitungsschritt danach gehört in einen eigenen Arbeitsbereich.
+- Das Starten neuer Vorgänge und das Weiterbearbeiten offener Vorgänge sollen sichtbar getrennt sein, damit laufende Arbeit nicht zwischen Eingabe, Prüfung und Historie untergeht.
+- Tabs, Segmente und Bereichsnamen sollen ohne interne Fachsprache, Nummern oder technische Platzhalter verständlich sein; technische Begriffe sind nur sinnvoll, wenn sie dem Nutzer bei einer echten Entscheidung helfen.
+- Sehr lange Seiten sind ein Warnsignal. Wenn ein Bereich so wächst, dass der Nutzer ständig scrollen muss, um den nächsten relevanten Abschnitt zu finden, soll die Oberfläche Inhalte trennen, in klar abgegrenzte Arbeitsbereiche aufteilen oder über sinnvolle Einklappmechaniken verdichten.
+- Einklappbare Bereiche sollen in vergleichbaren Oberflächen nach einem einheitlichen Muster funktionieren statt pro Seite anders. Die Anwendung soll nicht jedes Mal neu erklären müssen, was offen, geschlossen oder als Nächstes relevant ist.
+- Offen sichtbar bleiben sollen der aktuell relevante Arbeitsschritt, Pflichtangaben, aktive Entscheidungen und primäre Aktionen.
+- Eher eingeklappt gehören lange Erklärungen, technische Details, erledigte Abschnitte, selten benötigte Zusatzangaben, Rohdaten und andere Inhalte, die im aktuellen Arbeitsschritt nicht im Vordergrund stehen.
+- Kurze Orientierungstexte gehören direkt an den Anfang eines Bereichs; längere Erklärungen sollen in einen klar erkennbaren, eher einklappbaren Hilfebereich, damit sie die eigentliche Arbeit nicht verdrängen.
+- Der nächste sinnvolle Schritt und die wichtigste Aktion eines Abschnitts müssen ohne Suchen erkennbar sein; offene Arbeit soll zusätzlich über Badges oder kurze Hinweise sichtbar bleiben.
+- Primäre Aktionen sollen pro Schritt klar hervorgehoben sein; Nebenaktionen wie Historie, Detailansicht oder technische Zusatzinformationen gehören optisch zurückhaltender gestaltet.
+- Historie dient Nachvollziehbarkeit und Verwaltung, nicht dem aktiven Arbeiten im Hauptfluss; sie soll daher als eigener Bereich oder eigener Tab erscheinen.
+- Formulare sollen nur die Felder zeigen, die im aktuellen Schritt fachlich wirklich gebraucht werden; spätere Entscheidungen oder optionale Kontextangaben gehören nicht unnötig in frühere Eingabeschritte.
+- Auswahl- und Zuordnungsstellen müssen alle fachlich nötigen Handlungswege direkt anbieten, einschließlich bewusster Neuanlage, wenn diese fachlich zulässig ist; eine UI soll nicht zu falschen Zuordnungen drängen, nur weil der alternative Weg fehlt.
+- Hinweise, Entscheidungen und Warnungen sollen sauber getrennt werden. Warnungen sind für echten Risikogehalt gedacht; erwartbare Neuanlagen oder normale Prüfschritte sind meist Hinweise oder Entscheidungen.
+- Technische IDs sollen nur sichtbar sein, wenn sie für Support, Debugging oder eindeutige Referenzierung einen echten Nutzen haben.
+- Wenn eine Oberfläche mit externen Werkzeugen oder KI-Chats zusammenarbeitet, muss sie knapp erklären, was im aktuellen Schritt erzeugt wird, wo es verwendet wird, was zurückkommt, wo das Ergebnis eingefügt wird und wie es danach weitergeht.
+- Kopierpfade brauchen robuste Bedienbarkeit: Ein Copy-Button soll zuverlässig funktionieren, und bei Browsergrenzen muss der Text dennoch leicht manuell markierbar bleiben.
+- Dialoge und Rückfragen sollen direkte, handlungsorientierte Entscheidungen formulieren statt abstrakte oder unnötig technische Umschreibungen zu verwenden.
+
 - Für lokale Textarbeit, Repo-Inspektion und Skriptstarts unter Windows sollte nach Möglichkeit PowerShell 7 (`pwsh`) statt Windows PowerShell 5.1 verwendet werden.
 - Der Grund ist nicht nur Komfort, sondern die konsistentere UTF-8-Verarbeitung bei Markdown-, JSON-, TypeScript-, CSS- und ähnlichen Textdateien.
 - Wenn Skripte oder Einmalbefehle Textdateien lesen oder schreiben, sollte die Zeichencodierung zusätzlich an kritischen Stellen explizit angegeben werden, statt auf implizite Standardwerte des aufrufenden Prozesses zu vertrauen.
