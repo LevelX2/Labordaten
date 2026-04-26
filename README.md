@@ -2,7 +2,9 @@
 
 Version: `0.2.0`
 
-Dieses Repository enthält die projektbezogene Wissensbasis und die lokale V1-Anwendung für die Pflege, Prüfung, Auswertung und Berichterstellung von Labordaten.
+Dieses Repository enthält die projektbezogene Wissensbasis und eine lokale Anwendung für die Pflege, Prüfung, Auswertung und Berichterstellung von Labordaten.
+
+Der wichtigste praktische Nutzen: Laborberichte müssen nicht mehr mühsam abgetippt werden. Die Anwendung erzeugt einen passenden Prompt für einen externen KI-Chat, der Bericht wird dort in strukturierte Daten umgewandelt, und das Ergebnis kann anschließend in Labordaten geprüft, korrigiert und übernommen werden. Danach lassen sich die Werte in übersichtlichen Verlaufsdiagrammen mit Referenz- und Zielbereichen auswerten.
 
 Für lokale Arbeit unter Windows ist PowerShell 7 (`pwsh`) der bevorzugte Standard, damit UTF-8-Dateien aus Repository und Wissensbasis konsistent gelesen und geschrieben werden.
 
@@ -30,10 +32,11 @@ Das Repository ist kein reines Scaffold mehr. Die lokale Anwendung enthält echt
 - Zentrale Einheitenstammdaten, Einheiten-Aliase, führende Normeinheiten und parameterbezogene Umrechnungsregeln.
 - Automatische interne Parameterschlüssel, Alias-Vorschläge, Dublettenprüfung und bestätigte Parameter-Zusammenführung.
 
-### Import und Dokumente
+### KI-Chat-gestützter Import und Dokumente
 
-- Importentwürfe für strukturierte JSON-Daten sowie CSV- und Excel-Dateien.
-- Geführter externer KI-Chat-Weg: Prompt erzeugen, Laborbericht außerhalb der Anwendung analysieren lassen, JSON einfügen und anschließend prüfen.
+- Import ohne Abtippen: Prompt erzeugen, Laborbericht in einem externen KI-Chat analysieren lassen, JSON-Ergebnis einfügen, prüfen und übernehmen.
+- Bewusst anschlussfähig an KI-Chats, die viele Nutzer ohnehin schon verwenden; die Anwendung bleibt dabei lokal und übernimmt nur das geprüfte strukturierte Ergebnis.
+- Importentwürfe für KI-JSON sowie strukturierte JSON-Daten, CSV- und Excel-Dateien.
 - Prüfansicht mit Mapping, Warnungen, Fehlern, Dokumentverknüpfung, Gruppenentscheidungen und bewusster Übernahme.
 - Importhistorie mit offenen Importentwürfen, Prüflinks und Statusinformationen.
 - Alias-Anlage aus Berichtsschreibweisen beim bestätigten Mapping.
@@ -44,7 +47,7 @@ Das Repository ist kein reines Scaffold mehr. Die lokale Anwendung enthält echt
 - Planung zyklischer Kontrollen und einmaliger Vormerkungen.
 - Suchbare Mehrfachauswahl für Parameter sowie Gruppen als Eingabehilfe bei der Planungsanlage.
 - Fälligkeitsberechnung, Zeitraumansicht für kommende Messungen und PDF-Merkzettel für anstehende Messungen.
-- Auswertungsbereich mit Verläufen, Diagrammen, Referenzlinien und gruppenbezogenen Filtern.
+- Auswertungsbereich mit übersichtlichen Verlaufsdiagrammen, Referenzlinien, Zielbereichen und gruppenbezogenen Filtern.
 - Berichtsbereich mit Vorschauen und PDF-Erzeugung für Arztberichte und Verlaufsberichte.
 - Direkter Sprung aus einem Befund-Messwert in die passende Auswertung für Person und Parameter.
 

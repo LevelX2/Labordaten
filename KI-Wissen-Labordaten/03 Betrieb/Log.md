@@ -23,6 +23,7 @@
   - ../../../apps/backend/src/labordaten_backend/main.py
 - Kern der inhaltlichen Anpassung:
   - Die README beschreibt den aktuellen Funktionsstand jetzt gegliedert nach Stammdaten und Laborbestand, Import und Dokumenten, Planung/Auswertung/Berichten sowie Laborwissen und Betrieb.
+  - Der praktische Nutzen des KI-Chat-gestützten Imports ohne Abtippen und der Verlaufsdiagramme mit Referenz- und Zielbereichen wird im Einstieg und in den Funktionspunkten deutlicher hervorgehoben.
   - Die README benennt weiterhin klar die Grenzen bei direktem PDF-Import, integrierter OCR/Parser-Stufe und angebundener KI-Schnittstelle.
   - Frontend-, Backend- und OpenAPI-Versionsangaben wurden von `0.1.0` auf `0.2.0` angehoben.
 
