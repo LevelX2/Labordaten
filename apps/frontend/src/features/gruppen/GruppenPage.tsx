@@ -163,7 +163,13 @@ export function GruppenPage() {
     return mapping;
   }, [gruppenParameterQuery.data]);
 
-  const effectiveAssignments = Object.keys(zuordnungen).length ? zuordnungen : currentAssignments;
+  const effectiveAssignments = useMemo(
+    () => ({
+      ...currentAssignments,
+      ...zuordnungen
+    }),
+    [currentAssignments, zuordnungen]
+  );
 
   const filteredParameters = useMemo(() => {
     const normalizedSearchQuery = assignmentSearchQuery.trim().toLocaleLowerCase("de-DE");
@@ -450,7 +456,7 @@ export function GruppenPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Aktiv</th>
+                <th>Zugeordnet</th>
                 <th>Parameter</th>
                 <th>Typ</th>
                 <th>Einheit</th>
