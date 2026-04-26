@@ -2,26 +2,27 @@
 
 Version: `0.2.0`
 
-Dieses Repository enthält die projektbezogene Wissensbasis und eine lokale Anwendung für die Pflege, Prüfung, Auswertung und Berichterstellung von Labordaten.
+Labordaten ist eine lokale Webanwendung für persönliche und fachlich nachvollziehbare Laborwerte. Laborberichte können mit Hilfe eines externen KI-Chats in strukturierte Daten umgewandelt, anschließend in der Anwendung geprüft und in den eigenen Datenbestand übernommen werden.
 
-Der wichtigste praktische Nutzen: Laborberichte müssen nicht mehr mühsam abgetippt werden. Die Anwendung erzeugt einen passenden Prompt für einen externen KI-Chat, der Bericht wird dort in strukturierte Daten umgewandelt, und das Ergebnis kann anschließend in Labordaten geprüft, korrigiert und übernommen werden. Danach lassen sich die Werte in übersichtlichen Verlaufsdiagrammen mit Referenz- und Zielbereichen auswerten.
+Der zentrale Nutzen: weniger Abtippen, mehr Kontrolle. Die übernommenen Werte bleiben lokal, können korrigiert und fachlich zugeordnet werden und stehen danach für Verlaufsdiagramme, Referenz- und Zielbereiche, Planung und PDF-Berichte zur Verfügung.
 
-Für lokale Arbeit unter Windows ist PowerShell 7 (`pwsh`) der bevorzugte Standard, damit UTF-8-Dateien aus Repository und Wissensbasis konsistent gelesen und geschrieben werden.
+## Einblicke
 
-## Überblick
+Die folgenden Screenshots zeigen synthetische Demo-Daten ohne persönliche Informationen.
 
-Die Anwendung ist als lokales Websystem aufgebaut:
+### Startübersicht
 
-- `apps/backend/`: FastAPI-Backend mit SQLAlchemy, Alembic, Importlogik und PDF-Erzeugung
-- `apps/frontend/`: React-Frontend mit Vite für die fachlichen Arbeitsbereiche
-- `packages/contracts/`: gemeinsame Import- und API-Verträge
-- `KI-Wissen-Labordaten/`: projektbezogene Wissensbasis für wiki-first Arbeit
-- `scripts/`: lokale Start- und Hilfsskripte
-- `docs/`: ergänzende Projektdokumente außerhalb der Wissensbasis
+![Startübersicht mit Demo-Daten](docs/screenshots/readme-start-dashboard.png)
 
-## Aktueller Funktionsstand
+### KI-Chat-gestützter Import
 
-Das Repository ist kein reines Scaffold mehr. Die lokale Anwendung enthält echte Backend-APIs, Datenbankmigrationen und fachliche Frontend-Arbeitsbereiche für den V1-Betrieb.
+![KI-Prompt für den Import von Laborberichten](docs/screenshots/readme-ki-import.png)
+
+### Verlaufsdiagramme
+
+![Auswertung mit Verlaufsdiagramm, Referenzlinien und Zielbereich](docs/screenshots/readme-auswertung-charts.png)
+
+## Was die Anwendung kann
 
 ### Stammdaten und Laborbestand
 
@@ -66,6 +67,17 @@ Das Repository ist kein reines Scaffold mehr. Die lokale Anwendung enthält echt
 - Direkter PDF-Upload mit integrierter OCR- oder Parser-Stufe.
 - Direkt angebundene KI-Schnittstelle, die Dokumente innerhalb der Anwendung automatisch analysiert.
 - Vollautomatische Übernahme gescannter Laborberichte ohne externe Extraktion oder manuelle Prüfung.
+
+## Technischer Aufbau
+
+Die Anwendung ist als lokales Websystem aufgebaut:
+
+- `apps/backend/`: FastAPI-Backend mit SQLAlchemy, Alembic, Importlogik und PDF-Erzeugung
+- `apps/frontend/`: React-Frontend mit Vite für die fachlichen Arbeitsbereiche
+- `packages/contracts/`: gemeinsame Import- und API-Verträge
+- `KI-Wissen-Labordaten/`: projektbezogene Wissensbasis für wiki-first Arbeit
+- `scripts/`: lokale Start- und Hilfsskripte
+- `docs/`: ergänzende Projektdokumente außerhalb der Wissensbasis
 
 ## Voraussetzungen
 
