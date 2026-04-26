@@ -48,6 +48,11 @@ Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitp
 - Formulierungen sollen sich am produktiven Einsatz der Anwendung orientieren und nicht an Entwicklungsstand, Scaffold-Status oder Einführungslogik.
 - Kleine Vorspann-Labels über der Hauptüberschrift sind nur sinnvoll, wenn sie einen zusätzlichen fachlichen Informationswert liefern; reine Stimmungs- oder Orientierungswörter ohne Mehrwert können entfallen.
 
+## Farbdesigns und dunkle Themes
+- Farbdesigns dürfen nicht nur Primär- und Akzentfarben überschreiben. Wiederverwendete Komponenten brauchen semantische Flächen- und Text-Tokens für normale Panels, angehobene Listenflächen, ausgewählte Flächen, Kontrollflächen, Hinweise, Warnungen, Fehlerzustände und Text auf Akzentfarbe.
+- Dunkle Designs müssen besonders auf Buttons, Filter, Listen, Tabellen, Dialoge, Import-, Berichts- und Auswertungsflächen sowie leere Zustände geprüft werden. Feste Weiß-, Beige- oder Altgrün-Werte in solchen Arbeitsmustern sind zu vermeiden, weil sie bei Theme-Wechseln schnell unlesbare Kombinationen erzeugen.
+- Kritische Farbpaarungen sollen bei neuen oder geänderten Designs mindestens grob gegen Lesbarkeit geprüft werden: normaler Text, gedämpfter Text, Link- und Akzenttext, Text auf Akzentflächen sowie Text in Warn- und Fehlerflächen.
+
 ## Arbeitswege und Entscheidungsführung in Weboberflächen
 - Eine Oberfläche soll zuerst die gedankliche Aufgabe des Anwenders und seine Arbeitswege abbilden, nicht die technische Architektur der Anwendung.
 - Wenn ein Nutzer zwischen unterschiedlichen Wegen wählen muss, sollen diese Wege als klar getrennte Einstiege erscheinen; ein gemeinsamer Prüf- oder Bearbeitungsschritt danach gehört in einen eigenen Arbeitsbereich.

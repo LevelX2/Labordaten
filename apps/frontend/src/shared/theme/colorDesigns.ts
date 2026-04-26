@@ -84,6 +84,24 @@ export const colorDesigns = [
     name: "Polarlicht",
     description: "Leuchtendes Grünblau mit violettem Gegenakzent",
     swatches: ["#008c72", "#7d56c2", "#d8f1ee"]
+  },
+  {
+    key: "tiefsee",
+    name: "Tiefsee",
+    description: "Dunkles Petrol mit hellem Mint und Bernstein",
+    swatches: ["#22b8a7", "#d89b42", "#18313a"]
+  },
+  {
+    key: "galaxie",
+    name: "Galaxie",
+    description: "Dunkles Violett mit Sternblau und kräftigem Pink",
+    swatches: ["#8d79ff", "#f05aa6", "#211a35"]
+  },
+  {
+    key: "vulkanlicht",
+    name: "Vulkanlicht",
+    description: "Dunkles Graphit mit Lavaorange und warmem Rot",
+    swatches: ["#ff784f", "#d94864", "#2a2224"]
   }
 ] as const;
 
