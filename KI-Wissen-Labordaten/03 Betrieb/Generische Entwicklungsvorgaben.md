@@ -1,7 +1,7 @@
 ---
 typ: betrieb
 status: aktiv
-letzte_aktualisierung: 2026-04-25
+letzte_aktualisierung: 2026-04-26
 quellen:
   - ../../00 Steuerung/Regeldatei KI-Wissenspflege.md
   - ../../02 Wissen/Prozesse/Arbeitsworkflow Wissenspflege und Projektanfragen.md
@@ -30,7 +30,7 @@ Diese Seite sammelt projektinterne, wiederverwendbare Regeln und Entwicklungsvor
 Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitplanken zu sammeln:
 - für neue Funktionen innerhalb dieses Projekts
 - für spätere Überarbeitungen bestehender Bereiche
-- als lokale Delta-Sammlung gegenüber dem führenden Haupt-Vault `mein-wissen`, wenn dort globale oder typspezifische Regeln bereits definiert sind
+- als lokale Delta-Sammlung gegenüber dem führenden Haupt-Vault, wenn dort globale oder typspezifische Regeln bereits definiert sind
 
 ## Einordnung neuer Erkenntnisse
 - Neue Erkenntnisse sollen nicht nur auf den konkreten Einzelfall beschrieben werden, sondern darauf geprüft werden, ob sie eine allgemeinere Regel für vergleichbare UI-, Modellierungs- oder Prozessfragen ausdrücken.

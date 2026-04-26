@@ -25,6 +25,17 @@ Zu Beginn projektbezogener Arbeit zuerst diese Dateien lesen:
 - Globale Regeln sollen hier nicht vollständig dupliziert werden.
 - Projektspezifische Deltas, Beispiele und lokale Präzisierungen bleiben in dieser Wissensbasis.
 
+## Priorität und Fallback
+
+- Dieses Repository bleibt die führende Quelle für projektspezifische Regeln, Arbeitsweisen und Wissenspflege in `Labordaten`.
+- Falls `AGENTS.local.md` vorhanden und lesbar ist, dient die Datei nur dazu, den passenden Projekttyp und die globale Regelbasis aus dem Haupt-Vault aufzulösen.
+- Falls `AGENTS.local.md` fehlt oder in einer Umgebung nicht lesbar ist, gelten die lokalen Regeln dieses Repositories ohne diese Zusatzauflösung weiter.
+- Bei Konflikten gilt diese Reihenfolge:
+  1. ausdrücklich formulierte projektspezifische Regeln in diesem Repository
+  2. projektspezifische Auflösung oder Zusatzhinweise aus `AGENTS.local.md`
+  3. globale oder typspezifische Default-Regeln aus dem Haupt-Vault
+- Globale Regeln ergänzen die Projektregeln, ersetzen sie aber nicht stillschweigend.
+
 ## Arbeitsmodus
 
 - Arbeite `wiki-first`.
@@ -121,7 +132,12 @@ Ausnahmen:
 
 ## Abschlusskommandos
 
-Wenn der Nutzer `Finito`, `Finale`, `Endfinale` oder `Ende` schreibt, gelten die globalen Abschlusskommandos aus dem Haupt-Vault. Falls `AGENTS.local.md` vorhanden ist, ist dessen Referenz auf die globale Definition führend.
+Wenn der Nutzer `Finito`, `Finale`, `Endfinale` oder `Ende` schreibt, gelten grundsätzlich die globalen Abschlusskommandos aus dem Haupt-Vault. Falls `AGENTS.local.md` vorhanden ist, ist dessen Referenz auf die globale Definition führend.
+
+Wenn diese globale Auflösung in der aktuellen Umgebung nicht verfügbar ist, gilt als lokaler Minimalkontrakt:
+
+- `Finito` oder `Ende`: lokaler Abschluss ohne automatischen Merge nach `main` und ohne automatischen Push; abgeschlossene Änderungen in sinnvolle Commit-Blöcke aufteilen, committen und offene Punkte kompakt benennen.
+- `Finale` oder `Endfinale`: zuerst denselben lokalen Abschluss wie bei `Finito` durchführen; zusätzliche globale Merge-, Push- oder Projektabschluss-Schritte nur ausführen, wenn die globale Definition verfügbar und eindeutig auflösbar ist.
 
 Für dieses Projekt gilt ergänzend:
 - projektspezifische Checks, Wissenspflege und Zusatzschritte dürfen die globale Sequenz erweitern

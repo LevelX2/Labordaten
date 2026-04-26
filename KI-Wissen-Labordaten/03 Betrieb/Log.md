@@ -11,6 +11,18 @@
 
 ## 2026-04
 
+### [2026-04-26] update | Haupt-Vault-Anbindung mit Priorität und lokalem Fallback präzisiert
+- Anlass oder Quelle: Review der Umstellung auf `AGENTS.local.md` und Haupt-Vault-Modell mit Bedarf nach klarerem Vorrang und robusterem Fallback
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../../AGENTS.md
+  - [[../03 Betrieb/Generische Entwicklungsvorgaben]]
+- Kern der inhaltlichen Anpassung:
+  - `AGENTS.md` beschreibt jetzt ausdrücklich die Prioritätsreihenfolge zwischen lokalen Projektregeln, optionaler Auflösung über `AGENTS.local.md` und globalen oder typspezifischen Default-Regeln aus dem Haupt-Vault.
+  - Für Abschlusskommandos wie `Finito`, `Finale`, `Endfinale` und `Ende` gibt es zusätzlich einen lokalen Minimalkontrakt, falls die globale Definition in einer Umgebung nicht auflösbar ist.
+  - Der konkrete private Vault-Name wurde aus der getrackten Wissensseite entfernt; dort bleibt nur noch die neutrale Einordnung als Delta gegenüber dem führenden Haupt-Vault bestehen.
+
 ### [2026-04-26] update | Agentensteuerung auf Haupt-Vault und lokale Deltas ausgerichtet
 - Anlass oder Quelle: offene lokale Projektanpassung zur Trennung von globalen, typspezifischen und projektspezifischen Agenten- und Wissensregeln
 - Neu angelegte Seiten:
