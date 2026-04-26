@@ -11,6 +11,19 @@
 
 ## 2026-04
 
+### [2026-04-26] update | Deployment- und Update-Strategie festgehalten
+- Anlass oder Quelle: Nutzerfrage zur anwenderfreundlichen Bereitstellung per ZIP oder Installer sowie ergänzende Hinweise zu Releaseupdates und Aktualisierung des fachlichen Laborwissens.
+- Neu angelegte Seiten:
+  - ../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Deployment Releaseupdates Laborwissen.md
+  - ../02 Wissen/Entscheidungen/V1 Deployment Releaseupdates und Laborwissen-Aktualisierung.md
+- Geänderte Seiten:
+  - ../02 Wissen/00 Uebersichten/Index.md
+- Kern der inhaltlichen Anpassung:
+  - Die Wissensbasis hält jetzt fest, dass Programmupdates, Stammdatenupdates und Laborwissen-Updates getrennte Update-Spuren sind.
+  - Als pragmatischer Zielpfad für frühe Weitergabe ist ein klassischer Windows-Installer mit manuellen Updates dokumentiert; In-App-Hinweis und automatischer Updater bleiben spätere Ausbaustufen.
+  - Für Laborwissen ist ein eigenes versioniertes Inhaltspaket mit Manifest, Sicherung, Änderungsübersicht und Konfliktprüfung vorgesehen.
+  - Lokal geänderte oder vom Nutzer erstellte Laborwissen-Seiten dürfen nicht stillschweigend überschrieben werden.
+
 ### [2026-04-26] update | Personen-Blutgruppe und Rhesusfaktor als Auswahlwerte
 - Anlass oder Quelle: Nutzerhinweis, dass Blutgruppe und Rhesusfaktor in den Personen-Stammdaten bekannte feste Werte sind und keine Textfelder sein müssen.
 - Neu angelegte Seiten:

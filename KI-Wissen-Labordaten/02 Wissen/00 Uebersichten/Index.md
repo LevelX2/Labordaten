@@ -35,6 +35,7 @@
 - [[../Prozesse/Wiki-first Query und Linting]]: Reihenfolge für Antworten, Rückführung und Health-Checks.
 - [[../Entscheidungen/V1 Vorentscheidungen Produktform und Kernmodell]]: bisher geklärte Leitentscheidungen für V1.
 - [[../Entscheidungen/V1 Empfohlener Technologie-Stack]]: empfohlene technische Grundlage für den V1-Start.
+- [[../Entscheidungen/V1 Deployment Releaseupdates und Laborwissen-Aktualisierung]]: vorläufige Strategie für Installer, Releaseupdates, getrennte Update-Spuren und Aktualisierung des fachlichen Laborwissens.
 
 ## Risiken und offene Punkte
 - [[../Risiken und offene Punkte/README]]: Sammelstelle für aktuelle Risiken, Klärungsbedarf und offene Fachfragen.
