@@ -10,6 +10,9 @@ quellen:
   - ../Begriffe und Konzepte/Ist-Stand Loeschlogik und Deaktivierungsregeln.md
   - ../Begriffe und Konzepte/Ist-Stand Alias-Vorschlaege und Berichtseinheiten.md
   - ../Begriffe und Konzepte/Ist-Stand Parameter-Dubletten und Zusammenfuehrung.md
+  - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Fachlicher Labordaten-Wissenspool.md
+  - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung Zeitraum-Faelligkeiten.md
+  - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung PDF-Merkzettel anstehende Messungen.md
 tags:
   - status
 ---
@@ -22,8 +25,10 @@ Diese Seite beschreibt den aktuellen Projektstand als Snapshot. Zeitliche Abfolg
 ## Umgesetzt
 - Das lokale V1-Grundgerüst mit Backend, Frontend, Vertragsdateien, Migrationen und projektbezogener Wissensbasis ist vorhanden.
 - Personen, Parameter, Befunde und Messwerte funktionieren als echte API- und UI-Durchstiche.
+- Personenstammdaten, Laborstammdaten, Gruppen und allgemeine Zielbereiche sind als bestehende Stammdaten nachträglich bearbeitbar, ohne technische IDs oder historische Messdaten umzuhängen.
 - Referenzen, Zielbereiche und personenspezifische Zielbereichs-Overrides sind umgesetzt.
-- Planung mit zyklischen Kontrollen, Einmalvormerkungen, Fälligkeitsberechnung und konsolidierter Vorschlagsliste ist umgesetzt.
+- Planung mit zyklischen Kontrollen, Einmalvormerkungen, Fälligkeitsberechnung, konsolidierter Vorschlagsliste, Zeitraumansicht für kommende Fälligkeiten und PDF-Merkzettel für anstehende Messungen ist umgesetzt.
+- Die Planungsanlage kann Parameter über eine suchbare Mehrfachauswahl auswählen und Gruppen als Eingabehilfe übernehmen; gespeichert bleiben einzelne Planungen pro Parameter.
 - Gruppen sind als echter Stammdatenbereich mit Parameterzuordnung, Many-to-Many-Struktur und bereichsübergreifender Filterlogik umgesetzt.
 - Berichte und Auswertung sind als echte Arbeitsbereiche vorhanden, einschließlich PDF-Erzeugung, Diagrammen, Referenzlinien und gruppenbezogenen Filtern.
 - Zentrale Einheitenstammdaten, Einheiten-Aliase und parameterbezogene Umrechnungsregeln sind im Workspace vorhanden.
@@ -37,14 +42,19 @@ Diese Seite beschreibt den aktuellen Projektstand als Snapshot. Zeitliche Abfolg
 - Referenzoperatoren wie `<`, `>`, `<=` und `>=` werden strukturiert geführt.
 - Berichtsblöcke können im Import als Gruppenvorschläge vorbereitet und nach der Übernahme auf neue oder bestehende Gruppen angewendet werden.
 - Neue Parameter erhalten ihren internen Schlüssel automatisch aus dem Anzeigenamen; Dublettenprüfung, Zusammenführung und Alias-Vorschläge sind in der Parameterpflege vorhanden.
-- Die Wissensbasis ist als lesender Arbeitsbereich in der Anwendung eingebunden.
+- Die in der Anwendung sichtbare Wissensbasis ist als fachlicher Labordaten-Informationspool von der projektbezogenen KI-Wissensbasis getrennt; der Standardordner ist `Labordaten-Wissen/`.
+- Der fachliche Informationspool ist als Markdown-Arbeitsbereich in der Anwendung eingebunden: Seiten können aus dem konfigurierten Wissensordner gelesen, als formatierter Text angezeigt, intern per Wiki- oder Markdown-Link angesprungen und mit geführter Pfaderzeugung manuell neu angelegt werden.
+- Wissensseiten können aus der Oberfläche gelöscht werden, sofern sie keine Rohquellen sind und nicht noch mit einem Parameter verknüpft sind.
+- Parameter können mit einer Wissensseite verknüpft werden; bei neuer Parameteranlage über die API wird automatisch eine Fachwissensseite mit dem Beschreibungstext als Ausgangsinhalt angelegt und verknüpft. Die aktuell vorhandenen 344 Parameter sind mit Fachwissensseiten verknüpft.
+- Der Fachwissenspool enthält zusätzlich einen Bereich `10 Anwendungshilfe`, der die Hauptbereiche der Anwendung wie Personen, Befunde, Messwerte, Parameter, Gruppen, Planung, Auswertungen, Berichte, Import, Laborwissen und Einstellungen erklärt.
 - Eine zentrale Löschprüfung mit getrennter Ausführung ist im Backend für `person`, `befund`, `messwert`, `importvorgang`, `einheit`, `labor`, `laborparameter`, `parameter_gruppe`, `zielbereich`, `parameter_umrechnungsregel`, `planung_zyklisch` und `planung_einmalig` vorhanden.
 - Die Oberfläche bindet diese Löschprüfung inzwischen auch im Planungsbereich an, sodass zyklische Planungen und Einmalvormerkungen sichtbar geprüft und gelöscht werden können.
 
 ## Teilweise umgesetzt
 - Der Import produktivisiert bereits einen assistierten Laborbericht-Workflow über JSON, CSV, Excel und externen KI-Chat-Prompt, setzt für gescannte PDFs aber weiterhin eine externe Extraktion oder manuelle Aufbereitung voraus.
 - Die Berichts- und Auswertungslogik nutzt bereits normierte Werte und Anzeigeeinheiten in passenden Fällen, ist aber noch nicht in allen fachlichen Darstellungen gleich tief ausgebaut.
-- Die Wissensverknüpfung ist als eigener Arbeitsbereich vorhanden, aber noch nicht tief in Parameter-, Gruppen- und Importansichten integriert.
+- Die Wissensverknüpfung ist für Parameter umgesetzt, aber noch nicht tief in Gruppen-, Import- und Berichtsdarstellungen integriert.
+- Einige Stammdaten-Kindobjekte sind noch nicht direkt bearbeitbar, darunter Parameter- und Einheiten-Aliase, personenspezifische Zielbereichs-Overrides, Umrechnungsregeln und KSG-Zusatzrollen.
 - Die zentrale Löschlogik deckt viele Kernobjekte ab, ist aber noch nicht auf Dokumente, Wissensseiten und einige Betriebsobjekte ausgedehnt.
 
 ## Offen

@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   CartesianGrid,
-  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -13,14 +12,18 @@ import {
 } from "recharts";
 
 import { apiFetch } from "../../shared/api/client";
-import { DateRangeFilterFields } from "../../shared/components/DateRangeFilterFields";
+import { DateRangeFilterFields, isInvalidDateRange } from "../../shared/components/DateRangeFilterFields";
 import { SelectionChecklist } from "../../shared/components/SelectionChecklist";
 import {
   PARAMETER_KLASSIFIKATION_OPTIONS,
   formatParameterKlassifikation
 } from "../../shared/constants/fieldOptions";
 import { getDefaultDateRange } from "../../shared/utils/dateRangeDefaults";
-import { applySharedFilterSearchParams } from "../../shared/utils/filterNavigation";
+import {
+  formatDisplayDate as formatDate,
+  formatShortDisplayDate as formatShortDate
+} from "../../shared/utils/dateFormatting";
+import { applySharedFilterSearchParams, buildSharedFilterSearchParams } from "../../shared/utils/filterNavigation";
 import { formatReferenzAnzeige } from "../../shared/utils/laborFormatting";
 import type {
   AuswertungGesamtzahlen,
@@ -29,12 +32,17 @@ import type {
   AuswertungsSerie,
   Gruppe,
   Labor,
+  Messwert,
   Parameter,
   ParameterKlassifikationCode,
   Person
 } from "../../shared/types/api";
 
 const defaultDateRange = getDefaultDateRange();
+const maxAuswertungParameter = 20;
+const auswertungFilterStorageKey = "labordaten.auswertung.filter";
+
+type DiagrammDarstellung = "verlauf" | "punkte" | "punkte_bereiche";
 
 type AuswertungFormState = {
   person_ids: string[];
@@ -44,9 +52,11 @@ type AuswertungFormState = {
   labor_ids: string[];
   datum_von: string;
   datum_bis: string;
+  diagramm_darstellung: DiagrammDarstellung;
   zeitraum_darstellung: "wertezeitraum" | "selektionszeitraum";
   include_laborreferenz: boolean;
   include_zielbereich: boolean;
+  messwerttabelle_standard_offen: boolean;
 };
 
 const initialForm: AuswertungFormState = {
@@ -57,18 +67,108 @@ const initialForm: AuswertungFormState = {
   labor_ids: [],
   datum_von: defaultDateRange.datum_von,
   datum_bis: defaultDateRange.datum_bis,
+  diagramm_darstellung: "verlauf",
   zeitraum_darstellung: "wertezeitraum",
   include_laborreferenz: true,
-  include_zielbereich: true
+  include_zielbereich: true,
+  messwerttabelle_standard_offen: false
 };
 
 const palette = ["#1f5a92", "#1f6a53", "#d77a2f", "#8d4aa5", "#a34848", "#4d6b1f"];
+const diagrammDarstellungOptions: Array<{ value: DiagrammDarstellung; label: string }> = [
+  { value: "verlauf", label: "Verlauf" },
+  { value: "punkte", label: "Punkte" },
+  { value: "punkte_bereiche", label: "Punkte + Bereiche" }
+];
+const sharedFilterSearchParamKeys = [
+  "person_ids",
+  "laborparameter_ids",
+  "gruppen_ids",
+  "klassifikationen",
+  "labor_ids",
+  "datum_von",
+  "datum_bis"
+];
 
-function formatDate(value?: string | null): string {
-  if (!value) {
-    return "—";
+function hasSharedFilterSearchParams(searchParams: URLSearchParams): boolean {
+  return sharedFilterSearchParamKeys.some((key) => searchParams.has(key));
+}
+
+function readStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+function readKlassifikationen(value: unknown): ParameterKlassifikationCode[] {
+  const validValues = new Set<string>(PARAMETER_KLASSIFIKATION_OPTIONS.map((option) => option.value));
+  return readStringArray(value).filter((item): item is ParameterKlassifikationCode => validValues.has(item));
+}
+
+function readDiagrammDarstellung(value: unknown): DiagrammDarstellung {
+  if (value === "punkte" || value === "punkte_bereiche" || value === "verlauf") {
+    return value;
   }
-  return new Intl.DateTimeFormat("de-DE").format(new Date(value));
+  return initialForm.diagramm_darstellung;
+}
+
+function readStoredAuswertungFilter(): AuswertungFormState | null {
+  try {
+    const rawValue = window.localStorage.getItem(auswertungFilterStorageKey);
+    if (!rawValue) {
+      return null;
+    }
+
+    const parsed = JSON.parse(rawValue) as Partial<AuswertungFormState>;
+    return {
+      ...initialForm,
+      person_ids: readStringArray(parsed.person_ids),
+      laborparameter_ids: readStringArray(parsed.laborparameter_ids),
+      gruppen_ids: readStringArray(parsed.gruppen_ids),
+      klassifikationen: readKlassifikationen(parsed.klassifikationen),
+      labor_ids: readStringArray(parsed.labor_ids),
+      datum_von: typeof parsed.datum_von === "string" ? parsed.datum_von : initialForm.datum_von,
+      datum_bis: typeof parsed.datum_bis === "string" ? parsed.datum_bis : initialForm.datum_bis,
+      diagramm_darstellung: readDiagrammDarstellung(parsed.diagramm_darstellung),
+      zeitraum_darstellung:
+        parsed.zeitraum_darstellung === "selektionszeitraum" || parsed.zeitraum_darstellung === "wertezeitraum"
+          ? parsed.zeitraum_darstellung
+          : initialForm.zeitraum_darstellung,
+      include_laborreferenz:
+        typeof parsed.include_laborreferenz === "boolean"
+          ? parsed.include_laborreferenz
+          : initialForm.include_laborreferenz,
+      include_zielbereich:
+        typeof parsed.include_zielbereich === "boolean" ? parsed.include_zielbereich : initialForm.include_zielbereich,
+      messwerttabelle_standard_offen:
+        typeof parsed.messwerttabelle_standard_offen === "boolean"
+          ? parsed.messwerttabelle_standard_offen
+          : initialForm.messwerttabelle_standard_offen
+    };
+  } catch {
+    return null;
+  }
+}
+
+function formatSelectedSummary(
+  ids: string[],
+  labelsById: Map<string, string>,
+  countLabel: string,
+  maxNamedItems: number,
+  emptyLabel?: string
+): string | null {
+  if (!ids.length) {
+    return emptyLabel ?? null;
+  }
+
+  if (ids.length > maxNamedItems) {
+    return `${ids.length} ${countLabel}`;
+  }
+
+  const labels = ids.map((id) => labelsById.get(id)).filter((label): label is string => Boolean(label));
+  if (labels.length !== ids.length) {
+    return `${ids.length} ${countLabel}`;
+  }
+
+  return labels.join(", ");
 }
 
 function formatTimestamp(value: number): string {
@@ -165,44 +265,36 @@ function buildChartData(points: AuswertungPunkt[]) {
     .map(([, value]) => value);
 }
 
-function buildFilterSummary(form: AuswertungFormState): string[] {
-  const summary: string[] = [];
-
-  if (form.person_ids.length) {
-    summary.push(`${form.person_ids.length} Person${form.person_ids.length === 1 ? "" : "en"}`);
+function buildFilterSummary(
+  form: AuswertungFormState,
+  options: {
+    personen: Person[];
+    gruppen: Gruppe[];
+    parameter: Parameter[];
+    labore: Labor[];
   }
-  if (form.gruppen_ids.length) {
-    summary.push(`${form.gruppen_ids.length} Gruppe${form.gruppen_ids.length === 1 ? "" : "n"}`);
-  }
-  if (form.laborparameter_ids.length) {
-    summary.push(`${form.laborparameter_ids.length} Parameter`);
-  }
-  if (form.klassifikationen.length) {
-    summary.push(`${form.klassifikationen.length} KSG-Klasse${form.klassifikationen.length === 1 ? "" : "n"}`);
-  }
-  if (form.labor_ids.length) {
-    summary.push(`${form.labor_ids.length} Labor${form.labor_ids.length === 1 ? "" : "e"}`);
-  }
-
-  if (form.datum_von || form.datum_bis) {
-    summary.push(
-      `Zeitraum ${form.datum_von ? formatDate(form.datum_von) : "offen"} bis ${form.datum_bis ? formatDate(form.datum_bis) : "offen"}`
-    );
-  }
-  summary.push(
-    form.zeitraum_darstellung === "selektionszeitraum"
-      ? "Achse zeigt Selektionszeitraum"
-      : "Achse zeigt Wertezeitraum"
+): string[] {
+  const personenById = new Map(options.personen.map((person) => [person.id, person.anzeigename]));
+  const gruppenById = new Map(options.gruppen.map((gruppe) => [gruppe.id, gruppe.name]));
+  const parameterById = new Map(options.parameter.map((parameter) => [parameter.id, parameter.anzeigename]));
+  const laboreById = new Map(options.labore.map((labor) => [labor.id, labor.name]));
+  const klassifikationById = new Map(
+    PARAMETER_KLASSIFIKATION_OPTIONS.map((option) => [option.value, option.label])
   );
 
-  if (form.include_laborreferenz) {
-    summary.push("mit Laborreferenzen");
-  }
-  if (form.include_zielbereich) {
-    summary.push("mit Zielbereichen");
+  const summary = [
+    formatSelectedSummary(form.person_ids, personenById, "Pers.", 6, "Keine Person"),
+    formatSelectedSummary(form.gruppen_ids, gruppenById, "Parametergruppen", 6),
+    formatSelectedSummary(form.laborparameter_ids, parameterById, "Param.", 20),
+    formatSelectedSummary(form.klassifikationen, klassifikationById, "KSG", 6),
+    formatSelectedSummary(form.labor_ids, laboreById, "Lab.", 6)
+  ].filter((item): item is string => Boolean(item));
+
+  if (form.datum_von || form.datum_bis) {
+    summary.push(`${formatShortDate(form.datum_von)}-${formatShortDate(form.datum_bis)}`);
   }
 
-  return summary.length ? summary : ["Noch keine Auswertungsfilter gesetzt."];
+  return summary;
 }
 
 function formatTooltipValue(value: unknown): string {
@@ -242,6 +334,7 @@ function renderOperatorDot(props: {
 
 function SeriesChart({
   serie,
+  diagrammDarstellung,
   zeitraumDarstellung,
   datumVon,
   datumBis,
@@ -249,6 +342,7 @@ function SeriesChart({
   includeZielbereich
 }: {
   serie: AuswertungsSerie;
+  diagrammDarstellung: DiagrammDarstellung;
   zeitraumDarstellung: "wertezeitraum" | "selektionszeitraum";
   datumVon: string;
   datumBis: string;
@@ -256,10 +350,28 @@ function SeriesChart({
   includeZielbereich: boolean;
 }) {
   const chartData = useMemo(() => buildChartData(serie.punkte), [serie.punkte]);
+  const numericPointCountsByPerson = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const punkt of serie.punkte) {
+      if (
+        punkt.wert_num === null ||
+        punkt.wert_num === undefined ||
+        parseDateToTimestamp(punkt.datum) === null
+      ) {
+        continue;
+      }
+      counts.set(punkt.person_anzeigename, (counts.get(punkt.person_anzeigename) ?? 0) + 1);
+    }
+    return counts;
+  }, [serie.punkte]);
   const people = useMemo(
-    () => Array.from(new Set(serie.punkte.map((punkt) => punkt.person_anzeigename))),
-    [serie.punkte]
+    () => Array.from(numericPointCountsByPerson.keys()),
+    [numericPointCountsByPerson]
   );
+  const [hiddenPeople, setHiddenPeople] = useState<Set<string>>(() => new Set());
+  const visiblePeople = people.filter((personName) => !hiddenPeople.has(personName));
+  const connectPersonPoints = diagrammDarstellung === "verlauf";
+  const showReferenceAreas = diagrammDarstellung !== "punkte";
   const axisDomain =
     zeitraumDarstellung === "wertezeitraum"
       ? (["dataMin", "dataMax"] as [string, string])
@@ -267,6 +379,10 @@ function SeriesChart({
           parseDateToTimestamp(datumVon) ?? "dataMin",
           parseDateToTimestamp(datumBis) ?? "dataMax"
         ] as [number | string, number | string]);
+
+  useEffect(() => {
+    setHiddenPeople((current) => new Set([...current].filter((personName) => people.includes(personName))));
+  }, [people]);
 
   if (!chartData.length) {
     return <p>Für diesen Parameter gibt es aktuell keine numerischen Punkte für ein Diagramm.</p>;
@@ -298,8 +414,7 @@ function SeriesChart({
               return [formatTooltipValue(value), String(name)];
             }}
           />
-          <Legend />
-          {includeLaborreferenz ? (
+          {showReferenceAreas && includeLaborreferenz ? (
             <>
               <Line
                 type="monotone"
@@ -321,7 +436,7 @@ function SeriesChart({
               />
             </>
           ) : null}
-          {includeZielbereich ? (
+          {showReferenceAreas && includeZielbereich ? (
             <>
               <Line
                 type="monotone"
@@ -343,31 +458,203 @@ function SeriesChart({
               />
             </>
           ) : null}
-          {people.map((personName, index) => (
-            <Line
-              key={personName}
-              type="monotone"
-              dataKey={personName}
-              name={personName}
-              stroke={palette[index % palette.length]}
-              strokeWidth={3}
-              connectNulls
-              dot={renderOperatorDot}
-            />
-          ))}
+          {visiblePeople.map((personName) => {
+            const index = people.indexOf(personName);
+            const color = palette[index % palette.length];
+            return (
+              <Line
+                key={personName}
+                type="monotone"
+                dataKey={personName}
+                name={personName}
+                stroke={color}
+                strokeWidth={connectPersonPoints ? 3 : 0}
+                connectNulls={connectPersonPoints}
+                dot={(props) => renderOperatorDot({ ...props, fill: color })}
+              />
+            );
+          })}
         </LineChart>
       </ResponsiveContainer>
+      <div className="trend-legend" aria-label="Personen im Diagramm ein- und ausblenden">
+        {people.map((personName, index) => {
+          const isHidden = hiddenPeople.has(personName);
+          return (
+            <button
+              type="button"
+              key={personName}
+              className={`trend-legend__item ${isHidden ? "trend-legend__item--muted" : ""}`}
+              onClick={() =>
+                setHiddenPeople((current) => {
+                  const next = new Set(current);
+                  if (next.has(personName)) {
+                    next.delete(personName);
+                  } else {
+                    next.add(personName);
+                  }
+                  return next;
+                })
+              }
+              aria-pressed={!isHidden}
+            >
+              <span
+                className="trend-legend__swatch"
+                style={{ backgroundColor: palette[index % palette.length] }}
+                aria-hidden="true"
+              />
+              {personName} ({numericPointCountsByPerson.get(personName) ?? 0})
+            </button>
+          );
+        })}
+      </div>
     </div>
+  );
+}
+
+function SeriesResultCard({
+  serie,
+  diagrammDarstellung,
+  zeitraumDarstellung,
+  datumVon,
+  datumBis,
+  includeLaborreferenz,
+  includeZielbereich,
+  defaultTableOpen
+}: {
+  serie: AuswertungsSerie;
+  diagrammDarstellung: DiagrammDarstellung;
+  zeitraumDarstellung: "wertezeitraum" | "selektionszeitraum";
+  datumVon: string;
+  datumBis: string;
+  includeLaborreferenz: boolean;
+  includeZielbereich: boolean;
+  defaultTableOpen: boolean;
+}) {
+  const [isTableOpen, setIsTableOpen] = useState(defaultTableOpen);
+  const [isDescriptionOpen, setIsDescriptionOpen] = useState(false);
+  const parameterDescription = serie.parameter_beschreibung?.trim() ?? "";
+
+  useEffect(() => {
+    setIsTableOpen(defaultTableOpen);
+  }, [defaultTableOpen, serie.laborparameter_id]);
+
+  useEffect(() => {
+    setIsDescriptionOpen(false);
+  }, [serie.laborparameter_id]);
+
+  return (
+    <article className="card card--wide">
+      <div className="trend-card__header">
+        <div>
+          <h3>{serie.parameter_anzeigename}</h3>
+          <p>
+            {serie.standard_einheit ? `Standardeinheit: ${serie.standard_einheit}` : "Ohne definierte Standardeinheit"}
+            {" · "}
+            {formatParameterKlassifikation(serie.parameter_primaere_klassifikation)}
+          </p>
+          {parameterDescription ? (
+            <div className={`trend-description${isDescriptionOpen ? " trend-description--open" : ""}`}>
+              <p>{parameterDescription}</p>
+              <button
+                type="button"
+                className={`trend-description__toggle${isDescriptionOpen ? " trend-description__toggle--open" : ""}`}
+                onClick={() => setIsDescriptionOpen((current) => !current)}
+                aria-expanded={isDescriptionOpen}
+                aria-label={isDescriptionOpen ? "Parameterbeschreibung einklappen" : "Parameterbeschreibung ausklappen"}
+                title={isDescriptionOpen ? "Parameterbeschreibung einklappen" : "Parameterbeschreibung ausklappen"}
+              >
+                <span aria-hidden="true">▾</span>
+              </button>
+            </div>
+          ) : null}
+        </div>
+        <div className="trend-badges">
+          <span className="trend-badge">Messungen: {serie.statistik.anzahl_messungen}</span>
+          <span className="trend-badge">Personen: {serie.statistik.personen_anzahl}</span>
+          <span className="trend-badge">Trend: {formatTrend(serie.statistik.trendrichtung)}</span>
+        </div>
+      </div>
+
+      <div className="trend-meta">
+        <span>
+          Zeitraum: {formatDate(serie.statistik.zeitraum_von)} bis {formatDate(serie.statistik.zeitraum_bis)}
+        </span>
+        <span>Minimum: {formatNumber(serie.statistik.minimum_num)}</span>
+        <span>Maximum: {formatNumber(serie.statistik.maximum_num)}</span>
+        <span>Letzter Wert: {serie.statistik.letzter_wert_anzeige ?? "—"}</span>
+      </div>
+
+      <SeriesChart
+        serie={serie}
+        diagrammDarstellung={diagrammDarstellung}
+        zeitraumDarstellung={zeitraumDarstellung}
+        datumVon={datumVon}
+        datumBis={datumBis}
+        includeLaborreferenz={includeLaborreferenz}
+        includeZielbereich={includeZielbereich}
+      />
+
+      <div className="trend-table-panel">
+        <div className="trend-table-panel__header">
+          <span>Werte</span>
+          <button
+            type="button"
+            className={`trend-table-toggle${isTableOpen ? " trend-table-toggle--open" : ""}`}
+            onClick={() => setIsTableOpen((current) => !current)}
+            aria-expanded={isTableOpen}
+            aria-label={isTableOpen ? "Wertetabelle einklappen" : "Wertetabelle ausklappen"}
+            title={isTableOpen ? "Wertetabelle einklappen" : "Wertetabelle ausklappen"}
+          >
+            <span aria-hidden="true">▾</span>
+          </button>
+        </div>
+        {isTableOpen ? (
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Person</th>
+                  <th>KSG</th>
+                  <th>Datum</th>
+                  <th>Wert</th>
+                  <th>Laborreferenz</th>
+                  <th>Zielbereich</th>
+                  <th>Labor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {serie.punkte.map((punkt) => (
+                  <tr key={punkt.messwert_id}>
+                    <td>{punkt.person_anzeigename}</td>
+                    <td>{formatParameterKlassifikation(punkt.parameter_primaere_klassifikation)}</td>
+                    <td>{formatDate(punkt.datum)}</td>
+                    <td>{[punkt.wert_anzeige, punkt.einheit].filter(Boolean).join(" ")}</td>
+                    <td>{punkt.laborreferenz_text || "—"}</td>
+                    <td>{formatTargetRange(punkt)}</td>
+                    <td>{punkt.labor_name || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+      </div>
+    </article>
   );
 }
 
 export function AuswertungPage() {
   const [searchParams] = useSearchParams();
-  const [form, setForm] = useState<AuswertungFormState>(() =>
-    applySharedFilterSearchParams(initialForm, searchParams)
-  );
+  const [form, setForm] = useState<AuswertungFormState>(() => {
+    const baseFilter = hasSharedFilterSearchParams(searchParams)
+      ? initialForm
+      : (readStoredAuswertungFilter() ?? initialForm);
+    return applySharedFilterSearchParams(baseFilter, searchParams);
+  });
   const autoLoadKeyRef = useRef<string | null>(null);
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(() => form.person_ids.length === 0);
+  const previewQueryString = useMemo(() => buildSharedFilterSearchParams(form).toString(), [form]);
+  const isDateRangeInvalid = isInvalidDateRange(form.datum_von, form.datum_bis);
 
   const personenQuery = useQuery({
     queryKey: ["personen"],
@@ -384,6 +671,11 @@ export function AuswertungPage() {
   const laboreQuery = useQuery({
     queryKey: ["labore"],
     queryFn: () => apiFetch<Labor[]>("/api/labore")
+  });
+  const auswertungPreviewQuery = useQuery({
+    queryKey: ["auswertung", "treffer-vorab", previewQueryString],
+    queryFn: () => apiFetch<Messwert[]>(`/api/messwerte?${previewQueryString}`),
+    enabled: form.person_ids.length > 0 && !isDateRangeInvalid
   });
   const gesamtzahlenQuery = useQuery({
     queryKey: ["auswertung", "gesamtzahlen"],
@@ -407,6 +699,10 @@ export function AuswertungPage() {
         })
       })
   });
+
+  useEffect(() => {
+    window.localStorage.setItem(auswertungFilterStorageKey, JSON.stringify(form));
+  }, [form]);
 
   useEffect(() => {
     const autoLoadKey = searchParams.toString();
@@ -434,21 +730,77 @@ export function AuswertungPage() {
         .sort((left, right) => (left.datum ?? "").localeCompare(right.datum ?? "")),
     [auswertungMutation.data]
   );
-  const filterSummary = useMemo(() => buildFilterSummary(form), [form]);
+  const auswertungPreviewCounts = useMemo(() => {
+    const messwerte = auswertungPreviewQuery.data ?? [];
+    return {
+      personen: form.person_ids.length,
+      parameter: new Set(messwerte.map((messwert) => messwert.laborparameter_id)).size,
+      messwerte: messwerte.length,
+      befunde: new Set(messwerte.map((messwert) => messwert.befund_id)).size
+    };
+  }, [auswertungPreviewQuery.data, form.person_ids.length]);
+  const filterSummary = useMemo(
+    () =>
+      buildFilterSummary(form, {
+        personen: personenQuery.data ?? [],
+        gruppen: gruppenQuery.data ?? [],
+        parameter: parameterQuery.data ?? [],
+        labore: laboreQuery.data ?? []
+      }),
+    [form, gruppenQuery.data, laboreQuery.data, parameterQuery.data, personenQuery.data]
+  );
 
+  const previewValue = (value: number) =>
+    form.person_ids.length ? (auswertungPreviewQuery.isFetching && !auswertungPreviewQuery.data ? "…" : value) : "—";
+  const filterPeriodLabel =
+    form.datum_von || form.datum_bis
+      ? `${formatShortDate(form.datum_von)} bis ${formatShortDate(form.datum_bis)}`
+      : "alle Zeiträume";
   const statistikCards = [
-    { label: "Personen", value: gesamtzahlenQuery.data?.personen_anzahl ?? "—" },
-    { label: "Parameter", value: gesamtzahlenQuery.data?.parameter_anzahl ?? "—" },
-    { label: "Messwerte", value: gesamtzahlenQuery.data?.messwerte_anzahl ?? "—" },
-    { label: "Befunde", value: gesamtzahlenQuery.data?.befunde_anzahl ?? "—" }
+    {
+      label: "Personen",
+      value: form.person_ids.length ? auswertungPreviewCounts.personen : "—",
+      detail: `${gesamtzahlenQuery.data?.personen_anzahl ?? "—"} gesamt`
+    },
+    {
+      label: "Parameter",
+      value: previewValue(auswertungPreviewCounts.parameter),
+      detail: `${gesamtzahlenQuery.data?.parameter_anzahl ?? "—"} gesamt`
+    },
+    {
+      label: "Messwerte",
+      value: previewValue(auswertungPreviewCounts.messwerte),
+      detail: `${gesamtzahlenQuery.data?.messwerte_anzahl ?? "—"} gesamt`
+    },
+    {
+      label: "Befunde",
+      value: previewValue(auswertungPreviewCounts.befunde),
+      detail: `${gesamtzahlenQuery.data?.befunde_anzahl ?? "—"} gesamt`
+    }
   ];
+  const hasTooManyPreviewParameters = auswertungPreviewCounts.parameter > maxAuswertungParameter;
+  const isLoadBlocked = auswertungMutation.isPending || !form.person_ids.length || isDateRangeInvalid;
+  const handleLoadAuswertung = () => {
+    if (isLoadBlocked) {
+      return;
+    }
+    if (
+      hasTooManyPreviewParameters &&
+      !window.confirm(
+        `Die aktuelle Filterauswahl umfasst ${auswertungPreviewCounts.parameter} Parameter und ${auswertungPreviewCounts.messwerte} Messwerte. Auswertung trotzdem laden?`
+      )
+    ) {
+      return;
+    }
+    auswertungMutation.mutate();
+  };
 
   return (
     <section className="page">
       <header className="page__header">
         <h2>Auswertung</h2>
         <p>
-          Vergleiche Verläufe über Personen, Gruppen, Parameter, Labore und Zeitraum und blende Referenz- oder
+          Vergleiche Verläufe über Personen, Parametergruppen, Parameter, Labore und Zeitraum und blende Referenz- oder
           Zielbereiche bei Bedarf ein.
         </p>
       </header>
@@ -458,9 +810,14 @@ export function AuswertungPage() {
           <div className="stat-card" key={card.label}>
             <span className="stat-card__label">{card.label}</span>
             <strong>{card.value}</strong>
+            <p className="stat-card__detail">{card.detail}</p>
           </div>
         ))}
       </div>
+      <p className="auswertung-stats-context">
+        Oben stehen die Treffer der aktuellen Filterauswahl für {filterPeriodLabel}; die Gesamtzahlen dienen als
+        Vergleich.
+      </p>
 
       <article className="card card--soft parameter-action-panel">
         <div className="parameter-panel__header">
@@ -468,21 +825,27 @@ export function AuswertungPage() {
             <h3>Auswertungsfilter</h3>
             <p>Die Auswahl steuert Diagramme, Kennzahlen und qualitative Ereignisse gemeinsam.</p>
           </div>
-          {isFilterPanelOpen ? (
-            <button
-              type="button"
-              className="icon-button"
-              onClick={() => setIsFilterPanelOpen(false)}
-              aria-label="Panel Auswertungsfilter schließen"
-              title="Panel Auswertungsfilter schließen"
-            >
-              ×
+          <div className="auswertung-filter-toolbar auswertung-filter-toolbar--header">
+            {!isFilterPanelOpen ? (
+              <button type="button" className="inline-button" onClick={() => setIsFilterPanelOpen(true)}>
+                Filter öffnen
+              </button>
+            ) : null}
+            <button type="button" className="inline-button" onClick={() => setForm(initialForm)}>
+              Filter zurücksetzen
             </button>
-          ) : (
-            <button type="button" className="inline-button" onClick={() => setIsFilterPanelOpen(true)}>
-              Filter öffnen
-            </button>
-          )}
+            {isFilterPanelOpen ? (
+              <button
+                type="button"
+                className="icon-button"
+                onClick={() => setIsFilterPanelOpen(false)}
+                aria-label="Panel Auswertungsfilter schließen"
+                title="Panel Auswertungsfilter schließen"
+              >
+                ×
+              </button>
+            ) : null}
+          </div>
         </div>
 
         {isFilterPanelOpen ? (
@@ -490,7 +853,7 @@ export function AuswertungPage() {
             className="form-grid"
             onSubmit={(event) => {
               event.preventDefault();
-              auswertungMutation.mutate();
+              handleLoadAuswertung();
             }}
           >
             <SelectionChecklist
@@ -506,7 +869,7 @@ export function AuswertungPage() {
             />
 
             <SelectionChecklist
-              label="Gruppen"
+              label="Parametergruppen"
               options={(gruppenQuery.data ?? []).map((gruppe) => ({
                 id: gruppe.id,
                 label: gruppe.name,
@@ -514,9 +877,10 @@ export function AuswertungPage() {
               }))}
               selectedIds={form.gruppen_ids}
               onChange={(gruppen_ids) => setForm((current) => ({ ...current, gruppen_ids }))}
-              emptyText="Noch keine Gruppen vorhanden."
+              emptyText="Noch keine Parametergruppen vorhanden."
               collapsible
               defaultExpanded={false}
+              compactWhenEmptyCollapsed
             />
 
             <SelectionChecklist
@@ -535,6 +899,7 @@ export function AuswertungPage() {
               searchPlaceholder="Parameter filtern"
               showSelectedOnlyToggle
               selectedOnlyLabel="Nur ausgewählte anzeigen"
+              compactWhenEmptyCollapsed
             />
 
             <SelectionChecklist
@@ -553,6 +918,7 @@ export function AuswertungPage() {
               emptyText="Keine KSG-Klassen verfügbar."
               collapsible
               defaultExpanded={false}
+              compactWhenEmptyCollapsed
             />
 
             <SelectionChecklist
@@ -566,6 +932,7 @@ export function AuswertungPage() {
               emptyText="Noch keine Labore vorhanden."
               collapsible
               defaultExpanded={false}
+              compactWhenEmptyCollapsed
             />
 
             <DateRangeFilterFields
@@ -576,58 +943,110 @@ export function AuswertungPage() {
               onFromChange={(datum_von) => setForm((current) => ({ ...current, datum_von }))}
               onToChange={(datum_bis) => setForm((current) => ({ ...current, datum_bis }))}
             />
-
-            <label className="field">
-              <span>Zeitraumdarstellung im Diagramm</span>
-              <select
-                value={form.zeitraum_darstellung}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    zeitraum_darstellung: event.target.value as AuswertungFormState["zeitraum_darstellung"]
-                  }))
-                }
-              >
-                <option value="wertezeitraum">Nur Zeitraum mit Werten</option>
-                <option value="selektionszeitraum">Gewählten Selektionszeitraum fest anzeigen</option>
-              </select>
-            </label>
-
-            <label className="field">
-              <span>Laborreferenzen anzeigen</span>
-              <input
-                type="checkbox"
-                checked={form.include_laborreferenz}
-                onChange={(event) => setForm((current) => ({ ...current, include_laborreferenz: event.target.checked }))}
-              />
-            </label>
-
-            <label className="field">
-              <span>Zielbereiche anzeigen</span>
-              <input
-                type="checkbox"
-                checked={form.include_zielbereich}
-                onChange={(event) => setForm((current) => ({ ...current, include_zielbereich: event.target.checked }))}
-              />
-            </label>
-
-            <div className="form-actions">
-              <button type="button" onClick={() => setForm(initialForm)}>
-                Filter zurücksetzen
-              </button>
-              <button type="submit" disabled={auswertungMutation.isPending || !form.person_ids.length}>
-                {auswertungMutation.isPending ? "Lädt..." : "Auswertung laden"}
-              </button>
-              {auswertungMutation.isError ? <p className="form-error">{auswertungMutation.error.message}</p> : null}
-            </div>
           </form>
         ) : (
-          <div className="inline-actions">
+          <div className="inline-actions auswertung-filter-summary">
             <span className="inline-actions__label">Aktive Auswahl:</span>
             <span>{filterSummary.join(" • ")}</span>
           </div>
         )}
+
+        {isDateRangeInvalid && !isFilterPanelOpen ? (
+          <p className="form-error">Das Bis-Datum darf nicht vor dem Von-Datum liegen.</p>
+        ) : null}
+        {hasTooManyPreviewParameters ? (
+          <p className="form-hint">
+            Diese Auswahl umfasst mehr als {maxAuswertungParameter} Parameter. Beim Laden fragt die Anwendung nach.
+          </p>
+        ) : null}
+        {auswertungPreviewQuery.isError ? <p className="form-error">{auswertungPreviewQuery.error.message}</p> : null}
+
       </article>
+
+      <article className="card card--soft parameter-action-panel auswertung-display-panel">
+        <div className="parameter-panel__header">
+          <div>
+            <h3>Darstellung</h3>
+            <p>Diese Einstellungen verändern nur die Ansicht der geladenen Auswertung, nicht die Filterauswahl.</p>
+          </div>
+        </div>
+
+        <div className="auswertung-display-grid">
+          <div className="field field--full">
+            <span>Diagrammtyp</span>
+            <div className="auswertung-display-modes" role="group" aria-label="Diagrammtyp auswählen">
+              {diagrammDarstellungOptions.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`auswertung-display-mode${
+                    form.diagramm_darstellung === option.value ? " auswertung-display-mode--active" : ""
+                  }`}
+                  onClick={() => setForm((current) => ({ ...current, diagramm_darstellung: option.value }))}
+                  aria-pressed={form.diagramm_darstellung === option.value}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <label className="field">
+            <span>Zeitraumdarstellung im Diagramm</span>
+            <select
+              value={form.zeitraum_darstellung}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  zeitraum_darstellung: event.target.value as AuswertungFormState["zeitraum_darstellung"]
+                }))
+              }
+            >
+              <option value="wertezeitraum">Nur Zeitraum mit Werten</option>
+              <option value="selektionszeitraum">Gewählten Selektionszeitraum fest anzeigen</option>
+            </select>
+          </label>
+
+          <label className="field">
+            <span>Laborreferenzen anzeigen</span>
+            <input
+              type="checkbox"
+              checked={form.include_laborreferenz}
+              onChange={(event) => setForm((current) => ({ ...current, include_laborreferenz: event.target.checked }))}
+            />
+          </label>
+
+          <label className="field">
+            <span>Zielbereiche anzeigen</span>
+            <input
+              type="checkbox"
+              checked={form.include_zielbereich}
+              onChange={(event) => setForm((current) => ({ ...current, include_zielbereich: event.target.checked }))}
+            />
+          </label>
+
+          <label className="field">
+            <span>Wertetabellen standardmäßig geöffnet</span>
+            <input
+              type="checkbox"
+              checked={form.messwerttabelle_standard_offen}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  messwerttabelle_standard_offen: event.target.checked
+                }))
+              }
+            />
+          </label>
+        </div>
+      </article>
+
+      <div className="form-actions auswertung-filter-load">
+        <button type="button" onClick={handleLoadAuswertung} disabled={isLoadBlocked}>
+          {auswertungMutation.isPending ? "Lädt..." : "Auswertung laden"}
+        </button>
+        {auswertungMutation.isError ? <p className="form-error">{auswertungMutation.error.message}</p> : null}
+      </div>
 
       {auswertungMutation.data && !auswertungMutation.data.serien.length && !qualitativeEvents.length ? (
         <article className="card">
@@ -639,72 +1058,17 @@ export function AuswertungPage() {
       {auswertungMutation.data ? (
         <div className="workspace-grid">
           {auswertungMutation.data.serien.map((serie) => (
-            <article className="card card--wide" key={serie.laborparameter_id}>
-              <div className="trend-card__header">
-                <div>
-                  <h3>{serie.parameter_anzeigename}</h3>
-                  <p>
-                    {serie.standard_einheit
-                      ? `Standardeinheit: ${serie.standard_einheit}`
-                      : "Ohne definierte Standardeinheit"}
-                    {" · "}
-                    {formatParameterKlassifikation(serie.parameter_primaere_klassifikation)}
-                  </p>
-                </div>
-                <div className="trend-badges">
-                  <span className="trend-badge">Messungen: {serie.statistik.anzahl_messungen}</span>
-                  <span className="trend-badge">Personen: {serie.statistik.personen_anzahl}</span>
-                  <span className="trend-badge">Trend: {formatTrend(serie.statistik.trendrichtung)}</span>
-                </div>
-              </div>
-
-              <div className="trend-meta">
-                <span>
-                  Zeitraum: {formatDate(serie.statistik.zeitraum_von)} bis {formatDate(serie.statistik.zeitraum_bis)}
-                </span>
-                <span>Minimum: {formatNumber(serie.statistik.minimum_num)}</span>
-                <span>Maximum: {formatNumber(serie.statistik.maximum_num)}</span>
-                <span>Letzter Wert: {serie.statistik.letzter_wert_anzeige ?? "—"}</span>
-              </div>
-
-              <SeriesChart
-                serie={serie}
-                zeitraumDarstellung={form.zeitraum_darstellung}
-                datumVon={form.datum_von}
-                datumBis={form.datum_bis}
-                includeLaborreferenz={form.include_laborreferenz}
-                includeZielbereich={form.include_zielbereich}
-              />
-
-              <div className="table-wrap">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Person</th>
-                      <th>KSG</th>
-                      <th>Datum</th>
-                      <th>Wert</th>
-                      <th>Laborreferenz</th>
-                      <th>Zielbereich</th>
-                      <th>Labor</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {serie.punkte.map((punkt) => (
-                      <tr key={punkt.messwert_id}>
-                        <td>{punkt.person_anzeigename}</td>
-                        <td>{formatParameterKlassifikation(punkt.parameter_primaere_klassifikation)}</td>
-                        <td>{formatDate(punkt.datum)}</td>
-                        <td>{[punkt.wert_anzeige, punkt.einheit].filter(Boolean).join(" ")}</td>
-                        <td>{punkt.laborreferenz_text || "—"}</td>
-                        <td>{formatTargetRange(punkt)}</td>
-                        <td>{punkt.labor_name || "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </article>
+            <SeriesResultCard
+              key={serie.laborparameter_id}
+              serie={serie}
+              diagrammDarstellung={form.diagramm_darstellung}
+              zeitraumDarstellung={form.zeitraum_darstellung}
+              datumVon={form.datum_von}
+              datumBis={form.datum_bis}
+              includeLaborreferenz={form.include_laborreferenz}
+              includeZielbereich={form.include_zielbereich}
+              defaultTableOpen={form.messwerttabelle_standard_offen}
+            />
           ))}
         </div>
       ) : null}

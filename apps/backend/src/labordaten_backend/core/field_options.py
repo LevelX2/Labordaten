@@ -1,6 +1,8 @@
 from collections.abc import Collection
 
 GESCHLECHT_CODES = ("w", "m", "d")
+BLUTGRUPPEN = ("0", "A", "B", "AB")
+RHESUSFAKTOREN = ("positiv", "negativ")
 WERT_TYPEN = ("numerisch", "text")
 WERT_OPERATOREN = ("exakt", "kleiner_als", "kleiner_gleich", "groesser_als", "groesser_gleich", "ungefaehr")
 REFERENZ_GRENZ_OPERATOREN = ("kleiner_als", "kleiner_gleich", "groesser_als", "groesser_gleich")

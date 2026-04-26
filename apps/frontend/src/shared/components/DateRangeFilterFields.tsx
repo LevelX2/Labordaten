@@ -1,3 +1,7 @@
+import { useId } from "react";
+
+import { formatDateInputValue } from "../utils/dateFormatting";
+
 type DateRangeFilterFieldsProps = {
   fromValue: string;
   toValue: string;
@@ -7,14 +11,12 @@ type DateRangeFilterFieldsProps = {
   onToChange: (value: string) => void;
   fromLabel?: string;
   toLabel?: string;
+  errorMessage?: string;
   className?: string;
 };
 
-function formatIsoDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+export function isInvalidDateRange(fromValue: string, toValue: string): boolean {
+  return Boolean(fromValue && toValue && toValue < fromValue);
 }
 
 function shiftDateByYears(value: string, years: number, fallbackValue: string): string {
@@ -30,7 +32,7 @@ function shiftDateByYears(value: string, years: number, fallbackValue: string): 
   const day = Number(dayText);
   const maxDayInTargetMonth = new Date(targetYear, monthIndex + 1, 0).getDate();
   const nextDate = new Date(targetYear, monthIndex, Math.min(day, maxDayInTargetMonth));
-  return formatIsoDate(nextDate);
+  return formatDateInputValue(nextDate);
 }
 
 export function DateRangeFilterFields({
@@ -42,9 +44,19 @@ export function DateRangeFilterFields({
   onToChange,
   fromLabel = "Datum von",
   toLabel = "Datum bis",
+  errorMessage = "Das Bis-Datum darf nicht vor dem Von-Datum liegen.",
   className
 }: DateRangeFilterFieldsProps) {
-  const rootClassName = ["date-range-filter", "field--full", className].filter(Boolean).join(" ");
+  const errorId = useId();
+  const isInvalid = isInvalidDateRange(fromValue, toValue);
+  const rootClassName = [
+    "date-range-filter",
+    "field--full",
+    isInvalid ? "date-range-filter--invalid" : null,
+    className
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div className={rootClassName}>
@@ -60,7 +72,13 @@ export function DateRangeFilterFields({
           >
             -1 J
           </button>
-          <input type="date" value={fromValue} onChange={(event) => onFromChange(event.target.value)} />
+          <input
+            type="date"
+            value={fromValue}
+            onChange={(event) => onFromChange(event.target.value)}
+            aria-invalid={isInvalid}
+            aria-describedby={isInvalid ? errorId : undefined}
+          />
           <button
             type="button"
             className="date-range-filter__button date-range-filter__button--next"
@@ -85,7 +103,13 @@ export function DateRangeFilterFields({
           >
             -1 J
           </button>
-          <input type="date" value={toValue} onChange={(event) => onToChange(event.target.value)} />
+          <input
+            type="date"
+            value={toValue}
+            onChange={(event) => onToChange(event.target.value)}
+            aria-invalid={isInvalid}
+            aria-describedby={isInvalid ? errorId : undefined}
+          />
           <button
             type="button"
             className="date-range-filter__button date-range-filter__button--next"
@@ -97,6 +121,12 @@ export function DateRangeFilterFields({
           </button>
         </div>
       </div>
+
+      {isInvalid ? (
+        <p id={errorId} className="form-error date-range-filter__error" role="alert">
+          {errorMessage}
+        </p>
+      ) : null}
     </div>
   );
 }

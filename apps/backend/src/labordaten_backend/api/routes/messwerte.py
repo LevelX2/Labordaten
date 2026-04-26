@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from labordaten_backend.api.deps import get_db
+from labordaten_backend.api.validation import validate_date_range
 from labordaten_backend.modules.messwerte import schemas, service
 
 router = APIRouter()
@@ -22,6 +23,7 @@ def list_messwerte(
     sort: list[str] | None = Query(default=None),
     db: Session = Depends(get_db),
 ) -> list[schemas.MesswertRead]:
+    validate_date_range(datum_von, datum_bis)
     try:
         return service.list_messwerte(
             db,

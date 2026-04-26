@@ -1,7 +1,7 @@
 ---
 typ: architektur
 status: aktiv
-letzte_aktualisierung: 2026-04-22
+letzte_aktualisierung: 2026-04-26
 quellen:
   - ../../../apps/backend/src/labordaten_backend/models/einheit.py
   - ../../../apps/backend/src/labordaten_backend/models/einheit_alias.py
@@ -60,11 +60,12 @@ Zusätzlich kann pro numerischem Laborparameter eine führende Normeinheit festg
 - Einheiten werden zentral gepflegt.
 - Die manuelle Pflege liegt im Frontend unter `Einstellungen`.
 - Fehlende Einheiten können im Import übernommen und dabei in die Stammdaten ergänzt werden.
+- Die Einstellungsseite zeigt die Einheitenpflege als Arbeitsbereich: links Bestand, Suche und Neuanlage; rechts die aktuell ausgewählte Einheit mit Alias-Pflege und optionaler Lösch- oder Deaktivierungsprüfung.
 
 ### Alias-Logik für Einheiten
 - Vor der Neuanlage einer Einheit wird geprüft, ob bereits eine kanonische Einheit oder ein Alias dazu existiert.
 - Reine Schreibvarianten sollen dadurch nicht als eigene Einheiten enden.
-- Die Alias-Pflege ist Teil der Einheitenverwaltung.
+- Die Alias-Pflege ist Teil der Einheitenverwaltung und erfolgt in der UI im Kontext der ausgewählten kanonischen Einheit, damit keine separate Zieleinheit im Alias-Formular gesucht werden muss.
 
 ### Parameterbezogene Umrechnungsregeln
 - Umrechnungen werden als eigene Regeln pro `Laborparameter` gepflegt.

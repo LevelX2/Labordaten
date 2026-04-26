@@ -1,7 +1,7 @@
 ---
 typ: architektur
 status: aktiv
-letzte_aktualisierung: 2026-04-25
+letzte_aktualisierung: 2026-04-26
 quellen:
   - ../00 Uebersichten/Aktueller Projektstatus.md
   - ../../01 Rohquellen/fachkonzepte/2026-04-24 Dreiwege-Importkonzept und KI-Prompt.md
@@ -31,7 +31,11 @@ Der aktuelle Stand vom 2026-04-24 unterstützt eine echte Importprüfung und bew
 - Der Prompt-Weg gibt der externen KI klare Regeln vor: vollständige Dokumentauswertung, ausschließlich valides Import-V1-JSON, `quelleTyp: "ki_json"`, keine Zusatzfelder und sichtbarer Prüfbedarf über bestehende Importfelder.
 - Importentwürfe können zusätzlich aus hochgeladenen `csv`- und `excel`-Dateien erzeugt werden.
 - Das Backend prüft das JSON gegen das erwartete Importschema und erzeugt Prüfpunkte, Warnungen und Fehler.
-- Vor der Übernahme können Messwerte manuell vorhandenen Parametern zugeordnet werden; wenn kein passender Parameter gefunden wurde, kann im Importdialog bewusst eine Parameter-Neuanlage gewählt werden.
+- Im externen KI-/Skript-JSON-Weg wird die Person nicht aus dem JSON übernommen. Die Person wird beim Einfügen des KI-Ergebnisses in der Anwendung aus vorhandenen Personen ausgewählt und kann im Prüfschritt `Befund prüfen` noch geändert werden. Ohne zugeordnete Person bleibt die Übernahme gesperrt.
+- Der Importvertrag unterscheidet bei Messwerten zwischen originalem Berichtstext und KI-eigenen Hinweisen: `bemerkungKurz` und `bemerkungLang` sind für möglichst originalnahe Laborbericht-Kommentare gedacht; `kiHinweis` ist für Extraktionszweifel, Mapping-Hinweise und Begründungen der KI vorgesehen. Persistiert werden beim Messwert die originalen Bemerkungsfelder und die Prüf-/Unsicherheitsflags, nicht ein vermischter KI-Kommentar.
+- Für neue Parameter-Vorschläge soll `beschreibungKurz` nur eine allgemeine, berichtsunabhängige Fachbeschreibung enthalten. Berichtskommentare, Zusatzuntersuchungs-Empfehlungen, Einsendehinweise oder patientenbezogene Risikohinweise bleiben Messwertbemerkung beziehungsweise KI-/Dokumentbegründung und werden nicht als Parameterbeschreibung gespeichert. Wenn keine belastbare allgemeine Beschreibung ableitbar ist, bleibt die Parameterbeschreibung leer und wird in der Prüfübersicht als fehlend angezeigt.
+- Vor der Übernahme können Messwerte manuell vorhandenen Parametern zugeordnet werden; dafür gibt es einen geführten Suchdialog mit verdächtigen Kandidaten, Einheit, Werttyp, Treffergrund, Beschreibung, Suche und lockerer Filterung. In der Übersicht `Messwerte klären` bleiben Hinweise zum zugeordneten oder neu anzulegenden Parameter sowie KI-Hinweise am Messwert selbst sichtbar, und die Liste kann nach Zuordnungsweg gefiltert werden. Der Zuordnungsweg trennt explizit aus dem KI-/JSON-Ergebnis übernommene `parameterId`-Angaben von automatischen Stammdaten-Matches der Anwendung und von manuellen Anpassungen. Wenn kein passender Parameter gefunden wurde, kann im Importdialog bewusst eine Parameter-Neuanlage gewählt werden.
+- Prüfentscheidungen im aktuellen Import werden als Entwurfszustand gespeichert und bleiben beim Wechsel zwischen Anwendungsbereichen erhalten. Dazu gehören Personenauswahl, vorhandene Parameterzuordnung, Neuanlage-Entscheidung, Alias-Übernahme, Zurücksetzen und `Nicht übernehmen`. Einzelne KI- oder Tabellenzeilen, die keine sinnvoll zu übernehmenden Messwerte sind, können in der Messwertklärung bewusst auf `Nicht übernehmen` gesetzt werden. Nicht zugeordnete Messwerte werden dadurch nicht stillschweigend ignoriert; ohne Zuordnung oder ausdrückliches Auslassen bleibt die Übernahme blockiert. Die Statusleiste des aktuellen Imports zählt diese bewusst ausgelassenen Messwerte als `nicht übernommen`.
 - Bei der Übernahme werden `Befund`, `Messwert` und gegebenenfalls `MesswertReferenz` erzeugt.
 - Warnungen wie fehlende Zuordnung, unparsebare Zahlenwerte oder mögliche Dubletten werden sichtbar gemacht.
 - Wenn ein numerischer Messwert bereits einem Parameter zugeordnet ist, für seine Berichtseinheit aber noch keine saubere Umrechnung in die führende Normeinheit dieses Parameters vorhanden ist, erzeugt die Importprüfung jetzt ebenfalls eine sichtbare Warnung.
@@ -42,20 +46,24 @@ Der aktuelle Stand vom 2026-04-24 unterstützt eine echte Importprüfung und bew
 - Vorhandene Importdetails zeigen pro Gruppenvorschlag bereits aufgelöste Parameter, fehlende Zuordnungen und ähnliche vorhandene Gruppen mit gemeinsamer Parameterbasis.
 - Nach der Übernahme können Gruppenvorschläge auf bestehende Gruppen gemappt, als neue Gruppen angelegt oder bewusst ignoriert werden.
 - Die Importoberfläche trennt die Startwege `KI-Chat`, `CSV/Excel` und `JSON` sichtbar von den Bearbeitungsbereichen `Import prüfen` und `Historie`.
+- Das Eingabefeld `KI-Ergebnis oder Import-JSON` startet ohne echte Beispielwerte. Beispiel- und Hilfetexte sind nur Orientierung; ein Paste-Vorgang ersetzt den aktuellen Feldinhalt, damit ein neues KI-Ergebnis ohne vorheriges Markieren eingefügt werden kann.
 - `Import prüfen` ist die gemeinsame Prüfansicht für den aktuell ausgewählten Import, zählt offene Importe per Badge und bietet bei mehreren offenen Importen eine Auswahl im Prüftab.
 - Die anschließende Prüfansicht ist in einklappbare Abschnitte für Befund, Messwerte, Warnungen und Übernahme, Gruppenentscheidung und Abschluss gegliedert.
+- Noch nicht übernommene Importversuche werden in der Prüfansicht über `Import verwerfen` abgeschlossen. Der Dialog bietet `Dokumentiert verwerfen` für nachvollziehbare Historie oder `Komplett entfernen` zum Löschen des Importversuchs; ein verknüpftes Dokument kann dort optional mit entfernt werden.
 
 ## Was für den Import bereits günstig ist
 - Ein Labor muss nicht zwingend vorab existieren, wenn im Import `laborName` angegeben wird; das Backend kann ein passendes Labor finden oder neu anlegen.
-- Die Person sollte vor dem Import bereits existieren, weil die Übernahme eine gültige Personenzuordnung benötigt.
+- Die Person sollte vor dem Import bereits existieren, weil die Übernahme eine gültige Personenzuordnung benötigt. Im externen KI-/Skript-JSON-Weg wird die Zuordnung bewusst nicht aus dem JSON übernommen, sondern beim Einfügen des KI-Ergebnisses in der Anwendung oder spätestens in der Prüfansicht ausgewählt.
 - Parameter sollten im Regelfall vorab als Stammdaten vorhanden sein. Für echte neue Messgrößen kann der Importdialog inzwischen aber eine bewusste Neuanlage vormerken; dabei werden Anzeigename aus dem Originalnamen, Werttyp aus dem Messwert und die Berichtseinheit als Standardeinheit verwendet.
+- Für schwierige Parameterzuordnungen soll zuerst der geführte Suchdialog genutzt werden. Er priorisiert Kandidaten nach Einheitenpassung, Werttyp, Namensüberschneidungen, Importvorschlag und Beschreibungstreffern; bei Bedarf kann die Filterung von verdächtigen Treffern auf mehr Kandidaten oder alle Parameter gelockert werden. Der Zuordnungsweg-Filter in der Übersicht hilft, offene, automatisch durch Stammdaten erkannte, manuell angepasste, aus dem KI-/JSON-Ergebnis übernommene und neu anzulegende Zuordnungen getrennt abzuarbeiten.
+- Die Aktion `Zuordnung zurücksetzen` in der Messwertklärung entfernt nur die aktuelle Parameterzuordnung eines Messwerts; sie löscht den Messwert nicht und schließt ihn auch nicht aus der späteren Übernahme aus.
 - Das Importschema unterstützt numerische und textuelle Messwerte sowie Referenzangaben.
 - Gruppenvorschläge profitieren davon, wenn Parameter bereits aufgelöst sind, weil dadurch ähnliche vorhandene Gruppen zuverlässiger erkannt und vorgeschlagen werden können.
 
 ## Was aktuell noch fehlt
 - Kein PDF-Upload-Endpunkt für Laborberichte.
 - Keine OCR- oder Parser-Stufe, die aus einem PDF automatisch Import-JSON ableitet.
-- Keine automatische Neuanlage von Personen innerhalb des Importdialogs. Parameter können nur bewusst über die Messwertklärung neu angelegt werden, nicht stillschweigend automatisch.
+- Keine automatische Neuanlage von Personen innerhalb des Importdialogs. Personen können im Importdialog nur vorhandenen Stammdatensätzen zugeordnet werden. Parameter können bewusst über die Messwertklärung neu angelegt werden, nicht stillschweigend automatisch.
 - Kein echter Ein-Klick-Fluss `PDF hochladen -> Parser -> Importentwurf`; die Dokumentverknüpfung setzt aktuell weiterhin voraus, dass die inhaltliche Extraktion außerhalb des Backends oder über den externen Prompt-Weg erfolgt.
 
 ## Praktische Einordnung

@@ -1,5 +1,7 @@
 # Labordaten
 
+Version: `0.2.0`
+
 Dieses Repository enthält die projektbezogene Wissensbasis und die lokale V1-Anwendung für die Pflege, Prüfung, Auswertung und Berichterstellung von Labordaten.
 
 Für lokale Arbeit unter Windows ist PowerShell 7 (`pwsh`) der bevorzugte Standard, damit UTF-8-Dateien aus Repository und Wissensbasis konsistent gelesen und geschrieben werden.
@@ -15,17 +17,52 @@ Die Anwendung ist als lokales Websystem aufgebaut:
 - `scripts/`: lokale Start- und Hilfsskripte
 - `docs/`: ergänzende Projektdokumente außerhalb der Wissensbasis
 
-## Aktueller Stand
+## Aktueller Funktionsstand
 
-Das Repository ist kein reines Scaffold mehr. Im aktuellen Workspace sind bereits echte Arbeitsbereiche und API-Durchstiche vorhanden, unter anderem für:
+Das Repository ist kein reines Scaffold mehr. Die lokale Anwendung enthält echte Backend-APIs, Datenbankmigrationen und fachliche Frontend-Arbeitsbereiche für den V1-Betrieb.
 
-- Personen, Befunde, Messwerte und Parameter
-- Gruppen, Referenzlogik und Zielbereiche
-- Planung, Auswertung und Berichte mit PDF-Erzeugung
-- Importprüfung mit KI-Prompt, KI-/JSON-Einfügen, Prüfansicht und Historie
-- Wissensbasis und Einstellungen als eigene Bereiche in der Anwendung
+### Stammdaten und Laborbestand
 
-Noch offen sind insbesondere direkter PDF-Import mit OCR oder Parser-Stufe sowie eine angebundene KI-Schnittstelle innerhalb der Anwendung.
+- Pflege von Personen, Laboren, Befunden, Messwerten und Laborparametern.
+- Nachträgliche Bearbeitung zentraler Stammdaten, ohne technische IDs oder historische Messdaten umzuhängen.
+- Parametergruppen mit Many-to-Many-Zuordnung und bereichsübergreifender Filterlogik.
+- Referenzbereiche, Zielbereiche, strukturierte Grenzoperatoren und personenspezifische Zielbereichs-Overrides.
+- Zentrale Einheitenstammdaten, Einheiten-Aliase, führende Normeinheiten und parameterbezogene Umrechnungsregeln.
+- Automatische interne Parameterschlüssel, Alias-Vorschläge, Dublettenprüfung und bestätigte Parameter-Zusammenführung.
+
+### Import und Dokumente
+
+- Importentwürfe für strukturierte JSON-Daten sowie CSV- und Excel-Dateien.
+- Geführter externer KI-Chat-Weg: Prompt erzeugen, Laborbericht außerhalb der Anwendung analysieren lassen, JSON einfügen und anschließend prüfen.
+- Prüfansicht mit Mapping, Warnungen, Fehlern, Dokumentverknüpfung, Gruppenentscheidungen und bewusster Übernahme.
+- Importhistorie mit offenen Importentwürfen, Prüflinks und Statusinformationen.
+- Alias-Anlage aus Berichtsschreibweisen beim bestätigten Mapping.
+- Optionale Parameter-Vorschläge aus KI-JSON mit Kurzbeschreibung, Einheit, Werttyp und Alias-Hinweisen.
+
+### Planung, Auswertung und Berichte
+
+- Planung zyklischer Kontrollen und einmaliger Vormerkungen.
+- Suchbare Mehrfachauswahl für Parameter sowie Gruppen als Eingabehilfe bei der Planungsanlage.
+- Fälligkeitsberechnung, Zeitraumansicht für kommende Messungen und PDF-Merkzettel für anstehende Messungen.
+- Auswertungsbereich mit Verläufen, Diagrammen, Referenzlinien und gruppenbezogenen Filtern.
+- Berichtsbereich mit Vorschauen und PDF-Erzeugung für Arztberichte und Verlaufsberichte.
+- Direkter Sprung aus einem Befund-Messwert in die passende Auswertung für Person und Parameter.
+
+### Laborwissen und Betrieb
+
+- Separater fachlicher Markdown-Wissenspool unter `Labordaten-Wissen/`, getrennt von der KI-Projektwissensbasis.
+- Lesen, Anzeigen, Verlinken, Neuanlegen und kontrolliertes Löschen von Wissensseiten über die Oberfläche.
+- Verknüpfung von Parametern mit Fachwissensseiten; neue Parameter können automatisch eine Ausgangsseite erhalten.
+- Anwendungshilfe im Fachwissenspool für die Hauptbereiche der Anwendung.
+- Einstellungen für lokale Daten-, Dokument- und Wissenspfade.
+- Lokale SQLite-Datenbasis mit Einzelbenutzer-Sperrlogik.
+- Zentrale Löschprüfung mit getrennter Ausführung für viele Kernobjekte, unter anderem Personen, Befunde, Messwerte, Importvorgänge, Einheiten, Labore, Parameter, Gruppen, Zielbereiche und Planungen.
+
+### Noch nicht enthalten
+
+- Direkter PDF-Upload mit integrierter OCR- oder Parser-Stufe.
+- Direkt angebundene KI-Schnittstelle, die Dokumente innerhalb der Anwendung automatisch analysiert.
+- Vollautomatische Übernahme gescannter Laborberichte ohne externe Extraktion oder manuelle Prüfung.
 
 ## Voraussetzungen
 

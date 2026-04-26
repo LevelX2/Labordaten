@@ -8,7 +8,6 @@ import type { Gruppe, GruppenParameter, Parameter } from "../../shared/types/api
 type GruppenFormState = {
   name: string;
   beschreibung: string;
-  sortierschluessel: string;
 };
 
 type ZuordnungState = {
@@ -16,13 +15,12 @@ type ZuordnungState = {
   sortierung: string;
 };
 
-type GruppenPanelKey = "create" | "assignments" | "delete";
+type GruppenPanelKey = "create" | "edit" | "assignments" | "delete";
 type AssignmentViewMode = "all" | "assigned";
 
 const initialForm: GruppenFormState = {
   name: "",
-  beschreibung: "",
-  sortierschluessel: ""
+  beschreibung: ""
 };
 
 function summarizeDescription(text: string | null | undefined): string {
@@ -67,6 +65,7 @@ function formatCountLabel(count: number, singular: string, plural: string): stri
 export function GruppenPage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<GruppenFormState>(initialForm);
+  const [editForm, setEditForm] = useState<GruppenFormState>(initialForm);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [zuordnungen, setZuordnungen] = useState<Record<string, ZuordnungState>>({});
   const [groupSearchQuery, setGroupSearchQuery] = useState("");
@@ -118,7 +117,7 @@ export function GruppenPage() {
     }
 
     return sortedGroups.filter((gruppe) =>
-      [gruppe.name, gruppe.beschreibung ?? "", gruppe.sortierschluessel ?? ""]
+      [gruppe.name, gruppe.beschreibung ?? ""]
         .join(" ")
         .toLocaleLowerCase("de-DE")
         .includes(normalizedSearchQuery)
@@ -143,6 +142,14 @@ export function GruppenPage() {
     setAssignmentSearchQuery("");
     setAssignmentViewMode("all");
     setShowRelatedParameters(true);
+    if (selectedGroup) {
+      setEditForm({
+        name: selectedGroup.name,
+        beschreibung: selectedGroup.beschreibung ?? ""
+      });
+    } else {
+      setEditForm(initialForm);
+    }
   }, [selectedGroupId]);
 
   const currentAssignments = useMemo(() => {
@@ -156,7 +163,13 @@ export function GruppenPage() {
     return mapping;
   }, [gruppenParameterQuery.data]);
 
-  const effectiveAssignments = Object.keys(zuordnungen).length ? zuordnungen : currentAssignments;
+  const effectiveAssignments = useMemo(
+    () => ({
+      ...currentAssignments,
+      ...zuordnungen
+    }),
+    [currentAssignments, zuordnungen]
+  );
 
   const filteredParameters = useMemo(() => {
     const normalizedSearchQuery = assignmentSearchQuery.trim().toLocaleLowerCase("de-DE");
@@ -180,8 +193,8 @@ export function GruppenPage() {
   const assignedParameterCount = Object.values(effectiveAssignments).filter((item) => item.aktiv).length;
   const hasActiveGroupFilter = groupSearchQuery.trim().length > 0;
   const groupCountLabel = hasActiveGroupFilter
-    ? `${filteredGroups.length} von ${sortedGroups.length} Gruppen`
-    : `${sortedGroups.length} Gruppen`;
+    ? `${filteredGroups.length} von ${sortedGroups.length} Parametergruppen`
+    : `${sortedGroups.length} Parametergruppen`;
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -189,8 +202,7 @@ export function GruppenPage() {
         method: "POST",
         body: JSON.stringify({
           name: form.name,
-          beschreibung: form.beschreibung || null,
-          sortierschluessel: form.sortierschluessel || null
+          beschreibung: form.beschreibung || null
         })
       }),
     onSuccess: async (gruppe) => {
@@ -232,7 +244,29 @@ export function GruppenPage() {
     }
   });
 
+  const updateMutation = useMutation({
+    mutationFn: () =>
+      apiFetch<Gruppe>(`/api/gruppen/${selectedGroupId}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          name: editForm.name,
+          beschreibung: editForm.beschreibung || null
+        })
+      }),
+    onSuccess: async (gruppe) => {
+      setSelectedGroupId(gruppe.id);
+      setActivePanel(null);
+      await queryClient.invalidateQueries({ queryKey: ["gruppen"] });
+    }
+  });
+
   const handleOpenPanel = (panel: GruppenPanelKey) => {
+    if (panel === "edit" && selectedGroup) {
+      setEditForm({
+        name: selectedGroup.name,
+        beschreibung: selectedGroup.beschreibung ?? ""
+      });
+    }
     setActivePanel((current) => (current === panel ? null : panel));
   };
 
@@ -258,8 +292,8 @@ export function GruppenPage() {
         <LoeschAktionPanel
           entitaetTyp="parameter_gruppe"
           entitaetId={selectedGroupId}
-          title="Gruppe prüfen oder löschen"
-          emptyText="Bitte wähle zuerst links eine Gruppe aus."
+          title="Parametergruppe prüfen oder löschen"
+          emptyText="Bitte wähle zuerst links eine Parametergruppe aus."
           onClose={() => setActivePanel(null)}
           invalidateQueryKeys={[["gruppen"], ["gruppen-parameter", selectedGroupId], ["parameter"]]}
         />
@@ -271,10 +305,10 @@ export function GruppenPage() {
         <article className="card card--soft parameter-action-panel">
           <div className="parameter-panel__header">
             <div>
-              <h3>Neue Gruppe</h3>
-              <p>Gruppen bündeln fachlich zusammengehörige Parameter für Filter, Berichte und Auswertungen.</p>
+              <h3>Neue Parametergruppe</h3>
+              <p>Parametergruppen bündeln fachlich zusammengehörige Parameter für Filter, Berichte und Auswertungen.</p>
             </div>
-            {renderPanelCloseButton("Panel Neue Gruppe schließen")}
+            {renderPanelCloseButton("Panel Neue Parametergruppe schließen")}
           </div>
           <form
             className="form-grid"
@@ -292,14 +326,6 @@ export function GruppenPage() {
               />
             </label>
 
-            <label className="field">
-              <span>Sortierschlüssel</span>
-              <input
-                value={form.sortierschluessel}
-                onChange={(event) => setForm((current) => ({ ...current, sortierschluessel: event.target.value }))}
-              />
-            </label>
-
             <label className="field field--full">
               <span>Beschreibung</span>
               <textarea
@@ -311,7 +337,7 @@ export function GruppenPage() {
 
             <div className="form-actions">
               <button type="submit" disabled={createMutation.isPending}>
-                {createMutation.isPending ? "Speichert..." : "Gruppe anlegen"}
+                {createMutation.isPending ? "Speichert..." : "Parametergruppe anlegen"}
               </button>
               {createMutation.isError ? <p className="form-error">{createMutation.error.message}</p> : null}
             </div>
@@ -324,7 +350,53 @@ export function GruppenPage() {
       return (
         <article className="card card--soft">
           <h3>Parameter zuordnen</h3>
-          <p>Bitte wähle zuerst links eine Gruppe aus.</p>
+          <p>Bitte wähle zuerst links eine Parametergruppe aus.</p>
+        </article>
+      );
+    }
+
+    if (activePanel === "edit") {
+      return (
+        <article className="card card--soft parameter-action-panel">
+          <div className="parameter-panel__header">
+            <div>
+              <h3>Parametergruppe bearbeiten</h3>
+              <p>Ändere Name und Beschreibung der ausgewählten Parametergruppe.</p>
+            </div>
+            {renderPanelCloseButton("Panel Parametergruppe bearbeiten schließen")}
+          </div>
+          <form
+            className="form-grid"
+            onSubmit={(event) => {
+              event.preventDefault();
+              updateMutation.mutate();
+            }}
+          >
+            <label className="field">
+              <span>Name</span>
+              <input
+                required
+                value={editForm.name}
+                onChange={(event) => setEditForm((current) => ({ ...current, name: event.target.value }))}
+              />
+            </label>
+
+            <label className="field field--full">
+              <span>Beschreibung</span>
+              <textarea
+                rows={4}
+                value={editForm.beschreibung}
+                onChange={(event) => setEditForm((current) => ({ ...current, beschreibung: event.target.value }))}
+              />
+            </label>
+
+            <div className="form-actions">
+              <button type="submit" disabled={updateMutation.isPending || !selectedGroupId}>
+                {updateMutation.isPending ? "Speichert..." : "Änderungen speichern"}
+              </button>
+              {updateMutation.isError ? <p className="form-error">{updateMutation.error.message}</p> : null}
+            </div>
+          </form>
         </article>
       );
     }
@@ -334,7 +406,7 @@ export function GruppenPage() {
         <div className="parameter-panel__header">
           <div>
             <h3>Parameter zuordnen</h3>
-            <p>Lege fest, welche Parameter in dieser Gruppe enthalten sind und in welcher Reihenfolge sie erscheinen.</p>
+            <p>Lege fest, welche Parameter in dieser Parametergruppe enthalten sind und in welcher Reihenfolge sie erscheinen.</p>
           </div>
           {renderPanelCloseButton("Panel Parameter zuordnen schließen")}
         </div>
@@ -346,7 +418,7 @@ export function GruppenPage() {
               className="clearable-field__input"
               value={assignmentSearchQuery}
               onChange={(event) => setAssignmentSearchQuery(event.target.value)}
-              placeholder="Name, Schlüssel oder Beschreibung"
+                placeholder="Name oder Beschreibung"
             />
             <button
               type="button"
@@ -384,7 +456,7 @@ export function GruppenPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Aktiv</th>
+                <th>Zugeordnet</th>
                 <th>Parameter</th>
                 <th>Typ</th>
                 <th>Einheit</th>
@@ -464,12 +536,12 @@ export function GruppenPage() {
   return (
     <section className="page">
       <header className="page__header page__header--compact">
-        <h2>Gruppen</h2>
+        <h2>Parametergruppen</h2>
         <div className="page__info">
           <button
             type="button"
             className="icon-button page__info-button"
-            aria-label="Hinweis zur Gruppenseite"
+            aria-label="Hinweis zur Parametergruppen-Seite"
             aria-expanded={showPageInfo}
             onClick={() => setShowPageInfo((current) => !current)}
           >
@@ -477,7 +549,7 @@ export function GruppenPage() {
           </button>
           {showPageInfo ? (
             <div className="page__info-popover">
-              Hier verwaltest Du Gruppen, ordnest Parameter zu und prüfst die bereits zugeordneten Daten.
+              Hier verwaltest Du Parametergruppen, ordnest Parameter zu und prüfst die bereits zugeordneten Daten.
             </div>
           ) : null}
         </div>
@@ -487,7 +559,7 @@ export function GruppenPage() {
         <aside className="card parameter-sidebar">
           <div className="parameter-sidebar__header">
             <div>
-              <h3>Vorhandene Gruppen</h3>
+              <h3>Vorhandene Parametergruppen</h3>
               <p>{groupCountLabel}</p>
             </div>
           </div>
@@ -499,7 +571,7 @@ export function GruppenPage() {
                 className="clearable-field__input"
                 value={groupSearchQuery}
                 onChange={(event) => setGroupSearchQuery(event.target.value)}
-                placeholder="Name, Schlüssel oder Beschreibung"
+                placeholder="Name oder Beschreibung"
               />
               <button
                 type="button"
@@ -530,13 +602,12 @@ export function GruppenPage() {
                   <span className="parameter-pill">
                     {formatCountLabel(gruppe.parameter_anzahl, "Parameter", "Parameter")}
                   </span>
-                  {gruppe.sortierschluessel ? <span className="parameter-pill">{gruppe.sortierschluessel}</span> : null}
                 </div>
               </button>
             ))}
             {!filteredGroups.length ? (
               <div className="parameter-list__empty">
-                <p>Keine Gruppen passen zur aktuellen Suche.</p>
+                <p>Keine Parametergruppen passen zur aktuellen Suche.</p>
               </div>
             ) : null}
           </div>
@@ -545,7 +616,7 @@ export function GruppenPage() {
         <div className="parameter-main">
           <article className="card">
             {!selectedGroup ? (
-              <p>Noch keine Gruppen vorhanden. Lege über die Werkzeugleiste die erste Gruppe an.</p>
+              <p>Noch keine Parametergruppen vorhanden. Lege über die Werkzeugleiste die erste Parametergruppe an.</p>
             ) : (
               <>
                 <div className="parameter-toolrail">
@@ -554,7 +625,14 @@ export function GruppenPage() {
                     className={`parameter-toolrail__button ${activePanel === "create" ? "parameter-toolrail__button--active" : ""}`}
                     onClick={() => handleOpenPanel("create")}
                   >
-                    Neue Gruppe
+                    Neue Parametergruppe
+                  </button>
+                  <button
+                    type="button"
+                    className={`parameter-toolrail__button ${activePanel === "edit" ? "parameter-toolrail__button--active" : ""}`}
+                    onClick={() => handleOpenPanel("edit")}
+                  >
+                    Parametergruppe bearbeiten
                   </button>
                   <button
                     type="button"
@@ -577,7 +655,7 @@ export function GruppenPage() {
                 <div className="parameter-detail__header">
                   <div>
                     <h3 className="parameter-detail__title">{selectedGroup.name}</h3>
-                    <p>{selectedGroup.beschreibung?.trim() || "Zu dieser Gruppe ist noch keine Erläuterung hinterlegt."}</p>
+                <p>{selectedGroup.beschreibung?.trim() || "Zu dieser Parametergruppe ist noch keine Erläuterung hinterlegt."}</p>
                   </div>
                   <div className="parameter-header-controls">
                     <button
@@ -602,10 +680,6 @@ export function GruppenPage() {
                   <div className="detail-grid__item">
                     <span>Zugeordnete Parameter</span>
                     <strong>{assignedParameterCount}</strong>
-                  </div>
-                  <div className="detail-grid__item">
-                    <span>Sortierschlüssel</span>
-                    <strong>{selectedGroup.sortierschluessel || "Nicht gesetzt"}</strong>
                   </div>
                 </div>
 
@@ -679,7 +753,7 @@ export function GruppenPage() {
                                 ))}
                                 {!gruppenParameterQuery.data?.length ? (
                                   <tr>
-                                    <td colSpan={4}>Noch keine Parameter für diese Gruppe zugeordnet.</td>
+                                    <td colSpan={4}>Noch keine Parameter für diese Parametergruppe zugeordnet.</td>
                                   </tr>
                                 ) : null}
                               </tbody>

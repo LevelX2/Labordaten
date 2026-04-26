@@ -53,6 +53,7 @@ from labordaten_backend.modules.importe.schemas import (
     ImportPayload,
     ImportPromptCreate,
     ImportPromptRead,
+    ImportPruefentscheidungRequest,
     ImportPruefpunktRead,
     ImportUebernehmenRequest,
     ImportvorgangDetailRead,
@@ -61,6 +62,7 @@ from labordaten_backend.modules.importe.schemas import (
 )
 from labordaten_backend.modules.parameter.normalization import build_parameter_key_candidate, normalize_parameter_name
 from labordaten_backend.modules.parameter import conversions as parameter_conversions
+from labordaten_backend.modules.parameter import service as parameter_service
 
 
 HEADER_ALIASES: dict[str, set[str]] = {
@@ -72,7 +74,6 @@ HEADER_ALIASES: dict[str, set[str]] = {
     "befund_bemerkung": {"befundbemerkung", "befund_bemerkung", "berichtsbemerkung"},
     "gruppe_name": {"gruppe", "gruppenname", "gruppe_name", "block", "blockname", "kategorie"},
     "gruppe_beschreibung": {"gruppenbeschreibung", "gruppe_beschreibung", "blockbeschreibung"},
-    "gruppe_sortierschluessel": {"gruppesortierung", "gruppe_sortierschluessel", "blocksortierung"},
     "parameter_id": {"parameterid", "parameter_id"},
     "original_parametername": {
         "originalparametername",
@@ -90,6 +91,7 @@ HEADER_ALIASES: dict[str, set[str]] = {
     "einheit_original": {"einheitoriginal", "einheit_original", "einheit", "unit"},
     "bemerkung_kurz": {"bemerkungkurz", "bemerkung_kurz", "bemerkung"},
     "bemerkung_lang": {"bemerkunglang", "bemerkung_lang"},
+    "ki_hinweis": {"kihinweis", "ki_hinweis", "extraktionshinweis", "extraktions_hinweis"},
     "referenz_text_original": {"referenztextoriginal", "referenztext", "referenz"},
     "untere_grenze_num": {"unteregrenzenum", "untere_grenze_num", "referenzuntere", "untergrenze"},
     "untere_grenze_operator": {"unteregrenzeoperator", "untere_grenze_operator", "referenzuntereoperator"},
@@ -319,7 +321,8 @@ def create_import_entwurf_from_json_upload(
     document_content: bytes | None,
     document_name_override: str | None,
 ) -> ImportvorgangDetailRead:
-    import_payload = _parse_payload(payload_json, person_id_override)
+    import_payload = _parse_payload(payload_json)
+    import_payload.befund.person_id = person_id_override
     dokument_id: str | None = None
 
     if document_content:
@@ -416,8 +419,15 @@ def uebernehmen_import(
     if importvorgang.status == "uebernommen":
         raise ValueError("Dieser Importvorgang wurde bereits übernommen.")
 
-    import_payload = _parse_payload(importvorgang.roh_payload_text or "")
-    mappings = payload.parameter_mappings
+    import_payload = _parse_payload(importvorgang.roh_payload_text or "", payload.person_id_override)
+    if payload.person_id_override:
+        importvorgang.roh_payload_text = _serialize_payload(import_payload)
+        importvorgang.person_id_vorschlag = import_payload.befund.person_id
+        importvorgang.fingerprint = hashlib.sha256(importvorgang.roh_payload_text.encode("utf-8")).hexdigest()
+        db.add(importvorgang)
+
+    mappings = _build_effective_parameter_mappings(import_payload, payload.parameter_mappings)
+    _apply_parameter_mappings_to_payload(import_payload, mappings)
     pruefregeln = _generate_checks(db, importvorgang.id, import_payload, mappings)
 
     fehler = [item for item in pruefregeln if item.status == "fehler"]
@@ -454,6 +464,8 @@ def uebernehmen_import(
 
     for index, item in enumerate(import_payload.messwerte):
         mapping_request = mapping_lookup.get(index)
+        if _is_ignored_parameter_mapping(mapping_request) or item.uebernahme_status == "ignoriert":
+            continue
         measurement_unit = (
             einheiten_service.ensure_einheit_exists(db, item.einheit_original)
             if item.wert_typ == "numerisch"
@@ -558,7 +570,76 @@ def uebernehmen_import(
     _replace_checks(db, importvorgang.id, pruefregeln, bestaetige_warnungen=payload.bestaetige_warnungen)
     importvorgang.status = "uebernommen"
     importvorgang.warnungen_text = _summarize_warnings(pruefregeln)
+    importvorgang.roh_payload_text = _serialize_payload(import_payload)
 
+    db.add(importvorgang)
+    db.commit()
+    db.refresh(importvorgang)
+    return _build_detail(db, importvorgang)
+
+
+def update_import_pruefentscheidung(
+    db: Session,
+    import_id: str,
+    payload: ImportPruefentscheidungRequest,
+) -> ImportvorgangDetailRead:
+    importvorgang = db.get(Importvorgang, import_id)
+    if importvorgang is None:
+        raise ValueError("Importvorgang nicht gefunden.")
+    if importvorgang.status == "uebernommen":
+        raise ValueError("Übernommene Importe können nicht mehr in der Importprüfung geändert werden.")
+
+    import_payload = _parse_payload(importvorgang.roh_payload_text or "")
+    if "person_id" in payload.model_fields_set:
+        if not payload.person_id:
+            import_payload.befund.person_id = None
+            importvorgang.person_id_vorschlag = None
+        elif db.get(Person, payload.person_id) is None:
+            raise ValueError("Die ausgewählte Person existiert nicht.")
+        else:
+            import_payload.befund.person_id = payload.person_id
+            importvorgang.person_id_vorschlag = payload.person_id
+
+    if payload.messwert_index is not None:
+        if payload.messwert_index < 0 or payload.messwert_index >= len(import_payload.messwerte):
+            raise ValueError(f"Der Messwert mit Index {payload.messwert_index} existiert nicht.")
+        item = import_payload.messwerte[payload.messwert_index]
+        if payload.aktion == "ignorieren":
+            item.uebernahme_status = "ignoriert"
+            item.pruef_aktion = None
+            item.pruef_laborparameter_id = None
+            item.alias_uebernehmen = False
+        elif payload.aktion == "neu":
+            item.uebernahme_status = "offen"
+            item.pruef_aktion = "neu"
+            item.pruef_laborparameter_id = None
+            if payload.alias_uebernehmen is not None:
+                item.alias_uebernehmen = payload.alias_uebernehmen
+        elif payload.aktion == "vorhanden":
+            if not payload.laborparameter_id:
+                raise ValueError("Für die vorhandene Parameterzuordnung fehlt der Zielparameter.")
+            if db.get(Laborparameter, payload.laborparameter_id) is None:
+                raise ValueError("Der ausgewählte Parameter existiert nicht.")
+            item.uebernahme_status = "offen"
+            item.pruef_aktion = "vorhanden"
+            item.pruef_laborparameter_id = payload.laborparameter_id
+            if payload.alias_uebernehmen is not None:
+                item.alias_uebernehmen = payload.alias_uebernehmen
+        elif payload.aktion == "zuruecksetzen":
+            item.uebernahme_status = "offen"
+            item.pruef_aktion = None
+            item.pruef_laborparameter_id = None
+            if payload.alias_uebernehmen is not None:
+                item.alias_uebernehmen = payload.alias_uebernehmen
+        elif payload.alias_uebernehmen is not None:
+            item.alias_uebernehmen = payload.alias_uebernehmen
+
+    serialized_payload = _serialize_payload(import_payload)
+    importvorgang.roh_payload_text = serialized_payload
+    importvorgang.fingerprint = hashlib.sha256(serialized_payload.encode("utf-8")).hexdigest()
+    pruefregeln = _generate_checks(db, importvorgang.id, import_payload, _build_effective_parameter_mappings(import_payload, []))
+    importvorgang.warnungen_text = _summarize_warnings(pruefregeln)
+    _replace_checks(db, importvorgang.id, pruefregeln, bestaetige_warnungen=False)
     db.add(importvorgang)
     db.commit()
     db.refresh(importvorgang)
@@ -652,6 +733,7 @@ def anwenden_gruppenvorschlaege(
             .order_by(Messwert.erstellt_am.asc())
         )
     )
+    imported_measurements_by_index = _map_imported_measurements_by_payload_index(import_payload, imported_measurements)
 
     results: list[ImportGruppenvorschlagErgebnisRead] = []
     for item in payload.vorschlaege:
@@ -662,7 +744,7 @@ def anwenden_gruppenvorschlaege(
         parameter_ids, _ = _resolve_group_suggestion_parameters(
             payload=import_payload,
             suggestion_index=item.vorschlag_index,
-            imported_measurements=imported_measurements,
+            imported_measurements_by_index=imported_measurements_by_index,
             parameter_resolver=ParameterResolver(db),
         )
 
@@ -697,7 +779,6 @@ def anwenden_gruppenvorschlaege(
                     gruppen_schemas.GruppeCreate(
                         name=zielname,
                         beschreibung=suggestion.beschreibung,
-                        sortierschluessel=suggestion.sortierschluessel,
                     ),
                 )
         else:
@@ -932,7 +1013,7 @@ Parameter und Werte:
 - Bei "<5" setze "wertOperator": "kleiner_als", "wertRohText": "<5" und "wertNum": 5.
 - Bei ">200" setze "wertOperator": "groesser_als", "wertRohText": ">200" und "wertNum": 200.
 - Bei qualitativen Werten wie "positiv", "negativ", "++", "nicht nachweisbar" nutze "wertTyp": "text" und fülle "wertText".
-- Markiere unleserliche, widersprüchliche oder geschätzte Werte mit "unsicherFlag": true oder "pruefbedarfFlag": true und erkläre den Grund in "bemerkungKurz" oder "bemerkungLang".
+- Markiere unleserliche, widersprüchliche oder geschätzte Werte mit "unsicherFlag": true oder "pruefbedarfFlag": true und erkläre den Grund in "kiHinweis".
 - Wenn ein Originalname offensichtlich nur eine alternative Schreibweise eines sicher gematchten Parameters ist, darf "aliasUebernehmen": true vorgeschlagen werden. Die Anwendung fragt später noch einmal nach.
 
 Parameter-Vorschläge:
@@ -941,10 +1022,12 @@ Parameter-Vorschläge:
 - Setze "anzeigename" als gut lesbaren Parameternamen, nicht nur als Abkürzung aus dem Dokument.
 - Setze "messwertIndizes" mit allen Messwertpositionen, auf die sich der Vorschlag bezieht.
 - Setze "wertTypStandard", "standardEinheit", "primaereKlassifikation", "beschreibungKurz", "moeglicheAliase" und "begruendungAusDokument" nur, wenn dies aus Dokument, üblicher Laborbezeichnung oder klarer Fachkenntnis belastbar ableitbar ist.
+- Versuche bei neuen Parameter-Vorschlägen eine kurze allgemeine "beschreibungKurz" zu liefern, wenn Du sicher sagen kannst, was der Parameter fachlich misst oder typischerweise abbildet.
 - Erlaubte "primaereKlassifikation"-Werte sind "krankwert", "schluesselwert" und "gesundmachwert". Diese Klassifikation beschreibt die typische Funktion des Parameters, nicht den konkreten Messwert.
 - Orientierungsbeispiele: LDL-C, Small-LDLs, Triglyceride, HbA1c, HOMA-Index, Harnsäure, CRP/hsCRP, RANTES, oxidiertes LDL, TPO-AK, TAK, TRAK, ANA-AK, CCP-AK, Kreatinin, Cystatin C, GPT, GOT, gGT, CK, Beta-CrossLaps, TRAP 5b, ucOC, D-Ratio/Vitamin-D-Ratio, reverse T3, Bilirubin gesamt, Apo-B, Blei, Cadmium, DAO-Genetik, HNMT, I-FABP, IgE, Lipase, Lp(a), Lp-PLA2, MDA-LDL, Mikroalbuminurie, Nickel, Nitrotyrosin, NT-proBNP, Prolaktin im nicht-schwangeren Kontext und Zonulin sind typischerweise "krankwert"; eGFR, HDL-C, Homocystein, Ferritin, Transferrinsättigung, PTH, 1,25-OH-Vitamin-D, Calcium, AP/alkalische Phosphatase, BDNF, DHT, Estradiol/Östradiol, FSH, Gesamteiweiß, Histamin gesamt, Kalium, Kupfer, Leukozyten, LH, Natrium, Östron, Phosphat, Quick, Serotonin, SHBG, fT3, fT4, TSH, Thrombozyten und Ostase sind typischerweise "schluesselwert"; Magnesium, 25-OH-Vitamin-D, freies 25-OH-Vitamin-D, Bor, Mangan, B12/Holo-TC, Vitamin A, Vitamin B3/Nikotinamid, Vitamin C, Zink, Chrom, Selen, Jod, Eisen, DAO im Serum, SCFA, reduziertes Glutathion, Melatonin, Pregnenolon, Q10, Vitamin E, Alpha-Liponsäure, Lithium, Folsäure, Biotin, bioaktive B-Vitamine, Omega-3-Index, Molybdän, Aminosäureprofile, Progesteron und DHEA-S sind typischerweise "gesundmachwert". Bei Mehrfachangaben wie "S/G", "G/S", "K/S" oder "S/K" verwende eine plausible primäre Klassifikation und beschreibe die weitere Rolle in der Begründung.
 - "beschreibungKurz" ist ausschließlich eine allgemeine, vom konkreten Bericht und Import unabhängige Fachbeschreibung: Was misst der Parameter oder wofür steht er typischerweise als Laborparameter?
-- Schreibe in "beschreibungKurz" keine Sätze wie "Der Befund nennt...", "Im Bericht steht...", keine Methode aus diesem konkreten Dokument, keine Referenzbereiche, keine konkreten Werte, keine Diagnose und keine Bewertung des konkreten Messwerts.
+- Schreibe in "beschreibungKurz" keine Sätze wie "Der Befund nennt...", "Im Bericht steht...", keine Methode aus diesem konkreten Dokument, keine Referenzbereiche, keine konkreten Werte, keine Diagnose und keine Bewertung des konkreten Messwerts. Empfehlungen, Zusatzuntersuchungen, Einsendehinweise oder patientenbezogene Risikohinweise aus dem Bericht gehören ebenfalls nicht in "beschreibungKurz".
+- Wenn der Bericht nur einen Kommentar, eine Empfehlung oder einen Einsendehinweis zum Messwert liefert und daraus keine allgemeine Parameterbeschreibung ableitbar ist, lasse "beschreibungKurz" weg oder null.
 - Wenn Du eine Anmerkung loswerden willst, warum der Vorschlag aus diesem Bericht abgeleitet wurde, schreibe sie ausschließlich in "begruendungAusDokument".
 - "begruendungAusDokument" darf berichtsbezogen sein, z. B. Abschnitt, Methode, Einheit, Originalname oder warum mehrere Messwerte zu demselben Vorschlag gehören.
 - Recherchiere nicht frei ins Blaue und erfinde keine Bedeutung. Wenn Du unsicher bist, setze "unsicherFlag": true oder lasse den Vorschlag weg.
@@ -954,7 +1037,8 @@ Referenzen und Kommentare:
 - Strukturierte "untereGrenzeNum" und "obereGrenzeNum" nur setzen, wenn die Grenzen eindeutig sind.
 - Referenzeinheit in "referenzEinheit" setzen, wenn sie erkennbar ist.
 - Alters- und geschlechtsbezogene Referenzkontexte in "referenzAlterMinTage", "referenzAlterMaxTage", "referenzGeschlechtCode" oder "referenzBemerkung" ablegen.
-- Labor-Kommentare zu einzelnen Werten in "bemerkungKurz" oder "bemerkungLang" übernehmen.
+- Originale Labor-Kommentare zu einzelnen Werten in "bemerkungKurz" oder "bemerkungLang" übernehmen. Diese Felder sind für Text aus dem Bericht selbst gedacht, möglichst originalnah und ohne eigene KI-Erklärung.
+- Eigene KI-Anmerkungen, Extraktionszweifel, Mapping-Hinweise oder Begründungen, warum ein Wert unsicher ist, gehören in "kiHinweis" und nicht in "bemerkungKurz" oder "bemerkungLang".
 
 Gruppen:
 - Wenn das Dokument erkennbare Berichtsabschnitte oder Blöcke enthält, erstelle "gruppenVorschlaege".
@@ -987,8 +1071,9 @@ Beispielstruktur:
       "untereGrenzeNum": 30,
       "obereGrenzeNum": 400,
       "referenzEinheit": "ng/ml",
-      "bemerkungKurz": "optional",
-      "bemerkungLang": "optional",
+      "bemerkungKurz": "optionaler Originalkommentar aus dem Laborbericht",
+      "bemerkungLang": "optionaler längerer Originalkommentar aus dem Laborbericht",
+      "kiHinweis": "optionale KI- oder Extraktionsanmerkung, nicht Teil des Laborbericht-Originaltexts",
       "aliasUebernehmen": false,
       "unsicherFlag": false,
       "pruefbedarfFlag": false
@@ -1038,6 +1123,7 @@ def _build_detail(db: Session, importvorgang: Importvorgang) -> ImportvorgangDet
             .order_by(Messwert.erstellt_am.asc())
         )
     )
+    imported_measurements_by_index = _map_imported_measurements_by_payload_index(payload, imported_measurements)
     imported_befund = db.scalar(
         select(Befund).where(Befund.importvorgang_id == importvorgang.id).order_by(Befund.erstellt_am.asc())
     )
@@ -1046,7 +1132,7 @@ def _build_detail(db: Session, importvorgang: Importvorgang) -> ImportvorgangDet
     gruppenvorschlaege = _build_group_suggestion_previews(
         db,
         payload=payload,
-        imported_measurements=imported_measurements,
+        imported_measurements_by_index=imported_measurements_by_index,
         parameter_resolver=parameter_resolver,
     )
     parameter_vorschlaege = _build_parameter_suggestion_previews(payload)
@@ -1091,7 +1177,7 @@ def _build_detail(db: Session, importvorgang: Importvorgang) -> ImportvorgangDet
             _build_measurement_preview(
                 index=index,
                 item=item,
-                imported_measurements=imported_measurements,
+                imported_measurements_by_index=imported_measurements_by_index,
                 parameter_resolver=parameter_resolver,
                 parameter_vorschlag=parameter_suggestion_by_index.get(index),
             )
@@ -1107,18 +1193,31 @@ def _build_measurement_preview(
     *,
     index: int,
     item: ImportMesswertPayload,
-    imported_measurements: list[Messwert],
+    imported_measurements_by_index: dict[int, Messwert],
     parameter_resolver: ParameterResolver,
     parameter_vorschlag: ImportParameterVorschlagRead | None = None,
 ) -> ImportMesswertPreviewRead:
-    imported_parameter_id = imported_measurements[index].laborparameter_id if index < len(imported_measurements) else None
+    imported_measurement = imported_measurements_by_index.get(index)
+    imported_parameter_id = imported_measurement.laborparameter_id if imported_measurement is not None else None
     resolution = parameter_resolver.resolve(
         original_name=item.original_parametername,
         explicit_parameter_id=item.parameter_id,
         manual_parameter_id=None,
     )
 
-    if imported_parameter_id is not None:
+    if item.uebernahme_status == "ignoriert":
+        parameter_id = None
+        mapping_herkunft = "ignoriert"
+        mapping_hinweis = "Wird nicht übernommen."
+    elif item.pruef_aktion == "neu":
+        parameter_id = None
+        mapping_herkunft = "neu"
+        mapping_hinweis = "Neuanlage vorgesehen."
+    elif item.pruef_aktion == "vorhanden" and item.pruef_laborparameter_id:
+        parameter_id = item.pruef_laborparameter_id
+        mapping_herkunft = "manuell"
+        mapping_hinweis = parameter_resolver.get_parameter_name(item.pruef_laborparameter_id)
+    elif imported_parameter_id is not None:
         parameter_id = imported_parameter_id
         mapping_herkunft = "uebernommen"
         mapping_hinweis = parameter_resolver.get_parameter_name(imported_parameter_id)
@@ -1141,6 +1240,10 @@ def _build_measurement_preview(
         wert_text=item.wert_text,
         einheit_original=item.einheit_original,
         bemerkung_kurz=item.bemerkung_kurz,
+        bemerkung_lang=item.bemerkung_lang,
+        ki_hinweis=item.ki_hinweis,
+        unsicher_flag=item.unsicher_flag,
+        pruefbedarf_flag=item.pruefbedarf_flag,
         referenz_text_original=item.referenz_text_original,
         untere_grenze_num=item.untere_grenze_num,
         untere_grenze_operator=item.untere_grenze_operator,
@@ -1187,7 +1290,7 @@ def _build_group_suggestion_previews(
     db: Session,
     *,
     payload: ImportPayload,
-    imported_measurements: list[Messwert],
+    imported_measurements_by_index: dict[int, Messwert],
     parameter_resolver: ParameterResolver,
 ) -> list[ImportGruppenvorschlagRead]:
     existing_groups = _load_existing_group_contexts(db)
@@ -1197,7 +1300,7 @@ def _build_group_suggestion_previews(
         parameter_ids, missing_indices = _resolve_group_suggestion_parameters(
             payload=payload,
             suggestion_index=index,
-            imported_measurements=imported_measurements,
+            imported_measurements_by_index=imported_measurements_by_index,
             parameter_resolver=parameter_resolver,
         )
         parameter_names = [
@@ -1209,7 +1312,6 @@ def _build_group_suggestion_previews(
                 index=index,
                 name=suggestion.name,
                 beschreibung=suggestion.beschreibung,
-                sortierschluessel=suggestion.sortierschluessel,
                 messwert_indizes=suggestion.messwert_indizes,
                 parameter_ids=parameter_ids,
                 parameter_namen=parameter_names,
@@ -1230,7 +1332,7 @@ def _resolve_group_suggestion_parameters(
     *,
     payload: ImportPayload,
     suggestion_index: int,
-    imported_measurements: list[Messwert],
+    imported_measurements_by_index: dict[int, Messwert],
     parameter_resolver: ParameterResolver,
 ) -> tuple[list[str], list[int]]:
     suggestion = payload.gruppen_vorschlaege[suggestion_index]
@@ -1238,18 +1340,22 @@ def _resolve_group_suggestion_parameters(
     missing_indices: list[int] = []
 
     for messwert_index in suggestion.messwert_indizes:
-        imported_parameter_id = (
-            imported_measurements[messwert_index].laborparameter_id
-            if 0 <= messwert_index < len(imported_measurements)
-            else None
-        )
+        imported_measurement = imported_measurements_by_index.get(messwert_index)
+        imported_parameter_id = imported_measurement.laborparameter_id if imported_measurement is not None else None
         payload_item = payload.messwerte[messwert_index] if 0 <= messwert_index < len(payload.messwerte) else None
         if payload_item is None:
+            missing_indices.append(messwert_index)
+            continue
+        if payload_item.uebernahme_status == "ignoriert":
             missing_indices.append(messwert_index)
             continue
 
         if imported_parameter_id is not None:
             parameter_id = imported_parameter_id
+        elif payload_item.pruef_aktion == "vorhanden" and payload_item.pruef_laborparameter_id:
+            parameter_id = payload_item.pruef_laborparameter_id
+        elif payload_item.pruef_aktion == "neu":
+            parameter_id = None
         else:
             resolution = parameter_resolver.resolve(
                 original_name=payload_item.original_parametername,
@@ -1396,6 +1502,8 @@ def _generate_checks(
 
     for index, item in enumerate(payload.messwerte):
         mapping_request = mapping_lookup.get(index)
+        if _is_ignored_parameter_mapping(mapping_request) or item.uebernahme_status == "ignoriert":
+            continue
         resolution = (
             ParameterResolution(parameter_id=None, herkunft="neu")
             if _is_new_parameter_mapping(mapping_request)
@@ -1656,6 +1764,75 @@ def _is_new_parameter_mapping(mapping_request: ImportParameterMapping | None) ->
     return bool(mapping_request and mapping_request.aktion == "neu")
 
 
+def _is_ignored_parameter_mapping(mapping_request: ImportParameterMapping | None) -> bool:
+    return bool(mapping_request and mapping_request.aktion == "ignorieren")
+
+
+def _build_effective_parameter_mappings(
+    payload: ImportPayload,
+    request_mappings: list[ImportParameterMapping],
+) -> list[ImportParameterMapping]:
+    effective: dict[int, ImportParameterMapping] = {}
+    for index, item in enumerate(payload.messwerte):
+        if item.uebernahme_status == "ignoriert":
+            effective[index] = ImportParameterMapping(messwert_index=index, aktion="ignorieren")
+        elif item.pruef_aktion == "neu":
+            effective[index] = ImportParameterMapping(
+                messwert_index=index,
+                aktion="neu",
+                alias_uebernehmen=item.alias_uebernehmen,
+            )
+        elif item.pruef_aktion == "vorhanden" and item.pruef_laborparameter_id:
+            effective[index] = ImportParameterMapping(
+                messwert_index=index,
+                aktion="vorhanden",
+                laborparameter_id=item.pruef_laborparameter_id,
+                alias_uebernehmen=item.alias_uebernehmen,
+            )
+
+    for mapping in request_mappings:
+        effective[mapping.messwert_index] = mapping
+    return list(effective.values())
+
+
+def _apply_parameter_mappings_to_payload(payload: ImportPayload, mappings: list[ImportParameterMapping]) -> None:
+    for mapping in mappings:
+        if mapping.messwert_index < 0 or mapping.messwert_index >= len(payload.messwerte):
+            raise ValueError(f"Der Messwert mit Index {mapping.messwert_index} existiert nicht.")
+        item = payload.messwerte[mapping.messwert_index]
+        if _is_ignored_parameter_mapping(mapping):
+            item.uebernahme_status = "ignoriert"
+            item.pruef_aktion = None
+            item.pruef_laborparameter_id = None
+            item.alias_uebernehmen = False
+        elif _is_new_parameter_mapping(mapping):
+            item.uebernahme_status = "offen"
+            item.pruef_aktion = "neu"
+            item.pruef_laborparameter_id = None
+            item.alias_uebernehmen = mapping.alias_uebernehmen
+        else:
+            item.uebernahme_status = "offen"
+            item.pruef_aktion = "vorhanden" if mapping.laborparameter_id else None
+            item.pruef_laborparameter_id = mapping.laborparameter_id
+            item.alias_uebernehmen = mapping.alias_uebernehmen
+
+
+def _map_imported_measurements_by_payload_index(
+    payload: ImportPayload,
+    imported_measurements: list[Messwert],
+) -> dict[int, Messwert]:
+    mapped: dict[int, Messwert] = {}
+    measurement_index = 0
+    for payload_index, item in enumerate(payload.messwerte):
+        if item.uebernahme_status == "ignoriert":
+            continue
+        if measurement_index >= len(imported_measurements):
+            break
+        mapped[payload_index] = imported_measurements[measurement_index]
+        measurement_index += 1
+    return mapped
+
+
 def _create_parameter_from_import_mapping(
     db: Session,
     *,
@@ -1696,6 +1873,7 @@ def _create_parameter_from_import_mapping(
     )
     db.add(parameter)
     db.flush()
+    parameter_service.ensure_parameter_knowledge_page(db, parameter)
     return parameter.id
 
 
@@ -2051,6 +2229,7 @@ def _row_to_measurement(row: dict[str, str]) -> ImportMesswertPayload | None:
         "einheitOriginal": _row_value(row, "einheit_original"),
         "bemerkungKurz": _row_value(row, "bemerkung_kurz"),
         "bemerkungLang": _row_value(row, "bemerkung_lang"),
+        "kiHinweis": _row_value(row, "ki_hinweis"),
         "referenzTextOriginal": reference_text,
         "untereGrenzeNum": lower_reference_num,
         "untereGrenzeOperator": lower_reference_operator,
@@ -2086,7 +2265,7 @@ def _extract_date(rows: list[dict[str, str]], field: str) -> date | None:
 
 def _build_tabular_group_suggestions(rows: list[dict[str, str]]) -> list[dict[str, object]]:
     grouped_indices: dict[str, list[int]] = {}
-    group_metadata: dict[str, tuple[str | None, str | None]] = {}
+    group_metadata: dict[str, str | None] = {}
 
     for index, row in enumerate(rows):
         name = _row_value(row, "gruppe_name")
@@ -2096,19 +2275,12 @@ def _build_tabular_group_suggestions(rows: list[dict[str, str]]) -> list[dict[st
         if not cleaned_name:
             continue
         grouped_indices.setdefault(cleaned_name, []).append(index)
-        group_metadata.setdefault(
-            cleaned_name,
-            (
-                _row_value(row, "gruppe_beschreibung"),
-                _row_value(row, "gruppe_sortierschluessel"),
-            ),
-        )
+        group_metadata.setdefault(cleaned_name, _row_value(row, "gruppe_beschreibung"))
 
     return [
         {
             "name": name,
-            "beschreibung": group_metadata[name][0],
-            "sortierschluessel": group_metadata[name][1],
+            "beschreibung": group_metadata[name],
             "messwertIndizes": indices,
         }
         for name, indices in grouped_indices.items()

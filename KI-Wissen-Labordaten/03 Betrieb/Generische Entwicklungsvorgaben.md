@@ -48,6 +48,11 @@ Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitp
 - Formulierungen sollen sich am produktiven Einsatz der Anwendung orientieren und nicht an Entwicklungsstand, Scaffold-Status oder Einführungslogik.
 - Kleine Vorspann-Labels über der Hauptüberschrift sind nur sinnvoll, wenn sie einen zusätzlichen fachlichen Informationswert liefern; reine Stimmungs- oder Orientierungswörter ohne Mehrwert können entfallen.
 
+## Farbdesigns und dunkle Themes
+- Farbdesigns dürfen nicht nur Primär- und Akzentfarben überschreiben. Wiederverwendete Komponenten brauchen semantische Flächen- und Text-Tokens für normale Panels, angehobene Listenflächen, ausgewählte Flächen, Kontrollflächen, Hinweise, Warnungen, Fehlerzustände und Text auf Akzentfarbe.
+- Dunkle Designs müssen besonders auf Buttons, Filter, Listen, Tabellen, Dialoge, Import-, Berichts- und Auswertungsflächen sowie leere Zustände geprüft werden. Feste Weiß-, Beige- oder Altgrün-Werte in solchen Arbeitsmustern sind zu vermeiden, weil sie bei Theme-Wechseln schnell unlesbare Kombinationen erzeugen.
+- Kritische Farbpaarungen sollen bei neuen oder geänderten Designs mindestens grob gegen Lesbarkeit geprüft werden: normaler Text, gedämpfter Text, Link- und Akzenttext, Text auf Akzentflächen sowie Text in Warn- und Fehlerflächen.
+
 ## Arbeitswege und Entscheidungsführung in Weboberflächen
 - Eine Oberfläche soll zuerst die gedankliche Aufgabe des Anwenders und seine Arbeitswege abbilden, nicht die technische Architektur der Anwendung.
 - Wenn ein Nutzer zwischen unterschiedlichen Wegen wählen muss, sollen diese Wege als klar getrennte Einstiege erscheinen; ein gemeinsamer Prüf- oder Bearbeitungsschritt danach gehört in einen eigenen Arbeitsbereich.
@@ -118,6 +123,8 @@ Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitp
 - Die Schrittaktionen `-1 J` und `+1 J` gehören direkt an das jeweilige Datumsfeld, damit Zeiträume schnell verschoben werden können, ohne dass getrennte Zusatzzeilen oder lose Button-Reihen entstehen.
 - Wenn die verfügbare Breite nicht mehr reicht, sollen ganze Datumsblöcke umbrechen; einzelne Teilstücke eines Blocks dürfen nicht unruhig auseinanderfallen.
 - Für vergleichbare Seiten soll dieselbe gemeinsame Frontend-Komponente verwendet werden, damit Optik, Verhalten, Tastaturfokus und spätere Detailanpassungen projektweit konsistent bleiben.
+- Wenn beide Grenzen gesetzt sind und `Datum bis` vor `Datum von` liegt, ist der Datumsbereich ungültig. Die Oberfläche soll diesen Fehler direkt am Datumsbereich sichtbar markieren und primäre Aktionen wie Laden, Vorschau oder PDF-Erzeugung blockieren, damit der Nutzer eine leere Ergebnisliste nicht mit fehlenden Daten verwechselt.
+- API-Einstiege, die solche Datumsbereiche verarbeiten, sollen dieselbe Regel serverseitig prüfen und mit einem verständlichen deutschen Fehlerhinweis ablehnen.
 
 ## Kompakte Listensortierung in Arbeitsseiten
 - Auf arbeitsorientierten Seiten mit linker Auswahlliste und rechtem Detailbereich sollte die Sortierung als kompakte Zusatzsteuerung in oder nahe der Liste erscheinen statt als dauerhaft breite Werkzeugleiste.
@@ -130,6 +137,9 @@ Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitp
 - Technische Schlüssel für neue Stammdatensätze sollten nach Möglichkeit automatisch aus fachlich sichtbaren Namen erzeugt werden, statt standardmäßig manuell eingegeben zu werden.
 - Das reduziert Tippfehler, inkonsistente Benennungen und vermeidbare Dubletten.
 - Bei Namensgleichheit sollte die technische Eindeutigkeit automatisch durch Suffixe oder eine vergleichbare Fortsetzungslogik gesichert werden.
+- Bestehende Stammdatensätze sollten fachlich sinnvolle Attribute nachträglich bearbeiten lassen, wenn dadurch Verknüpfungen, Historie und referenzierende Arbeitsbereiche stabil bleiben.
+- Technische IDs, automatisch erzeugte interne Schlüssel, Provenienzanker und Roh-/Originaldaten aus Befunden oder Importen gehören nicht in normale Stammdaten-Bearbeitungsformulare.
+- Wenn eine Stammdatenänderung materialisierte Ableitungen beeinflusst, muss die Änderung entweder eine konsistente Neuberechnung auslösen oder bewusst als fachlich unsicherer Spezialworkflow zurückgestellt werden.
 
 ## Start- und Übersichtsseiten
 - Startseiten in arbeitsorientierten Fachsystemen sollten vor allem den nächsten sinnvollen Arbeitsschritt sichtbar machen und nicht primär die technische Implementierung erklären.

@@ -1,12 +1,16 @@
 import type {
+  BlutgruppeCode,
   GeschlechtCode,
   MesswertCreatePayload,
   MesswertReferenzCreatePayload,
   PersonCreatePayload,
+  PersonUpdatePayload,
   ReferenzGrenzOperator,
+  RhesusfaktorCode,
   WertOperator,
   WertTyp,
   ZielbereichCreatePayload,
+  ZielbereichUpdatePayload,
   ZielbereichTyp,
 } from "../types/api";
 
@@ -15,6 +19,8 @@ type PersonPayloadInput = {
   vollname: string;
   geburtsdatum: string;
   geschlecht_code: string;
+  blutgruppe?: string;
+  rhesusfaktor?: string;
   hinweise_allgemein: string;
 };
 
@@ -64,6 +70,14 @@ function emptyToOptionalGeschlechtCode(value: string): GeschlechtCode | null {
   return value ? (value as GeschlechtCode) : null;
 }
 
+function emptyToOptionalBlutgruppeCode(value?: string): BlutgruppeCode | null {
+  return value ? (value as BlutgruppeCode) : null;
+}
+
+function emptyToOptionalRhesusfaktorCode(value?: string): RhesusfaktorCode | null {
+  return value ? (value as RhesusfaktorCode) : null;
+}
+
 function stringNumberToNull(value: string): number | null {
   return value ? Number(value) : null;
 }
@@ -74,8 +88,14 @@ export function buildPersonCreatePayload(input: PersonPayloadInput): PersonCreat
     vollname: emptyToNull(input.vollname),
     geburtsdatum: input.geburtsdatum,
     geschlecht_code: emptyToOptionalGeschlechtCode(input.geschlecht_code),
+    blutgruppe: emptyToOptionalBlutgruppeCode(input.blutgruppe),
+    rhesusfaktor: emptyToOptionalRhesusfaktorCode(input.rhesusfaktor),
     hinweise_allgemein: emptyToNull(input.hinweise_allgemein),
   };
+}
+
+export function buildPersonUpdatePayload(input: PersonPayloadInput): PersonUpdatePayload {
+  return buildPersonCreatePayload(input);
 }
 
 export function buildMesswertCreatePayload(input: MesswertPayloadInput): MesswertCreatePayload {
@@ -132,5 +152,23 @@ export function buildZielbereichCreatePayload(
     soll_text: input.wert_typ === "text" ? emptyToNull(input.soll_text) : null,
     geschlecht_code: emptyToOptionalGeschlechtCode(input.geschlecht_code),
     bemerkung: emptyToNull(input.bemerkung),
+  };
+}
+
+export function buildZielbereichUpdatePayload(
+  input: ZielbereichPayloadInput,
+  fallbackEinheit?: string | null,
+): ZielbereichUpdatePayload {
+  const payload = buildZielbereichCreatePayload(input, fallbackEinheit);
+  return {
+    zielbereich_typ: payload.zielbereich_typ,
+    untere_grenze_num: payload.untere_grenze_num,
+    obere_grenze_num: payload.obere_grenze_num,
+    einheit: payload.einheit,
+    soll_text: payload.soll_text,
+    geschlecht_code: payload.geschlecht_code,
+    alter_min_tage: payload.alter_min_tage,
+    alter_max_tage: payload.alter_max_tage,
+    bemerkung: payload.bemerkung,
   };
 }

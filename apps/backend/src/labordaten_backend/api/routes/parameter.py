@@ -47,7 +47,11 @@ def create_parameter(
     payload: schemas.ParameterCreate,
     db: Session = Depends(get_db),
 ) -> schemas.ParameterRead:
-    return service.create_parameter(db, payload)
+    parameter = service.create_parameter(db, payload, create_knowledge_page=True)
+    created = service.get_parameter(db, parameter.id)
+    if created is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Parameter nicht gefunden.")
+    return created
 
 
 @router.post("/zusammenfuehren", response_model=schemas.ParameterMergeResultRead)
@@ -84,6 +88,18 @@ def update_parameter_primaere_klassifikation(
 ) -> schemas.ParameterPrimaereKlassifikationUpdateResult:
     try:
         return service.update_parameter_primaere_klassifikation(db, parameter_id, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@router.patch("/{parameter_id}/wissensseite", response_model=schemas.ParameterWissensseiteUpdateResult)
+def update_parameter_wissensseite(
+    parameter_id: str,
+    payload: schemas.ParameterWissensseiteUpdate,
+    db: Session = Depends(get_db),
+) -> schemas.ParameterWissensseiteUpdateResult:
+    try:
+        return service.update_parameter_wissensseite(db, parameter_id, payload)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 

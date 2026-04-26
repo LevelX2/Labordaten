@@ -1,6 +1,7 @@
 from collections import defaultdict
 from datetime import datetime
 from difflib import SequenceMatcher
+import json
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, aliased
@@ -16,6 +17,7 @@ from labordaten_backend.models.parameter_klassifikation import ParameterKlassifi
 from labordaten_backend.models.parameter_umrechnungsregel import ParameterUmrechnungsregel
 from labordaten_backend.models.planung_einmalig import PlanungEinmalig
 from labordaten_backend.models.planung_zyklisch import PlanungZyklisch
+from labordaten_backend.models.wissensseite import Wissensseite
 from labordaten_backend.models.zielbereich import Zielbereich
 from labordaten_backend.modules.einheiten import service as einheiten_service
 from labordaten_backend.modules.parameter import conversions
@@ -41,6 +43,8 @@ from labordaten_backend.modules.parameter.schemas import (
     ParameterPrimaereKlassifikationUpdate,
     ParameterPrimaereKlassifikationUpdateResult,
     ParameterRead,
+    ParameterWissensseiteUpdate,
+    ParameterWissensseiteUpdateResult,
     ParameterUmrechnungsregelCreate,
     ParameterUmrechnungsregelRead,
     ParameterRenameRequest,
@@ -49,15 +53,30 @@ from labordaten_backend.modules.parameter.schemas import (
     ParameterStandardEinheitUpdateResult,
     ParameterUsageSummaryRead,
 )
+from labordaten_backend.modules.wissensbasis import service as wissensbasis_service
+from labordaten_backend.modules.wissensbasis.schemas import WissensseiteCreate
 
 
 def list_parameter(db: Session) -> list[ParameterRead]:
     parameters = list(db.scalars(select(Laborparameter).order_by(Laborparameter.anzeigename)))
     usage_summaries = _build_parameter_usage_summaries(db, [parameter.id for parameter in parameters])
-    return [_build_parameter_read(parameter, usage_summaries.get(parameter.id)) for parameter in parameters]
+    knowledge_pages = _build_parameter_knowledge_pages(db, parameters)
+    return [
+        _build_parameter_read(
+            parameter,
+            usage_summaries.get(parameter.id),
+            knowledge_pages.get(parameter.wissensseite_id),
+        )
+        for parameter in parameters
+    ]
 
 
-def create_parameter(db: Session, payload: ParameterCreate) -> Laborparameter:
+def create_parameter(
+    db: Session,
+    payload: ParameterCreate,
+    *,
+    create_knowledge_page: bool = False,
+) -> Laborparameter:
     parameter_data = payload.model_dump()
     parameter_data["interner_schluessel"] = _build_unique_parameter_key(
         db,
@@ -70,6 +89,9 @@ def create_parameter(db: Session, payload: ParameterCreate) -> Laborparameter:
     )
     parameter = Laborparameter(**parameter_data)
     db.add(parameter)
+    if create_knowledge_page:
+        db.flush()
+        ensure_parameter_knowledge_page(db, parameter)
     db.commit()
     db.refresh(parameter)
     return parameter
@@ -80,7 +102,8 @@ def get_parameter(db: Session, parameter_id: str) -> ParameterRead | None:
     if parameter is None:
         return None
     usage_summaries = _build_parameter_usage_summaries(db, [parameter.id])
-    return _build_parameter_read(parameter, usage_summaries.get(parameter.id))
+    knowledge_pages = _build_parameter_knowledge_pages(db, [parameter])
+    return _build_parameter_read(parameter, usage_summaries.get(parameter.id), knowledge_pages.get(parameter.wissensseite_id))
 
 
 def update_parameter_standard_einheit(
@@ -122,6 +145,80 @@ def update_parameter_primaere_klassifikation(
     )
 
 
+def update_parameter_wissensseite(
+    db: Session,
+    parameter_id: str,
+    payload: ParameterWissensseiteUpdate,
+) -> ParameterWissensseiteUpdateResult:
+    parameter = _require_parameter(db, parameter_id)
+    pfad_relativ = payload.pfad_relativ.strip() if payload.pfad_relativ else None
+
+    if not pfad_relativ:
+        parameter.wissensseite_id = None
+        db.commit()
+        db.refresh(parameter)
+        return ParameterWissensseiteUpdateResult(
+            parameter_id=parameter.id,
+            parameter_anzeigename=parameter.anzeigename,
+        )
+
+    detail = wissensbasis_service.get_wissensseite_detail(pfad_relativ)
+    if detail is None:
+        raise ValueError("Die ausgewählte Wissensseite existiert nicht.")
+
+    wissensseite = db.scalar(select(Wissensseite).where(Wissensseite.pfad_relativ == detail.pfad_relativ))
+    if wissensseite is None:
+        wissensseite = Wissensseite(pfad_relativ=detail.pfad_relativ)
+        db.add(wissensseite)
+
+    wissensseite.titel_cache = detail.titel
+    wissensseite.alias_cache = "\n".join(detail.aliases) if detail.aliases else None
+    wissensseite.frontmatter_json = json.dumps(detail.frontmatter, ensure_ascii=False) if detail.frontmatter else None
+    wissensseite.letzter_scan_am = detail.geaendert_am.isoformat()
+    wissensseite.aktiv = True
+    db.flush()
+
+    parameter.wissensseite_id = wissensseite.id
+    db.commit()
+    db.refresh(parameter)
+    return ParameterWissensseiteUpdateResult(
+        parameter_id=parameter.id,
+        parameter_anzeigename=parameter.anzeigename,
+        wissensseite_id=wissensseite.id,
+        wissensseite_pfad_relativ=wissensseite.pfad_relativ,
+        wissensseite_titel=wissensseite.titel_cache,
+    )
+
+
+def ensure_parameter_knowledge_page(db: Session, parameter: Laborparameter) -> Wissensseite | None:
+    if parameter.wissensseite_id:
+        return db.get(Wissensseite, parameter.wissensseite_id)
+
+    page_path = _build_parameter_knowledge_page_path(db, parameter)
+    detail = wissensbasis_service.get_wissensseite_detail(page_path)
+    if detail is None:
+        detail = wissensbasis_service.create_wissensseite(
+            WissensseiteCreate(
+                pfad_relativ=page_path,
+                titel=parameter.anzeigename,
+                inhalt_markdown=_build_parameter_knowledge_markdown(parameter),
+            )
+        )
+
+    wissensseite = db.scalar(select(Wissensseite).where(Wissensseite.pfad_relativ == detail.pfad_relativ))
+    if wissensseite is None:
+        wissensseite = Wissensseite(pfad_relativ=detail.pfad_relativ)
+        db.add(wissensseite)
+    wissensseite.titel_cache = detail.titel
+    wissensseite.alias_cache = "\n".join(detail.aliases) if detail.aliases else None
+    wissensseite.frontmatter_json = json.dumps(detail.frontmatter, ensure_ascii=False) if detail.frontmatter else None
+    wissensseite.letzter_scan_am = detail.geaendert_am.isoformat()
+    wissensseite.aktiv = True
+    db.flush()
+    parameter.wissensseite_id = wissensseite.id
+    return wissensseite
+
+
 def list_parameter_aliase(db: Session, parameter_id: str) -> list[LaborparameterAlias]:
     _require_parameter(db, parameter_id)
     stmt = (
@@ -161,7 +258,6 @@ def list_parameter_gruppen(
         .where(GruppenParameter.laborparameter_id == parameter_id)
         .where(ParameterGruppe.aktiv.is_(True))
         .order_by(
-            ParameterGruppe.sortierschluessel.asc().nulls_last(),
             GruppenParameter.sortierung.asc().nulls_last(),
             func.lower(ParameterGruppe.name).asc(),
         )
@@ -171,7 +267,6 @@ def list_parameter_gruppen(
             id=zuordnung.id,
             parameter_gruppe_id=gruppe.id,
             gruppenname=gruppe.name,
-            gruppen_sortierschluessel=gruppe.sortierschluessel,
             sortierung=zuordnung.sortierung,
         )
         for zuordnung, gruppe in db.execute(stmt)
@@ -640,6 +735,7 @@ def _require_parameter(db: Session, parameter_id: str) -> Laborparameter:
 def _build_parameter_read(
     parameter: Laborparameter,
     summary: ParameterUsageSummaryRead | None = None,
+    wissensseite: Wissensseite | None = None,
 ) -> ParameterRead:
     return ParameterRead(
         id=parameter.id,
@@ -650,10 +746,125 @@ def _build_parameter_read(
         wert_typ_standard=parameter.wert_typ_standard,
         primaere_klassifikation=parameter.primaere_klassifikation,
         sortierschluessel=parameter.sortierschluessel,
+        wissensseite_id=parameter.wissensseite_id,
+        wissensseite_pfad_relativ=wissensseite.pfad_relativ if wissensseite is not None else None,
+        wissensseite_titel=wissensseite.titel_cache if wissensseite is not None else None,
         aktiv=parameter.aktiv,
         erstellt_am=parameter.erstellt_am,
         geaendert_am=parameter.geaendert_am,
         messwerte_anzahl=summary.messwerte_anzahl if summary is not None else 0,
+    )
+
+
+def _build_parameter_knowledge_pages(
+    db: Session,
+    parameters: list[Laborparameter],
+) -> dict[str, Wissensseite]:
+    page_ids = sorted({parameter.wissensseite_id for parameter in parameters if parameter.wissensseite_id})
+    if not page_ids:
+        return {}
+    return {
+        wissensseite.id: wissensseite
+        for wissensseite in db.scalars(select(Wissensseite).where(Wissensseite.id.in_(page_ids)))
+    }
+
+
+def _build_parameter_knowledge_page_path(db: Session, parameter: Laborparameter) -> str:
+    base_slug = _slugify_knowledge_filename(parameter.anzeigename)
+    candidate = f"02 Parameter/Allgemein/{base_slug}.md"
+    detail = wissensbasis_service.get_wissensseite_detail(candidate)
+    if detail is None:
+        return candidate
+
+    existing_page = db.scalar(select(Wissensseite).where(Wissensseite.pfad_relativ == detail.pfad_relativ))
+    if existing_page is None:
+        return candidate
+
+    linked_parameter_id = db.scalar(
+        select(Laborparameter.id).where(Laborparameter.wissensseite_id == existing_page.id)
+    )
+    if linked_parameter_id is None or linked_parameter_id == parameter.id:
+        return candidate
+
+    suffix = 2
+    while True:
+        candidate = f"02 Parameter/Allgemein/{base_slug}-{suffix}.md"
+        detail = wissensbasis_service.get_wissensseite_detail(candidate)
+        if detail is None:
+            return candidate
+        existing_page = db.scalar(select(Wissensseite).where(Wissensseite.pfad_relativ == detail.pfad_relativ))
+        if existing_page is None:
+            return candidate
+        linked_parameter_id = db.scalar(
+            select(Laborparameter.id).where(Laborparameter.wissensseite_id == existing_page.id)
+        )
+        if linked_parameter_id is None or linked_parameter_id == parameter.id:
+            return candidate
+        suffix += 1
+
+
+def _slugify_knowledge_filename(value: str) -> str:
+    slug = (
+        value.strip()
+        .replace("ä", "ae")
+        .replace("ö", "oe")
+        .replace("ü", "ue")
+        .replace("Ä", "Ae")
+        .replace("Ö", "Oe")
+        .replace("Ü", "Ue")
+        .replace("ß", "ss")
+    )
+    normalized = []
+    last_was_separator = False
+    for character in slug:
+        if character.isalnum():
+            normalized.append(character)
+            last_was_separator = False
+            continue
+        if not last_was_separator:
+            normalized.append("-")
+            last_was_separator = True
+    result = "".join(normalized).strip("-")
+    return result or "Parameter"
+
+
+def _build_parameter_knowledge_markdown(parameter: Laborparameter) -> str:
+    beschreibung = parameter.beschreibung.strip() if parameter.beschreibung and parameter.beschreibung.strip() else ""
+    kurzdefinition = beschreibung or "Noch keine fachliche Kurzdefinition hinterlegt."
+    standard_einheit = parameter.standard_einheit or "nicht festgelegt"
+    primaere_klassifikation = parameter.primaere_klassifikation or "noch nicht eingeordnet"
+
+    return "\n".join(
+        [
+            f"# {parameter.anzeigename}",
+            "",
+            "## Kurzdefinition",
+            kurzdefinition,
+            "",
+            "## Bedeutung",
+            "Noch fachlich zu ergänzen.",
+            "",
+            "## KSG-Einordnung",
+            f"- Primär: {primaere_klassifikation}",
+            "- Zusatzrollen: noch zu prüfen",
+            "",
+            "## Messung und Einheit",
+            f"- Werttyp: {parameter.wert_typ_standard}",
+            f"- Führende Normeinheit: {standard_einheit}",
+            "",
+            "## Sinnvoll gemeinsam messen",
+            "- Noch zu ergänzen.",
+            "",
+            "## Verlauf und Zielbereiche",
+            "Noch zu ergänzen.",
+            "",
+            "## Grenzen der Interpretation",
+            "Noch zu ergänzen.",
+            "",
+            "## Verwandte Seiten",
+            "- [[KSG-Systematik]]",
+            "",
+        ]
     )
 
 

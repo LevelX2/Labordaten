@@ -1,8 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ClipboardEvent } from "react";
 
 import { apiFetch } from "../../shared/api/client";
-import { LoeschAktionPanel } from "../../shared/components/LoeschAktionPanel";
 import { formatGeschlechtCode, formatParameterKlassifikation, formatWertTyp } from "../../shared/constants/fieldOptions";
 import { getDocumentContentUrl } from "../../shared/utils/documents";
 import { formatReferenzAnzeige } from "../../shared/utils/laborFormatting";
@@ -31,6 +30,7 @@ type ImportFormState = {
 
 type GruppenVorschlagAktion = "neu" | "vorhanden" | "ignorieren";
 type ImportMode = "ki" | "json" | "pruefen" | "historie";
+type MappingFilterMode = "alle" | "offen" | "neu" | "ignoriert" | "manuell" | "automatisch" | "explizit";
 
 type GruppenVorschlagState = {
   aktion: GruppenVorschlagAktion;
@@ -39,6 +39,15 @@ type GruppenVorschlagState = {
 };
 
 const NEW_PARAMETER_MAPPING_VALUE = "__new_parameter__";
+const IGNORE_MEASUREMENT_MAPPING_VALUE = "__ignore_measurement__";
+
+type ParameterDialogFilterMode = "streng" | "locker" | "alle";
+
+type ParameterCandidate = {
+  parameter: Parameter;
+  score: number;
+  gruende: string[];
+};
 
 const examplePayload = `{
   "schemaVersion": "1.0",
@@ -94,8 +103,9 @@ Wurzelstruktur:
       "untereGrenzeNum": 30,
       "obereGrenzeNum": 400,
       "referenzEinheit": "ng/ml",
-      "bemerkungKurz": "optional",
-      "bemerkungLang": "optional",
+      "bemerkungKurz": "optionaler Originalkommentar aus der Quelle",
+      "bemerkungLang": "optionaler längerer Originalkommentar aus der Quelle",
+      "kiHinweis": "optionale KI- oder Extraktionsanmerkung",
       "aliasUebernehmen": false,
       "unsicherFlag": false,
       "pruefbedarfFlag": false
@@ -128,13 +138,17 @@ Regeln:
 - "originalParametername" und "wertRohText" bleiben nah an der Quelle.
 - "parameterId" nur setzen, wenn ein vorhandener Parameter eindeutig bekannt ist.
 - Bei unsicheren Zuordnungen "parameterId" weglassen und "pruefbedarfFlag": true setzen.
+- Originalkommentare aus der Quelle zu einem Messwert gehören in "bemerkungKurz" oder "bemerkungLang".
+- Eigene KI-Anmerkungen, Extraktionszweifel oder Begründungen für Unsicherheit gehören in "kiHinweis".
+- Für neue Parameter-Vorschläge soll "beschreibungKurz" eine allgemeine, berichtsunabhängige Fachbeschreibung sein. Empfehlungen, Einsendehinweise oder patientenbezogene Kommentare aus dem Bericht gehören nicht dort hinein.
+- Wenn keine belastbare allgemeine Parameterbeschreibung ableitbar ist, "beschreibungKurz" weglassen oder null setzen.
 - Qualitative Werte wie "positiv", "negativ" oder "nicht nachweisbar" mit "wertTyp": "text" und "wertText" abbilden.
 - Referenzbereiche als Originaltext erhalten; strukturierte Grenzen nur setzen, wenn sie eindeutig sind.
 - "beschreibungKurz" bei Parameter-Vorschlägen darf keine konkrete Befundbewertung enthalten und muss unabhängig vom konkreten Import verständlich sein.
 - Berichtsspezifische Hinweise zu einem Parameter-Vorschlag gehören in "begruendungAusDokument".`;
 
 const initialForm: ImportFormState = {
-  payload_json: examplePayload,
+  payload_json: "",
   person_id_override: "",
   bemerkung: "",
   dokument_file: null,
@@ -183,6 +197,9 @@ function formatImportReference(messwert: ImportMesswertPreview): string {
 }
 
 function formatMappingInfo(messwert: ImportMesswertPreview, currentParameterId?: string): string {
+  if (currentParameterId === IGNORE_MEASUREMENT_MAPPING_VALUE || messwert.parameter_mapping_herkunft === "ignoriert") {
+    return "Wird nicht übernommen";
+  }
   if (currentParameterId === NEW_PARAMETER_MAPPING_VALUE) {
     return "Neuanlage vorgesehen";
   }
@@ -202,15 +219,46 @@ function formatMappingInfo(messwert: ImportMesswertPreview, currentParameterId?:
     return hint ? `Automatisch über Schlüssel: ${hint}` : "Automatisch über Schlüssel";
   }
   if (source === "explizit") {
-    return "Im Import bereits zugeordnet";
+    return "Aus KI-/JSON-Ergebnis übernommen";
   }
   if (source === "manuell") {
     return "Manuell zugeordnet";
+  }
+  if (source === "neu") {
+    return "Neuanlage vorgesehen";
   }
   if (source === "uebernommen") {
     return hint ? `Bereits übernommen: ${hint}` : "Bereits übernommen";
   }
   return "Noch offen";
+}
+
+function getMappingFilterMode(messwert: ImportMesswertPreview, currentParameterId?: string): MappingFilterMode {
+  if (currentParameterId === IGNORE_MEASUREMENT_MAPPING_VALUE || messwert.parameter_mapping_herkunft === "ignoriert") {
+    return "ignoriert";
+  }
+  if (currentParameterId === NEW_PARAMETER_MAPPING_VALUE) {
+    return "neu";
+  }
+  if (currentParameterId && currentParameterId !== (messwert.parameter_id ?? "")) {
+    return "manuell";
+  }
+  if (!currentParameterId && !messwert.parameter_id) {
+    return "offen";
+  }
+  if (messwert.parameter_mapping_herkunft === "explizit") {
+    return "explizit";
+  }
+  if (messwert.parameter_mapping_herkunft === "neu") {
+    return "neu";
+  }
+  if (["alias", "anzeigename", "schluessel", "uebernommen"].includes(messwert.parameter_mapping_herkunft ?? "")) {
+    return "automatisch";
+  }
+  if (messwert.parameter_mapping_herkunft === "manuell") {
+    return "manuell";
+  }
+  return currentParameterId ? "manuell" : "offen";
 }
 
 function normalizeAliasCandidate(value?: string | null): string {
@@ -225,13 +273,131 @@ function normalizeAliasCandidate(value?: string | null): string {
     .replace(/[^a-z0-9]+/g, "");
 }
 
+function normalizeSearchText(value?: string | null): string {
+  if (!value) {
+    return "";
+  }
+  return value
+    .toLocaleLowerCase("de-DE")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ß/g, "ss");
+}
+
+function getSearchTokens(value?: string | null): string[] {
+  return Array.from(
+    new Set(
+      normalizeSearchText(value)
+        .split(/[^a-z0-9]+/g)
+        .map((token) => token.trim())
+        .filter((token) => token.length >= 3)
+    )
+  );
+}
+
+function countCommonTokens(left: string[], right: string[]): number {
+  const rightSet = new Set(right);
+  return left.filter((token) => rightSet.has(token)).length;
+}
+
+function scoreParameterCandidate(messwert: ImportMesswertPreview, parameter: Parameter): ParameterCandidate {
+  const gruende: string[] = [];
+  let score = 0;
+
+  const importName = normalizeAliasCandidate(messwert.original_parametername);
+  const parameterName = normalizeAliasCandidate(parameter.anzeigename);
+  const importUnit = normalizeAliasCandidate(messwert.einheit_original);
+  const parameterUnit = normalizeAliasCandidate(parameter.standard_einheit);
+  const nameTokens = getSearchTokens(messwert.original_parametername);
+  const parameterTokens = getSearchTokens(parameter.anzeigename);
+  const descriptionTokens = getSearchTokens(parameter.beschreibung);
+  const suggestionName = normalizeAliasCandidate(messwert.parameter_vorschlag?.anzeigename);
+
+  if (importUnit && parameterUnit && importUnit === parameterUnit) {
+    score += 45;
+    gruende.push(`Einheit passt: ${parameter.standard_einheit}`);
+  }
+
+  if (parameter.wert_typ_standard === messwert.wert_typ) {
+    score += 12;
+    gruende.push(`Werttyp passt: ${formatWertTyp(parameter.wert_typ_standard)}`);
+  }
+
+  if (importName && parameterName) {
+    if (importName === parameterName) {
+      score += 70;
+      gruende.push("Name stimmt exakt überein");
+    } else if (importName.includes(parameterName) || parameterName.includes(importName)) {
+      score += 36;
+      gruende.push("Name überschneidet sich deutlich");
+    }
+  }
+
+  const nameOverlap = countCommonTokens(nameTokens, parameterTokens);
+  if (nameOverlap > 0) {
+    score += Math.min(nameOverlap * 12, 36);
+    gruende.push(`${nameOverlap} Namensbestandteil${nameOverlap === 1 ? "" : "e"} gemeinsam`);
+  }
+
+  const descriptionOverlap = countCommonTokens(nameTokens, descriptionTokens);
+  if (descriptionOverlap > 0) {
+    score += Math.min(descriptionOverlap * 4, 16);
+    gruende.push("Beschreibung enthält passende Begriffe");
+  }
+
+  if (suggestionName && suggestionName === parameterName) {
+    score += 50;
+    gruende.push("Entspricht dem Importvorschlag");
+  }
+
+  if (!gruende.length) {
+    gruende.push("Kein starker Treffergrund");
+  }
+
+  return { parameter, score, gruende };
+}
+
+function getParameterCandidates(args: {
+  messwert: ImportMesswertPreview;
+  parameter: Parameter[];
+  searchText: string;
+  filterMode: ParameterDialogFilterMode;
+}): ParameterCandidate[] {
+  const search = normalizeSearchText(args.searchText);
+  return args.parameter
+    .map((parameter) => scoreParameterCandidate(args.messwert, parameter))
+    .filter((candidate) => {
+      if (search) {
+        const haystack = normalizeSearchText(
+          [
+            candidate.parameter.anzeigename,
+            candidate.parameter.interner_schluessel,
+            candidate.parameter.standard_einheit,
+            candidate.parameter.beschreibung
+          ].join(" ")
+        );
+        if (!haystack.includes(search)) {
+          return false;
+        }
+      }
+      if (args.filterMode === "alle") {
+        return true;
+      }
+      if (args.filterMode === "locker") {
+        return candidate.score >= 20;
+      }
+      return candidate.score >= 45;
+    })
+    .sort((left, right) => right.score - left.score || left.parameter.anzeigename.localeCompare(right.parameter.anzeigename, "de-DE"));
+}
+
 function getAliasRecommendation(args: {
   messwert: ImportMesswertPreview;
   parameterId?: string;
   parameterById: Map<string, Parameter>;
 }): { recommended: boolean; note: string | null } {
   const { messwert, parameterId, parameterById } = args;
-  if (!parameterId || parameterId === NEW_PARAMETER_MAPPING_VALUE) {
+  if (!parameterId || parameterId === NEW_PARAMETER_MAPPING_VALUE || parameterId === IGNORE_MEASUREMENT_MAPPING_VALUE) {
     return { recommended: false, note: null };
   }
 
@@ -296,14 +462,31 @@ function isResolvedMissingParameterCheck(item: ImportPruefpunkt, mappingState: R
   return messwertIndex !== null && Boolean(mappingState[messwertIndex]);
 }
 
+function isIgnoredMeasurementCheck(item: ImportPruefpunkt, mappingState: Record<number, string>): boolean {
+  if (item.objekt_typ !== "messwert") {
+    return false;
+  }
+  const messwertIndex = getMesswertIndexFromCheck(item);
+  return messwertIndex !== null && mappingState[messwertIndex] === IGNORE_MEASUREMENT_MAPPING_VALUE;
+}
+
 function getVisibleImportChecks(
   importDetail: ImportVorgangDetail | undefined | null,
-  mappingState: Record<number, string>
+  mappingState: Record<number, string>,
+  reviewPersonId?: string
 ): ImportPruefpunkt[] {
   if (!importDetail || !Array.isArray(importDetail.pruefpunkte)) {
     return [];
   }
-  return importDetail.pruefpunkte.filter((item) => !isResolvedMissingParameterCheck(item, mappingState));
+  return importDetail.pruefpunkte.filter((item) => {
+    if (item.pruefart === "person_zuordnung" && item.status === "fehler" && reviewPersonId) {
+      return false;
+    }
+    if (isIgnoredMeasurementCheck(item, mappingState)) {
+      return false;
+    }
+    return !isResolvedMissingParameterCheck(item, mappingState);
+  });
 }
 
 function getImportChecksBySeverity(items: ImportPruefpunkt[]): {
@@ -326,8 +509,30 @@ function getOpenMappingCount(importDetail: ImportVorgangDetail | undefined, mapp
   if (!importDetail || importDetail.status === "uebernommen" || !Array.isArray(importDetail.messwerte)) {
     return 0;
   }
-  return importDetail.messwerte.filter((messwert) => !(mappingState[messwert.messwert_index] || messwert.parameter_id))
+  return importDetail.messwerte.filter((messwert) => {
+    if (messwert.parameter_mapping_herkunft === "ignoriert") {
+      return false;
+    }
+    if (messwert.parameter_mapping_herkunft === "neu") {
+      return false;
+    }
+    return !(mappingState[messwert.messwert_index] || messwert.parameter_id);
+  })
     .length;
+}
+
+function getIgnoredMeasurementCount(
+  importDetail: ImportVorgangDetail | undefined,
+  mappingState: Record<number, string>
+): number {
+  if (!importDetail || !Array.isArray(importDetail.messwerte)) {
+    return 0;
+  }
+  return importDetail.messwerte.filter(
+    (messwert) =>
+      mappingState[messwert.messwert_index] === IGNORE_MEASUREMENT_MAPPING_VALUE ||
+      messwert.parameter_mapping_herkunft === "ignoriert"
+  ).length;
 }
 
 function shouldPreselectNewParameter(messwert: ImportMesswertPreview): boolean {
@@ -382,7 +587,11 @@ export function ImportPage() {
   const [gruppenState, setGruppenState] = useState<Record<number, GruppenVorschlagState>>({});
   const [gruppenResult, setGruppenResult] = useState<ImportGruppenvorschlaegeAnwendenResponse | null>(null);
   const [warningsConfirmed, setWarningsConfirmed] = useState(false);
-  const [showDeletePanel, setShowDeletePanel] = useState(false);
+  const [reviewPersonId, setReviewPersonId] = useState("");
+  const [mappingFilterMode, setMappingFilterMode] = useState<MappingFilterMode>("alle");
+  const [parameterDialogMesswertIndex, setParameterDialogMesswertIndex] = useState<number | null>(null);
+  const [parameterDialogSearch, setParameterDialogSearch] = useState("");
+  const [parameterDialogFilterMode, setParameterDialogFilterMode] = useState<ParameterDialogFilterMode>("streng");
   const [showDiscardPanel, setShowDiscardPanel] = useState(false);
   const [removeLinkedDocument, setRemoveLinkedDocument] = useState(false);
   const promptTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -420,11 +629,14 @@ export function ImportPage() {
   }, [importsQuery.data, selectedImportId]);
 
   useEffect(() => {
-    setShowDeletePanel(false);
     setShowDiscardPanel(false);
     setRemoveLinkedDocument(false);
     setGruppenResult(null);
   }, [selectedImportId]);
+
+  useEffect(() => {
+    setReviewPersonId(selectedImportQuery.data?.befund.person_id ?? selectedImportQuery.data?.person_id_vorschlag ?? "");
+  }, [selectedImportQuery.data]);
 
   const personById = useMemo(
     () => new Map((personenQuery.data ?? []).map((person) => [person.id, person])),
@@ -443,7 +655,11 @@ export function ImportPage() {
     const nextAliases: Record<number, boolean> = {};
     const nextGruppen: Record<number, GruppenVorschlagState> = {};
     selectedImportQuery.data?.messwerte.forEach((messwert) => {
-      if (messwert.parameter_id) {
+      if (messwert.parameter_mapping_herkunft === "ignoriert") {
+        nextMappings[messwert.messwert_index] = IGNORE_MEASUREMENT_MAPPING_VALUE;
+      } else if (messwert.parameter_mapping_herkunft === "neu") {
+        nextMappings[messwert.messwert_index] = NEW_PARAMETER_MAPPING_VALUE;
+      } else if (messwert.parameter_id) {
         nextMappings[messwert.messwert_index] = messwert.parameter_id;
       } else if (shouldPreselectNewParameter(messwert)) {
         nextMappings[messwert.messwert_index] = NEW_PARAMETER_MAPPING_VALUE;
@@ -521,10 +737,17 @@ export function ImportPage() {
         method: "POST",
         body: JSON.stringify({
           bestaetige_warnungen: warningsConfirmed,
+          person_id_override:
+            reviewPersonId && reviewPersonId !== selectedImportQuery.data?.befund.person_id ? reviewPersonId : undefined,
           parameter_mappings: Object.entries(mappingState)
             .filter(([, mappingValue]) => Boolean(mappingValue))
             .map(([messwert_index, mappingValue]) =>
-              mappingValue === NEW_PARAMETER_MAPPING_VALUE
+              mappingValue === IGNORE_MEASUREMENT_MAPPING_VALUE
+                ? {
+                    messwert_index: Number(messwert_index),
+                    aktion: "ignorieren"
+                  }
+                : mappingValue === NEW_PARAMETER_MAPPING_VALUE
                 ? {
                     messwert_index: Number(messwert_index),
                     aktion: "neu",
@@ -592,6 +815,27 @@ export function ImportPage() {
     }
   });
 
+  const importPruefentscheidungMutation = useMutation({
+    mutationFn: (payload: {
+      personId?: string | null;
+      messwertIndex?: number;
+      aktion?: "vorhanden" | "neu" | "ignorieren" | "zuruecksetzen";
+      laborparameterId?: string | null;
+      aliasUebernehmen?: boolean;
+    }) =>
+      apiFetch<ImportVorgangDetail>(`/api/importe/${selectedImportId}/pruefentscheidung`, {
+        method: "PATCH",
+        body: JSON.stringify(payload)
+      }),
+    onSuccess: async (detail) => {
+      queryClient.setQueryData(["importe", detail.id], detail);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["importe"] }),
+        queryClient.invalidateQueries({ queryKey: ["importe", detail.id] })
+      ]);
+    }
+  });
+
   const gruppenVorschlaegeMutation = useMutation({
     mutationFn: () =>
       apiFetch<ImportGruppenvorschlaegeAnwendenResponse>(
@@ -624,9 +868,39 @@ export function ImportPage() {
   });
 
   const selectedImport = selectedImportQuery.data;
+  const visibleMesswerte = useMemo(
+    () =>
+      (selectedImport?.messwerte ?? []).filter((messwert) => {
+        if (mappingFilterMode === "alle") {
+          return true;
+        }
+        const currentParameterId = mappingState[messwert.messwert_index] ?? messwert.parameter_id ?? undefined;
+        return getMappingFilterMode(messwert, currentParameterId) === mappingFilterMode;
+      }),
+    [mappingFilterMode, mappingState, selectedImport]
+  );
+  const parameterDialogMesswert = useMemo(
+    () =>
+      parameterDialogMesswertIndex === null
+        ? null
+        : selectedImport?.messwerte.find((messwert) => messwert.messwert_index === parameterDialogMesswertIndex) ?? null,
+    [parameterDialogMesswertIndex, selectedImport]
+  );
+  const parameterDialogCandidates = useMemo(
+    () =>
+      parameterDialogMesswert
+        ? getParameterCandidates({
+            messwert: parameterDialogMesswert,
+            parameter: parameterQuery.data ?? [],
+            searchText: parameterDialogSearch,
+            filterMode: parameterDialogFilterMode
+          })
+        : [],
+    [parameterDialogMesswert, parameterDialogSearch, parameterDialogFilterMode, parameterQuery.data]
+  );
   const visibleImportChecks = useMemo(
-    () => getVisibleImportChecks(selectedImport, mappingState),
-    [selectedImport, mappingState]
+    () => getVisibleImportChecks(selectedImport, mappingState, reviewPersonId),
+    [selectedImport, mappingState, reviewPersonId]
   );
   const selectedImportChecks = getImportChecksBySeverity(visibleImportChecks);
   const hasWarnings = selectedImportChecks.warnings > 0;
@@ -640,6 +914,7 @@ export function ImportPage() {
   const selectedImportDocumentName =
     selectedImport?.dokument_dateiname ?? selectedImport?.befund.dokument_dateiname ?? null;
   const openMappingCount = getOpenMappingCount(selectedImport, mappingState);
+  const ignoredMeasurementCount = getIgnoredMeasurementCount(selectedImport, mappingState);
   const groupsAvailable = Boolean(selectedImport?.gruppenvorschlaege.length);
   const groupsDone = Boolean(groupsAvailable && gruppenResult);
   const openBefundSection = Boolean(selectedImport && selectedImportChecks.errors > 0);
@@ -731,6 +1006,98 @@ export function ImportPage() {
     return importMode === mode ? "import-mode-tab import-mode-tab--active" : "import-mode-tab";
   }
 
+  function setMesswertParameterMapping(messwert: ImportMesswertPreview, nextValue: string): void {
+    setMappingState((current) => ({
+      ...current,
+      [messwert.messwert_index]: nextValue
+    }));
+    setAliasState((current) => {
+      if (!nextValue || nextValue === NEW_PARAMETER_MAPPING_VALUE || nextValue === IGNORE_MEASUREMENT_MAPPING_VALUE) {
+        return { ...current, [messwert.messwert_index]: false };
+      }
+      const nextRecommendation = getAliasRecommendation({
+        messwert,
+        parameterId: nextValue,
+        parameterById
+      });
+      if (current[messwert.messwert_index] !== undefined) {
+        return current;
+      }
+      return {
+        ...current,
+        [messwert.messwert_index]: nextRecommendation.recommended
+      };
+    });
+
+    if (selectedImportId) {
+      importPruefentscheidungMutation.mutate({
+        messwertIndex: messwert.messwert_index,
+        aktion:
+          nextValue === IGNORE_MEASUREMENT_MAPPING_VALUE
+            ? "ignorieren"
+            : nextValue === NEW_PARAMETER_MAPPING_VALUE
+            ? "neu"
+            : nextValue
+            ? "vorhanden"
+            : "zuruecksetzen",
+        laborparameterId:
+          nextValue && nextValue !== IGNORE_MEASUREMENT_MAPPING_VALUE && nextValue !== NEW_PARAMETER_MAPPING_VALUE
+            ? nextValue
+            : null,
+        aliasUebernehmen:
+          nextValue && nextValue !== IGNORE_MEASUREMENT_MAPPING_VALUE && nextValue !== NEW_PARAMETER_MAPPING_VALUE
+            ? Boolean(aliasState[messwert.messwert_index])
+            : false
+      });
+    }
+  }
+
+  function setMesswertAlias(messwert: ImportMesswertPreview, checked: boolean): void {
+    setAliasState((current) => ({
+      ...current,
+      [messwert.messwert_index]: checked
+    }));
+    const currentParameterId = mappingState[messwert.messwert_index] ?? messwert.parameter_id ?? undefined;
+    if (
+      selectedImportId &&
+      currentParameterId &&
+      currentParameterId !== NEW_PARAMETER_MAPPING_VALUE &&
+      currentParameterId !== IGNORE_MEASUREMENT_MAPPING_VALUE
+    ) {
+      importPruefentscheidungMutation.mutate({
+        messwertIndex: messwert.messwert_index,
+        aktion: "vorhanden",
+        laborparameterId: currentParameterId,
+        aliasUebernehmen: checked
+      });
+    }
+  }
+
+  function openParameterDialog(messwert: ImportMesswertPreview): void {
+    setParameterDialogMesswertIndex(messwert.messwert_index);
+    setParameterDialogSearch("");
+    setParameterDialogFilterMode("streng");
+  }
+
+  function setImportReviewPerson(nextPersonId: string): void {
+    setReviewPersonId(nextPersonId);
+    if (selectedImportId) {
+      importPruefentscheidungMutation.mutate({
+        personId: nextPersonId || null
+      });
+    }
+  }
+
+  function handlePayloadJsonPaste(event: ClipboardEvent<HTMLTextAreaElement>): void {
+    const pastedText = event.clipboardData.getData("text");
+    if (!pastedText) {
+      return;
+    }
+
+    event.preventDefault();
+    setForm((current) => ({ ...current, payload_json: pastedText }));
+  }
+
   return (
     <section className="page">
       <header className="page__header">
@@ -799,7 +1166,7 @@ export function ImportPage() {
             <div className="prompt-help">
               <p>
                 Beide Varianten enthalten denselben technischen Importvertrag und dieselben vorhandenen Stammdaten für
-                Labore, Parameter, Aliasse, Einheiten und Gruppen. Sie unterscheiden sich nur in der Eingangs-Anweisung
+                Labore, Parameter, Aliasse, Einheiten und Parametergruppen. Sie unterscheiden sich nur in der Eingangs-Anweisung
                 für die Quelle.
               </p>
               <div className="import-prompt-choice">
@@ -908,12 +1275,13 @@ export function ImportPage() {
               <p>
                 Der Prompt erzeugt noch keinen Import. Er beschreibt einer externen KI, wie sie eine Quelle analysieren
                 und in das gemeinsame Import-JSON überführen soll. Die vorhandenen Stammdaten werden mitgegeben, damit
-                die KI vorhandene Labore, Parameter, Aliasse, Einheiten und Gruppen konservativ erkennen kann.
+                die KI vorhandene Labore, Parameter, Aliasse, Einheiten und Parametergruppen konservativ erkennen kann.
               </p>
               <p>
-                Die Person wird nicht im Prompt ausgewählt. Beim Einfügen des KI-Ergebnisses wählst oder überschreibst
-                Du die Person in der Anwendung. Danach prüfst Du Befund, Messwerte, neue Parameter, Prüfhinweise und
-                Gruppen vor der Übernahme.
+                Die Person wird nicht im Prompt ausgewählt und nicht aus dem JSON übernommen. Beim Einfügen des
+                KI-Ergebnisses wählst Du sie in der Anwendung; bei Bedarf kannst Du sie im Bereich{" "}
+                <strong>Befund prüfen</strong> noch ändern. Danach prüfst Du Messwerte, neue Parameter, Prüfhinweise und
+                Parametergruppen vor der Übernahme.
               </p>
             </div>
           </details>
@@ -937,6 +1305,10 @@ export function ImportPage() {
             enthält, übernimmt die Anwendung automatisch diesen Block. Das analysierte Dokument kannst Du hier direkt
             mit hochladen; es wird mit dem Import und später mit dem übernommenen Befund verknüpft.
           </p>
+          <p className="form-hint">
+            Die Person wird nicht aus dem KI- oder Skript-JSON übernommen. Wähle sie hier in der Anwendung aus; Du kannst
+            sie danach im Bereich <strong>Befund prüfen</strong> noch ändern.
+          </p>
           <form
             className="form-grid"
             onSubmit={(event) => {
@@ -945,12 +1317,12 @@ export function ImportPage() {
             }}
           >
             <label className="field">
-              <span>Person überschreiben</span>
+              <span>Person für den Import</span>
               <select
                 value={form.person_id_override}
                 onChange={(event) => setForm((current) => ({ ...current, person_id_override: event.target.value }))}
               >
-                <option value="">Keine Überschreibung</option>
+                <option value="">Bitte wählen</option>
                 {personenQuery.data?.map((person) => (
                   <option key={person.id} value={person.id}>
                     {person.anzeigename}
@@ -972,9 +1344,11 @@ export function ImportPage() {
               <textarea
                 rows={18}
                 value={form.payload_json}
-                placeholder="Komplette KI-Antwort mit json-Codeblock oder reines Import-JSON einfügen"
+                placeholder="Komplette KI-Antwort mit json-Codeblock oder reines Import-JSON einfügen. Beispielwerte stehen nicht mehr als echter Feldinhalt im Eingabefeld."
+                onPaste={handlePayloadJsonPaste}
                 onChange={(event) => setForm((current) => ({ ...current, payload_json: event.target.value }))}
               />
+              <small>Einfügen ersetzt den aktuellen Feldinhalt, damit Du vorher nichts markieren musst.</small>
             </label>
 
             <details className="import-review-section field--full" open>
@@ -1126,7 +1500,9 @@ export function ImportPage() {
                 <span className="parameter-pill">{selectedImport.status}</span>
                 <span className="parameter-pill">{selectedImport.quelle_typ}</span>
                 <span className="parameter-pill">
-                  {personById.get(selectedImport.befund.person_id || selectedImport.person_id_vorschlag || "")?.anzeigename ??
+                  {personById.get(
+                    reviewPersonId || selectedImport.befund.person_id || selectedImport.person_id_vorschlag || ""
+                  )?.anzeigename ??
                     "Person offen"}
                 </span>
                 <span className="parameter-pill">{selectedImport.messwerte_anzahl} Messwerte</span>
@@ -1139,13 +1515,37 @@ export function ImportPage() {
                 <span className={openMappingCount ? "parameter-pill parameter-pill--warning" : "parameter-pill"}>
                   {openMappingCount} offene Zuordnungen
                 </span>
+                <span className={ignoredMeasurementCount ? "parameter-pill parameter-pill--warning" : "parameter-pill"}>
+                  {ignoredMeasurementCount} nicht übernommen
+                </span>
               </div>
 
               <details className="import-review-section" open={openBefundSection}>
                 <summary>Befund prüfen</summary>
+              {selectedImport.status === "in_pruefung" ? (
+                <label className="field">
+                  <span>Person für diesen Import</span>
+                  <select value={reviewPersonId} onChange={(event) => setImportReviewPerson(event.target.value)}>
+                    <option value="">Bitte wählen</option>
+                    {personenQuery.data?.map((person) => (
+                      <option key={person.id} value={person.id}>
+                        {person.anzeigename}
+                      </option>
+                    ))}
+                  </select>
+                  {reviewPersonId ? (
+                    <small>Diese Person wird bei der Übernahme für Befund und Messwerte verwendet.</small>
+                  ) : (
+                    <small>Ohne Person bleibt die Übernahme gesperrt.</small>
+                  )}
+                </label>
+              ) : null}
               <p>
                 Befund für{" "}
-                <strong>{personById.get(selectedImport.befund.person_id || "")?.anzeigename ?? "nicht zugeordnet"}</strong>
+                <strong>
+                  {personById.get(reviewPersonId || selectedImport.befund.person_id || "")?.anzeigename ??
+                    "nicht zugeordnet"}
+                </strong>
                 {" · "}
                 Entnahme {formatDate(selectedImport.befund.entnahmedatum)}
               </p>
@@ -1200,6 +1600,23 @@ export function ImportPage() {
 
               <details className="import-review-section" open={openMesswerteSection}>
                 <summary>Messwerte klären</summary>
+              <div className="import-mapping-toolbar">
+                <label className="field">
+                  <span>Zuordnungsweg filtern</span>
+                  <select value={mappingFilterMode} onChange={(event) => setMappingFilterMode(event.target.value as MappingFilterMode)}>
+                    <option value="alle">Alle Messwerte</option>
+                    <option value="offen">Noch offen</option>
+                    <option value="neu">Neuanlage vorgesehen</option>
+                    <option value="ignoriert">Nicht übernehmen</option>
+                    <option value="manuell">Manuell angepasst</option>
+                    <option value="automatisch">Automatisch durch Stammdaten erkannt</option>
+                    <option value="explizit">Aus KI-/JSON-Ergebnis übernommen</option>
+                  </select>
+                </label>
+                <span>
+                  {visibleMesswerte.length} von {selectedImport.messwerte.length} Messwerten sichtbar
+                </span>
+              </div>
               <div className="table-wrap">
                 <table className="data-table">
                   <thead>
@@ -1216,9 +1633,13 @@ export function ImportPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedImport.messwerte.map((messwert) => {
+                    {visibleMesswerte.map((messwert) => {
                       const resolvedParameterId =
                         mappingState[messwert.messwert_index] ?? messwert.parameter_id ?? undefined;
+                      const assignedParameter =
+                        resolvedParameterId && resolvedParameterId !== NEW_PARAMETER_MAPPING_VALUE
+                          ? parameterById.get(resolvedParameterId)
+                          : null;
                       const aliasRecommendation = getAliasRecommendation({
                         messwert,
                         parameterId: resolvedParameterId,
@@ -1246,83 +1667,156 @@ export function ImportPage() {
                         </td>
                         <td>{formatMappingInfo(messwert, mappingState[messwert.messwert_index])}</td>
                         <td>
-                          <select
-                            value={mappingState[messwert.messwert_index] ?? ""}
-                            onChange={(event) =>
-                              {
-                                const nextValue = event.target.value;
-                                setMappingState((current) => ({
-                                  ...current,
-                                  [messwert.messwert_index]: nextValue
-                                }));
-                                setAliasState((current) => {
-                                  if (!nextValue || nextValue === NEW_PARAMETER_MAPPING_VALUE) {
-                                    return { ...current, [messwert.messwert_index]: false };
-                                  }
-                                  const nextRecommendation = getAliasRecommendation({
-                                    messwert,
-                                    parameterId: nextValue,
-                                    parameterById
-                                  });
-                                  if (current[messwert.messwert_index] !== undefined) {
-                                    return current;
-                                  }
-                                  return {
-                                    ...current,
-                                    [messwert.messwert_index]: nextRecommendation.recommended
-                                  };
-                                });
-                              }
-                            }
-                          >
-                            <option value="">Bitte wählen</option>
-                            <option value={NEW_PARAMETER_MAPPING_VALUE}>
-                              Neuen Parameter anlegen:{" "}
-                              {messwert.parameter_vorschlag?.anzeigename ?? messwert.original_parametername}
-                            </option>
-                            {parameterQuery.data?.map((parameter) => (
-                              <option key={parameter.id} value={parameter.id}>
-                                {parameter.anzeigename}
-                              </option>
-                            ))}
-                          </select>
-                          {mappingState[messwert.messwert_index] === NEW_PARAMETER_MAPPING_VALUE
-                            ? ` (wird neu angelegt, ${formatWertTyp(
-                                messwert.parameter_vorschlag?.wert_typ_standard ?? messwert.wert_typ
-                              )}${
-                                messwert.parameter_vorschlag?.standard_einheit || messwert.einheit_original
-                                  ? `, ${messwert.parameter_vorschlag?.standard_einheit ?? messwert.einheit_original}`
-                                  : ""
-                              })`
-                            : mappingState[messwert.messwert_index]
-                            ? ` (${parameterById.get(mappingState[messwert.messwert_index])?.anzeigename ?? "zugeordnet"})`
-                            : ""}
-                          {messwert.parameter_vorschlag ? (
-                            <div className="import-parameter-suggestion">
-                              <strong>Vorschlag: {messwert.parameter_vorschlag.anzeigename}</strong>
-                              {messwert.parameter_vorschlag.unsicher_flag ? <span>Prüfbedarf</span> : null}
-                              {messwert.parameter_vorschlag.primaere_klassifikation ? (
+                          <div className="import-parameter-assignment">
+                            <strong>
+                              {mappingState[messwert.messwert_index] === NEW_PARAMETER_MAPPING_VALUE
+                                ? `Neuanlage: ${
+                                    messwert.parameter_vorschlag?.anzeigename ?? messwert.original_parametername
+                                  }`
+                                : mappingState[messwert.messwert_index] === IGNORE_MEASUREMENT_MAPPING_VALUE
+                                ? "Wird nicht übernommen"
+                                : mappingState[messwert.messwert_index]
+                                ? parameterById.get(mappingState[messwert.messwert_index])?.anzeigename ?? "Zugeordnet"
+                                : "Noch nicht zugeordnet"}
+                            </strong>
+                            {mappingState[messwert.messwert_index] === NEW_PARAMETER_MAPPING_VALUE ? (
+                              <small>
+                                {formatWertTyp(messwert.parameter_vorschlag?.wert_typ_standard ?? messwert.wert_typ)}
+                                {messwert.parameter_vorschlag?.standard_einheit || messwert.einheit_original
+                                  ? ` · ${messwert.parameter_vorschlag?.standard_einheit ?? messwert.einheit_original}`
+                                  : ""}
+                              </small>
+                            ) : mappingState[messwert.messwert_index] ? (
+                              <small>
+                                {mappingState[messwert.messwert_index] === IGNORE_MEASUREMENT_MAPPING_VALUE
+                                  ? "Dieser Eintrag wird beim Übernehmen ausgelassen."
+                                  : parameterById.get(mappingState[messwert.messwert_index])?.standard_einheit ?? "ohne Standardeinheit"}
+                              </small>
+                            ) : null}
+                            {assignedParameter ? (
+                              <div className="import-parameter-assignment__hint">
                                 <p>
-                                  <strong>Primäre KSG-Klasse:</strong>{" "}
-                                  {formatParameterKlassifikation(messwert.parameter_vorschlag.primaere_klassifikation)}
+                                  <strong>Vorhandener Parameter</strong>
                                 </p>
-                              ) : null}
-                              {messwert.parameter_vorschlag.beschreibung_kurz ? (
+                                {assignedParameter.primaere_klassifikation ? (
+                                  <p>
+                                    <strong>KSG:</strong>{" "}
+                                    {formatParameterKlassifikation(assignedParameter.primaere_klassifikation)}
+                                  </p>
+                                ) : null}
+                                {assignedParameter.beschreibung ? (
+                                  <p>
+                                    <strong>Beschreibung:</strong> {assignedParameter.beschreibung}
+                                  </p>
+                                ) : (
+                                  <p>Keine Parameterbeschreibung hinterlegt.</p>
+                                )}
+                              </div>
+                            ) : null}
+                            {messwert.bemerkung_kurz ||
+                            messwert.bemerkung_lang ||
+                            messwert.ki_hinweis ||
+                            messwert.unsicher_flag ||
+                            messwert.pruefbedarf_flag ? (
+                              <div className="import-parameter-assignment__hint import-parameter-assignment__hint--ki">
+                                {messwert.bemerkung_kurz || messwert.bemerkung_lang ? (
+                                  <>
+                                    <p>
+                                      <strong>Originalkommentar aus Laborbericht</strong>
+                                    </p>
+                                    {messwert.bemerkung_kurz ? (
+                                      <p>
+                                        <strong>Kurztext:</strong> {messwert.bemerkung_kurz}
+                                      </p>
+                                    ) : null}
+                                    {messwert.bemerkung_lang ? (
+                                      <p>
+                                        <strong>Langtext:</strong> {messwert.bemerkung_lang}
+                                      </p>
+                                    ) : null}
+                                  </>
+                                ) : null}
+                                {messwert.unsicher_flag || messwert.pruefbedarf_flag || messwert.ki_hinweis ? (
+                                  <p>
+                                    <strong>KI-Hinweis zur Extraktion:</strong>{" "}
+                                    {messwert.ki_hinweis ??
+                                      [
+                                        messwert.unsicher_flag ? "unsicher" : null,
+                                        messwert.pruefbedarf_flag ? "Prüfbedarf" : null
+                                      ]
+                                        .filter(Boolean)
+                                        .join(" · ")}
+                                  </p>
+                                ) : null}
+                              </div>
+                            ) : null}
+                            {mappingState[messwert.messwert_index] === NEW_PARAMETER_MAPPING_VALUE ? (
+                              <div className="import-parameter-assignment__hint">
                                 <p>
-                                  <strong>Fachbeschreibung:</strong> {messwert.parameter_vorschlag.beschreibung_kurz}
+                                  <strong>Parameter-Vorschlag aus KI</strong>
                                 </p>
-                              ) : null}
-                              {messwert.parameter_vorschlag.begruendung_aus_dokument ? (
-                                <p>
-                                  <strong>Anmerkung aus dem Bericht:</strong>{" "}
-                                  {messwert.parameter_vorschlag.begruendung_aus_dokument}
-                                </p>
-                              ) : null}
-                              {messwert.parameter_vorschlag.moegliche_aliase.length ? (
-                                <p>Alias-Vorschläge: {messwert.parameter_vorschlag.moegliche_aliase.join(", ")}</p>
+                                {messwert.parameter_vorschlag?.primaere_klassifikation ? (
+                                  <p>
+                                    <strong>KSG:</strong>{" "}
+                                    {formatParameterKlassifikation(messwert.parameter_vorschlag.primaere_klassifikation)}
+                                  </p>
+                                ) : null}
+                                {messwert.parameter_vorschlag?.beschreibung_kurz ? (
+                                  <p>
+                                    <strong>Beschreibung:</strong> {messwert.parameter_vorschlag.beschreibung_kurz}
+                                  </p>
+                                ) : (
+                                  <p>
+                                    <strong>Beschreibung:</strong> Keine allgemeine Parameterbeschreibung im KI-Ergebnis.
+                                    Der Parameter würde ohne Beschreibung angelegt.
+                                  </p>
+                                )}
+                                {messwert.parameter_vorschlag?.begruendung_aus_dokument ? (
+                                  <p>
+                                    <strong>Begründung aus Dokument:</strong>{" "}
+                                    {messwert.parameter_vorschlag.begruendung_aus_dokument}
+                                  </p>
+                                ) : null}
+                                {messwert.parameter_vorschlag?.moegliche_aliase.length ? (
+                                  <p>
+                                    <strong>Alias-Vorschläge:</strong>{" "}
+                                    {messwert.parameter_vorschlag.moegliche_aliase.join(", ")}
+                                  </p>
+                                ) : null}
+                              </div>
+                            ) : null}
+                            <div className="inline-actions">
+                              <button type="button" className="inline-button" onClick={() => openParameterDialog(messwert)}>
+                                Parameter suchen
+                              </button>
+                              <button
+                                type="button"
+                                className="inline-button"
+                                onClick={() => setMesswertParameterMapping(messwert, NEW_PARAMETER_MAPPING_VALUE)}
+                                disabled={importPruefentscheidungMutation.isPending}
+                              >
+                                Neuen Parameter
+                              </button>
+                              <button
+                                type="button"
+                                className="inline-button inline-button--danger"
+                                onClick={() => setMesswertParameterMapping(messwert, IGNORE_MEASUREMENT_MAPPING_VALUE)}
+                                disabled={importPruefentscheidungMutation.isPending}
+                              >
+                                Nicht übernehmen
+                              </button>
+                              {mappingState[messwert.messwert_index] ? (
+                                <button
+                                  type="button"
+                                  className="inline-button"
+                                  onClick={() => setMesswertParameterMapping(messwert, "")}
+                                  disabled={importPruefentscheidungMutation.isPending}
+                                >
+                                  Zuordnung zurücksetzen
+                                </button>
                               ) : null}
                             </div>
-                          ) : null}
+                          </div>
                         </td>
                         <td>
                           <label className="field" style={{ minWidth: 0 }}>
@@ -1332,14 +1826,10 @@ export function ImportPage() {
                               checked={Boolean(aliasState[messwert.messwert_index])}
                               disabled={
                                 !mappingState[messwert.messwert_index] ||
-                                mappingState[messwert.messwert_index] === NEW_PARAMETER_MAPPING_VALUE
+                                mappingState[messwert.messwert_index] === NEW_PARAMETER_MAPPING_VALUE ||
+                                mappingState[messwert.messwert_index] === IGNORE_MEASUREMENT_MAPPING_VALUE
                               }
-                              onChange={(event) =>
-                                setAliasState((current) => ({
-                                  ...current,
-                                  [messwert.messwert_index]: event.target.checked
-                                }))
-                              }
+                              onChange={(event) => setMesswertAlias(messwert, event.target.checked)}
                             />
                           </label>
                           {aliasRecommendation.note ? (
@@ -1348,6 +1838,11 @@ export function ImportPage() {
                         </td>
                       </tr>
                     )})}
+                    {!visibleMesswerte.length ? (
+                      <tr>
+                        <td colSpan={9}>Für diesen Zuordnungsweg gibt es aktuell keine Messwerte.</td>
+                      </tr>
+                    ) : null}
                   </tbody>
                 </table>
               </div>
@@ -1355,9 +1850,9 @@ export function ImportPage() {
 
               {selectedImport.status === "uebernommen" && selectedImport.gruppenvorschlaege.length ? (
                 <details className="import-review-section" open={openGruppenSection}>
-                  <summary>Gruppen entscheiden</summary>
+                  <summary>Parametergruppen entscheiden</summary>
                   <p>
-                    Berichtsblöcke können nach der Importübernahme als Gruppen angelegt oder mit vorhandenen Gruppen
+                    Berichtsblöcke können nach der Importübernahme als Parametergruppen angelegt oder mit vorhandenen Parametergruppen
                     zusammengeführt werden.
                   </p>
                   <div className="table-wrap">
@@ -1366,7 +1861,7 @@ export function ImportPage() {
                         <tr>
                           <th>Vorschlag</th>
                           <th>Parameter</th>
-                          <th>Ähnliche Gruppen</th>
+                          <th>Ähnliche Parametergruppen</th>
                           <th>Aktion</th>
                         </tr>
                       </thead>
@@ -1401,7 +1896,7 @@ export function ImportPage() {
                                     </p>
                                   ))
                                 ) : (
-                                  "Keine ähnliche Gruppe gefunden."
+                                  "Keine ähnliche Parametergruppe gefunden."
                                 )}
                               </td>
                               <td>
@@ -1419,14 +1914,14 @@ export function ImportPage() {
                                       }))
                                     }
                                   >
-                                    <option value="neu">Neue Gruppe anlegen</option>
-                                    <option value="vorhanden">Vorhandene Gruppe verwenden</option>
+                                    <option value="neu">Neue Parametergruppe anlegen</option>
+                                    <option value="vorhanden">Vorhandene Parametergruppe verwenden</option>
                                     <option value="ignorieren">Ignorieren</option>
                                   </select>
                                 </label>
                                 {currentState.aktion === "neu" ? (
                                   <label className="field">
-                                    <span>Gruppenname</span>
+                                    <span>Parametergruppenname</span>
                                     <input
                                       value={currentState.gruppenname}
                                       onChange={(event) =>
@@ -1443,7 +1938,7 @@ export function ImportPage() {
                                 ) : null}
                                 {currentState.aktion === "vorhanden" ? (
                                   <label className="field">
-                                    <span>Zielgruppe</span>
+                                    <span>Ziel-Parametergruppe</span>
                                     <select
                                       value={currentState.gruppe_id}
                                       onChange={(event) =>
@@ -1481,14 +1976,14 @@ export function ImportPage() {
                       onClick={() => gruppenVorschlaegeMutation.mutate()}
                       disabled={gruppenVorschlaegeMutation.isPending || selectedImport.status !== "uebernommen"}
                     >
-                      {gruppenVorschlaegeMutation.isPending ? "Wendet an..." : "Gruppenvorschläge anwenden"}
+                      {gruppenVorschlaegeMutation.isPending ? "Wendet an..." : "Parametergruppenvorschläge anwenden"}
                     </button>
                     {gruppenVorschlaegeMutation.isError ? (
                       <p className="form-error">{gruppenVorschlaegeMutation.error.message}</p>
                     ) : null}
                     {gruppenResult ? (
                       <p>
-                        Gruppenentscheidungen verarbeitet:{" "}
+                        Parametergruppenentscheidungen verarbeitet:{" "}
                         {gruppenResult.ergebnisse
                           .map((item) => item.gruppenname || item.gruppe_id || item.aktion)
                           .join(", ")}
@@ -1560,7 +2055,8 @@ export function ImportPage() {
                 ) : null}
                 {openMappingCount > 0 ? (
                   <p className="form-hint">
-                    Übernahme ist möglich, sobald alle Messwerte einem vorhandenen oder neuen Parameter zugeordnet sind.
+                    Übernahme ist möglich, sobald jeder Messwert einem vorhandenen oder neuen Parameter zugeordnet ist
+                    oder bewusst nicht übernommen wird.
                   </p>
                 ) : null}
                 {selectedImportChecks.errors > 0 ? (
@@ -1573,6 +2069,9 @@ export function ImportPage() {
                 {verwerfenMutation.isError ? <p className="form-error">{verwerfenMutation.error.message}</p> : null}
                 {komplettEntfernenMutation.isError ? (
                   <p className="form-error">{komplettEntfernenMutation.error.message}</p>
+                ) : null}
+                {importPruefentscheidungMutation.isError ? (
+                  <p className="form-error">{importPruefentscheidungMutation.error.message}</p>
                 ) : null}
 
                 <h5>Prüfhinweise</h5>
@@ -1602,32 +2101,148 @@ export function ImportPage() {
                 <details className="import-review-section" open={openAbschlussSection}>
                   <summary>Abschluss</summary>
                   <p>
-                    Der Import ist übernommen. Prüfe bei vorhandenen Gruppenvorschlägen noch, ob neue Gruppen angelegt,
-                    vorhandene Gruppen verwendet oder Vorschläge ignoriert werden sollen.
+                    Der Import ist übernommen. Prüfe bei vorhandenen Parametergruppenvorschlägen noch, ob neue Parametergruppen angelegt,
+                    vorhandene Parametergruppen verwendet oder Vorschläge ignoriert werden sollen.
                   </p>
                 </details>
               ) : null}
 
-              <div className="inline-actions">
-                <button type="button" className="inline-button" onClick={() => setShowDeletePanel((current) => !current)}>
-                  {showDeletePanel ? "Löschprüfung ausblenden" : "Löschprüfung öffnen"}
-                </button>
-              </div>
-
-              {showDeletePanel ? (
-                <LoeschAktionPanel
-                  entitaetTyp="importvorgang"
-                  entitaetId={selectedImportId}
-                  title="Importvorgang prüfen oder löschen"
-                  emptyText="Bitte zuerst einen Import auswählen."
-                  invalidateQueryKeys={[["importe"], ["importe", selectedImportId], ["befunde"], ["messwerte"]]}
-                />
-              ) : null}
             </>
           ) : null}
         </article>
         ) : null}
       </div>
+
+      {parameterDialogMesswert ? (
+        <div className="dialog-backdrop" role="presentation">
+          <section
+            className="dialog-panel import-parameter-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="parameter-dialog-title"
+          >
+            <header className="dialog-panel__header">
+              <div>
+                <span className="page__kicker">Parameter zuordnen</span>
+                <h3 id="parameter-dialog-title">{parameterDialogMesswert.original_parametername}</h3>
+              </div>
+              <button type="button" className="dialog-panel__close" onClick={() => setParameterDialogMesswertIndex(null)}>
+                Schließen
+              </button>
+            </header>
+
+            <div className="import-parameter-dialog__summary">
+              <span>
+                Wert: <strong>{parameterDialogMesswert.wert_roh_text}</strong>
+              </span>
+              <span>
+                Einheit: <strong>{parameterDialogMesswert.einheit_original ?? "—"}</strong>
+              </span>
+              <span>
+                Typ: <strong>{formatWertTyp(parameterDialogMesswert.wert_typ)}</strong>
+              </span>
+              <span>
+                Referenz: <strong>{formatImportReferenceResolved(parameterDialogMesswert)}</strong>
+              </span>
+            </div>
+
+            <div className="import-parameter-dialog__filters">
+              <label className="field">
+                <span>Suche</span>
+                <input
+                  value={parameterDialogSearch}
+                  onChange={(event) => setParameterDialogSearch(event.target.value)}
+                  placeholder="Name, Einheit, Schlüssel oder Beschreibung"
+                />
+              </label>
+              <div className="import-parameter-dialog__modes" aria-label="Filterstufe">
+                {(["streng", "locker", "alle"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    className={
+                      parameterDialogFilterMode === mode
+                        ? "import-parameter-dialog__mode import-parameter-dialog__mode--active"
+                        : "import-parameter-dialog__mode"
+                    }
+                    onClick={() => setParameterDialogFilterMode(mode)}
+                  >
+                    {mode === "streng" ? "Verdächtige" : mode === "locker" ? "Mehr Kandidaten" : "Alle Parameter"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="table-wrap import-parameter-dialog__table">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Parameter</th>
+                    <th>Einheit</th>
+                    <th>Typ</th>
+                    <th>Treffer</th>
+                    <th>Beschreibung</th>
+                    <th>Aktion</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {parameterDialogCandidates.map((candidate) => {
+                    const isSelected = mappingState[parameterDialogMesswert.messwert_index] === candidate.parameter.id;
+                    return (
+                      <tr key={candidate.parameter.id} className={isSelected ? "row-selected" : undefined}>
+                        <td>
+                          <strong>{candidate.parameter.anzeigename}</strong>
+                          <small>{candidate.parameter.interner_schluessel}</small>
+                        </td>
+                        <td>{candidate.parameter.standard_einheit ?? "—"}</td>
+                        <td>{formatWertTyp(candidate.parameter.wert_typ_standard)}</td>
+                        <td>
+                          <strong>{candidate.score}</strong>
+                          <small>{candidate.gruende.join(" · ")}</small>
+                        </td>
+                        <td>{candidate.parameter.beschreibung ?? "—"}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="inline-button"
+                            onClick={() => {
+                              setMesswertParameterMapping(parameterDialogMesswert, candidate.parameter.id);
+                              setParameterDialogMesswertIndex(null);
+                            }}
+                          >
+                            {isSelected ? "Ausgewählt" : "Auswählen"}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {!parameterDialogCandidates.length ? (
+                    <tr>
+                      <td colSpan={6}>Keine passenden Parameter gefunden. Lockere den Filter oder suche manuell.</td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+
+            <footer className="dialog-panel__footer">
+              <button
+                type="button"
+                className="button--secondary"
+                onClick={() => {
+                  setMesswertParameterMapping(parameterDialogMesswert, NEW_PARAMETER_MAPPING_VALUE);
+                  setParameterDialogMesswertIndex(null);
+                }}
+              >
+                Neuen Parameter anlegen
+              </button>
+              <button type="button" onClick={() => setParameterDialogMesswertIndex(null)}>
+                Abbrechen
+              </button>
+            </footer>
+          </section>
+        </div>
+      ) : null}
     </section>
   );
 }

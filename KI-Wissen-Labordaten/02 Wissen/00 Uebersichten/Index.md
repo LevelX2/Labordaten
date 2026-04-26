@@ -21,10 +21,12 @@
 - [[../Begriffe und Konzepte/Zielbild Dreiwege-Import und KI-Extraktion]]: geplantes Zielbild für OCR-Import, angebundene KI-Analyse und externen Prompt-Workflow mit gemeinsamem Import-V1-JSON.
 - [[../Begriffe und Konzepte/Ist-Stand Alias-Vorschlaege und Berichtseinheiten]]: aktueller Stand der sicheren Alias-Vorschlagslogik und der steuerbaren Berichtseinheiten auf Basis vorhandener normierter Werte.
 - [[../Begriffe und Konzepte/Ist-Stand Einheiten, Normeinheiten und Umrechnung]]: aktueller Stand der zentralen Einheitenstammdaten, Einheiten-Aliase, parameterbezogenen Umrechnungsregeln und der pflegbaren führenden Normeinheit.
+- [[../Begriffe und Konzepte/Ist-Stand Stammdaten-Bearbeitbarkeit]]: Befundliste dazu, welche Stammdatenattribute nachträglich bearbeitbar sind, welche bewusst stabil bleiben und welche Bearbeitungslücken offen sind.
 - [[../Begriffe und Konzepte/Ist-Stand Loeschlogik und Deaktivierungsregeln]]: aktueller Stand der zentralen Löschprüfung, Deaktivierungsempfehlungen und der ersten backendseitig abgesicherten Entitätenrunde.
 - [[../Begriffe und Konzepte/Ist-Stand Parameter-Dubletten und Zusammenfuehrung]]: aktueller Stand der Dublettenprüfung für vorhandene Parameter und der bestätigten Zusammenführung mit Alias-Rückfall.
 - [[../Begriffe und Konzepte/Ist-Stand PDF-Seitenumbrueche in Berichten]]: aktueller Stand der Block- und Fortsetzungslogik für drucktaugliche Seitenumbrüche in PDF-Berichten.
 - [[../Begriffe und Konzepte/Ist-Stand Automatische interne Parameterschluessel]]: aktueller Stand der automatischen technischen Schlüsselvergabe bei neuer Parameter-Stammdatenpflege.
+- [[../Begriffe und Konzepte/Ist-Stand Initialdaten und Stammdaten-Snapshot]]: aktueller Stand des Initialdaten-Snapshots für leere Installationen inklusive enthaltener Stammdatentabellen, ausgeschlossener Nutzerdaten und offener UI-Punkte.
 
 ## Projektentscheidungen und Prozesse
 - [[../Prozesse/Arbeitsworkflow Wissenspflege und Projektanfragen]]: Standardablauf für Projektarbeit und Wissenspflege.
@@ -33,6 +35,7 @@
 - [[../Prozesse/Wiki-first Query und Linting]]: Reihenfolge für Antworten, Rückführung und Health-Checks.
 - [[../Entscheidungen/V1 Vorentscheidungen Produktform und Kernmodell]]: bisher geklärte Leitentscheidungen für V1.
 - [[../Entscheidungen/V1 Empfohlener Technologie-Stack]]: empfohlene technische Grundlage für den V1-Start.
+- [[../Entscheidungen/V1 Deployment Releaseupdates und Laborwissen-Aktualisierung]]: vorläufige Strategie für Installer, Releaseupdates, getrennte Update-Spuren und Aktualisierung des fachlichen Laborwissens.
 
 ## Risiken und offene Punkte
 - [[../Risiken und offene Punkte/README]]: Sammelstelle für aktuelle Risiken, Klärungsbedarf und offene Fachfragen.

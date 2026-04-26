@@ -118,7 +118,12 @@ def test_import_prompt_contains_file_json_and_context_instructions(tmp_path: Pat
         assert '"parameterVorschlaege"' in text
         assert "Parameter-Vorschläge" in text
         assert '"beschreibungKurz"' in text
+        assert '"kiHinweis"' in text
+        assert 'Originale Labor-Kommentare zu einzelnen Werten in "bemerkungKurz" oder "bemerkungLang"' in text
+        assert 'Eigene KI-Anmerkungen, Extraktionszweifel, Mapping-Hinweise' in text
         assert "vom konkreten Bericht und Import unabhängige Fachbeschreibung" in text
+        assert "Empfehlungen, Zusatzuntersuchungen, Einsendehinweise" in text
+        assert 'lasse "beschreibungKurz" weg oder null' in text
         assert "ausschließlich in \"begruendungAusDokument\"" in text
         assert prompt.schema_version == "1.0"
         assert "Labore: 1" in prompt.kontext_zusammenfassung
@@ -245,8 +250,56 @@ def test_import_json_upload_stores_document_with_suggested_name(monkeypatch, tmp
         )
 
         assert detail.dokument_id is not None
-        assert detail.dokument_dateiname == "2026-04-25_Deborah_IMD_Berlin_MVZ_Laborbericht.pdf"
+        assert detail.dokument_dateiname == "2026-04-25_IMD_Berlin_MVZ_Laborbericht.pdf"
         assert detail.befund.dokument_dateiname == detail.dokument_dateiname
+        assert detail.befund.person_id is None
+
+
+def test_import_json_upload_uses_selected_person_instead_of_json_person(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(
+        "labordaten_backend.core.documents.get_runtime_settings_store",
+        lambda: _DummyRuntimeSettingsStore(tmp_path),
+    )
+
+    with _make_session(tmp_path) as db:
+        json_person = Person(anzeigename="Aus JSON", geburtsdatum=date(1980, 1, 1))
+        selected_person = Person(anzeigename="Auswahl UI", geburtsdatum=date(1989, 8, 31))
+        db.add_all([json_person, selected_person])
+        db.commit()
+        db.refresh(json_person)
+        db.refresh(selected_person)
+
+        detail = import_service.create_import_entwurf_from_json_upload(
+            db,
+            payload_json=f"""{{
+              "schemaVersion": "1.0",
+              "quelleTyp": "ki_json",
+              "befund": {{
+                "personId": "{json_person.id}",
+                "laborName": "IMD Berlin MVZ",
+                "entnahmedatum": "2026-04-25"
+              }},
+              "messwerte": [
+                {{
+                  "originalParametername": "Ferritin",
+                  "wertTyp": "numerisch",
+                  "wertRohText": "41",
+                  "wertNum": 41,
+                  "einheitOriginal": "ng/ml"
+                }}
+              ]
+            }}""",
+            person_id_override=selected_person.id,
+            import_bemerkung="Quelle aus externem KI-Chat",
+            document_filename="scan.pdf",
+            document_content_type="application/pdf",
+            document_content=b"%PDF-1.4\nTest",
+            document_name_override=None,
+        )
+
+        assert detail.befund.person_id == selected_person.id
+        assert detail.befund.person_id != json_person.id
+        assert detail.dokument_dateiname == "2026-04-25_Auswahl_UI_IMD_Berlin_MVZ_Laborbericht.pdf"
 
 
 def test_import_complete_remove_deletes_attempt_checks_and_optional_document(monkeypatch, tmp_path: Path) -> None:

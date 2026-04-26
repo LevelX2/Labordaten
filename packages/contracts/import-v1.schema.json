@@ -52,6 +52,7 @@
           "einheitOriginal": { "type": "string" },
           "bemerkungKurz": { "type": "string" },
           "bemerkungLang": { "type": "string" },
+          "kiHinweis": { "type": "string" },
           "referenzTextOriginal": { "type": "string" },
           "untereGrenzeNum": { "type": "number" },
           "untereGrenzeOperator": {
@@ -83,7 +84,6 @@
         "properties": {
           "name": { "type": "string" },
           "beschreibung": { "type": "string" },
-          "sortierschluessel": { "type": "string" },
           "messwertIndizes": {
             "type": "array",
             "items": { "type": "integer", "minimum": 0 }

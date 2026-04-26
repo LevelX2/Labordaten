@@ -13,6 +13,7 @@ from labordaten_backend.core.runtime_settings import RuntimeSettingsModel
 from labordaten_backend.main import create_app
 from labordaten_backend.models.base import Base
 from labordaten_backend.models.befund import Befund
+from labordaten_backend.models.dokument import Dokument
 from labordaten_backend.models.einheit import Einheit
 from labordaten_backend.models.einheit_alias import EinheitAlias
 from labordaten_backend.models.import_pruefpunkt import ImportPruefpunkt
@@ -47,6 +48,10 @@ class _DummyRuntimeSettingsStore:
 def _make_client(monkeypatch, tmp_path: Path) -> tuple[TestClient, sessionmaker[Session]]:
     monkeypatch.setattr(
         "labordaten_backend.main.get_runtime_settings_store",
+        lambda: _DummyRuntimeSettingsStore(tmp_path),
+    )
+    monkeypatch.setattr(
+        "labordaten_backend.core.documents.get_runtime_settings_store",
         lambda: _DummyRuntimeSettingsStore(tmp_path),
     )
     engine = create_engine(f"sqlite:///{tmp_path / 'test.db'}", future=True, connect_args={"check_same_thread": False})
@@ -252,6 +257,63 @@ def test_importvorgang_with_imported_data_is_blocked(monkeypatch, tmp_path: Path
             json={"aktion": "loeschen"},
         )
         assert blocked_delete.status_code == 400
+
+
+def test_importvorgang_delete_can_remove_exclusive_document(monkeypatch, tmp_path: Path) -> None:
+    client, test_session_factory = _make_client(monkeypatch, tmp_path)
+    documents_root = tmp_path / "documents"
+    document_file = documents_root / "importquelle" / "bericht.pdf"
+    document_file.parent.mkdir(parents=True)
+    document_file.write_bytes(b"%PDF-1.4\nTest")
+
+    with test_session_factory() as db:
+        dokument = Dokument(
+            dokument_typ="importquelle",
+            pfad_relativ="importquelle/bericht.pdf",
+            pfad_absolut=str(document_file),
+            dateiname="bericht.pdf",
+            mime_typ="application/pdf",
+            dateigroesse_bytes=document_file.stat().st_size,
+            originalquelle_behalten=True,
+        )
+        db.add(dokument)
+        db.commit()
+        db.refresh(dokument)
+
+        importvorgang = Importvorgang(quelle_typ="ki_json", status="entwurf", dokument_id=dokument.id)
+        db.add(importvorgang)
+        db.commit()
+        db.refresh(importvorgang)
+        pruefpunkt = ImportPruefpunkt(
+            importvorgang_id=importvorgang.id,
+            objekt_typ="import",
+            pruefart="schema",
+            status="ok",
+            meldung="Test",
+        )
+        db.add(pruefpunkt)
+        db.commit()
+        import_id = importvorgang.id
+        dokument_id = dokument.id
+
+    with client:
+        pruefung = client.get(f"/api/loeschpruefung/importvorgang/{import_id}")
+        assert pruefung.status_code == 200
+        body = pruefung.json()
+        assert body["optionen"]["dokument_entfernen_verfuegbar"] is True
+
+        ausfuehrung = client.post(
+            f"/api/loeschpruefung/importvorgang/{import_id}/ausfuehren",
+            json={"aktion": "loeschen", "dokument_entfernen": True},
+        )
+        assert ausfuehrung.status_code == 200
+        deleted_types = {item["objekt_typ"] for item in ausfuehrung.json()["geloeschte_objekte"]}
+        assert {"importvorgang", "import_pruefpunkt", "dokument"}.issubset(deleted_types)
+
+    with test_session_factory() as db:
+        assert db.get(Importvorgang, import_id) is None
+        assert db.get(Dokument, dokument_id) is None
+        assert not document_file.exists()
 
 
 def test_used_unit_is_blocked_and_unused_unit_with_alias_can_be_deleted(monkeypatch, tmp_path: Path) -> None:

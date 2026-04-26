@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { apiFetch, apiFetchBlob } from "../../shared/api/client";
-import { DateRangeFilterFields } from "../../shared/components/DateRangeFilterFields";
+import { DateRangeFilterFields, isInvalidDateRange } from "../../shared/components/DateRangeFilterFields";
 import { MesswertDetailCard } from "../../shared/components/MesswertDetailCard";
 import { SelectionChecklist } from "../../shared/components/SelectionChecklist";
 import {
@@ -11,6 +11,7 @@ import {
   formatParameterKlassifikation
 } from "../../shared/constants/fieldOptions";
 import { getDefaultDateRange } from "../../shared/utils/dateRangeDefaults";
+import { formatDisplayDate as formatDate } from "../../shared/utils/dateFormatting";
 import { applySharedFilterSearchParams } from "../../shared/utils/filterNavigation";
 import type {
   ArztberichtResponse,
@@ -54,13 +55,6 @@ const initialForm: BerichtFormState = {
   include_befundbemerkung: true,
   include_messwertbemerkung: true
 };
-
-function formatDate(value?: string | null): string {
-  if (!value) {
-    return "—";
-  }
-  return new Intl.DateTimeFormat("de-DE").format(new Date(value));
-}
 
 function formatCount(value: number, singular: string, plural: string): string {
   return `${value} ${value === 1 ? singular : plural}`;
@@ -116,7 +110,7 @@ function buildFilterSummary(form: BerichtFormState): string[] {
   );
 
   if (form.gruppen_ids.length) {
-    summary.push(formatCount(form.gruppen_ids.length, "Gruppe", "Gruppen"));
+    summary.push(formatCount(form.gruppen_ids.length, "Parametergruppe", "Parametergruppen"));
   }
   if (form.laborparameter_ids.length) {
     summary.push(formatCount(form.laborparameter_ids.length, "Parameter", "Parameter"));
@@ -159,6 +153,7 @@ export function BerichtePage() {
     form.person_ids.length ? null : "filters"
   );
   const [showPageInfo, setShowPageInfo] = useState(false);
+  const isDateRangeInvalid = isInvalidDateRange(form.datum_von, form.datum_bis);
 
   const personenQuery = useQuery({
     queryKey: ["personen"],
@@ -313,12 +308,18 @@ export function BerichtePage() {
   }, [doctorReportMutation.data, selectedMesswertId, trendReportMutation.data]);
 
   const handlePreviewLoad = () => {
+    if (isDateRangeInvalid || !form.person_ids.length) {
+      return;
+    }
     doctorReportMutation.mutate();
     trendReportMutation.mutate();
     setActivePanel(null);
   };
 
   const handlePdfExport = () => {
+    if (isDateRangeInvalid || !form.person_ids.length) {
+      return;
+    }
     if (selectedAnsicht === "arztbericht") {
       doctorPdfMutation.mutate();
       return;
@@ -571,7 +572,7 @@ export function BerichtePage() {
                 type="button"
                 className="parameter-toolrail__button"
                 onClick={handlePreviewLoad}
-                disabled={previewPending || !form.person_ids.length}
+                disabled={previewPending || !form.person_ids.length || isDateRangeInvalid}
               >
                 {previewPending ? "Lädt..." : "Vorschau laden"}
               </button>
@@ -581,8 +582,8 @@ export function BerichtePage() {
                 onClick={handlePdfExport}
                 disabled={
                   selectedAnsicht === "arztbericht"
-                    ? doctorPdfMutation.isPending || !form.person_ids.length
-                    : trendPdfMutation.isPending || !form.person_ids.length
+                    ? doctorPdfMutation.isPending || !form.person_ids.length || isDateRangeInvalid
+                    : trendPdfMutation.isPending || !form.person_ids.length || isDateRangeInvalid
                 }
               >
                 {selectedAnsicht === "arztbericht"
@@ -633,7 +634,7 @@ export function BerichtePage() {
                   />
 
                   <SelectionChecklist
-                    label="Gruppen"
+                    label="Parametergruppen"
                     options={(gruppenQuery.data ?? []).map((gruppe) => ({
                       id: gruppe.id,
                       label: gruppe.name,
@@ -641,7 +642,7 @@ export function BerichtePage() {
                     }))}
                     selectedIds={form.gruppen_ids}
                     onChange={(gruppen_ids) => setForm((current) => ({ ...current, gruppen_ids }))}
-                    emptyText="Noch keine Gruppen vorhanden."
+                    emptyText="Noch keine Parametergruppen vorhanden."
                     collapsible
                     defaultExpanded={false}
                   />
@@ -751,7 +752,7 @@ export function BerichtePage() {
                     <button type="button" onClick={() => setForm(initialForm)}>
                       Filter zurücksetzen
                     </button>
-                    <button type="submit" disabled={previewPending || !form.person_ids.length}>
+                    <button type="submit" disabled={previewPending || !form.person_ids.length || isDateRangeInvalid}>
                       {previewPending ? "Lädt..." : "Vorschau laden"}
                     </button>
                   </div>
@@ -765,9 +766,9 @@ export function BerichtePage() {
                 <strong>{formatCount(form.person_ids.length, "Person", "Personen")}</strong>
               </div>
               <div className="detail-grid__item">
-                <span>Gruppen und Parameter</span>
+                <span>Parametergruppen und Parameter</span>
                 <strong>
-                  {formatCount(form.gruppen_ids.length, "Gruppe", "Gruppen")} •{" "}
+                  {formatCount(form.gruppen_ids.length, "Parametergruppe", "Parametergruppen")} •{" "}
                   {formatCount(form.laborparameter_ids.length, "Parameter", "Parameter")} •{" "}
                   {formatCount(form.klassifikationen.length, "KSG-Klasse", "KSG-Klassen")}
                 </strong>
@@ -789,6 +790,9 @@ export function BerichtePage() {
               </div>
             </div>
 
+            {isDateRangeInvalid && activePanel !== "filters" ? (
+              <p className="form-error">Das Bis-Datum darf nicht vor dem Von-Datum liegen.</p>
+            ) : null}
             {selectedAnsicht === "arztbericht" && doctorPdfMutation.isError ? (
               <p className="form-error">{doctorPdfMutation.error.message}</p>
             ) : null}

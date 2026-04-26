@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "labordaten-backend"
-version = "0.1.0"
+version = "0.2.0"
 description = "Lokales Backend für die Laboranwendung Labordaten"
 requires-python = ">=3.11"
 dependencies = [
@@ -26,6 +26,9 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"labordaten_backend.modules.initialdaten" = ["*.json"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

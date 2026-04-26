@@ -19,9 +19,13 @@ def test_person_create_accepts_fixed_gender_codes_and_empty_value() -> None:
         anzeigename="Ludwig",
         geburtsdatum=date(1964, 1, 12),
         geschlecht_code="w",
+        blutgruppe="AB",
+        rhesusfaktor="positiv",
     )
 
     assert person.geschlecht_code == "w"
+    assert person.blutgruppe == "AB"
+    assert person.rhesusfaktor == "positiv"
     assert (
         PersonCreate(anzeigename="Ludwig", geburtsdatum=date(1964, 1, 12), geschlecht_code=None).geschlecht_code
         is None
@@ -34,6 +38,22 @@ def test_person_create_rejects_free_text_gender() -> None:
             anzeigename="Ludwig",
             geburtsdatum=date(1964, 1, 12),
             geschlecht_code="Männlich",
+        )
+
+
+def test_person_create_rejects_free_text_blood_group_and_rhesus_factor() -> None:
+    with pytest.raises(ValidationError):
+        PersonCreate(
+            anzeigename="Ludwig",
+            geburtsdatum=date(1964, 1, 12),
+            blutgruppe="A positiv",
+        )
+
+    with pytest.raises(ValidationError):
+        PersonCreate(
+            anzeigename="Ludwig",
+            geburtsdatum=date(1964, 1, 12),
+            rhesusfaktor="+",
         )
 
 

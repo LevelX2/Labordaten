@@ -47,6 +47,28 @@ class ZielbereichCreate(BaseModel):
         return self
 
 
+class ZielbereichUpdate(BaseModel):
+    zielbereich_typ: str = "allgemein"
+    untere_grenze_num: float | None = None
+    obere_grenze_num: float | None = None
+    einheit: str | None = None
+    soll_text: str | None = None
+    geschlecht_code: str | None = None
+    alter_min_tage: int | None = None
+    alter_max_tage: int | None = None
+    bemerkung: str | None = None
+
+    @field_validator("zielbereich_typ")
+    @classmethod
+    def validate_zielbereich_typ(cls, value: str) -> str:
+        return validate_required_code(value, valid_values=ZIELBEREICH_TYPEN, field_label="Zielbereichstyp")
+
+    @field_validator("geschlecht_code")
+    @classmethod
+    def validate_geschlecht_code(cls, value: str | None) -> str | None:
+        return validate_optional_code(value, valid_values=GESCHLECHT_CODES, field_label="Geschlecht")
+
+
 class ZielbereichRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

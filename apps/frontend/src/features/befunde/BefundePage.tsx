@@ -781,7 +781,7 @@ export function BefundePage() {
                                   <th>Parameter</th>
                                   <th>Wert</th>
                                   <th>Einheit</th>
-                                  <th>Gruppen</th>
+                                  <th>Parametergruppen</th>
                                   <th>Hinweis</th>
                                   <th>Verlauf</th>
                                 </tr>

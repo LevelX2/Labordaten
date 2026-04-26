@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from labordaten_backend.api.deps import get_db
+from labordaten_backend.api.validation import validate_date_range
 from labordaten_backend.modules.berichte import schemas, service
 
 router = APIRouter(prefix="/berichte")
@@ -12,6 +13,7 @@ def arztbericht_vorschau(
     payload: schemas.ArztberichtRequest,
     db: Session = Depends(get_db),
 ) -> schemas.ArztberichtResponse:
+    validate_date_range(payload.datum_von, payload.datum_bis)
     try:
         return service.build_arztbericht(db, payload)
     except ValueError as exc:
@@ -23,6 +25,7 @@ def verlauf_vorschau(
     payload: schemas.VerlaufsberichtRequest,
     db: Session = Depends(get_db),
 ) -> schemas.VerlaufsberichtResponse:
+    validate_date_range(payload.datum_von, payload.datum_bis)
     try:
         return service.build_verlaufsbericht(db, payload)
     except ValueError as exc:
@@ -34,6 +37,7 @@ def arztbericht_pdf(
     payload: schemas.ArztberichtRequest,
     db: Session = Depends(get_db),
 ) -> Response:
+    validate_date_range(payload.datum_von, payload.datum_bis)
     try:
         filename, content = service.render_arztbericht_pdf(db, payload)
     except ValueError as exc:
@@ -51,6 +55,7 @@ def verlauf_pdf(
     payload: schemas.VerlaufsberichtRequest,
     db: Session = Depends(get_db),
 ) -> Response:
+    validate_date_range(payload.datum_von, payload.datum_bis)
     try:
         filename, content = service.render_verlaufsbericht_pdf(db, payload)
     except ValueError as exc:

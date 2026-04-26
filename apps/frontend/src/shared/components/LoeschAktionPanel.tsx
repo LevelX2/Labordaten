@@ -62,6 +62,7 @@ export function LoeschAktionPanel({
   const queryClient = useQueryClient();
   const [aktion, setAktion] = useState<Loeschaktion>("loeschen");
   const [leerenBefundMitloeschen, setLeerenBefundMitloeschen] = useState(true);
+  const [dokumentEntfernen, setDokumentEntfernen] = useState(false);
   const [ausfuehrung, setAusfuehrung] = useState<LoeschAusfuehrung | null>(null);
 
   const pruefungQuery = useQuery({
@@ -83,6 +84,7 @@ export function LoeschAktionPanel({
 
     setAktion(pruefung.standard_aktion ?? (pruefung.optionen.deaktivieren_verfuegbar ? "deaktivieren" : "loeschen"));
     setLeerenBefundMitloeschen(pruefung.optionen.leeren_befund_mitloeschen_standard);
+    setDokumentEntfernen(pruefung.optionen.dokument_entfernen_standard);
   }, [pruefung]);
 
   const ausfuehrenMutation = useMutation({
@@ -91,7 +93,8 @@ export function LoeschAktionPanel({
         method: "POST",
         body: JSON.stringify({
           aktion,
-          leeren_befund_mitloeschen: leerenBefundMitloeschen
+          leeren_befund_mitloeschen: leerenBefundMitloeschen,
+          dokument_entfernen: dokumentEntfernen
         })
       }),
     onSuccess: async (result) => {
@@ -235,6 +238,18 @@ export function LoeschAktionPanel({
                   checked={leerenBefundMitloeschen}
                   onChange={(event) => setLeerenBefundMitloeschen(event.target.checked)}
                   disabled={ausfuehrenMutation.isPending}
+                />
+              </label>
+            ) : null}
+
+            {pruefung.optionen.dokument_entfernen_verfuegbar ? (
+              <label className="field field--full">
+                <span>Verknüpftes Dokument mitlöschen</span>
+                <input
+                  type="checkbox"
+                  checked={dokumentEntfernen}
+                  onChange={(event) => setDokumentEntfernen(event.target.checked)}
+                  disabled={ausfuehrenMutation.isPending || aktion !== "loeschen"}
                 />
               </label>
             ) : null}

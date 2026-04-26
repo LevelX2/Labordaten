@@ -17,6 +17,13 @@ from reportlab.platypus import CondPageBreak, KeepTogether, LongTable, Paragraph
 from sqlalchemy import Select, select
 from sqlalchemy.orm import Session
 
+from labordaten_backend.core.pdf_branding import (
+    PDF_BOTTOM_MARGIN,
+    PDF_LEFT_MARGIN,
+    PDF_RIGHT_MARGIN,
+    PDF_TOP_MARGIN,
+    draw_labordaten_pdf_page,
+)
 from labordaten_backend.core.labor_value_formatting import (
     format_numeric_measurement_value,
     format_numeric_reference_range,
@@ -38,11 +45,6 @@ from labordaten_backend.modules.berichte.schemas import (
     VerlaufsberichtRequest,
     VerlaufsberichtResponse,
 )
-
-PDF_LEFT_MARGIN = 1.5 * cm
-PDF_RIGHT_MARGIN = 1.5 * cm
-PDF_TOP_MARGIN = 1.4 * cm
-PDF_BOTTOM_MARGIN = 1.4 * cm
 
 
 def build_arztbericht(db: Session, payload: ArztberichtRequest) -> ArztberichtResponse:
@@ -184,7 +186,12 @@ def render_arztbericht_pdf(db: Session, payload: ArztberichtRequest) -> tuple[st
     else:
         elements.append(Paragraph("Für die aktuelle Auswahl gibt es noch keine passenden Werte.", styles["body"]))
 
-    return _build_report_filename("arztbericht", persons), _build_pdf(elements, pagesize=A4)
+    return _build_report_filename("arztbericht", persons), _build_pdf(
+        elements,
+        pagesize=A4,
+        document_label="Arztbericht",
+        footer_label="Labordaten · Arztbericht",
+    )
 
 
 def render_verlaufsbericht_pdf(db: Session, payload: VerlaufsberichtRequest) -> tuple[str, bytes]:
@@ -278,7 +285,12 @@ def render_verlaufsbericht_pdf(db: Session, payload: VerlaufsberichtRequest) -> 
                 block.append(Spacer(1, 0.45 * cm))
                 _append_report_block(elements, block, frame_width, frame_height)
 
-    return _build_report_filename("verlauf", persons), _build_pdf(elements, pagesize=report_pagesize)
+    return _build_report_filename("verlauf", persons), _build_pdf(
+        elements,
+        pagesize=report_pagesize,
+        document_label="Verlaufsbericht",
+        footer_label="Labordaten · Verlaufsbericht",
+    )
 
 
 def _execute_measurement_query(db: Session, payload: ArztberichtRequest | VerlaufsberichtRequest):
@@ -622,7 +634,7 @@ def _estimate_flowables_height(flowables: list[object], frame_width: float, fram
     return total_height
 
 
-def _build_pdf(elements: list[object], pagesize) -> bytes:
+def _build_pdf(elements: list[object], pagesize, document_label: str, footer_label: str) -> bytes:
     buffer = BytesIO()
     document = SimpleDocTemplate(
         buffer,
@@ -633,7 +645,11 @@ def _build_pdf(elements: list[object], pagesize) -> bytes:
         bottomMargin=PDF_BOTTOM_MARGIN,
         title="Labordaten Bericht",
     )
-    document.build(elements)
+
+    def draw_page(canvas, doc) -> None:
+        draw_labordaten_pdf_page(canvas, doc, document_label, footer_label)
+
+    document.build(elements, onFirstPage=draw_page, onLaterPages=draw_page)
     return buffer.getvalue()
 
 

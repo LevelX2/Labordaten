@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { apiFetch } from "../../shared/api/client";
-import { buildZielbereichCreatePayload } from "../../shared/api/payloadBuilders";
+import { buildZielbereichCreatePayload, buildZielbereichUpdatePayload } from "../../shared/api/payloadBuilders";
 import { LoeschAktionPanel } from "../../shared/components/LoeschAktionPanel";
 import {
   KONTEXT_GESCHLECHT_OPTIONS,
@@ -36,9 +37,13 @@ import type {
   ParameterUmrechnungsregel,
   ParameterUmrechnungsregelCreatePayload,
   ParameterUsageSummary,
+  ParameterWissensseiteUpdatePayload,
+  ParameterWissensseiteUpdateResult,
   UmrechnungsregelTyp,
   WertTyp,
+  WissensseiteListItem,
   ZielbereichTyp,
+  ZielbereichUpdatePayload,
   Zielbereich
 } from "../../shared/types/api";
 
@@ -65,6 +70,11 @@ type ParameterRenameFormState = {
 type ParameterStandardEinheitFormState = {
   parameter_id: string;
   standard_einheit: string;
+};
+
+type ParameterWissensseiteFormState = {
+  parameter_id: string;
+  pfad_relativ: string;
 };
 
 type ParameterKlassifikationFormState = {
@@ -104,6 +114,7 @@ type ParameterPanelKey =
   | "create"
   | "standardUnit"
   | "classification"
+  | "knowledge"
   | "rename"
   | "alias"
   | "conversion"
@@ -139,6 +150,11 @@ const initialRenameForm: ParameterRenameFormState = {
 const initialStandardEinheitForm: ParameterStandardEinheitFormState = {
   parameter_id: "",
   standard_einheit: ""
+};
+
+const initialWissensseiteForm: ParameterWissensseiteFormState = {
+  parameter_id: "",
+  pfad_relativ: ""
 };
 
 const initialKlassifikationForm: ParameterKlassifikationFormState = {
@@ -217,7 +233,7 @@ function formatUsageSummary(summary: ParameterUsageSummary): string {
   const parts = [
     `${summary.messwerte_anzahl} Messwerte`,
     `${summary.zielbereiche_anzahl} Zielbereiche`,
-    `${summary.gruppen_anzahl} Gruppen`,
+    `${summary.gruppen_anzahl} Parametergruppen`,
     `${summary.planung_zyklisch_anzahl + summary.planung_einmalig_anzahl} Planungen`
   ];
   return parts.join(" • ");
@@ -269,9 +285,12 @@ export function ParameterPage() {
   const [renameForm, setRenameForm] = useState<ParameterRenameFormState>(initialRenameForm);
   const [standardEinheitForm, setStandardEinheitForm] =
     useState<ParameterStandardEinheitFormState>(initialStandardEinheitForm);
+  const [wissensseiteForm, setWissensseiteForm] =
+    useState<ParameterWissensseiteFormState>(initialWissensseiteForm);
   const [klassifikationForm, setKlassifikationForm] =
     useState<ParameterKlassifikationFormState>(initialKlassifikationForm);
   const [zielbereichForm, setZielbereichForm] = useState<ZielbereichFormState>(initialZielbereichForm);
+  const [editingZielbereichId, setEditingZielbereichId] = useState<string | null>(null);
   const [umrechnungsregelForm, setUmrechnungsregelForm] =
     useState<ParameterUmrechnungsregelFormState>(initialUmrechnungsregelForm);
   const [mergeNameBySuggestion, setMergeNameBySuggestion] = useState<Record<string, string>>({});
@@ -306,6 +325,11 @@ export function ParameterPage() {
     queryKey: ["einheiten"],
     queryFn: () => apiFetch<Einheit[]>("/api/einheiten")
   });
+  const wissensseitenQuery = useQuery({
+    queryKey: ["wissensbasis", "seiten", "parameter-link"],
+    queryFn: () => apiFetch<WissensseiteListItem[]>("/api/wissensbasis/seiten"),
+    enabled: activePanel === "knowledge"
+  });
 
   const sortedParameters = useMemo(
     () =>
@@ -337,8 +361,10 @@ export function ParameterPage() {
       setAliasForm(initialAliasForm);
       setRenameForm(initialRenameForm);
       setStandardEinheitForm(initialStandardEinheitForm);
+      setWissensseiteForm(initialWissensseiteForm);
       setKlassifikationForm(initialKlassifikationForm);
       setZielbereichForm(initialZielbereichForm);
+      setEditingZielbereichId(null);
       setUmrechnungsregelForm(initialUmrechnungsregelForm);
       return;
     }
@@ -366,6 +392,14 @@ export function ParameterPage() {
         : {
             parameter_id: selectedParameter.id,
             standard_einheit: selectedParameter.standard_einheit ?? ""
+          }
+    );
+    setWissensseiteForm((current) =>
+      current.parameter_id === selectedParameter.id
+        ? current
+        : {
+            parameter_id: selectedParameter.id,
+            pfad_relativ: selectedParameter.wissensseite_pfad_relativ ?? ""
           }
     );
     setKlassifikationForm((current) =>
@@ -597,6 +631,49 @@ export function ParameterPage() {
     }
   });
 
+  const updateZielbereichMutation = useMutation({
+    mutationFn: () => {
+      if (!editingZielbereichId) {
+        throw new Error("Bitte zuerst einen Zielbereich auswählen.");
+      }
+      return apiFetch<Zielbereich>(`/api/zielbereiche/${editingZielbereichId}`, {
+        method: "PATCH",
+        body: JSON.stringify(
+          buildZielbereichUpdatePayload(zielbereichForm, selectedParameter?.standard_einheit) satisfies ZielbereichUpdatePayload
+        )
+      });
+    },
+    onSuccess: async (updatedZielbereich) => {
+      setEditingZielbereichId(null);
+      setZielbereichForm((current) => ({
+        ...initialZielbereichForm,
+        parameter_id: current.parameter_id,
+        wert_typ: selectedParameter?.wert_typ_standard ?? "numerisch",
+        einheit: selectedParameter?.standard_einheit ?? ""
+      }));
+      setActivePanel(null);
+      await queryClient.invalidateQueries({ queryKey: ["zielbereiche", updatedZielbereich.laborparameter_id] });
+    }
+  });
+
+  const updateWissensseiteMutation = useMutation({
+    mutationFn: () =>
+      apiFetch<ParameterWissensseiteUpdateResult>(`/api/parameter/${wissensseiteForm.parameter_id}/wissensseite`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          pfad_relativ: wissensseiteForm.pfad_relativ || null
+        } satisfies ParameterWissensseiteUpdatePayload)
+      }),
+    onSuccess: async (result) => {
+      setWissensseiteForm({
+        parameter_id: result.parameter_id,
+        pfad_relativ: result.wissensseite_pfad_relativ ?? ""
+      });
+      setActivePanel(null);
+      await queryClient.invalidateQueries({ queryKey: ["parameter"] });
+    }
+  });
+
   const createUmrechnungsregelMutation = useMutation({
     mutationFn: () =>
       apiFetch<ParameterUmrechnungsregel>(
@@ -816,6 +893,13 @@ export function ParameterPage() {
       });
     }
 
+    if (panel === "knowledge" && selectedParameter) {
+      setWissensseiteForm({
+        parameter_id: selectedParameter.id,
+        pfad_relativ: selectedParameter.wissensseite_pfad_relativ ?? ""
+      });
+    }
+
     if (panel === "conversion" && selectedParameter) {
       setUmrechnungsregelForm({
         ...initialUmrechnungsregelForm,
@@ -825,6 +909,7 @@ export function ParameterPage() {
     }
 
     if (panel === "zielbereich" && selectedParameter) {
+      setEditingZielbereichId(null);
       setZielbereichForm({
         ...initialZielbereichForm,
         parameter_id: selectedParameter.id,
@@ -838,6 +923,22 @@ export function ParameterPage() {
       queryClient.removeQueries({ queryKey: ["parameter-dublettenvorschlaege"] });
     }
     setActivePanel(nextPanel);
+  };
+
+  const startZielbereichEdit = (zielbereich: Zielbereich) => {
+    setEditingZielbereichId(zielbereich.id);
+    setZielbereichForm({
+      parameter_id: zielbereich.laborparameter_id,
+      wert_typ: zielbereich.wert_typ,
+      zielbereich_typ: zielbereich.zielbereich_typ,
+      untere_grenze_num: zielbereich.untere_grenze_num?.toString() ?? "",
+      obere_grenze_num: zielbereich.obere_grenze_num?.toString() ?? "",
+      einheit: zielbereich.einheit ?? selectedParameter?.standard_einheit ?? "",
+      soll_text: zielbereich.soll_text ?? "",
+      geschlecht_code: zielbereich.geschlecht_code ?? "",
+      bemerkung: zielbereich.bemerkung ?? ""
+    });
+    setActivePanel("zielbereich");
   };
 
   const renderPanelCloseButton = (label = "Werkzeug schließen") => (
@@ -984,6 +1085,72 @@ export function ParameterPage() {
         <article className="card card--soft">
           <h3>Werkzeuge</h3>
           <p>Es ist noch kein Parameter ausgewählt.</p>
+        </article>
+      );
+    }
+
+    if (activePanel === "knowledge") {
+      return (
+        <article className="card card--soft parameter-action-panel">
+          <div className="parameter-panel__header">
+            <div>
+              <h3>Laborwissen-Seite verknüpfen</h3>
+              <p>
+                Verknüpfe den Parameter mit einer Markdown-Seite aus dem Laborwissen. Danach kannst Du direkt aus dem
+                Parameterdetail zu dieser Seite springen.
+              </p>
+            </div>
+            {renderPanelCloseButton("Panel Wissensseite verknüpfen schließen")}
+          </div>
+          <form
+            className="form-grid"
+            onSubmit={(event) => {
+              event.preventDefault();
+              updateWissensseiteMutation.mutate();
+            }}
+          >
+            <label className="field field--full">
+              <span>Wissensseite</span>
+              <select
+                value={wissensseiteForm.pfad_relativ}
+                onChange={(event) =>
+                  setWissensseiteForm((current) => ({ ...current, pfad_relativ: event.target.value }))
+                }
+              >
+                <option value="">Keine Verknüpfung</option>
+                {wissensseitenQuery.data?.map((seite) => (
+                  <option key={seite.pfad_relativ} value={seite.pfad_relativ}>
+                    {seite.titel} · {seite.pfad_relativ}
+                  </option>
+                ))}
+              </select>
+              <small>Neue Seiten kannst Du im Bereich Laborwissen anlegen und anschließend hier auswählen.</small>
+            </label>
+
+            <div className="form-actions">
+              <button type="submit" disabled={updateWissensseiteMutation.isPending}>
+                {updateWissensseiteMutation.isPending ? "Speichert..." : "Verknüpfung speichern"}
+              </button>
+              {selectedParameter.wissensseite_pfad_relativ ? (
+                <Link
+                  className="inline-button"
+                  to={`/wissensbasis?seite=${encodeURIComponent(selectedParameter.wissensseite_pfad_relativ)}`}
+                >
+                  Verknüpfte Seite öffnen
+                </Link>
+              ) : (
+                <Link
+                  className="inline-button"
+                  to={`/wissensbasis?suche=${encodeURIComponent(selectedParameter.anzeigename)}`}
+                >
+                  Passende Seite suchen
+                </Link>
+              )}
+              {updateWissensseiteMutation.isError ? (
+                <p className="form-error">{updateWissensseiteMutation.error.message}</p>
+              ) : null}
+            </div>
+          </form>
         </article>
       );
     }
@@ -1488,15 +1655,16 @@ export function ParameterPage() {
     }
 
     if (activePanel === "zielbereich") {
+      const isEditMode = Boolean(editingZielbereichId);
       return (
         <article className="card card--soft parameter-action-panel">
           <div className="parameter-panel__header">
             <div>
-              <h3>Allgemeinen Zielbereich anlegen</h3>
+              <h3>{isEditMode ? "Allgemeinen Zielbereich bearbeiten" : "Allgemeinen Zielbereich anlegen"}</h3>
               <p>
-                Hier hinterlegst Du einen allgemeinen Zielbereich für den ausgewählten Parameter. Dieser Bereich dient
-                als fachliche Orientierung für Auswertung, Berichte und Planung und kann später bei Bedarf noch
-                personenspezifisch überschrieben werden.
+                {isEditMode
+                  ? "Passe hier fachliche Grenzen, Zielbereichstyp, Kontext und Bemerkung an. Parameterbezug, technische ID und Werttyp bleiben stabil."
+                  : "Hier hinterlegst Du einen allgemeinen Zielbereich für den ausgewählten Parameter. Dieser Bereich dient als fachliche Orientierung für Auswertung, Berichte und Planung und kann später bei Bedarf noch personenspezifisch überschrieben werden."}
               </p>
             </div>
             {renderPanelCloseButton("Panel Zielbereich schließen")}
@@ -1505,7 +1673,11 @@ export function ParameterPage() {
             className="form-grid"
             onSubmit={(event) => {
               event.preventDefault();
-              createZielbereichMutation.mutate();
+              if (isEditMode) {
+                updateZielbereichMutation.mutate();
+              } else {
+                createZielbereichMutation.mutate();
+              }
             }}
           >
             <label className="field">
@@ -1605,10 +1777,17 @@ export function ParameterPage() {
 
             <div className="form-actions">
               <button type="submit" disabled={createZielbereichMutation.isPending || !zielbereichForm.parameter_id}>
-                {createZielbereichMutation.isPending ? "Speichert..." : "Zielbereich anlegen"}
+                {createZielbereichMutation.isPending || updateZielbereichMutation.isPending
+                  ? "Speichert..."
+                  : isEditMode
+                    ? "Zielbereich speichern"
+                    : "Zielbereich anlegen"}
               </button>
               {createZielbereichMutation.isError ? (
                 <p className="form-error">{createZielbereichMutation.error.message}</p>
+              ) : null}
+              {updateZielbereichMutation.isError ? (
+                <p className="form-error">{updateZielbereichMutation.error.message}</p>
               ) : null}
             </div>
           </form>
@@ -2037,6 +2216,13 @@ export function ParameterPage() {
                     </button>
                     <button
                       type="button"
+                      className={`parameter-toolrail__button ${activePanel === "knowledge" ? "parameter-toolrail__button--active" : ""}`}
+                      onClick={() => handleOpenPanel("knowledge")}
+                    >
+                      Wissen
+                    </button>
+                    <button
+                      type="button"
                       className={`parameter-toolrail__button ${activePanel === "rename" ? "parameter-toolrail__button--active" : ""}`}
                       onClick={() => handleOpenPanel("rename")}
                     >
@@ -2132,7 +2318,7 @@ export function ParameterPage() {
                     <strong>{selectedParameter.messwerte_anzahl}</strong>
                   </div>
                   <div className="detail-grid__item">
-                    <span>Verwendet in Gruppen</span>
+                    <span>Verwendet in Parametergruppen</span>
                     <strong>{parameterGruppenQuery.data?.length ?? 0}</strong>
                   </div>
                 </div>
@@ -2156,8 +2342,26 @@ export function ParameterPage() {
                       <strong>{formatDateTime(selectedParameter.geaendert_am)}</strong>
                     </div>
                     <div className="detail-grid__item detail-grid__item--full">
-                      <span>Wissensbasis</span>
-                      <strong>Für diesen Detailbereich ist noch keine Zusatzinformation verknüpft.</strong>
+                      <span>Laborwissen</span>
+                      {selectedParameter.wissensseite_pfad_relativ ? (
+                        <strong>
+                          <Link
+                            className="text-link"
+                            to={`/wissensbasis?seite=${encodeURIComponent(selectedParameter.wissensseite_pfad_relativ)}`}
+                          >
+                            {selectedParameter.wissensseite_titel ?? selectedParameter.wissensseite_pfad_relativ}
+                          </Link>
+                        </strong>
+                      ) : (
+                        <strong>
+                          <Link
+                            className="text-link"
+                            to={`/wissensbasis?suche=${encodeURIComponent(selectedParameter.anzeigename)}`}
+                          >
+                            Nach passender Wissensseite suchen
+                          </Link>
+                        </strong>
+                      )}
                     </div>
                   </div>
                 ) : null}
@@ -2380,6 +2584,7 @@ export function ParameterPage() {
                                   <th>Bereich</th>
                                   <th>Einheit</th>
                                   <th>Geschlecht</th>
+                                  <th>Aktion</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -2390,11 +2595,20 @@ export function ParameterPage() {
                                     <td>{formatZielbereichValue(zielbereich)}</td>
                                     <td>{zielbereich.einheit || "—"}</td>
                                     <td>{formatGeschlechtCode(zielbereich.geschlecht_code, "Alle Geschlechter")}</td>
+                                    <td>
+                                      <button
+                                        type="button"
+                                        className="inline-button"
+                                        onClick={() => startZielbereichEdit(zielbereich)}
+                                      >
+                                        Bearbeiten
+                                      </button>
+                                    </td>
                                   </tr>
                                 ))}
                                 {!zielbereicheQuery.data?.length ? (
                                   <tr>
-                                    <td colSpan={5}>Noch keine Zielbereiche für diesen Parameter vorhanden.</td>
+                                    <td colSpan={6}>Noch keine Zielbereiche für diesen Parameter vorhanden.</td>
                                   </tr>
                                 ) : null}
                               </tbody>
@@ -2415,7 +2629,7 @@ export function ParameterPage() {
                         aria-expanded={expandedRelatedSections.groups}
                       >
                         <span>
-                          <strong>Gruppen</strong>
+                          <strong>Parametergruppen</strong>
                           <small>{formatCountLabel(parameterGruppenQuery.data?.length ?? 0, "Eintrag", "Einträge")}</small>
                         </span>
                         <span className="parameter-related__chevron" aria-hidden="true">
@@ -2428,8 +2642,7 @@ export function ParameterPage() {
                             <table className="data-table parameter-summary-table">
                               <thead>
                                 <tr>
-                                  <th>Gruppe</th>
-                                  <th>Gruppen-Schlüssel</th>
+                                  <th>Parametergruppe</th>
                                   <th>Sortierung</th>
                                 </tr>
                               </thead>
@@ -2437,13 +2650,12 @@ export function ParameterPage() {
                                 {parameterGruppenQuery.data?.map((gruppe) => (
                                   <tr key={gruppe.id}>
                                     <td>{gruppe.gruppenname}</td>
-                                    <td>{gruppe.gruppen_sortierschluessel || "—"}</td>
                                     <td>{gruppe.sortierung ?? "—"}</td>
                                   </tr>
                                 ))}
                                 {!parameterGruppenQuery.data?.length ? (
                                   <tr>
-                                    <td colSpan={3}>Dieser Parameter ist aktuell keiner Gruppe zugeordnet.</td>
+                                    <td colSpan={2}>Dieser Parameter ist aktuell keiner Parametergruppe zugeordnet.</td>
                                   </tr>
                                 ) : null}
                               </tbody>

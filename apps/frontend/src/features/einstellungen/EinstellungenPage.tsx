@@ -1,8 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
 
 import { apiFetch } from "../../shared/api/client";
 import { EinheitenPflegeCard } from "../../shared/components/EinheitenPflegeCard";
+import { InitialdatenPanel } from "../../shared/components/InitialdatenPanel";
+import { LaborePflegeCard } from "../../shared/components/LaborePflegeCard";
+import {
+  colorDesigns,
+  getStoredColorDesignKey,
+  storeAndApplyColorDesign,
+  type ColorDesignKey
+} from "../../shared/theme/colorDesigns";
 import type { LockStatus, RuntimeSettings, SystemHealth } from "../../shared/types/api";
 
 type EinstellungenAnsichtKey =
@@ -10,6 +19,9 @@ type EinstellungenAnsichtKey =
   | "sperre"
   | "pfade"
   | "standards"
+  | "initialdaten"
+  | "design"
+  | "labore"
   | "einheiten"
   | "technik";
 
@@ -45,7 +57,7 @@ function getSectionMeta(section: EinstellungenAnsichtKey): { title: string; desc
   if (section === "pfade") {
     return {
       title: "Pfade und Speicherorte",
-      description: "Hier pflegst Du die lokalen Zielorte für Daten, Dokumente, Wissensbasis und Berichtsvorlagen.",
+      description: "Hier pflegst Du die lokalen Zielorte für Daten, Dokumente, Laborwissen und Berichtsvorlagen.",
       badge: "Laufzeit-Pfade"
     };
   }
@@ -56,11 +68,33 @@ function getSectionMeta(section: EinstellungenAnsichtKey): { title: string; desc
       badge: "Vorgaben für neue Abläufe"
     };
   }
+  if (section === "initialdaten") {
+    return {
+      title: "Initialdaten",
+      description:
+        "Hier lädst Du die mitgelieferten Messstammdaten für Parameter, Gruppen, Aliase, Einheiten und Laborwissen-Verweise.",
+      badge: "Messstammdaten"
+    };
+  }
   if (section === "einheiten") {
     return {
       title: "Einheiten",
-      description: "Hier pflegst Du kanonische Einheiten und deren Alias-Schreibweisen für Import und manuelle Erfassung.",
+      description: "Hier legst Du die führende Schreibweise einer Einheit fest und ordnest abweichende Labor-Schreibweisen als Aliase zu.",
       badge: "Zentrale Fachstammdaten"
+    };
+  }
+  if (section === "labore") {
+    return {
+      title: "Labore",
+      description: "Hier pflegst Du Laborstammdaten, die in Befunden, Filtern, Auswertungen und Berichten verwendet werden.",
+      badge: "Zentrale Fachstammdaten"
+    };
+  }
+  if (section === "design") {
+    return {
+      title: "Farbdesign",
+      description: "Hier wählst Du ein harmonisches Farbdesign für die lokale Oberfläche.",
+      badge: "Darstellung"
     };
   }
   return {
@@ -75,6 +109,7 @@ export function EinstellungenPage() {
   const [form, setForm] = useState<RuntimeSettings | null>(null);
   const [showPageInfo, setShowPageInfo] = useState(false);
   const [selectedAnsicht, setSelectedAnsicht] = useState<EinstellungenAnsichtKey>("uebersicht");
+  const [selectedColorDesign, setSelectedColorDesign] = useState<ColorDesignKey>(() => getStoredColorDesignKey());
   const backendDocsUrl = "/api/docs";
   const backendOpenApiUrl = "/api/openapi.json";
 
@@ -126,6 +161,11 @@ export function EinstellungenPage() {
   });
 
   const sectionMeta = getSectionMeta(selectedAnsicht);
+
+  const handleColorDesignChange = (key: ColorDesignKey) => {
+    setSelectedColorDesign(key);
+    storeAndApplyColorDesign(key);
+  };
 
   const renderSection = () => {
     if (selectedAnsicht === "uebersicht") {
@@ -264,7 +304,7 @@ export function EinstellungenPage() {
               </label>
 
               <label className="field field--full">
-                <span>Wissensordner</span>
+                <span>Laborwissen-Ordner</span>
                 <input
                   value={form.knowledge_path}
                   onChange={(event) =>
@@ -448,6 +488,55 @@ export function EinstellungenPage() {
       return <EinheitenPflegeCard className="card card--soft" />;
     }
 
+    if (selectedAnsicht === "initialdaten") {
+      return (
+        <article className="card card--soft parameter-action-panel">
+          <InitialdatenPanel />
+        </article>
+      );
+    }
+
+    if (selectedAnsicht === "labore") {
+      return <LaborePflegeCard className="card card--soft" />;
+    }
+
+    if (selectedAnsicht === "design") {
+      return (
+        <div className="color-design-grid" role="radiogroup" aria-label="Farbdesign auswählen">
+          {colorDesigns.map((design) => {
+            const isSelected = selectedColorDesign === design.key;
+            return (
+              <button
+                key={design.key}
+                type="button"
+                className={`color-design-card ${isSelected ? "color-design-card--selected" : ""}`}
+                role="radio"
+                aria-checked={isSelected}
+                onClick={() => handleColorDesignChange(design.key)}
+                style={
+                  {
+                    "--design-swatch-a": design.swatches[0],
+                    "--design-swatch-b": design.swatches[1],
+                    "--design-swatch-c": design.swatches[2]
+                  } as CSSProperties
+                }
+              >
+                <span className="color-design-card__swatches" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                </span>
+                <span className="color-design-card__copy">
+                  <strong>{design.name}</strong>
+                  <span>{design.description}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      );
+    }
+
     return (
       <article className="card card--soft parameter-action-panel">
         <div className="parameter-panel__header">
@@ -534,10 +623,31 @@ export function EinstellungenPage() {
           </button>
           <button
             type="button"
+            className={`parameter-toolrail__button ${selectedAnsicht === "design" ? "parameter-toolrail__button--active" : ""}`}
+            onClick={() => setSelectedAnsicht("design")}
+          >
+            Farbdesign
+          </button>
+          <button
+            type="button"
+            className={`parameter-toolrail__button ${selectedAnsicht === "initialdaten" ? "parameter-toolrail__button--active" : ""}`}
+            onClick={() => setSelectedAnsicht("initialdaten")}
+          >
+            Initialdaten
+          </button>
+          <button
+            type="button"
             className={`parameter-toolrail__button ${selectedAnsicht === "einheiten" ? "parameter-toolrail__button--active" : ""}`}
             onClick={() => setSelectedAnsicht("einheiten")}
           >
             Einheiten
+          </button>
+          <button
+            type="button"
+            className={`parameter-toolrail__button ${selectedAnsicht === "labore" ? "parameter-toolrail__button--active" : ""}`}
+            onClick={() => setSelectedAnsicht("labore")}
+          >
+            Labore
           </button>
           <button
             type="button"

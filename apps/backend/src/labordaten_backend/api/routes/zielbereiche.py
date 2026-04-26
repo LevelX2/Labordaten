@@ -27,3 +27,14 @@ def create_zielbereich(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
+
+@router.patch("/zielbereiche/{zielbereich_id}", response_model=schemas.ZielbereichRead)
+def update_zielbereich(
+    zielbereich_id: str,
+    payload: schemas.ZielbereichUpdate,
+    db: Session = Depends(get_db),
+) -> schemas.ZielbereichRead:
+    try:
+        return service.update_zielbereich(db, zielbereich_id, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc

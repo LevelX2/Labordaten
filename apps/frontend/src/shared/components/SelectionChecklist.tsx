@@ -18,6 +18,7 @@ type SelectionChecklistProps = {
   searchPlaceholder?: string;
   showSelectedOnlyToggle?: boolean;
   selectedOnlyLabel?: string;
+  compactWhenEmptyCollapsed?: boolean;
 };
 
 function buildSelectionOptionSearchText(option: SelectionOption): string {
@@ -35,7 +36,8 @@ export function SelectionChecklist({
   searchable = false,
   searchPlaceholder,
   showSelectedOnlyToggle = false,
-  selectedOnlyLabel = "Nur ausgewählte"
+  selectedOnlyLabel = "Nur ausgewählte",
+  compactWhenEmptyCollapsed = false
 }: SelectionChecklistProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSelectedOnly, setShowSelectedOnly] = useState(false);
@@ -65,7 +67,16 @@ export function SelectionChecklist({
   const canDeselectActionOptions =
     actionOptions.length > 0 && actionOptions.some((option) => selectedIdSet.has(option.id));
   const visibilitySummary = isLocalFilterActive ? `${visibleOptions.length} sichtbar` : null;
-  const toggleHint = [visibilitySummary, isExpanded ? "Liste einklappen" : "Liste aufklappen"].filter(Boolean).join(" • ");
+  const isCompactEmptyCollapsed = collapsible && compactWhenEmptyCollapsed && selectedCount === 0 && !isExpanded;
+  const toggleTitle =
+    selectedCount === 0
+      ? isCompactEmptyCollapsed
+        ? label
+        : "Keine Auswahl"
+      : selectedCount === options.length && options.length > 0
+        ? "Alle ausgewählt"
+        : `${selectedCount} von ${options.length} ausgewählt`;
+  const toggleHint = visibilitySummary ?? (isExpanded ? "Offen" : "Bereit");
   const toolbarSummary = [selectedCount === options.length && options.length > 0 ? "Alle ausgewählt" : `${selectedCount} von ${options.length} ausgewählt`, visibilitySummary]
     .filter(Boolean)
     .join(" • ");
@@ -78,9 +89,9 @@ export function SelectionChecklist({
       : emptyText;
 
   return (
-    <div className="field field--full">
-      <span>{label}</span>
-      <div className="selection-checklist">
+    <div className={`field field--full${isCompactEmptyCollapsed ? " field--compact-selection" : ""}`}>
+      {isCompactEmptyCollapsed ? null : <span>{label}</span>}
+      <div className={`selection-checklist${isCompactEmptyCollapsed ? " selection-checklist--compact-empty" : ""}`}>
         {collapsible ? (
           <button
             type="button"
@@ -89,8 +100,8 @@ export function SelectionChecklist({
             aria-expanded={isExpanded}
           >
             <span>
-              <strong>{selectedCount} von {options.length} ausgewählt</strong>
-              <small>{toggleHint}</small>
+              <strong>{toggleTitle}</strong>
+              {isCompactEmptyCollapsed ? null : <small>{toggleHint}</small>}
             </span>
             <span className="selection-checklist__chevron" aria-hidden="true">
               ▾
@@ -192,11 +203,9 @@ export function SelectionChecklist({
               );
             })}
           </div>
-        ) : hasOptions ? (
-          <p className="selection-checklist__empty">Liste eingeklappt. Bei Bedarf aufklappen.</p>
-        ) : (
+        ) : !hasOptions ? (
           <p className="selection-checklist__empty">{emptyText}</p>
-        )}
+        ) : null}
         {hasOptions && isExpanded && visibleOptions.length === 0 ? (
           <p className="selection-checklist__empty">{visibleEmptyText}</p>
         ) : null}

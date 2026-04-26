@@ -6,7 +6,11 @@ from pydantic import BaseModel, ConfigDict
 class GruppeCreate(BaseModel):
     name: str
     beschreibung: str | None = None
-    sortierschluessel: str | None = None
+
+
+class GruppeUpdate(BaseModel):
+    name: str
+    beschreibung: str | None = None
 
 
 class GruppeRead(BaseModel):
@@ -15,7 +19,6 @@ class GruppeRead(BaseModel):
     id: str
     name: str
     beschreibung: str | None = None
-    sortierschluessel: str | None = None
     aktiv: bool
     erstellt_am: datetime
     geaendert_am: datetime

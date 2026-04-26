@@ -1,8 +1,12 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
+from labordaten_backend.api.deps import get_db
 from labordaten_backend.core.config import get_settings
 from labordaten_backend.core.runtime_settings import RuntimeSettingsModel
+from labordaten_backend.modules.initialdaten import schemas as initialdaten_schemas
+from labordaten_backend.modules.initialdaten import service as initialdaten_service
 
 router = APIRouter()
 
@@ -49,3 +53,19 @@ def get_lock_status(request: Request) -> dict[str, object]:
 def reset_lock(request: Request) -> dict[str, object]:
     request.app.state.lock_manager.reset()
     return request.app.state.lock_manager.status_payload()
+
+
+@router.get("/system/initialdaten/status", response_model=initialdaten_schemas.InitialdatenStatusRead)
+def get_initialdaten_status(db: Session = Depends(get_db)) -> initialdaten_schemas.InitialdatenStatusRead:
+    return initialdaten_service.get_initialdaten_status(db)
+
+
+@router.post("/system/initialdaten/anwenden", response_model=initialdaten_schemas.InitialdatenApplyResult)
+def apply_initialdaten(
+    payload: initialdaten_schemas.InitialdatenApplyRequest,
+    db: Session = Depends(get_db),
+) -> initialdaten_schemas.InitialdatenApplyResult:
+    try:
+        return initialdaten_service.apply_initialdaten(db, aktualisieren=payload.aktualisieren)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc

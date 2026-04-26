@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from labordaten_backend.api.deps import get_db
+from labordaten_backend.api.validation import validate_date_range
 from labordaten_backend.modules.auswertung import schemas, service
 
 router = APIRouter(prefix="/auswertung")
@@ -17,6 +18,7 @@ def auswertung_verlauf(
     payload: schemas.AuswertungRequest,
     db: Session = Depends(get_db),
 ) -> schemas.AuswertungResponse:
+    validate_date_range(payload.datum_von, payload.datum_bis)
     try:
         return service.build_auswertung(db, payload)
     except ValueError as exc:

@@ -105,6 +105,18 @@ def list_pruefpunkte(import_id: str, db: Session = Depends(get_db)) -> list[sche
     return service.list_pruefpunkte(db, import_id)
 
 
+@router.patch("/{import_id}/pruefentscheidung", response_model=schemas.ImportvorgangDetailRead)
+def update_import_pruefentscheidung(
+    import_id: str,
+    payload: schemas.ImportPruefentscheidungRequest,
+    db: Session = Depends(get_db),
+) -> schemas.ImportvorgangDetailRead:
+    try:
+        return service.update_import_pruefentscheidung(db, import_id, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
 @router.post("/{import_id}/uebernehmen", response_model=schemas.ImportvorgangDetailRead)
 def uebernehmen_import(
     import_id: str,

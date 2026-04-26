@@ -1,0 +1,27 @@
+# Omega-3-Index
+
+## Kurzdefinition
+Anteil wichtiger Omega-3-Fettsäuren in Zellmembranen; wird oft als Marker der Omega-3-Versorgung genutzt.
+
+## Bedeutung
+Noch fachlich zu ergänzen.
+
+## KSG-Einordnung
+- Primär: gesundmachwert
+- Zusatzrollen: noch zu prüfen
+
+## Messung und Einheit
+- Werttyp: numerisch
+- Führende Normeinheit: %
+
+## Sinnvoll gemeinsam messen
+- Noch zu ergänzen.
+
+## Verlauf und Zielbereiche
+Noch zu ergänzen.
+
+## Grenzen der Interpretation
+Noch zu ergänzen.
+
+## Verwandte Seiten
+- [[KSG-Systematik]]

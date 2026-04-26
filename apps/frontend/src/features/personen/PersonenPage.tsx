@@ -2,10 +2,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
 import { apiFetch } from "../../shared/api/client";
-import { buildPersonCreatePayload } from "../../shared/api/payloadBuilders";
+import { buildPersonCreatePayload, buildPersonUpdatePayload } from "../../shared/api/payloadBuilders";
 import {
+  PERSON_BLUTGRUPPE_OPTIONS,
   PERSON_GESCHLECHT_OPTIONS,
-  formatGeschlechtCode
+  PERSON_RHESUSFAKTOR_OPTIONS,
+  formatBlutgruppe,
+  formatGeschlechtCode,
+  formatRhesusfaktor
 } from "../../shared/constants/fieldOptions";
 import { LoeschAktionPanel } from "../../shared/components/LoeschAktionPanel";
 import type { Parameter, Person, WertTyp, Zielbereich, ZielbereichOverride } from "../../shared/types/api";
@@ -15,6 +19,8 @@ type PersonFormState = {
   vollname: string;
   geburtsdatum: string;
   geschlecht_code: string;
+  blutgruppe: string;
+  rhesusfaktor: string;
   hinweise_allgemein: string;
 };
 
@@ -30,13 +36,15 @@ type OverrideFormState = {
   bemerkung: string;
 };
 
-type PersonenPanelKey = "create" | "override" | "delete";
+type PersonenPanelKey = "create" | "edit" | "override" | "delete";
 
 const initialForm: PersonFormState = {
   anzeigename: "",
   vollname: "",
   geburtsdatum: "",
   geschlecht_code: "",
+  blutgruppe: "",
+  rhesusfaktor: "",
   hinweise_allgemein: ""
 };
 
@@ -214,6 +222,23 @@ export function PersonenPage() {
     }
   });
 
+  const updateMutation = useMutation({
+    mutationFn: () => {
+      if (!selectedPersonId) {
+        throw new Error("Bitte zuerst eine Person auswählen.");
+      }
+      return apiFetch<Person>(`/api/personen/${selectedPersonId}`, {
+        method: "PATCH",
+        body: JSON.stringify(buildPersonUpdatePayload(form))
+      });
+    },
+    onSuccess: async (person) => {
+      setSelectedPersonId(person.id);
+      setActivePanel(null);
+      await queryClient.invalidateQueries({ queryKey: ["personen"] });
+    }
+  });
+
   const createOverrideMutation = useMutation({
     mutationFn: () =>
       apiFetch<ZielbereichOverride>(`/api/personen/${overrideForm.person_id}/zielbereich-overrides`, {
@@ -246,6 +271,20 @@ export function PersonenPage() {
   });
 
   const handleOpenPanel = (panel: PersonenPanelKey) => {
+    if (panel === "create") {
+      setForm(initialForm);
+    }
+    if (panel === "edit" && selectedPerson) {
+      setForm({
+        anzeigename: selectedPerson.anzeigename,
+        vollname: selectedPerson.vollname ?? "",
+        geburtsdatum: selectedPerson.geburtsdatum,
+        geschlecht_code: selectedPerson.geschlecht_code ?? "",
+        blutgruppe: selectedPerson.blutgruppe ?? "",
+        rhesusfaktor: selectedPerson.rhesusfaktor ?? "",
+        hinweise_allgemein: selectedPerson.hinweise_allgemein ?? ""
+      });
+    }
     setActivePanel((current) => (current === panel ? null : panel));
   };
 
@@ -266,21 +305,30 @@ export function PersonenPage() {
       return null;
     }
 
-    if (activePanel === "create") {
+    if (activePanel === "create" || activePanel === "edit") {
+      const isEditMode = activePanel === "edit";
       return (
         <article className="card card--soft parameter-action-panel">
           <div className="parameter-panel__header">
             <div>
-              <h3>Neue Person</h3>
-              <p>Personen bilden die persönliche Ebene für Messwerte, Planung, Berichte und individuelle Zielbereiche.</p>
+              <h3>{isEditMode ? "Person bearbeiten" : "Neue Person"}</h3>
+              <p>
+                {isEditMode
+                  ? "Ändere hier fachliche Stammdaten der ausgewählten Person. Messwerte, Befunde und technische ID bleiben unverändert."
+                  : "Personen bilden die persönliche Ebene für Messwerte, Planung, Berichte und individuelle Zielbereiche."}
+              </p>
             </div>
-            {renderPanelCloseButton("Panel Neue Person schließen")}
+            {renderPanelCloseButton(isEditMode ? "Panel Person bearbeiten schließen" : "Panel Neue Person schließen")}
           </div>
           <form
             className="form-grid"
             onSubmit={(event) => {
               event.preventDefault();
-              createMutation.mutate();
+              if (isEditMode) {
+                updateMutation.mutate();
+              } else {
+                createMutation.mutate();
+              }
             }}
           >
             <label className="field">
@@ -324,6 +372,34 @@ export function PersonenPage() {
               </select>
             </label>
 
+            <label className="field">
+              <span>Blutgruppe</span>
+              <select
+                value={form.blutgruppe}
+                onChange={(event) => setForm((current) => ({ ...current, blutgruppe: event.target.value }))}
+              >
+                {PERSON_BLUTGRUPPE_OPTIONS.map((option) => (
+                  <option key={option.value || "empty"} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field">
+              <span>Rhesusfaktor</span>
+              <select
+                value={form.rhesusfaktor}
+                onChange={(event) => setForm((current) => ({ ...current, rhesusfaktor: event.target.value }))}
+              >
+                {PERSON_RHESUSFAKTOR_OPTIONS.map((option) => (
+                  <option key={option.value || "empty"} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
             <label className="field field--full">
               <span>Hinweise</span>
               <textarea
@@ -334,10 +410,15 @@ export function PersonenPage() {
             </label>
 
             <div className="form-actions">
-              <button type="submit" disabled={createMutation.isPending}>
-                {createMutation.isPending ? "Speichert..." : "Person anlegen"}
+              <button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+                {createMutation.isPending || updateMutation.isPending
+                  ? "Speichert..."
+                  : isEditMode
+                    ? "Person speichern"
+                    : "Person anlegen"}
               </button>
               {createMutation.isError ? <p className="form-error">{createMutation.error.message}</p> : null}
+              {updateMutation.isError ? <p className="form-error">{updateMutation.error.message}</p> : null}
             </div>
           </form>
         </article>
@@ -613,6 +694,13 @@ export function PersonenPage() {
                   </button>
                   <button
                     type="button"
+                    className={`parameter-toolrail__button ${activePanel === "edit" ? "parameter-toolrail__button--active" : ""}`}
+                    onClick={() => handleOpenPanel("edit")}
+                  >
+                    Bearbeiten
+                  </button>
+                  <button
+                    type="button"
                     className={`parameter-toolrail__button ${activePanel === "override" ? "parameter-toolrail__button--active" : ""}`}
                     onClick={() => handleOpenPanel("override")}
                   >
@@ -665,6 +753,14 @@ export function PersonenPage() {
                   <div className="detail-grid__item">
                     <span>Geschlecht</span>
                     <strong>{formatGeschlechtCode(selectedPerson.geschlecht_code, "Nicht angegeben")}</strong>
+                  </div>
+                  <div className="detail-grid__item">
+                    <span>Blutgruppe</span>
+                    <strong>{formatBlutgruppe(selectedPerson.blutgruppe, "Nicht hinterlegt")}</strong>
+                  </div>
+                  <div className="detail-grid__item">
+                    <span>Rhesusfaktor</span>
+                    <strong>{formatRhesusfaktor(selectedPerson.rhesusfaktor, "Nicht hinterlegt")}</strong>
                   </div>
                 </div>
 
