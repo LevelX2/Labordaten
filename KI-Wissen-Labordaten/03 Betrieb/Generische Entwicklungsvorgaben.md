@@ -130,6 +130,9 @@ Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitp
 - Technische Schlüssel für neue Stammdatensätze sollten nach Möglichkeit automatisch aus fachlich sichtbaren Namen erzeugt werden, statt standardmäßig manuell eingegeben zu werden.
 - Das reduziert Tippfehler, inkonsistente Benennungen und vermeidbare Dubletten.
 - Bei Namensgleichheit sollte die technische Eindeutigkeit automatisch durch Suffixe oder eine vergleichbare Fortsetzungslogik gesichert werden.
+- Bestehende Stammdatensätze sollten fachlich sinnvolle Attribute nachträglich bearbeiten lassen, wenn dadurch Verknüpfungen, Historie und referenzierende Arbeitsbereiche stabil bleiben.
+- Technische IDs, automatisch erzeugte interne Schlüssel, Provenienzanker und Roh-/Originaldaten aus Befunden oder Importen gehören nicht in normale Stammdaten-Bearbeitungsformulare.
+- Wenn eine Stammdatenänderung materialisierte Ableitungen beeinflusst, muss die Änderung entweder eine konsistente Neuberechnung auslösen oder bewusst als fachlich unsicherer Spezialworkflow zurückgestellt werden.
 
 ## Start- und Übersichtsseiten
 - Startseiten in arbeitsorientierten Fachsystemen sollten vor allem den nächsten sinnvollen Arbeitsschritt sichtbar machen und nicht primär die technische Implementierung erklären.

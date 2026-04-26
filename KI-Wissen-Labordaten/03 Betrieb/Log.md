@@ -11,6 +11,38 @@
 
 ## 2026-04
 
+### [2026-04-26] update | Stammdaten-Bearbeitbarkeit geprüft und erste Lücken geschlossen
+- Anlass oder Quelle: Nutzerauftrag, alle Stammdatenbereiche auf sinnvolle nachträgliche Bearbeitbarkeit zu prüfen und klare risikoarme Lücken direkt zu schließen.
+- Neu angelegte Seiten:
+  - ../02 Wissen/Begriffe und Konzepte/Ist-Stand Stammdaten-Bearbeitbarkeit.md
+  - ../../../apps/backend/tests/test_masterdata_editing_api.py
+  - ../../../apps/frontend/src/shared/components/LaborePflegeCard.tsx
+- Geänderte Seiten:
+  - ../../../apps/backend/src/labordaten_backend/api/routes/personen.py
+  - ../../../apps/backend/src/labordaten_backend/api/routes/labore.py
+  - ../../../apps/backend/src/labordaten_backend/api/routes/zielbereiche.py
+  - ../../../apps/backend/src/labordaten_backend/modules/personen/schemas.py
+  - ../../../apps/backend/src/labordaten_backend/modules/personen/service.py
+  - ../../../apps/backend/src/labordaten_backend/modules/labore/schemas.py
+  - ../../../apps/backend/src/labordaten_backend/modules/labore/service.py
+  - ../../../apps/backend/src/labordaten_backend/modules/zielbereiche/schemas.py
+  - ../../../apps/backend/src/labordaten_backend/modules/zielbereiche/service.py
+  - ../../../apps/frontend/src/features/personen/PersonenPage.tsx
+  - ../../../apps/frontend/src/features/parameter/ParameterPage.tsx
+  - ../../../apps/frontend/src/features/einstellungen/EinstellungenPage.tsx
+  - ../../../apps/frontend/src/shared/api/payloadBuilders.ts
+  - ../../../apps/frontend/src/shared/types/api.ts
+  - ../02 Wissen/00 Uebersichten/Index.md
+  - ../02 Wissen/00 Uebersichten/Aktueller Projektstatus.md
+  - ../02 Wissen/Begriffe und Konzepte/V1 Screenplan und Kernworkflows.md
+  - ../03 Betrieb/Generische Entwicklungsvorgaben.md
+- Kern der inhaltlichen Anpassung:
+  - Personenstammdaten können über `PATCH /api/personen/{person_id}` und ein Bearbeiten-Werkzeug geändert werden.
+  - Laborstammdaten können über `PATCH /api/labore/{labor_id}` und den neuen Einstellungsbereich `Labore` geändert werden.
+  - Allgemeine Zielbereiche können über `PATCH /api/zielbereiche/{zielbereich_id}` und eine Bearbeiten-Aktion in der Parameterseite geändert werden; Parameterbezug, technische ID und Werttyp bleiben stabil.
+  - Die Befundliste hält fest, welche Stammdatenattribute bereits bearbeitbar sind, welche bewusst nicht bearbeitet werden sollen und welche offenen Lücken fachlich noch zu entscheiden sind.
+  - Verifiziert mit `python -m pytest tests/test_masterdata_editing_api.py tests/test_gruppen_api.py tests/test_units.py`, `npm test -- --run` und `npm run build`.
+
 ### [2026-04-26] update | PDF-Merkzettel mit Branding und Seitenzahlen ergänzt
 - Anlass oder Quelle: Nutzerhinweis, dass der Merkzettel als App-Ausgabe erkennbar sein und bei mehreren Seiten Seitennummern enthalten soll.
 - Neu angelegte Seiten:
