@@ -107,6 +107,7 @@ Die V1-Oberfläche soll arbeitsbereichsorientiert und sachlich aufgebaut sein. D
 - Person anlegen oder bearbeiten
 - Basisdateneintrag hinzufügen
 - Personenspezifischen Zielbereich überschreiben
+- Bestehende Personenstammdaten wie Anzeigename, Vollname, Geburtsdatum, Geschlecht, Blutgruppe, Rhesusfaktor und allgemeine Hinweise bearbeiten, ohne technische ID oder vorhandene Befunde umzuhängen
 
 ## Befunde
 
@@ -170,6 +171,7 @@ Die V1-Oberfläche soll arbeitsbereichsorientiert und sachlich aufgebaut sein. D
 - `Synonym hinzufügen`
 - `Umrechnungsregel hinzufügen`
 - `Zielbereich anlegen`
+- bestehenden Zielbereich bearbeiten, wobei Parameterbezug, technische ID und Werttyp stabil bleiben
 
 ## Gruppen
 
@@ -321,6 +323,7 @@ Die V1-Oberfläche soll arbeitsbereichsorientiert und sachlich aufgebaut sein. D
 - Dokumentenpfad
 - Wissensordner
 - Standardanzeigeeinheiten
+- Labore als zentrale Stammdaten mit Name, Adresse, Bemerkung, Bearbeitung und Löschprüfung
 - Importoptionen
 - Berichtspräferenzen
 - spätere KI-Einstellungen

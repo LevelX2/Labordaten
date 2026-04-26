@@ -25,6 +25,7 @@ Diese Seite beschreibt den aktuellen Projektstand als Snapshot. Zeitliche Abfolg
 ## Umgesetzt
 - Das lokale V1-Grundgerüst mit Backend, Frontend, Vertragsdateien, Migrationen und projektbezogener Wissensbasis ist vorhanden.
 - Personen, Parameter, Befunde und Messwerte funktionieren als echte API- und UI-Durchstiche.
+- Personenstammdaten, Laborstammdaten, Gruppen und allgemeine Zielbereiche sind als bestehende Stammdaten nachträglich bearbeitbar, ohne technische IDs oder historische Messdaten umzuhängen.
 - Referenzen, Zielbereiche und personenspezifische Zielbereichs-Overrides sind umgesetzt.
 - Planung mit zyklischen Kontrollen, Einmalvormerkungen, Fälligkeitsberechnung, konsolidierter Vorschlagsliste, Zeitraumansicht für kommende Fälligkeiten und PDF-Merkzettel für anstehende Messungen ist umgesetzt.
 - Die Planungsanlage kann Parameter über eine suchbare Mehrfachauswahl auswählen und Gruppen als Eingabehilfe übernehmen; gespeichert bleiben einzelne Planungen pro Parameter.
@@ -52,6 +53,7 @@ Diese Seite beschreibt den aktuellen Projektstand als Snapshot. Zeitliche Abfolg
 - Der Import produktivisiert bereits einen assistierten Laborbericht-Workflow über JSON, CSV, Excel und externen KI-Chat-Prompt, setzt für gescannte PDFs aber weiterhin eine externe Extraktion oder manuelle Aufbereitung voraus.
 - Die Berichts- und Auswertungslogik nutzt bereits normierte Werte und Anzeigeeinheiten in passenden Fällen, ist aber noch nicht in allen fachlichen Darstellungen gleich tief ausgebaut.
 - Die Wissensverknüpfung ist für Parameter umgesetzt, aber noch nicht tief in Gruppen-, Import- und Berichtsdarstellungen integriert.
+- Einige Stammdaten-Kindobjekte sind noch nicht direkt bearbeitbar, darunter Parameter- und Einheiten-Aliase, personenspezifische Zielbereichs-Overrides, Umrechnungsregeln und KSG-Zusatzrollen.
 - Die zentrale Löschlogik deckt viele Kernobjekte ab, ist aber noch nicht auf Dokumente, Wissensseiten und einige Betriebsobjekte ausgedehnt.
 
 ## Offen
