@@ -67,6 +67,7 @@ class MesswertRead(BaseModel):
     pruefbedarf_flag: bool
     person_anzeigename: str | None = None
     parameter_anzeigename: str | None = None
+    parameter_primaere_klassifikation: str | None = None
     labor_id: str | None = None
     labor_name: str | None = None
     entnahmedatum: str | None = None

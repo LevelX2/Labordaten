@@ -2,6 +2,7 @@ type SharedFilterValues = {
   person_ids: string[];
   laborparameter_ids: string[];
   gruppen_ids: string[];
+  klassifikationen?: string[];
   labor_ids: string[];
   datum_von: string;
   datum_bis: string;
@@ -20,6 +21,7 @@ export function applySharedFilterSearchParams<T extends SharedFilterValues>(
     person_ids: readAll(searchParams, "person_ids"),
     laborparameter_ids: readAll(searchParams, "laborparameter_ids"),
     gruppen_ids: readAll(searchParams, "gruppen_ids"),
+    ...(Array.isArray(base.klassifikationen) ? { klassifikationen: readAll(searchParams, "klassifikationen") } : {}),
     labor_ids: readAll(searchParams, "labor_ids"),
     datum_von: searchParams.get("datum_von") ?? base.datum_von,
     datum_bis: searchParams.get("datum_bis") ?? base.datum_bis
@@ -32,6 +34,7 @@ export function buildSharedFilterSearchParams(filter: SharedFilterValues): URLSe
   filter.person_ids.forEach((value) => searchParams.append("person_ids", value));
   filter.laborparameter_ids.forEach((value) => searchParams.append("laborparameter_ids", value));
   filter.gruppen_ids.forEach((value) => searchParams.append("gruppen_ids", value));
+  filter.klassifikationen?.forEach((value) => searchParams.append("klassifikationen", value));
   filter.labor_ids.forEach((value) => searchParams.append("labor_ids", value));
 
   if (filter.datum_von) {

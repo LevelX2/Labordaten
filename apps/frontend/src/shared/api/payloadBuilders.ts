@@ -7,6 +7,7 @@ import type {
   WertOperator,
   WertTyp,
   ZielbereichCreatePayload,
+  ZielbereichTyp,
 } from "../types/api";
 
 type PersonPayloadInput = {
@@ -46,6 +47,7 @@ type ReferenzPayloadInput = {
 
 type ZielbereichPayloadInput = {
   wert_typ: WertTyp;
+  zielbereich_typ: ZielbereichTyp;
   untere_grenze_num: string;
   obere_grenze_num: string;
   einheit: string;
@@ -123,6 +125,7 @@ export function buildZielbereichCreatePayload(
 ): ZielbereichCreatePayload {
   return {
     wert_typ: input.wert_typ,
+    zielbereich_typ: input.zielbereich_typ,
     untere_grenze_num: input.wert_typ === "numerisch" ? stringNumberToNull(input.untere_grenze_num) : null,
     obere_grenze_num: input.wert_typ === "numerisch" ? stringNumberToNull(input.obere_grenze_num) : null,
     einheit: input.wert_typ === "numerisch" ? emptyToNull(input.einheit) ?? fallbackEinheit ?? null : null,

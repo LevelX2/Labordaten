@@ -104,6 +104,10 @@
             "enum": ["numerisch", "text"]
           },
           "standardEinheit": { "type": "string" },
+          "primaereKlassifikation": {
+            "type": "string",
+            "enum": ["krankwert", "schluesselwert", "gesundmachwert"]
+          },
           "beschreibungKurz": { "type": "string" },
           "moeglicheAliase": {
             "type": "array",

@@ -4,8 +4,10 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, field_validator
 
 from labordaten_backend.core.field_options import (
+    PARAMETER_KLASSIFIKATIONEN,
     UMRECHNUNGSREGEL_TYPEN,
     WERT_TYPEN,
+    validate_optional_code,
     validate_required_code,
 )
 
@@ -19,12 +21,22 @@ class ParameterCreate(BaseModel):
     beschreibung: str | None = None
     standard_einheit: str | None = None
     wert_typ_standard: str = "numerisch"
+    primaere_klassifikation: str | None = None
     sortierschluessel: str | None = None
 
     @field_validator("wert_typ_standard")
     @classmethod
     def validate_wert_typ_standard(cls, value: str) -> str:
         return validate_required_code(value, valid_values=WERT_TYPEN, field_label="Werttyp")
+
+    @field_validator("primaere_klassifikation")
+    @classmethod
+    def validate_primaere_klassifikation(cls, value: str | None) -> str | None:
+        return validate_optional_code(
+            value,
+            valid_values=PARAMETER_KLASSIFIKATIONEN,
+            field_label="Primäre Klassifikation",
+        )
 
 
 class ParameterRead(BaseModel):
@@ -36,6 +48,7 @@ class ParameterRead(BaseModel):
     beschreibung: str | None = None
     standard_einheit: str | None = None
     wert_typ_standard: str
+    primaere_klassifikation: str | None = None
     sortierschluessel: str | None = None
     aktiv: bool
     erstellt_am: datetime
@@ -45,6 +58,25 @@ class ParameterRead(BaseModel):
 
 class ParameterStandardEinheitUpdate(BaseModel):
     standard_einheit: str | None = None
+
+
+class ParameterPrimaereKlassifikationUpdate(BaseModel):
+    primaere_klassifikation: str | None = None
+
+    @field_validator("primaere_klassifikation")
+    @classmethod
+    def validate_primaere_klassifikation(cls, value: str | None) -> str | None:
+        return validate_optional_code(
+            value,
+            valid_values=PARAMETER_KLASSIFIKATIONEN,
+            field_label="Primäre Klassifikation",
+        )
+
+
+class ParameterPrimaereKlassifikationUpdateResult(BaseModel):
+    parameter_id: str
+    parameter_anzeigename: str
+    primaere_klassifikation: str | None = None
 
 
 class ParameterStandardEinheitUpdateResult(BaseModel):
@@ -69,6 +101,34 @@ class ParameterAliasRead(BaseModel):
     bemerkung: str | None = None
     erstellt_am: datetime
     geaendert_am: datetime
+
+
+class ParameterKlassifikationCreate(BaseModel):
+    klassifikation: str
+    kontext_beschreibung: str | None = None
+    begruendung: str | None = None
+
+    @field_validator("klassifikation")
+    @classmethod
+    def validate_klassifikation(cls, value: str) -> str:
+        return validate_required_code(value, valid_values=PARAMETER_KLASSIFIKATIONEN, field_label="Klassifikation")
+
+
+class ParameterKlassifikationRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    laborparameter_id: str
+    klassifikation: str
+    kontext_beschreibung: str | None = None
+    begruendung: str | None = None
+    aktiv: bool
+    erstellt_am: datetime
+    geaendert_am: datetime
+
+
+class ParameterKlassifikationDeleteResult(BaseModel):
+    klassifikation_id: str
 
 
 class ParameterAliasSuggestionRead(BaseModel):
@@ -139,6 +199,7 @@ class ParameterUsageSummaryRead(BaseModel):
     interner_schluessel: str
     standard_einheit: str | None = None
     wert_typ_standard: str
+    primaere_klassifikation: str | None = None
     messwerte_anzahl: int = 0
     gruppen_anzahl: int = 0
     zielbereiche_anzahl: int = 0

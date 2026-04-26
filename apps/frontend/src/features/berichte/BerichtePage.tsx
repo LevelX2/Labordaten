@@ -6,6 +6,10 @@ import { apiFetch, apiFetchBlob } from "../../shared/api/client";
 import { DateRangeFilterFields } from "../../shared/components/DateRangeFilterFields";
 import { MesswertDetailCard } from "../../shared/components/MesswertDetailCard";
 import { SelectionChecklist } from "../../shared/components/SelectionChecklist";
+import {
+  PARAMETER_KLASSIFIKATION_OPTIONS,
+  formatParameterKlassifikation
+} from "../../shared/constants/fieldOptions";
 import { getDefaultDateRange } from "../../shared/utils/dateRangeDefaults";
 import { applySharedFilterSearchParams } from "../../shared/utils/filterNavigation";
 import type {
@@ -13,6 +17,7 @@ import type {
   Gruppe,
   Labor,
   Parameter,
+  ParameterKlassifikationCode,
   Person,
   VerlaufsberichtResponse
 } from "../../shared/types/api";
@@ -23,6 +28,7 @@ type BerichtFormState = {
   person_ids: string[];
   laborparameter_ids: string[];
   gruppen_ids: string[];
+  klassifikationen: ParameterKlassifikationCode[];
   labor_ids: string[];
   datum_von: string;
   datum_bis: string;
@@ -39,6 +45,7 @@ const initialForm: BerichtFormState = {
   person_ids: [],
   laborparameter_ids: [],
   gruppen_ids: [],
+  klassifikationen: [],
   labor_ids: [],
   datum_von: defaultDateRange.datum_von,
   datum_bis: defaultDateRange.datum_bis,
@@ -114,6 +121,9 @@ function buildFilterSummary(form: BerichtFormState): string[] {
   if (form.laborparameter_ids.length) {
     summary.push(formatCount(form.laborparameter_ids.length, "Parameter", "Parameter"));
   }
+  if (form.klassifikationen.length) {
+    summary.push(formatCount(form.klassifikationen.length, "KSG-Klasse", "KSG-Klassen"));
+  }
   if (form.labor_ids.length) {
     summary.push(formatCount(form.labor_ids.length, "Labor", "Labore"));
   }
@@ -171,6 +181,7 @@ export function BerichtePage() {
     person_ids: form.person_ids,
     laborparameter_ids: form.laborparameter_ids,
     gruppen_ids: form.gruppen_ids,
+    klassifikationen: form.klassifikationen,
     labor_ids: form.labor_ids,
     datum_von: form.datum_von || null,
     datum_bis: form.datum_bis || null,
@@ -184,6 +195,7 @@ export function BerichtePage() {
     person_ids: form.person_ids,
     laborparameter_ids: form.laborparameter_ids,
     gruppen_ids: form.gruppen_ids,
+    klassifikationen: form.klassifikationen,
     labor_ids: form.labor_ids,
     datum_von: form.datum_von || null,
     datum_bis: form.datum_bis || null
@@ -360,6 +372,7 @@ export function BerichtePage() {
                 <tr>
                   <th>Person</th>
                   <th>Parameter</th>
+                  <th>KSG</th>
                   <th>Datum</th>
                   <th>Wert</th>
                   <th>Referenz</th>
@@ -375,6 +388,7 @@ export function BerichtePage() {
                   >
                     <td>{item.person_anzeigename}</td>
                     <td>{item.parameter_anzeigename}</td>
+                    <td>{formatParameterKlassifikation(item.parameter_primaere_klassifikation)}</td>
                     <td>{formatDate(item.datum)}</td>
                     <td>{[item.wert_anzeige, item.einheit].filter(Boolean).join(" ")}</td>
                     <td>{item.referenzbereich || "—"}</td>
@@ -383,7 +397,7 @@ export function BerichtePage() {
                 ))}
                 {!doctorReportMutation.data.eintraege.length ? (
                   <tr>
-                    <td colSpan={6}>Für die aktuelle Auswahl gibt es noch keine passenden Werte.</td>
+                    <td colSpan={7}>Für die aktuelle Auswahl gibt es noch keine passenden Werte.</td>
                   </tr>
                 ) : null}
               </tbody>
@@ -437,6 +451,7 @@ export function BerichtePage() {
               <tr>
                 <th>Person</th>
                 <th>Parameter</th>
+                <th>KSG</th>
                 <th>Datum</th>
                 <th>Typ</th>
                 <th>Wert</th>
@@ -452,6 +467,7 @@ export function BerichtePage() {
                 >
                   <td>{punkt.person_anzeigename}</td>
                   <td>{punkt.parameter_anzeigename}</td>
+                  <td>{formatParameterKlassifikation(punkt.parameter_primaere_klassifikation)}</td>
                   <td>{formatDate(punkt.datum)}</td>
                   <td>{punkt.wert_typ}</td>
                   <td>{[punkt.wert_anzeige, punkt.einheit].filter(Boolean).join(" ")}</td>
@@ -460,7 +476,7 @@ export function BerichtePage() {
               ))}
               {!trendReportMutation.data.punkte.length ? (
                 <tr>
-                  <td colSpan={6}>Für die aktuelle Auswahl gibt es noch keinen Verlauf.</td>
+                  <td colSpan={7}>Für die aktuelle Auswahl gibt es noch keinen Verlauf.</td>
                 </tr>
               ) : null}
             </tbody>
@@ -645,6 +661,24 @@ export function BerichtePage() {
                   />
 
                   <SelectionChecklist
+                    label="KSG-Klassen"
+                    options={PARAMETER_KLASSIFIKATION_OPTIONS.map((option) => ({
+                      id: option.value,
+                      label: option.label
+                    }))}
+                    selectedIds={form.klassifikationen}
+                    onChange={(klassifikationen) =>
+                      setForm((current) => ({
+                        ...current,
+                        klassifikationen: klassifikationen as ParameterKlassifikationCode[]
+                      }))
+                    }
+                    emptyText="Keine KSG-Klassen verfügbar."
+                    collapsible
+                    defaultExpanded={false}
+                  />
+
+                  <SelectionChecklist
                     label="Labore"
                     options={(laboreQuery.data ?? []).map((labor) => ({
                       id: labor.id,
@@ -734,7 +768,8 @@ export function BerichtePage() {
                 <span>Gruppen und Parameter</span>
                 <strong>
                   {formatCount(form.gruppen_ids.length, "Gruppe", "Gruppen")} •{" "}
-                  {formatCount(form.laborparameter_ids.length, "Parameter", "Parameter")}
+                  {formatCount(form.laborparameter_ids.length, "Parameter", "Parameter")} •{" "}
+                  {formatCount(form.klassifikationen.length, "KSG-Klasse", "KSG-Klassen")}
                 </strong>
               </div>
               <div className="detail-grid__item">

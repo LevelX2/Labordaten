@@ -1,12 +1,15 @@
 from datetime import date
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from labordaten_backend.core.field_options import PARAMETER_KLASSIFIKATIONEN, validate_required_code
 
 
 class ArztberichtRequest(BaseModel):
     person_ids: list[str]
     laborparameter_ids: list[str] = []
     gruppen_ids: list[str] = []
+    klassifikationen: list[str] = []
     labor_ids: list[str] = []
     datum_von: date | None = None
     datum_bis: date | None = None
@@ -16,6 +19,14 @@ class ArztberichtRequest(BaseModel):
     include_messwertbemerkung: bool = True
     einheit_auswahl: dict[str, str] = Field(default_factory=dict)
 
+    @field_validator("klassifikationen")
+    @classmethod
+    def validate_klassifikationen(cls, values: list[str]) -> list[str]:
+        return [
+            validate_required_code(value, valid_values=PARAMETER_KLASSIFIKATIONEN, field_label="Klassifikation")
+            for value in values
+        ]
+
 
 class ArztberichtEintrag(BaseModel):
     messwert_id: str
@@ -23,6 +34,7 @@ class ArztberichtEintrag(BaseModel):
     person_anzeigename: str
     laborparameter_id: str
     parameter_anzeigename: str
+    parameter_primaere_klassifikation: str | None = None
     datum: date | None = None
     wert_typ: str
     wert_anzeige: str
@@ -49,10 +61,19 @@ class VerlaufsberichtRequest(BaseModel):
     person_ids: list[str]
     laborparameter_ids: list[str] = []
     gruppen_ids: list[str] = []
+    klassifikationen: list[str] = []
     labor_ids: list[str] = []
     datum_von: date | None = None
     datum_bis: date | None = None
     einheit_auswahl: dict[str, str] = Field(default_factory=dict)
+
+    @field_validator("klassifikationen")
+    @classmethod
+    def validate_klassifikationen(cls, values: list[str]) -> list[str]:
+        return [
+            validate_required_code(value, valid_values=PARAMETER_KLASSIFIKATIONEN, field_label="Klassifikation")
+            for value in values
+        ]
 
 
 class VerlaufsberichtPunkt(BaseModel):
@@ -61,6 +82,7 @@ class VerlaufsberichtPunkt(BaseModel):
     person_anzeigename: str
     laborparameter_id: str
     parameter_anzeigename: str
+    parameter_primaere_klassifikation: str | None = None
     datum: date | None = None
     wert_typ: str
     wert_anzeige: str

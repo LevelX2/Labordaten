@@ -71,6 +71,7 @@ def build_auswertung(db: Session, payload: AuswertungRequest) -> AuswertungRespo
                     messwert_id=messwert.id,
                     person_id=person.id,
                     person_anzeigename=person.anzeigename,
+                    parameter_primaere_klassifikation=parameter.primaere_klassifikation,
                     datum=current_date,
                     wert_typ=messwert.wert_typ,
                     wert_operator=messwert.wert_operator,
@@ -96,6 +97,7 @@ def build_auswertung(db: Session, payload: AuswertungRequest) -> AuswertungRespo
             AuswertungsSerie(
                 laborparameter_id=parameter_id,
                 parameter_anzeigename=parameter.anzeigename,
+                parameter_primaere_klassifikation=parameter.primaere_klassifikation,
                 wert_typ_standard=parameter.wert_typ_standard,
                 standard_einheit=parameter.standard_einheit,
                 statistik=_build_statistics(punkte),
@@ -131,6 +133,8 @@ def _execute_measurement_query(db: Session, payload: AuswertungRequest):
             .distinct()
         )
         stmt = stmt.where(Messwert.laborparameter_id.in_(parameter_subquery))
+    if payload.klassifikationen:
+        stmt = stmt.where(Laborparameter.primaere_klassifikation.in_(payload.klassifikationen))
     if payload.datum_von:
         stmt = stmt.where(Befund.entnahmedatum >= payload.datum_von)
     if payload.datum_bis:

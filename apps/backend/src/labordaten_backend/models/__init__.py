@@ -12,6 +12,7 @@ from labordaten_backend.models.messwert import Messwert
 from labordaten_backend.models.messwert_referenz import MesswertReferenz
 from labordaten_backend.models.parameter_dublettenausschluss import ParameterDublettenausschluss
 from labordaten_backend.models.parameter_gruppe import ParameterGruppe
+from labordaten_backend.models.parameter_klassifikation import ParameterKlassifikation
 from labordaten_backend.models.parameter_umrechnungsregel import ParameterUmrechnungsregel
 from labordaten_backend.models.person import Person
 from labordaten_backend.models.planung_einmalig import PlanungEinmalig
@@ -35,6 +36,7 @@ __all__ = [
     "MesswertReferenz",
     "ParameterDublettenausschluss",
     "ParameterGruppe",
+    "ParameterKlassifikation",
     "ParameterUmrechnungsregel",
     "Person",
     "PlanungEinmalig",

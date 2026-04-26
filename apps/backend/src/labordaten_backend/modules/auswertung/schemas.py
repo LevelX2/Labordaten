@@ -1,6 +1,8 @@
 from datetime import date
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+
+from labordaten_backend.core.field_options import PARAMETER_KLASSIFIKATIONEN, validate_required_code
 
 
 class GesamtzahlenResponse(BaseModel):
@@ -14,11 +16,20 @@ class AuswertungRequest(BaseModel):
     person_ids: list[str]
     laborparameter_ids: list[str] = []
     gruppen_ids: list[str] = []
+    klassifikationen: list[str] = []
     labor_ids: list[str] = []
     datum_von: date | None = None
     datum_bis: date | None = None
     include_laborreferenz: bool = True
     include_zielbereich: bool = True
+
+    @field_validator("klassifikationen")
+    @classmethod
+    def validate_klassifikationen(cls, values: list[str]) -> list[str]:
+        return [
+            validate_required_code(value, valid_values=PARAMETER_KLASSIFIKATIONEN, field_label="Klassifikation")
+            for value in values
+        ]
 
 
 class AuswertungsStatistik(BaseModel):
@@ -37,6 +48,7 @@ class AuswertungPunkt(BaseModel):
     messwert_id: str
     person_id: str
     person_anzeigename: str
+    parameter_primaere_klassifikation: str | None = None
     datum: date | None = None
     wert_typ: str
     wert_operator: str = "exakt"
@@ -60,6 +72,7 @@ class AuswertungPunkt(BaseModel):
 class AuswertungsSerie(BaseModel):
     laborparameter_id: str
     parameter_anzeigename: str
+    parameter_primaere_klassifikation: str | None = None
     wert_typ_standard: str
     standard_einheit: str | None = None
     statistik: AuswertungsStatistik

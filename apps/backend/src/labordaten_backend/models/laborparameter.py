@@ -17,6 +17,6 @@ class Laborparameter(Base, TimestampMixin, ActiveMixin):
     beschreibung: Mapped[str | None] = mapped_column(Text)
     standard_einheit: Mapped[str | None] = mapped_column(String(50))
     wert_typ_standard: Mapped[str] = mapped_column(String(20), nullable=False, default="numerisch")
+    primaere_klassifikation: Mapped[str | None] = mapped_column(String(40))
     wissensseite_id: Mapped[str | None] = mapped_column(ForeignKey("wissensseite.id"))
     sortierschluessel: Mapped[str | None] = mapped_column(String(120))
-

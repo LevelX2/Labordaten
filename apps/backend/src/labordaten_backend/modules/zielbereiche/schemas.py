@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 from labordaten_backend.core.field_options import (
     GESCHLECHT_CODES,
     WERT_TYPEN,
+    ZIELBEREICH_TYPEN,
     validate_optional_code,
     validate_required_code,
 )
@@ -12,6 +13,7 @@ from labordaten_backend.core.field_options import (
 
 class ZielbereichCreate(BaseModel):
     wert_typ: str = "numerisch"
+    zielbereich_typ: str = "allgemein"
     untere_grenze_num: float | None = None
     obere_grenze_num: float | None = None
     einheit: str | None = None
@@ -25,6 +27,11 @@ class ZielbereichCreate(BaseModel):
     @classmethod
     def validate_wert_typ(cls, value: str) -> str:
         return validate_required_code(value, valid_values=WERT_TYPEN, field_label="Werttyp")
+
+    @field_validator("zielbereich_typ")
+    @classmethod
+    def validate_zielbereich_typ(cls, value: str) -> str:
+        return validate_required_code(value, valid_values=ZIELBEREICH_TYPEN, field_label="Zielbereichstyp")
 
     @field_validator("geschlecht_code")
     @classmethod
@@ -46,6 +53,7 @@ class ZielbereichRead(BaseModel):
     id: str
     laborparameter_id: str
     wert_typ: str
+    zielbereich_typ: str
     untere_grenze_num: float | None = None
     obere_grenze_num: float | None = None
     einheit: str | None = None

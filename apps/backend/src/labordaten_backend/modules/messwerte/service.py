@@ -10,6 +10,7 @@ from labordaten_backend.models.laborparameter import Laborparameter
 from labordaten_backend.models.messwert import Messwert
 from labordaten_backend.models.parameter_gruppe import ParameterGruppe
 from labordaten_backend.models.person import Person
+from labordaten_backend.core.field_options import PARAMETER_KLASSIFIKATIONEN
 from labordaten_backend.modules.einheiten import service as einheiten_service
 from labordaten_backend.modules.parameter import conversions as parameter_conversions
 from labordaten_backend.modules.messwerte.schemas import MesswertCreate, MesswertRead
@@ -29,6 +30,7 @@ def list_messwerte(
     befund_ids: list[str] | None = None,
     laborparameter_ids: list[str] | None = None,
     gruppen_ids: list[str] | None = None,
+    klassifikationen: list[str] | None = None,
     labor_ids: list[str] | None = None,
     datum_von=None,
     datum_bis=None,
@@ -47,6 +49,11 @@ def list_messwerte(
         stmt = stmt.where(Messwert.befund_id.in_(befund_ids))
     if laborparameter_ids:
         stmt = stmt.where(Messwert.laborparameter_id.in_(laborparameter_ids))
+    if klassifikationen:
+        invalid_values = sorted(set(klassifikationen).difference(PARAMETER_KLASSIFIKATIONEN))
+        if invalid_values:
+            raise ValueError(f"Ungültige KSG-Klassifikation: {', '.join(invalid_values)}")
+        stmt = stmt.where(Laborparameter.primaere_klassifikation.in_(klassifikationen))
     if labor_ids:
         stmt = stmt.where(Befund.labor_id.in_(labor_ids))
     if datum_von:
@@ -66,39 +73,19 @@ def list_messwerte(
     gruppen_map = _load_group_names(db, [messwert.laborparameter_id for messwert, *_ in rows])
 
     return [
-        MesswertRead(
-            id=messwert.id,
-            person_id=messwert.person_id,
-            befund_id=messwert.befund_id,
-            laborparameter_id=messwert.laborparameter_id,
-            original_parametername=messwert.original_parametername,
-            wert_typ=messwert.wert_typ,
-            wert_operator=messwert.wert_operator,
-            wert_roh_text=messwert.wert_roh_text,
-            wert_num=messwert.wert_num,
-            wert_text=messwert.wert_text,
-            einheit_original=messwert.einheit_original,
-            wert_normiert_num=messwert.wert_normiert_num,
-            einheit_normiert=messwert.einheit_normiert,
-            umrechnungsregel_id=messwert.umrechnungsregel_id,
-            bemerkung_kurz=messwert.bemerkung_kurz,
-            bemerkung_lang=messwert.bemerkung_lang,
-            unsicher_flag=messwert.unsicher_flag,
-            pruefbedarf_flag=messwert.pruefbedarf_flag,
-            person_anzeigename=person.anzeigename,
-            parameter_anzeigename=parameter.anzeigename,
-            labor_id=labor.id if labor is not None else None,
-            labor_name=labor.name if labor is not None else None,
-            entnahmedatum=befund.entnahmedatum.isoformat() if befund.entnahmedatum else None,
+        _build_messwert_read(
+            messwert=messwert,
+            person=person,
+            parameter=parameter,
+            befund=befund,
+            labor=labor,
             gruppen_namen=gruppen_map.get(messwert.laborparameter_id, []),
-            erstellt_am=messwert.erstellt_am,
-            geaendert_am=messwert.geaendert_am,
         )
         for messwert, person, parameter, befund, labor in rows
     ]
 
 
-def create_messwert(db: Session, payload: MesswertCreate) -> Messwert:
+def create_messwert(db: Session, payload: MesswertCreate) -> MesswertRead:
     befund = db.get(Befund, payload.befund_id)
     if befund is None:
         raise ValueError("Der zugehörige Befund existiert nicht.")
@@ -126,11 +113,75 @@ def create_messwert(db: Session, payload: MesswertCreate) -> Messwert:
     db.add(messwert)
     db.commit()
     db.refresh(messwert)
-    return messwert
+    created = get_messwert(db, messwert.id)
+    if created is None:
+        raise ValueError("Der Messwert konnte nach dem Speichern nicht geladen werden.")
+    return created
 
 
-def get_messwert(db: Session, messwert_id: str) -> Messwert | None:
-    return db.get(Messwert, messwert_id)
+def get_messwert(db: Session, messwert_id: str) -> MesswertRead | None:
+    stmt: Select = (
+        select(Messwert, Person, Laborparameter, Befund, Labor)
+        .join(Person, Messwert.person_id == Person.id)
+        .join(Laborparameter, Messwert.laborparameter_id == Laborparameter.id)
+        .join(Befund, Messwert.befund_id == Befund.id)
+        .outerjoin(Labor, Befund.labor_id == Labor.id)
+        .where(Messwert.id == messwert_id)
+    )
+    row = db.execute(stmt).first()
+    if row is None:
+        return None
+
+    messwert, person, parameter, befund, labor = row
+    gruppen_map = _load_group_names(db, [messwert.laborparameter_id])
+    return _build_messwert_read(
+        messwert=messwert,
+        person=person,
+        parameter=parameter,
+        befund=befund,
+        labor=labor,
+        gruppen_namen=gruppen_map.get(messwert.laborparameter_id, []),
+    )
+
+
+def _build_messwert_read(
+    *,
+    messwert: Messwert,
+    person: Person,
+    parameter: Laborparameter,
+    befund: Befund,
+    labor: Labor | None,
+    gruppen_namen: list[str],
+) -> MesswertRead:
+    return MesswertRead(
+        id=messwert.id,
+        person_id=messwert.person_id,
+        befund_id=messwert.befund_id,
+        laborparameter_id=messwert.laborparameter_id,
+        original_parametername=messwert.original_parametername,
+        wert_typ=messwert.wert_typ,
+        wert_operator=messwert.wert_operator,
+        wert_roh_text=messwert.wert_roh_text,
+        wert_num=messwert.wert_num,
+        wert_text=messwert.wert_text,
+        einheit_original=messwert.einheit_original,
+        wert_normiert_num=messwert.wert_normiert_num,
+        einheit_normiert=messwert.einheit_normiert,
+        umrechnungsregel_id=messwert.umrechnungsregel_id,
+        bemerkung_kurz=messwert.bemerkung_kurz,
+        bemerkung_lang=messwert.bemerkung_lang,
+        unsicher_flag=messwert.unsicher_flag,
+        pruefbedarf_flag=messwert.pruefbedarf_flag,
+        person_anzeigename=person.anzeigename,
+        parameter_anzeigename=parameter.anzeigename,
+        parameter_primaere_klassifikation=parameter.primaere_klassifikation,
+        labor_id=labor.id if labor is not None else None,
+        labor_name=labor.name if labor is not None else None,
+        entnahmedatum=befund.entnahmedatum.isoformat() if befund.entnahmedatum else None,
+        gruppen_namen=gruppen_namen,
+        erstellt_am=messwert.erstellt_am,
+        geaendert_am=messwert.geaendert_am,
+    )
 
 
 def _load_group_names(db: Session, laborparameter_ids: list[str]) -> dict[str, list[str]]:

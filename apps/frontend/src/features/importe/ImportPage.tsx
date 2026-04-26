@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { apiFetch } from "../../shared/api/client";
 import { LoeschAktionPanel } from "../../shared/components/LoeschAktionPanel";
-import { formatGeschlechtCode, formatWertTyp } from "../../shared/constants/fieldOptions";
+import { formatGeschlechtCode, formatParameterKlassifikation, formatWertTyp } from "../../shared/constants/fieldOptions";
 import { getDocumentContentUrl } from "../../shared/utils/documents";
 import { formatReferenzAnzeige } from "../../shared/utils/laborFormatting";
 import type {
@@ -1301,6 +1301,12 @@ export function ImportPage() {
                             <div className="import-parameter-suggestion">
                               <strong>Vorschlag: {messwert.parameter_vorschlag.anzeigename}</strong>
                               {messwert.parameter_vorschlag.unsicher_flag ? <span>Prüfbedarf</span> : null}
+                              {messwert.parameter_vorschlag.primaere_klassifikation ? (
+                                <p>
+                                  <strong>Primäre KSG-Klasse:</strong>{" "}
+                                  {formatParameterKlassifikation(messwert.parameter_vorschlag.primaere_klassifikation)}
+                                </p>
+                              ) : null}
                               {messwert.parameter_vorschlag.beschreibung_kurz ? (
                                 <p>
                                   <strong>Fachbeschreibung:</strong> {messwert.parameter_vorschlag.beschreibung_kurz}

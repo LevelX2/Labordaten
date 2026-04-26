@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from labordaten_backend.core.field_options import (
     GESCHLECHT_CODES,
+    PARAMETER_KLASSIFIKATIONEN,
     REFERENZ_GRENZ_OPERATOREN,
     WERT_OPERATOREN,
     WERT_TYPEN,
@@ -44,6 +45,7 @@ class ImportParameterVorschlagPayload(BaseModel):
     anzeigename: str
     wert_typ_standard: str | None = Field(default=None, alias="wertTypStandard")
     standard_einheit: str | None = Field(default=None, alias="standardEinheit")
+    primaere_klassifikation: str | None = Field(default=None, alias="primaereKlassifikation")
     beschreibung_kurz: str | None = Field(default=None, alias="beschreibungKurz")
     moegliche_aliase: list[str] = Field(default_factory=list, alias="moeglicheAliase")
     begruendung_aus_dokument: str | None = Field(default=None, alias="begruendungAusDokument")
@@ -54,6 +56,15 @@ class ImportParameterVorschlagPayload(BaseModel):
     @classmethod
     def validate_wert_typ_standard(cls, value: str | None) -> str | None:
         return validate_optional_code(value, valid_values=WERT_TYPEN, field_label="Werttyp")
+
+    @field_validator("primaere_klassifikation")
+    @classmethod
+    def validate_primaere_klassifikation(cls, value: str | None) -> str | None:
+        return validate_optional_code(
+            value,
+            valid_values=PARAMETER_KLASSIFIKATIONEN,
+            field_label="Primäre Klassifikation",
+        )
 
 
 class ImportMesswertPayload(BaseModel):
@@ -250,6 +261,7 @@ class ImportParameterVorschlagRead(BaseModel):
     anzeigename: str
     wert_typ_standard: str | None = None
     standard_einheit: str | None = None
+    primaere_klassifikation: str | None = None
     beschreibung_kurz: str | None = None
     moegliche_aliase: list[str] = Field(default_factory=list)
     begruendung_aus_dokument: str | None = None

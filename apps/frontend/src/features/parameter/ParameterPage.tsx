@@ -6,8 +6,13 @@ import { buildZielbereichCreatePayload } from "../../shared/api/payloadBuilders"
 import { LoeschAktionPanel } from "../../shared/components/LoeschAktionPanel";
 import {
   KONTEXT_GESCHLECHT_OPTIONS,
+  PARAMETER_KLASSIFIKATION_FILTER_OPTIONS,
+  PARAMETER_KLASSIFIKATION_OPTIONS,
   WERT_TYP_OPTIONS,
+  ZIELBEREICH_TYP_OPTIONS,
   formatGeschlechtCode,
+  formatParameterKlassifikation,
+  formatZielbereichTyp,
   formatWertTyp
 } from "../../shared/constants/fieldOptions";
 import type {
@@ -15,10 +20,16 @@ import type {
   Parameter,
   ParameterAlias,
   ParameterAliasSuggestion,
+  ParameterKlassifikation,
+  ParameterKlassifikationCode,
+  ParameterKlassifikationCreatePayload,
+  ParameterKlassifikationDeleteResult,
   ParameterDuplicateSuppression,
   ParameterDuplicateSuggestion,
   ParameterGruppenzuordnung,
   ParameterMergeResult,
+  ParameterPrimaereKlassifikationUpdatePayload,
+  ParameterPrimaereKlassifikationUpdateResult,
   ParameterRenameResult,
   ParameterStandardEinheitUpdatePayload,
   ParameterStandardEinheitUpdateResult,
@@ -27,6 +38,7 @@ import type {
   ParameterUsageSummary,
   UmrechnungsregelTyp,
   WertTyp,
+  ZielbereichTyp,
   Zielbereich
 } from "../../shared/types/api";
 
@@ -34,6 +46,7 @@ type ParameterFormState = {
   anzeigename: string;
   standard_einheit: string;
   wert_typ_standard: WertTyp;
+  primaere_klassifikation: string;
   beschreibung: string;
 };
 
@@ -54,9 +67,18 @@ type ParameterStandardEinheitFormState = {
   standard_einheit: string;
 };
 
+type ParameterKlassifikationFormState = {
+  parameter_id: string;
+  primaere_klassifikation: string;
+  zusatz_klassifikation: ParameterKlassifikationCode;
+  kontext_beschreibung: string;
+  begruendung: string;
+};
+
 type ZielbereichFormState = {
   parameter_id: string;
   wert_typ: WertTyp;
+  zielbereich_typ: ZielbereichTyp;
   untere_grenze_num: string;
   obere_grenze_num: string;
   einheit: string;
@@ -81,6 +103,7 @@ type ParameterUmrechnungsregelFormState = {
 type ParameterPanelKey =
   | "create"
   | "standardUnit"
+  | "classification"
   | "rename"
   | "alias"
   | "conversion"
@@ -89,7 +112,7 @@ type ParameterPanelKey =
   | "duplicates"
   | "delete";
 
-type RelatedDataSectionKey = "aliases" | "conversions" | "ranges" | "groups";
+type RelatedDataSectionKey = "classifications" | "aliases" | "conversions" | "ranges" | "groups";
 type DuplicateViewScope = "all" | "selected";
 type DuplicateCheckSensitivity = "sicher" | "ausgewogen" | "grosszuegig";
 
@@ -97,6 +120,7 @@ const initialForm: ParameterFormState = {
   anzeigename: "",
   standard_einheit: "",
   wert_typ_standard: "numerisch",
+  primaere_klassifikation: "",
   beschreibung: ""
 };
 
@@ -117,9 +141,18 @@ const initialStandardEinheitForm: ParameterStandardEinheitFormState = {
   standard_einheit: ""
 };
 
+const initialKlassifikationForm: ParameterKlassifikationFormState = {
+  parameter_id: "",
+  primaere_klassifikation: "",
+  zusatz_klassifikation: "krankwert",
+  kontext_beschreibung: "",
+  begruendung: ""
+};
+
 const initialZielbereichForm: ZielbereichFormState = {
   parameter_id: "",
   wert_typ: "numerisch",
+  zielbereich_typ: "allgemein",
   untere_grenze_num: "",
   obere_grenze_num: "",
   einheit: "",
@@ -236,6 +269,8 @@ export function ParameterPage() {
   const [renameForm, setRenameForm] = useState<ParameterRenameFormState>(initialRenameForm);
   const [standardEinheitForm, setStandardEinheitForm] =
     useState<ParameterStandardEinheitFormState>(initialStandardEinheitForm);
+  const [klassifikationForm, setKlassifikationForm] =
+    useState<ParameterKlassifikationFormState>(initialKlassifikationForm);
   const [zielbereichForm, setZielbereichForm] = useState<ZielbereichFormState>(initialZielbereichForm);
   const [umrechnungsregelForm, setUmrechnungsregelForm] =
     useState<ParameterUmrechnungsregelFormState>(initialUmrechnungsregelForm);
@@ -245,12 +280,16 @@ export function ParameterPage() {
   const [lastRenameResult, setLastRenameResult] = useState<ParameterRenameResult | null>(null);
   const [lastStandardEinheitResult, setLastStandardEinheitResult] =
     useState<ParameterStandardEinheitUpdateResult | null>(null);
+  const [lastKlassifikationResult, setLastKlassifikationResult] =
+    useState<ParameterPrimaereKlassifikationUpdateResult | null>(null);
   const [parameterSearchQuery, setParameterSearchQuery] = useState("");
+  const [klassifikationFilter, setKlassifikationFilter] = useState("");
   const [selectedParameterId, setSelectedParameterId] = useState<string | null>(null);
   const [activePanel, setActivePanel] = useState<ParameterPanelKey | null>(null);
   const [showAdvancedDetails, setShowAdvancedDetails] = useState(false);
   const [showPageInfo, setShowPageInfo] = useState(false);
   const [expandedRelatedSections, setExpandedRelatedSections] = useState<Record<RelatedDataSectionKey, boolean>>({
+    classifications: true,
     aliases: true,
     conversions: false,
     ranges: false,
@@ -298,6 +337,7 @@ export function ParameterPage() {
       setAliasForm(initialAliasForm);
       setRenameForm(initialRenameForm);
       setStandardEinheitForm(initialStandardEinheitForm);
+      setKlassifikationForm(initialKlassifikationForm);
       setZielbereichForm(initialZielbereichForm);
       setUmrechnungsregelForm(initialUmrechnungsregelForm);
       return;
@@ -328,6 +368,15 @@ export function ParameterPage() {
             standard_einheit: selectedParameter.standard_einheit ?? ""
           }
     );
+    setKlassifikationForm((current) =>
+      current.parameter_id === selectedParameter.id
+        ? current
+        : {
+            ...initialKlassifikationForm,
+            parameter_id: selectedParameter.id,
+            primaere_klassifikation: selectedParameter.primaere_klassifikation ?? ""
+          }
+    );
     setZielbereichForm((current) =>
       current.parameter_id === selectedParameter.id
         ? current
@@ -350,6 +399,7 @@ export function ParameterPage() {
 
   useEffect(() => {
     setExpandedRelatedSections({
+      classifications: true,
       aliases: true,
       conversions: false,
       ranges: false,
@@ -359,19 +409,21 @@ export function ParameterPage() {
 
   const filteredParameters = useMemo(() => {
     const normalizedSearchQuery = parameterSearchQuery.trim().toLocaleLowerCase("de-DE");
-    if (!normalizedSearchQuery) {
-      return sortedParameters;
-    }
-
-    return sortedParameters.filter((parameter) =>
-      [parameter.anzeigename, parameter.interner_schluessel, parameter.beschreibung ?? ""]
+    return sortedParameters.filter((parameter) => {
+      if (klassifikationFilter && parameter.primaere_klassifikation !== klassifikationFilter) {
+        return false;
+      }
+      if (!normalizedSearchQuery) {
+        return true;
+      }
+      return [parameter.anzeigename, parameter.interner_schluessel, parameter.beschreibung ?? ""]
         .join(" ")
         .toLocaleLowerCase("de-DE")
-        .includes(normalizedSearchQuery)
-    );
-  }, [parameterSearchQuery, sortedParameters]);
+        .includes(normalizedSearchQuery);
+    });
+  }, [klassifikationFilter, parameterSearchQuery, sortedParameters]);
 
-  const hasActiveParameterFilter = parameterSearchQuery.trim().length > 0;
+  const hasActiveParameterFilter = parameterSearchQuery.trim().length > 0 || klassifikationFilter.length > 0;
   const parameterCountLabel = hasActiveParameterFilter
     ? `${filteredParameters.length} von ${sortedParameters.length} Parametern`
     : `${sortedParameters.length} Parameter`;
@@ -387,6 +439,12 @@ export function ParameterPage() {
   const parameterAliaseQuery = useQuery({
     queryKey: ["parameter-aliase", selectedParameterId],
     queryFn: () => apiFetch<ParameterAlias[]>(`/api/parameter/${selectedParameterId}/aliase`),
+    enabled: Boolean(selectedParameterId)
+  });
+
+  const parameterKlassifikationenQuery = useQuery({
+    queryKey: ["parameter-klassifikationen", selectedParameterId],
+    queryFn: () => apiFetch<ParameterKlassifikation[]>(`/api/parameter/${selectedParameterId}/klassifikationen`),
     enabled: Boolean(selectedParameterId)
   });
 
@@ -466,7 +524,10 @@ export function ParameterPage() {
     mutationFn: () =>
       apiFetch<Parameter>("/api/parameter", {
         method: "POST",
-        body: JSON.stringify(form)
+        body: JSON.stringify({
+          ...form,
+          primaere_klassifikation: form.primaere_klassifikation || null
+        })
       }),
     onSuccess: async (createdParameter) => {
       setForm(initialForm);
@@ -634,6 +695,60 @@ export function ParameterPage() {
       await queryClient.invalidateQueries({ queryKey: ["parameter-alias-vorschlaege"] });
       await queryClient.invalidateQueries({ queryKey: ["parameter-dublettenvorschlaege"] });
       await duplicateSuggestionsQuery.refetch();
+    }
+  });
+
+  const updatePrimaereKlassifikationMutation = useMutation({
+    mutationFn: () =>
+      apiFetch<ParameterPrimaereKlassifikationUpdateResult>(
+        `/api/parameter/${klassifikationForm.parameter_id}/primaere-klassifikation`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            primaere_klassifikation: klassifikationForm.primaere_klassifikation
+              ? (klassifikationForm.primaere_klassifikation as ParameterKlassifikationCode)
+              : null
+          } satisfies ParameterPrimaereKlassifikationUpdatePayload)
+        }
+      ),
+    onSuccess: async (result) => {
+      setLastKlassifikationResult(result);
+      setKlassifikationForm((current) => ({
+        ...current,
+        parameter_id: result.parameter_id,
+        primaere_klassifikation: result.primaere_klassifikation ?? ""
+      }));
+      await queryClient.invalidateQueries({ queryKey: ["parameter"] });
+    }
+  });
+
+  const createKlassifikationMutation = useMutation({
+    mutationFn: () =>
+      apiFetch<ParameterKlassifikation>(`/api/parameter/${klassifikationForm.parameter_id}/klassifikationen`, {
+        method: "POST",
+        body: JSON.stringify({
+          klassifikation: klassifikationForm.zusatz_klassifikation,
+          kontext_beschreibung: klassifikationForm.kontext_beschreibung || null,
+          begruendung: klassifikationForm.begruendung || null
+        } satisfies ParameterKlassifikationCreatePayload)
+      }),
+    onSuccess: async () => {
+      setKlassifikationForm((current) => ({
+        ...initialKlassifikationForm,
+        parameter_id: current.parameter_id,
+        primaere_klassifikation: current.primaere_klassifikation
+      }));
+      await queryClient.invalidateQueries({ queryKey: ["parameter-klassifikationen", klassifikationForm.parameter_id] });
+    }
+  });
+
+  const deleteKlassifikationMutation = useMutation({
+    mutationFn: (klassifikationId: string) =>
+      apiFetch<ParameterKlassifikationDeleteResult>(`/api/parameter/klassifikationen/${klassifikationId}`, {
+        method: "DELETE"
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["parameter-klassifikationen", selectedParameterId] });
     }
   });
   const suppressDuplicateMutation = useMutation({
@@ -827,6 +942,23 @@ export function ParameterPage() {
               </select>
             </label>
 
+            <label className="field">
+              <span>Primäre KSG-Klasse</span>
+              <select
+                value={form.primaere_klassifikation}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, primaere_klassifikation: event.target.value }))
+                }
+              >
+                <option value="">Nicht klassifiziert</option>
+                {PARAMETER_KLASSIFIKATION_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
             <label className="field field--full">
               <span>Beschreibung</span>
               <textarea
@@ -987,6 +1119,127 @@ export function ParameterPage() {
               </button>
               {updateStandardEinheitMutation.isError ? (
                 <p className="form-error">{updateStandardEinheitMutation.error.message}</p>
+              ) : null}
+            </div>
+          </form>
+        </article>
+      );
+    }
+
+    if (activePanel === "classification") {
+      return (
+        <article className="card card--soft parameter-action-panel">
+          <div className="parameter-panel__header">
+            <div>
+              <h3>KSG-Klassifikation pflegen</h3>
+              <p>
+                Die Klassifikation beschreibt die typische Funktion des Parameters. Zusatzrollen erfassen begründete
+                Kontextfälle, ohne den Parameter zu duplizieren.
+              </p>
+            </div>
+            {renderPanelCloseButton("Panel KSG-Klassifikation schließen")}
+          </div>
+
+          <form
+            className="form-grid"
+            onSubmit={(event) => {
+              event.preventDefault();
+              updatePrimaereKlassifikationMutation.mutate();
+            }}
+          >
+            <label className="field">
+              <span>Parameter</span>
+              <input value={selectedParameter.anzeigename} disabled />
+            </label>
+            <label className="field">
+              <span>Primäre KSG-Klasse</span>
+              <select
+                value={klassifikationForm.primaere_klassifikation}
+                onChange={(event) =>
+                  setKlassifikationForm((current) => ({
+                    ...current,
+                    primaere_klassifikation: event.target.value
+                  }))
+                }
+              >
+                <option value="">Nicht klassifiziert</option>
+                {PARAMETER_KLASSIFIKATION_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="form-actions">
+              <button
+                type="submit"
+                disabled={updatePrimaereKlassifikationMutation.isPending || !klassifikationForm.parameter_id}
+              >
+                {updatePrimaereKlassifikationMutation.isPending ? "Speichert..." : "Primärklasse speichern"}
+              </button>
+              {updatePrimaereKlassifikationMutation.isError ? (
+                <p className="form-error">{updatePrimaereKlassifikationMutation.error.message}</p>
+              ) : null}
+              {lastKlassifikationResult?.parameter_id === selectedParameter.id ? (
+                <p>
+                  Primärklasse gespeichert:{" "}
+                  <strong>{formatParameterKlassifikation(lastKlassifikationResult.primaere_klassifikation)}</strong>.
+                </p>
+              ) : null}
+            </div>
+          </form>
+
+          <form
+            className="form-grid"
+            onSubmit={(event) => {
+              event.preventDefault();
+              createKlassifikationMutation.mutate();
+            }}
+          >
+            <label className="field">
+              <span>Zusatzrolle</span>
+              <select
+                value={klassifikationForm.zusatz_klassifikation}
+                onChange={(event) =>
+                  setKlassifikationForm((current) => ({
+                    ...current,
+                    zusatz_klassifikation: event.target.value as ParameterKlassifikationCode
+                  }))
+                }
+              >
+                {PARAMETER_KLASSIFIKATION_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field field--full">
+              <span>Kontext</span>
+              <input
+                value={klassifikationForm.kontext_beschreibung}
+                onChange={(event) =>
+                  setKlassifikationForm((current) => ({ ...current, kontext_beschreibung: event.target.value }))
+                }
+                placeholder="z. B. schwerer Mangel, Hormontherapie oder Verlaufskontrolle"
+              />
+            </label>
+            <label className="field field--full">
+              <span>Begründung</span>
+              <textarea
+                rows={3}
+                value={klassifikationForm.begruendung}
+                onChange={(event) =>
+                  setKlassifikationForm((current) => ({ ...current, begruendung: event.target.value }))
+                }
+              />
+            </label>
+            <div className="form-actions">
+              <button type="submit" disabled={createKlassifikationMutation.isPending || !klassifikationForm.parameter_id}>
+                {createKlassifikationMutation.isPending ? "Speichert..." : "Zusatzrolle hinzufügen"}
+              </button>
+              {createKlassifikationMutation.isError ? (
+                <p className="form-error">{createKlassifikationMutation.error.message}</p>
               ) : null}
             </div>
           </form>
@@ -1263,6 +1516,25 @@ export function ParameterPage() {
             <label className="field">
               <span>Werttyp</span>
               <input value={formatWertTyp(selectedParameter.wert_typ_standard)} disabled />
+            </label>
+
+            <label className="field">
+              <span>Zielbereichstyp</span>
+              <select
+                value={zielbereichForm.zielbereich_typ}
+                onChange={(event) =>
+                  setZielbereichForm((current) => ({
+                    ...current,
+                    zielbereich_typ: event.target.value as ZielbereichTyp
+                  }))
+                }
+              >
+                {ZIELBEREICH_TYP_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </label>
 
             {selectedParameter.wert_typ_standard === "numerisch" ? (
@@ -1695,6 +1967,17 @@ export function ParameterPage() {
             </div>
           </label>
 
+          <label className="field field--full">
+            <span>KSG-Klasse</span>
+            <select value={klassifikationFilter} onChange={(event) => setKlassifikationFilter(event.target.value)}>
+              {PARAMETER_KLASSIFIKATION_FILTER_OPTIONS.map((option) => (
+                <option key={option.value || "empty"} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <div className="parameter-list">
             {filteredParameters.map((parameter) => (
               <button
@@ -1709,6 +1992,9 @@ export function ParameterPage() {
                 <p>{summarizeDescription(parameter.beschreibung)}</p>
                 <div className="parameter-list__meta">
                   <span className="parameter-pill">{formatWertTyp(parameter.wert_typ_standard)}</span>
+                  <span className="parameter-pill">
+                    {formatParameterKlassifikation(parameter.primaere_klassifikation)}
+                  </span>
                   <span className="parameter-pill">{parameter.standard_einheit || "Ohne Einheit"}</span>
                 </div>
               </button>
@@ -1741,6 +2027,13 @@ export function ParameterPage() {
                       onClick={() => handleOpenPanel("standardUnit")}
                     >
                       Normeinheit
+                    </button>
+                    <button
+                      type="button"
+                      className={`parameter-toolrail__button ${activePanel === "classification" ? "parameter-toolrail__button--active" : ""}`}
+                      onClick={() => handleOpenPanel("classification")}
+                    >
+                      KSG-Klasse
                     </button>
                     <button
                       type="button"
@@ -1827,6 +2120,10 @@ export function ParameterPage() {
                     <strong>{formatWertTyp(selectedParameter.wert_typ_standard)}</strong>
                   </div>
                   <div className="detail-grid__item">
+                    <span>Primäre KSG-Klasse</span>
+                    <strong>{formatParameterKlassifikation(selectedParameter.primaere_klassifikation)}</strong>
+                  </div>
+                  <div className="detail-grid__item">
                     <span>Führende Normeinheit</span>
                     <strong>{selectedParameter.standard_einheit || "Keine Einheit"}</strong>
                   </div>
@@ -1873,6 +2170,79 @@ export function ParameterPage() {
                   </div>
 
                   <div className="parameter-related__list">
+                    <article className="parameter-related__item">
+                      <button
+                        type="button"
+                        className={`parameter-related__toggle ${
+                          expandedRelatedSections.classifications ? "parameter-related__toggle--open" : ""
+                        }`}
+                        onClick={() =>
+                          setExpandedRelatedSections((current) => ({
+                            ...current,
+                            classifications: !current.classifications
+                          }))
+                        }
+                        aria-expanded={expandedRelatedSections.classifications}
+                      >
+                        <span>
+                          <strong>KSG-Zusatzrollen</strong>
+                          <small>
+                            {formatCountLabel(
+                              parameterKlassifikationenQuery.data?.length ?? 0,
+                              "Eintrag",
+                              "Einträge"
+                            )}
+                          </small>
+                        </span>
+                        <span className="parameter-related__chevron" aria-hidden="true">
+                          ▾
+                        </span>
+                      </button>
+                      {expandedRelatedSections.classifications ? (
+                        <div className="parameter-related__content">
+                          <div className="table-wrap">
+                            <table className="data-table parameter-summary-table">
+                              <thead>
+                                <tr>
+                                  <th>Klassifikation</th>
+                                  <th>Kontext</th>
+                                  <th>Begründung</th>
+                                  <th>Aktion</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {parameterKlassifikationenQuery.data?.map((klassifikation) => (
+                                  <tr key={klassifikation.id}>
+                                    <td>{formatParameterKlassifikation(klassifikation.klassifikation)}</td>
+                                    <td>{klassifikation.kontext_beschreibung || "—"}</td>
+                                    <td>{klassifikation.begruendung || "—"}</td>
+                                    <td>
+                                      <button
+                                        type="button"
+                                        className="inline-button"
+                                        disabled={deleteKlassifikationMutation.isPending}
+                                        onClick={() => deleteKlassifikationMutation.mutate(klassifikation.id)}
+                                      >
+                                        Entfernen
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                                {!parameterKlassifikationenQuery.data?.length ? (
+                                  <tr>
+                                    <td colSpan={4}>Noch keine kontextabhängigen Zusatzrollen vorhanden.</td>
+                                  </tr>
+                                ) : null}
+                              </tbody>
+                            </table>
+                          </div>
+                          {deleteKlassifikationMutation.isError ? (
+                            <p className="form-error">{deleteKlassifikationMutation.error.message}</p>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </article>
+
                     <article className="parameter-related__item">
                       <button
                         type="button"
@@ -2005,6 +2375,7 @@ export function ParameterPage() {
                             <table className="data-table parameter-summary-table">
                               <thead>
                                 <tr>
+                                  <th>Zieltyp</th>
                                   <th>Typ</th>
                                   <th>Bereich</th>
                                   <th>Einheit</th>
@@ -2014,6 +2385,7 @@ export function ParameterPage() {
                               <tbody>
                                 {zielbereicheQuery.data?.map((zielbereich) => (
                                   <tr key={zielbereich.id}>
+                                    <td>{formatZielbereichTyp(zielbereich.zielbereich_typ)}</td>
                                     <td>{formatWertTyp(zielbereich.wert_typ)}</td>
                                     <td>{formatZielbereichValue(zielbereich)}</td>
                                     <td>{zielbereich.einheit || "—"}</td>
@@ -2022,7 +2394,7 @@ export function ParameterPage() {
                                 ))}
                                 {!zielbereicheQuery.data?.length ? (
                                   <tr>
-                                    <td colSpan={4}>Noch keine Zielbereiche für diesen Parameter vorhanden.</td>
+                                    <td colSpan={5}>Noch keine Zielbereiche für diesen Parameter vorhanden.</td>
                                   </tr>
                                 ) : null}
                               </tbody>

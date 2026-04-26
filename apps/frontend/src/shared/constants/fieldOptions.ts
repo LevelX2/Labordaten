@@ -1,4 +1,12 @@
-import type { BefundQuelleTyp, GeschlechtCode, ReferenzGrenzOperator, WertOperator, WertTyp } from "../types/api";
+import type {
+  BefundQuelleTyp,
+  GeschlechtCode,
+  ParameterKlassifikationCode,
+  ReferenzGrenzOperator,
+  WertOperator,
+  WertTyp,
+  ZielbereichTyp
+} from "../types/api";
 
 export const GESCHLECHT_CODE_OPTIONS = [
   { value: "w", label: "Weiblich" },
@@ -21,6 +29,25 @@ export const WERT_TYP_OPTIONS = [
   { value: "text", label: "Text" }
 ] as const satisfies ReadonlyArray<{ value: WertTyp; label: string }>;
 
+export const PARAMETER_KLASSIFIKATION_OPTIONS = [
+  { value: "krankwert", label: "Krankwert" },
+  { value: "schluesselwert", label: "Schlüsselwert" },
+  { value: "gesundmachwert", label: "Gesundmachwert" }
+] as const satisfies ReadonlyArray<{ value: ParameterKlassifikationCode; label: string }>;
+
+export const PARAMETER_KLASSIFIKATION_FILTER_OPTIONS = [
+  { value: "", label: "Alle Klassifikationen" },
+  ...PARAMETER_KLASSIFIKATION_OPTIONS
+] as const;
+
+export const ZIELBEREICH_TYP_OPTIONS = [
+  { value: "allgemein", label: "Allgemein" },
+  { value: "optimalbereich", label: "Optimalbereich" },
+  { value: "therapieziel", label: "Therapieziel" },
+  { value: "mangelbereich", label: "Mangelbereich" },
+  { value: "risikobereich", label: "Risikobereich" }
+] as const satisfies ReadonlyArray<{ value: ZielbereichTyp; label: string }>;
+
 export const WERT_OPERATOR_OPTIONS = [
   { value: "exakt", label: "Exakt" },
   { value: "kleiner_als", label: "Kleiner als (<)" },
@@ -40,6 +67,20 @@ export const REFERENZ_GRENZ_OPERATOR_OPTIONS = [
 const WERT_TYP_LABELS: Record<WertTyp, string> = {
   numerisch: "Numerisch",
   text: "Text"
+};
+
+const PARAMETER_KLASSIFIKATION_LABELS: Record<ParameterKlassifikationCode, string> = {
+  krankwert: "Krankwert",
+  schluesselwert: "Schlüsselwert",
+  gesundmachwert: "Gesundmachwert"
+};
+
+const ZIELBEREICH_TYP_LABELS: Record<ZielbereichTyp, string> = {
+  allgemein: "Allgemein",
+  optimalbereich: "Optimalbereich",
+  therapieziel: "Therapieziel",
+  mangelbereich: "Mangelbereich",
+  risikobereich: "Risikobereich"
 };
 
 const WERT_OPERATOR_LABELS: Record<WertOperator, string> = {
@@ -75,6 +116,20 @@ export function formatGeschlechtCode(code?: string | null, emptyLabel = "—"): 
 
 export function formatWertTyp(value: string): string {
   return WERT_TYP_LABELS[value as WertTyp] ?? value;
+}
+
+export function formatParameterKlassifikation(value?: string | null, emptyLabel = "Nicht klassifiziert"): string {
+  if (!value) {
+    return emptyLabel;
+  }
+  return PARAMETER_KLASSIFIKATION_LABELS[value as ParameterKlassifikationCode] ?? value;
+}
+
+export function formatZielbereichTyp(value?: string | null): string {
+  if (!value) {
+    return "Allgemein";
+  }
+  return ZIELBEREICH_TYP_LABELS[value as ZielbereichTyp] ?? value;
 }
 
 export function formatWertOperator(value?: string | null, emptyLabel = "—"): string {

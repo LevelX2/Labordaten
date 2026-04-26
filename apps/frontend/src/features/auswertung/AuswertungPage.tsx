@@ -15,6 +15,10 @@ import {
 import { apiFetch } from "../../shared/api/client";
 import { DateRangeFilterFields } from "../../shared/components/DateRangeFilterFields";
 import { SelectionChecklist } from "../../shared/components/SelectionChecklist";
+import {
+  PARAMETER_KLASSIFIKATION_OPTIONS,
+  formatParameterKlassifikation
+} from "../../shared/constants/fieldOptions";
 import { getDefaultDateRange } from "../../shared/utils/dateRangeDefaults";
 import { applySharedFilterSearchParams } from "../../shared/utils/filterNavigation";
 import { formatReferenzAnzeige } from "../../shared/utils/laborFormatting";
@@ -26,6 +30,7 @@ import type {
   Gruppe,
   Labor,
   Parameter,
+  ParameterKlassifikationCode,
   Person
 } from "../../shared/types/api";
 
@@ -35,6 +40,7 @@ type AuswertungFormState = {
   person_ids: string[];
   laborparameter_ids: string[];
   gruppen_ids: string[];
+  klassifikationen: ParameterKlassifikationCode[];
   labor_ids: string[];
   datum_von: string;
   datum_bis: string;
@@ -47,6 +53,7 @@ const initialForm: AuswertungFormState = {
   person_ids: [],
   laborparameter_ids: [],
   gruppen_ids: [],
+  klassifikationen: [],
   labor_ids: [],
   datum_von: defaultDateRange.datum_von,
   datum_bis: defaultDateRange.datum_bis,
@@ -169,6 +176,9 @@ function buildFilterSummary(form: AuswertungFormState): string[] {
   }
   if (form.laborparameter_ids.length) {
     summary.push(`${form.laborparameter_ids.length} Parameter`);
+  }
+  if (form.klassifikationen.length) {
+    summary.push(`${form.klassifikationen.length} KSG-Klasse${form.klassifikationen.length === 1 ? "" : "n"}`);
   }
   if (form.labor_ids.length) {
     summary.push(`${form.labor_ids.length} Labor${form.labor_ids.length === 1 ? "" : "e"}`);
@@ -388,6 +398,7 @@ export function AuswertungPage() {
           person_ids: form.person_ids,
           laborparameter_ids: form.laborparameter_ids,
           gruppen_ids: form.gruppen_ids,
+          klassifikationen: form.klassifikationen,
           labor_ids: form.labor_ids,
           datum_von: form.datum_von || null,
           datum_bis: form.datum_bis || null,
@@ -527,6 +538,24 @@ export function AuswertungPage() {
             />
 
             <SelectionChecklist
+              label="KSG-Klassen"
+              options={PARAMETER_KLASSIFIKATION_OPTIONS.map((option) => ({
+                id: option.value,
+                label: option.label
+              }))}
+              selectedIds={form.klassifikationen}
+              onChange={(klassifikationen) =>
+                setForm((current) => ({
+                  ...current,
+                  klassifikationen: klassifikationen as ParameterKlassifikationCode[]
+                }))
+              }
+              emptyText="Keine KSG-Klassen verfügbar."
+              collapsible
+              defaultExpanded={false}
+            />
+
+            <SelectionChecklist
               label="Labore"
               options={(laboreQuery.data ?? []).map((labor) => ({
                 id: labor.id,
@@ -618,6 +647,8 @@ export function AuswertungPage() {
                     {serie.standard_einheit
                       ? `Standardeinheit: ${serie.standard_einheit}`
                       : "Ohne definierte Standardeinheit"}
+                    {" · "}
+                    {formatParameterKlassifikation(serie.parameter_primaere_klassifikation)}
                   </p>
                 </div>
                 <div className="trend-badges">
@@ -650,6 +681,7 @@ export function AuswertungPage() {
                   <thead>
                     <tr>
                       <th>Person</th>
+                      <th>KSG</th>
                       <th>Datum</th>
                       <th>Wert</th>
                       <th>Laborreferenz</th>
@@ -661,6 +693,7 @@ export function AuswertungPage() {
                     {serie.punkte.map((punkt) => (
                       <tr key={punkt.messwert_id}>
                         <td>{punkt.person_anzeigename}</td>
+                        <td>{formatParameterKlassifikation(punkt.parameter_primaere_klassifikation)}</td>
                         <td>{formatDate(punkt.datum)}</td>
                         <td>{[punkt.wert_anzeige, punkt.einheit].filter(Boolean).join(" ")}</td>
                         <td>{punkt.laborreferenz_text || "—"}</td>
@@ -686,6 +719,7 @@ export function AuswertungPage() {
                   <th>Datum</th>
                   <th>Person</th>
                   <th>Parameter</th>
+                  <th>KSG</th>
                   <th>Wert</th>
                   <th>Bemerkung</th>
                   <th>Labor</th>
@@ -697,6 +731,7 @@ export function AuswertungPage() {
                     <td>{formatDate(event.datum)}</td>
                     <td>{event.person_anzeigename}</td>
                     <td>{event.parameter_anzeigename}</td>
+                    <td>{formatParameterKlassifikation(event.parameter_primaere_klassifikation)}</td>
                     <td>{[event.wert_anzeige, event.einheit].filter(Boolean).join(" ")}</td>
                     <td>{event.messwertbemerkung || event.befundbemerkung || "—"}</td>
                     <td>{event.labor_name || "—"}</td>
@@ -704,7 +739,7 @@ export function AuswertungPage() {
                 ))}
                 {!qualitativeEvents.length ? (
                   <tr>
-                    <td colSpan={6}>Noch keine qualitativen Ereignisse für die aktuelle Auswahl.</td>
+                    <td colSpan={7}>Noch keine qualitativen Ereignisse für die aktuelle Auswahl.</td>
                   </tr>
                 ) : null}
               </tbody>

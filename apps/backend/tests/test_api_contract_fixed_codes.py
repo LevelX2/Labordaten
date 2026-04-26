@@ -175,6 +175,7 @@ def test_create_zielbereich_api_enforces_fixed_value_and_gender_codes(monkeypatc
             f"/api/parameter/{parameter_id}/zielbereiche",
             json={
                 "wert_typ": "numerisch",
+                "zielbereich_typ": "optimalbereich",
                 "untere_grenze_num": 15,
                 "obere_grenze_num": 150,
                 "einheit": "ng/ml",
@@ -185,18 +186,68 @@ def test_create_zielbereich_api_enforces_fixed_value_and_gender_codes(monkeypatc
         assert response.status_code == 201
         body = response.json()
         assert body["wert_typ"] == "numerisch"
+        assert body["zielbereich_typ"] == "optimalbereich"
         assert body["geschlecht_code"] == "d"
 
         invalid_response = client.post(
             f"/api/parameter/{parameter_id}/zielbereiche",
             json={
                 "wert_typ": "zahl",
+                "zielbereich_typ": "wunschbereich",
                 "untere_grenze_num": 15,
                 "einheit": "ng/ml",
                 "geschlecht_code": "Divers",
             },
         )
 
+        assert invalid_response.status_code == 422
+
+
+def test_parameter_api_supports_primary_and_additional_ksg_classifications(monkeypatch, tmp_path: Path) -> None:
+    client, _ = _make_client(monkeypatch, tmp_path)
+    with client:
+        response = client.post(
+            "/api/parameter",
+            json={
+                "anzeigename": "Vitamin D",
+                "wert_typ_standard": "numerisch",
+                "primaere_klassifikation": "gesundmachwert",
+            },
+        )
+
+        assert response.status_code == 201
+        parameter = response.json()
+        assert parameter["primaere_klassifikation"] == "gesundmachwert"
+
+        update_response = client.patch(
+            f"/api/parameter/{parameter['id']}/primaere-klassifikation",
+            json={"primaere_klassifikation": "schluesselwert"},
+        )
+
+        assert update_response.status_code == 200
+        assert update_response.json()["primaere_klassifikation"] == "schluesselwert"
+
+        additional_response = client.post(
+            f"/api/parameter/{parameter['id']}/klassifikationen",
+            json={
+                "klassifikation": "krankwert",
+                "kontext_beschreibung": "Schwerer Mangel oder Überversorgung",
+                "begruendung": "Mehrfachrolle aus KSG-Systematik",
+            },
+        )
+
+        assert additional_response.status_code == 201
+        additional = additional_response.json()
+        assert additional["klassifikation"] == "krankwert"
+
+        list_response = client.get(f"/api/parameter/{parameter['id']}/klassifikationen")
+        assert list_response.status_code == 200
+        assert [item["klassifikation"] for item in list_response.json()] == ["krankwert"]
+
+        invalid_response = client.post(
+            f"/api/parameter/{parameter['id']}/klassifikationen",
+            json={"klassifikation": "diagnosewert"},
+        )
         assert invalid_response.status_code == 422
 
 
@@ -209,11 +260,13 @@ def test_list_messwerte_api_supports_multilevel_sorting(monkeypatch, tmp_path: P
             interner_schluessel="crp",
             anzeigename="CRP",
             wert_typ_standard="numerisch",
+            primaere_klassifikation="krankwert",
         )
         parameter_ferritin = Laborparameter(
             interner_schluessel="ferritin",
             anzeigename="Ferritin",
             wert_typ_standard="numerisch",
+            primaere_klassifikation="schluesselwert",
         )
         db.add_all([person_anna, person_berta, parameter_crp, parameter_ferritin])
         db.commit()
@@ -284,6 +337,18 @@ def test_list_messwerte_api_supports_multilevel_sorting(monkeypatch, tmp_path: P
             ("Anna", "CRP"),
             ("Berta", "CRP"),
         ]
+        assert [item["parameter_primaere_klassifikation"] for item in body] == [
+            "schluesselwert",
+            "krankwert",
+            "krankwert",
+        ]
+
+        ksg_response = client.get("/api/messwerte", params={"klassifikationen": "krankwert"})
+        assert ksg_response.status_code == 200
+        assert [item["parameter_anzeigename"] for item in ksg_response.json()] == ["CRP", "CRP"]
+
+        invalid_ksg_response = client.get("/api/messwerte", params={"klassifikationen": "freitext"})
+        assert invalid_ksg_response.status_code == 400
 
         invalid_response = client.get("/api/messwerte", params={"sort": "wert:desc"})
         assert invalid_response.status_code == 400

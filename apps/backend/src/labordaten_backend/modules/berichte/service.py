@@ -76,6 +76,7 @@ def build_arztbericht(db: Session, payload: ArztberichtRequest) -> ArztberichtRe
                 person_anzeigename=person.anzeigename,
                 laborparameter_id=parameter_id,
                 parameter_anzeigename=parameter.anzeigename,
+                parameter_primaere_klassifikation=parameter.primaere_klassifikation,
                 datum=_effective_date(befund, messwert),
                 wert_typ=messwert.wert_typ,
                 wert_anzeige=display_value["wert_anzeige"],
@@ -116,6 +117,7 @@ def build_verlaufsbericht(db: Session, payload: VerlaufsberichtRequest) -> Verla
                 person_anzeigename=person.anzeigename,
                 laborparameter_id=parameter.id,
                 parameter_anzeigename=parameter.anzeigename,
+                parameter_primaere_klassifikation=parameter.primaere_klassifikation,
                 datum=_effective_date(befund, messwert),
                 wert_typ=messwert.wert_typ,
                 wert_anzeige=display_value["wert_anzeige"],
@@ -300,6 +302,8 @@ def _execute_measurement_query(db: Session, payload: ArztberichtRequest | Verlau
             .distinct()
         )
         stmt = stmt.where(Messwert.laborparameter_id.in_(parameter_subquery))
+    if payload.klassifikationen:
+        stmt = stmt.where(Laborparameter.primaere_klassifikation.in_(payload.klassifikationen))
     if payload.datum_von:
         stmt = stmt.where(Befund.entnahmedatum >= payload.datum_von)
     if payload.datum_bis:

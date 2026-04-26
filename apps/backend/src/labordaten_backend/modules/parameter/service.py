@@ -12,6 +12,7 @@ from labordaten_backend.models.messwert import Messwert
 from labordaten_backend.models.messwert_referenz import MesswertReferenz
 from labordaten_backend.models.parameter_dublettenausschluss import ParameterDublettenausschluss
 from labordaten_backend.models.parameter_gruppe import ParameterGruppe
+from labordaten_backend.models.parameter_klassifikation import ParameterKlassifikation
 from labordaten_backend.models.parameter_umrechnungsregel import ParameterUmrechnungsregel
 from labordaten_backend.models.planung_einmalig import PlanungEinmalig
 from labordaten_backend.models.planung_zyklisch import PlanungZyklisch
@@ -26,6 +27,9 @@ from labordaten_backend.modules.parameter.normalization import (
 from labordaten_backend.modules.parameter.schemas import (
     ParameterAliasCreate,
     ParameterAliasSuggestionRead,
+    ParameterKlassifikationCreate,
+    ParameterKlassifikationDeleteResult,
+    ParameterKlassifikationRead,
     ParameterDuplicatePruefschaerfe,
     ParameterDuplicateSuppressionCreate,
     ParameterDuplicateSuppressionRead,
@@ -34,6 +38,8 @@ from labordaten_backend.modules.parameter.schemas import (
     ParameterMergeRequest,
     ParameterMergeResultRead,
     ParameterCreate,
+    ParameterPrimaereKlassifikationUpdate,
+    ParameterPrimaereKlassifikationUpdateResult,
     ParameterRead,
     ParameterUmrechnungsregelCreate,
     ParameterUmrechnungsregelRead,
@@ -100,6 +106,22 @@ def update_parameter_standard_einheit(
     )
 
 
+def update_parameter_primaere_klassifikation(
+    db: Session,
+    parameter_id: str,
+    payload: ParameterPrimaereKlassifikationUpdate,
+) -> ParameterPrimaereKlassifikationUpdateResult:
+    parameter = _require_parameter(db, parameter_id)
+    parameter.primaere_klassifikation = payload.primaere_klassifikation
+    db.commit()
+    db.refresh(parameter)
+    return ParameterPrimaereKlassifikationUpdateResult(
+        parameter_id=parameter.id,
+        parameter_anzeigename=parameter.anzeigename,
+        primaere_klassifikation=parameter.primaere_klassifikation,
+    )
+
+
 def list_parameter_aliase(db: Session, parameter_id: str) -> list[LaborparameterAlias]:
     _require_parameter(db, parameter_id)
     stmt = (
@@ -154,6 +176,52 @@ def list_parameter_gruppen(
         )
         for zuordnung, gruppe in db.execute(stmt)
     ]
+
+
+def list_parameter_klassifikationen(
+    db: Session,
+    parameter_id: str,
+) -> list[ParameterKlassifikationRead]:
+    _require_parameter(db, parameter_id)
+    stmt = (
+        select(ParameterKlassifikation)
+        .where(ParameterKlassifikation.laborparameter_id == parameter_id)
+        .where(ParameterKlassifikation.aktiv.is_(True))
+        .order_by(ParameterKlassifikation.erstellt_am.desc())
+    )
+    return [ParameterKlassifikationRead.model_validate(item) for item in db.scalars(stmt)]
+
+
+def create_parameter_klassifikation(
+    db: Session,
+    parameter_id: str,
+    payload: ParameterKlassifikationCreate,
+) -> ParameterKlassifikationRead:
+    _require_parameter(db, parameter_id)
+    klassifikation = ParameterKlassifikation(
+        laborparameter_id=parameter_id,
+        klassifikation=payload.klassifikation,
+        kontext_beschreibung=payload.kontext_beschreibung.strip()
+        if payload.kontext_beschreibung and payload.kontext_beschreibung.strip()
+        else None,
+        begruendung=payload.begruendung.strip() if payload.begruendung and payload.begruendung.strip() else None,
+    )
+    db.add(klassifikation)
+    db.commit()
+    db.refresh(klassifikation)
+    return ParameterKlassifikationRead.model_validate(klassifikation)
+
+
+def delete_parameter_klassifikation(
+    db: Session,
+    klassifikation_id: str,
+) -> ParameterKlassifikationDeleteResult:
+    klassifikation = db.get(ParameterKlassifikation, klassifikation_id)
+    if klassifikation is None or not klassifikation.aktiv:
+        raise ValueError("Parameter-Klassifikation nicht gefunden.")
+    klassifikation.aktiv = False
+    db.commit()
+    return ParameterKlassifikationDeleteResult(klassifikation_id=klassifikation_id)
 
 
 def create_parameter_umrechnungsregel(
@@ -448,6 +516,7 @@ def merge_parameters(db: Session, payload: ParameterMergeRequest) -> ParameterMe
     moved_target_ranges = _reassign_parameter_rows(db, Zielbereich, source.id, target.id)
     moved_cyclic_plans = _reassign_parameter_rows(db, PlanungZyklisch, source.id, target.id)
     moved_one_time_plans = _reassign_parameter_rows(db, PlanungEinmalig, source.id, target.id)
+    _reassign_parameter_rows(db, ParameterKlassifikation, source.id, target.id)
     moved_group_assignments, removed_duplicate_group_assignments = _merge_group_assignments(db, source.id, target.id)
     created_aliases, skipped_aliases = _merge_parameter_aliases(db, target, source, common_name, original_target_name)
     _delete_duplicate_suppressions_for_parameter_ids(db, [source.id])
@@ -458,6 +527,8 @@ def merge_parameters(db: Session, payload: ParameterMergeRequest) -> ParameterMe
         target.beschreibung = source.beschreibung
     if not target.sortierschluessel and source.sortierschluessel:
         target.sortierschluessel = source.sortierschluessel
+    if not target.primaere_klassifikation and source.primaere_klassifikation:
+        target.primaere_klassifikation = source.primaere_klassifikation
 
     db.delete(source)
     db.commit()
@@ -577,6 +648,7 @@ def _build_parameter_read(
         beschreibung=parameter.beschreibung,
         standard_einheit=parameter.standard_einheit,
         wert_typ_standard=parameter.wert_typ_standard,
+        primaere_klassifikation=parameter.primaere_klassifikation,
         sortierschluessel=parameter.sortierschluessel,
         aktiv=parameter.aktiv,
         erstellt_am=parameter.erstellt_am,
@@ -670,6 +742,7 @@ def _build_parameter_usage_summaries(
             interner_schluessel=parameter.interner_schluessel,
             standard_einheit=parameter.standard_einheit,
             wert_typ_standard=parameter.wert_typ_standard,
+            primaere_klassifikation=parameter.primaere_klassifikation,
         )
         for parameter in parameters
     }
@@ -723,6 +796,7 @@ def _build_target_range_signature(target_range: Zielbereich) -> str:
     return "|".join(
         [
             target_range.wert_typ or "",
+            target_range.zielbereich_typ or "",
             lower,
             upper,
             normalize_parameter_name(target_range.einheit),
@@ -964,6 +1038,7 @@ def _parameter_preference_score(parameter: Laborparameter, summary: ParameterUsa
         + summary.alias_anzahl
         + (3 if parameter.standard_einheit else 0)
         + (2 if parameter.beschreibung else 0)
+        + (1 if parameter.primaere_klassifikation else 0)
         + (1 if parameter.sortierschluessel else 0)
     )
 

@@ -7,6 +7,8 @@ REFERENZ_GRENZ_OPERATOREN = ("kleiner_als", "kleiner_gleich", "groesser_als", "g
 REFERENZ_TYPEN = ("labor", "ziel_allgemein", "ziel_person")
 BEFUND_QUELLE_TYPEN = ("manuell", "import", "ki_import")
 UMRECHNUNGSREGEL_TYPEN = ("faktor", "faktor_plus_offset", "formel")
+PARAMETER_KLASSIFIKATIONEN = ("krankwert", "schluesselwert", "gesundmachwert")
+ZIELBEREICH_TYPEN = ("allgemein", "optimalbereich", "therapieziel", "mangelbereich", "risikobereich")
 
 
 def _allowed_values_text(valid_values: Collection[str]) -> str:

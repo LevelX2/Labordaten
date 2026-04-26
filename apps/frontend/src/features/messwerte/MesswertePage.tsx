@@ -14,10 +14,12 @@ import { ListSortControl } from "../../shared/components/ListSortControl";
 import { LoeschAktionPanel } from "../../shared/components/LoeschAktionPanel";
 import {
   KONTEXT_GESCHLECHT_OPTIONS,
+  PARAMETER_KLASSIFIKATION_OPTIONS,
   REFERENZ_GRENZ_OPERATOR_OPTIONS,
   WERT_OPERATOR_OPTIONS,
   WERT_TYP_OPTIONS,
   formatGeschlechtCode,
+  formatParameterKlassifikation,
   formatWertOperator,
   formatWertTyp
 } from "../../shared/constants/fieldOptions";
@@ -44,6 +46,7 @@ import type {
   Messwert,
   MesswertReferenz,
   Parameter,
+  ParameterKlassifikationCode,
   Person,
   WertTyp
 } from "../../shared/types/api";
@@ -68,6 +71,7 @@ type ListenFilterState = {
   person_ids: string[];
   laborparameter_ids: string[];
   gruppen_ids: string[];
+  klassifikationen: ParameterKlassifikationCode[];
   labor_ids: string[];
   datum_von: string;
   datum_bis: string;
@@ -107,6 +111,7 @@ const initialFilter: ListenFilterState = {
   person_ids: [],
   laborparameter_ids: [],
   gruppen_ids: [],
+  klassifikationen: [],
   labor_ids: [],
   datum_von: defaultDateRange.datum_von,
   datum_bis: defaultDateRange.datum_bis
@@ -265,6 +270,7 @@ function buildListItemSearchText(messwert: Messwert): string {
   return [
     messwert.person_anzeigename ?? "",
     messwert.parameter_anzeigename ?? "",
+    formatParameterKlassifikation(messwert.parameter_primaere_klassifikation, ""),
     messwert.original_parametername,
     messwert.labor_name ?? "",
     messwert.gruppen_namen.join(" "),
@@ -344,6 +350,7 @@ export function MesswertePage() {
       appendMany(nextSearchParams, "person_ids", filter.person_ids);
       appendMany(nextSearchParams, "laborparameter_ids", filter.laborparameter_ids);
       appendMany(nextSearchParams, "gruppen_ids", filter.gruppen_ids);
+      appendMany(nextSearchParams, "klassifikationen", filter.klassifikationen);
       appendMany(nextSearchParams, "labor_ids", filter.labor_ids);
       if (filter.datum_von) {
         nextSearchParams.set("datum_von", filter.datum_von);
@@ -778,6 +785,24 @@ export function MesswertePage() {
             />
 
             <SelectionChecklist
+              label="KSG-Klassen"
+              options={PARAMETER_KLASSIFIKATION_OPTIONS.map((option) => ({
+                id: option.value,
+                label: option.label
+              }))}
+              selectedIds={filter.klassifikationen}
+              onChange={(klassifikationen) =>
+                setFilter((current) => ({
+                  ...current,
+                  klassifikationen: klassifikationen as ParameterKlassifikationCode[]
+                }))
+              }
+              emptyText="Keine KSG-Klassen verfügbar."
+              collapsible
+              defaultExpanded={false}
+            />
+
+            <SelectionChecklist
               label="Labore"
               options={(laboreQuery.data ?? []).map((labor) => ({
                 id: labor.id,
@@ -1153,6 +1178,9 @@ export function MesswertePage() {
                 <p>{summarizeMesswert(messwert)}</p>
                 <div className="parameter-list__meta">
                   <span className="parameter-pill">{messwert.person_anzeigename || "Unbekannte Person"}</span>
+                  <span className="parameter-pill">
+                    KSG: {formatParameterKlassifikation(messwert.parameter_primaere_klassifikation)}
+                  </span>
                   <span className="parameter-pill">{formatMesswertAnzeige(messwert)}</span>
                   <span className="parameter-pill">{messwert.einheit_original || formatWertTyp(messwert.wert_typ)}</span>
                 </div>
@@ -1273,6 +1301,10 @@ export function MesswertePage() {
                   <div className="detail-grid__item">
                     <span>Parameter</span>
                     <strong>{selectedParameterLabel}</strong>
+                  </div>
+                  <div className="detail-grid__item">
+                    <span>Primäre KSG-Klasse</span>
+                    <strong>{formatParameterKlassifikation(selectedMesswert.parameter_primaere_klassifikation)}</strong>
                   </div>
                   <div className="detail-grid__item">
                     <span>Entnahmedatum</span>

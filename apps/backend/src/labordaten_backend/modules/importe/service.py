@@ -802,6 +802,7 @@ def _build_prompt_parameter_context(db: Session) -> list[dict[str, object]]:
             "internerSchluessel": parameter.interner_schluessel,
             "standardEinheit": parameter.standard_einheit,
             "wertTypStandard": parameter.wert_typ_standard,
+            "primaereKlassifikation": parameter.primaere_klassifikation,
             "aliase": aliases_by_parameter.get(parameter.id, []),
         }
         for parameter in db.scalars(stmt)
@@ -939,7 +940,9 @@ Parameter-Vorschläge:
 - Ein Parameter-Vorschlag ist nur ein Vorschlag für die spätere Prüfung. Er ersetzt keinen sicheren Match und legt nichts automatisch an.
 - Setze "anzeigename" als gut lesbaren Parameternamen, nicht nur als Abkürzung aus dem Dokument.
 - Setze "messwertIndizes" mit allen Messwertpositionen, auf die sich der Vorschlag bezieht.
-- Setze "wertTypStandard", "standardEinheit", "beschreibungKurz", "moeglicheAliase" und "begruendungAusDokument" nur, wenn dies aus Dokument, üblicher Laborbezeichnung oder klarer Fachkenntnis belastbar ableitbar ist.
+- Setze "wertTypStandard", "standardEinheit", "primaereKlassifikation", "beschreibungKurz", "moeglicheAliase" und "begruendungAusDokument" nur, wenn dies aus Dokument, üblicher Laborbezeichnung oder klarer Fachkenntnis belastbar ableitbar ist.
+- Erlaubte "primaereKlassifikation"-Werte sind "krankwert", "schluesselwert" und "gesundmachwert". Diese Klassifikation beschreibt die typische Funktion des Parameters, nicht den konkreten Messwert.
+- Orientierungsbeispiele: LDL-C, Small-LDLs, Triglyceride, HbA1c, HOMA-Index, Harnsäure, CRP/hsCRP, RANTES, oxidiertes LDL, TPO-AK, TAK, TRAK, ANA-AK, CCP-AK, Kreatinin, Cystatin C, GPT, GOT, gGT, CK, Beta-CrossLaps, TRAP 5b, ucOC, D-Ratio/Vitamin-D-Ratio, reverse T3, Bilirubin gesamt, Apo-B, Blei, Cadmium, DAO-Genetik, HNMT, I-FABP, IgE, Lipase, Lp(a), Lp-PLA2, MDA-LDL, Mikroalbuminurie, Nickel, Nitrotyrosin, NT-proBNP, Prolaktin im nicht-schwangeren Kontext und Zonulin sind typischerweise "krankwert"; eGFR, HDL-C, Homocystein, Ferritin, Transferrinsättigung, PTH, 1,25-OH-Vitamin-D, Calcium, AP/alkalische Phosphatase, BDNF, DHT, Estradiol/Östradiol, FSH, Gesamteiweiß, Histamin gesamt, Kalium, Kupfer, Leukozyten, LH, Natrium, Östron, Phosphat, Quick, Serotonin, SHBG, fT3, fT4, TSH, Thrombozyten und Ostase sind typischerweise "schluesselwert"; Magnesium, 25-OH-Vitamin-D, freies 25-OH-Vitamin-D, Bor, Mangan, B12/Holo-TC, Vitamin A, Vitamin B3/Nikotinamid, Vitamin C, Zink, Chrom, Selen, Jod, Eisen, DAO im Serum, SCFA, reduziertes Glutathion, Melatonin, Pregnenolon, Q10, Vitamin E, Alpha-Liponsäure, Lithium, Folsäure, Biotin, bioaktive B-Vitamine, Omega-3-Index, Molybdän, Aminosäureprofile, Progesteron und DHEA-S sind typischerweise "gesundmachwert". Bei Mehrfachangaben wie "S/G", "G/S", "K/S" oder "S/K" verwende eine plausible primäre Klassifikation und beschreibe die weitere Rolle in der Begründung.
 - "beschreibungKurz" ist ausschließlich eine allgemeine, vom konkreten Bericht und Import unabhängige Fachbeschreibung: Was misst der Parameter oder wofür steht er typischerweise als Laborparameter?
 - Schreibe in "beschreibungKurz" keine Sätze wie "Der Befund nennt...", "Im Bericht steht...", keine Methode aus diesem konkreten Dokument, keine Referenzbereiche, keine konkreten Werte, keine Diagnose und keine Bewertung des konkreten Messwerts.
 - Wenn Du eine Anmerkung loswerden willst, warum der Vorschlag aus diesem Bericht abgeleitet wurde, schreibe sie ausschließlich in "begruendungAusDokument".
@@ -1003,6 +1006,7 @@ Beispielstruktur:
       "anzeigename": "Gut lesbarer Parametername",
       "wertTypStandard": "numerisch",
       "standardEinheit": "optionale Einheit",
+      "primaereKlassifikation": "krankwert | schluesselwert | gesundmachwert, optional",
       "beschreibungKurz": "Allgemeine, berichtsunabhängige Fachbeschreibung des Parameters",
       "moeglicheAliase": ["Name aus dem Bericht"],
       "begruendungAusDokument": "Berichtsbezogene Anmerkung, warum der Vorschlag zu den Messwerten passt",
@@ -1158,6 +1162,7 @@ def _build_parameter_suggestion_previews(payload: ImportPayload) -> list[ImportP
             anzeigename=suggestion.anzeigename,
             wert_typ_standard=suggestion.wert_typ_standard,
             standard_einheit=suggestion.standard_einheit,
+            primaere_klassifikation=suggestion.primaere_klassifikation,
             beschreibung_kurz=suggestion.beschreibung_kurz,
             moegliche_aliase=suggestion.moegliche_aliase,
             begruendung_aus_dokument=suggestion.begruendung_aus_dokument,
@@ -1685,6 +1690,9 @@ def _create_parameter_from_import_mapping(
         beschreibung=beschreibung,
         standard_einheit=standard_einheit_value,
         wert_typ_standard=wert_typ_standard,
+        primaere_klassifikation=parameter_vorschlag.primaere_klassifikation
+        if parameter_vorschlag is not None
+        else None,
     )
     db.add(parameter)
     db.flush()

@@ -123,6 +123,7 @@ describe("payloadBuilders", () => {
       buildZielbereichCreatePayload(
         {
           wert_typ: "text",
+          zielbereich_typ: "therapieziel",
           untere_grenze_num: "1",
           obere_grenze_num: "2",
           einheit: "ignored",
@@ -134,6 +135,7 @@ describe("payloadBuilders", () => {
       ),
     ).toEqual({
       wert_typ: "text",
+      zielbereich_typ: "therapieziel",
       untere_grenze_num: null,
       obere_grenze_num: null,
       einheit: null,

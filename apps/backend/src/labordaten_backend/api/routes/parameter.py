@@ -73,6 +73,21 @@ def update_parameter_standard_einheit(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
 
+@router.patch(
+    "/{parameter_id}/primaere-klassifikation",
+    response_model=schemas.ParameterPrimaereKlassifikationUpdateResult,
+)
+def update_parameter_primaere_klassifikation(
+    parameter_id: str,
+    payload: schemas.ParameterPrimaereKlassifikationUpdate,
+    db: Session = Depends(get_db),
+) -> schemas.ParameterPrimaereKlassifikationUpdateResult:
+    try:
+        return service.update_parameter_primaere_klassifikation(db, parameter_id, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
 @router.post("/{parameter_id}/umbenennen", response_model=schemas.ParameterRenameResultRead)
 def rename_parameter(
     parameter_id: str,
@@ -143,6 +158,20 @@ def list_parameter_gruppen(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
 
+@router.get(
+    "/{parameter_id}/klassifikationen",
+    response_model=list[schemas.ParameterKlassifikationRead],
+)
+def list_parameter_klassifikationen(
+    parameter_id: str,
+    db: Session = Depends(get_db),
+) -> list[schemas.ParameterKlassifikationRead]:
+    try:
+        return service.list_parameter_klassifikationen(db, parameter_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
 @router.post(
     "/{parameter_id}/aliase",
     response_model=schemas.ParameterAliasRead,
@@ -155,6 +184,22 @@ def create_parameter_alias(
 ) -> schemas.ParameterAliasRead:
     try:
         return service.create_parameter_alias(db, parameter_id, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@router.post(
+    "/{parameter_id}/klassifikationen",
+    response_model=schemas.ParameterKlassifikationRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_parameter_klassifikation(
+    parameter_id: str,
+    payload: schemas.ParameterKlassifikationCreate,
+    db: Session = Depends(get_db),
+) -> schemas.ParameterKlassifikationRead:
+    try:
+        return service.create_parameter_klassifikation(db, parameter_id, payload)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
@@ -188,3 +233,17 @@ def delete_parameter_duplicate_suppression(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     return schemas.ParameterDuplicateSuppressionDeleteResult(suppression_id=suppression_id)
+
+
+@router.delete(
+    "/klassifikationen/{klassifikation_id}",
+    response_model=schemas.ParameterKlassifikationDeleteResult,
+)
+def delete_parameter_klassifikation(
+    klassifikation_id: str,
+    db: Session = Depends(get_db),
+) -> schemas.ParameterKlassifikationDeleteResult:
+    try:
+        return service.delete_parameter_klassifikation(db, klassifikation_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc

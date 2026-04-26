@@ -8,7 +8,7 @@ from pydantic import ValidationError
 from labordaten_backend.modules.befunde.schemas import BefundCreate
 from labordaten_backend.modules.importe.schemas import ImportMesswertPayload
 from labordaten_backend.modules.messwerte.schemas import MesswertCreate
-from labordaten_backend.modules.parameter.schemas import ParameterCreate
+from labordaten_backend.modules.parameter.schemas import ParameterCreate, ParameterKlassifikationCreate
 from labordaten_backend.modules.personen.schemas import PersonCreate
 from labordaten_backend.modules.referenzen.schemas import ReferenzCreate
 from labordaten_backend.modules.zielbereiche.schemas import ZielbereichCreate
@@ -44,6 +44,20 @@ def test_parameter_create_rejects_unknown_value_type() -> None:
             standard_einheit="ng/ml",
             wert_typ_standard="zahl",
         )
+
+
+def test_parameter_create_rejects_unknown_primary_classification() -> None:
+    with pytest.raises(ValidationError):
+        ParameterCreate(
+            anzeigename="CRP",
+            wert_typ_standard="numerisch",
+            primaere_klassifikation="diagnosewert",
+        )
+
+
+def test_parameter_additional_classification_rejects_unknown_code() -> None:
+    with pytest.raises(ValidationError):
+        ParameterKlassifikationCreate(klassifikation="optimierungswert")
 
 
 def test_messwert_create_rejects_unknown_operator() -> None:
@@ -86,6 +100,15 @@ def test_zielbereich_create_rejects_invalid_gender_code() -> None:
         )
 
 
+def test_zielbereich_create_rejects_invalid_target_type() -> None:
+    with pytest.raises(ValidationError):
+        ZielbereichCreate(
+            wert_typ="numerisch",
+            zielbereich_typ="wunschbereich",
+            untere_grenze_num=1.0,
+        )
+
+
 def test_befund_create_rejects_unknown_source_type() -> None:
     with pytest.raises(ValidationError):
         BefundCreate(
@@ -116,6 +139,30 @@ def test_import_payload_rejects_invalid_operator_and_gender_code() -> None:
                 "wertRohText": "41",
                 "wertNum": 41,
                 "referenzGeschlechtCode": "M",
+            }
+        )
+
+
+def test_import_parameter_suggestion_accepts_primary_ksg_classification() -> None:
+    from labordaten_backend.modules.importe.schemas import ImportParameterVorschlagPayload
+
+    payload = ImportParameterVorschlagPayload.model_validate(
+        {
+            "anzeigename": "Vitamin D",
+            "wertTypStandard": "numerisch",
+            "primaereKlassifikation": "gesundmachwert",
+            "messwertIndizes": [0],
+        }
+    )
+
+    assert payload.primaere_klassifikation == "gesundmachwert"
+
+    with pytest.raises(ValidationError):
+        ImportParameterVorschlagPayload.model_validate(
+            {
+                "anzeigename": "Vitamin D",
+                "primaereKlassifikation": "diagnosewert",
+                "messwertIndizes": [0],
             }
         )
 

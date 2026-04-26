@@ -15,6 +15,8 @@ export type ReferenzGrenzOperator =
 export type ReferenzTyp = "labor" | "ziel_allgemein" | "ziel_person";
 export type BefundQuelleTyp = "manuell" | "import" | "ki_import";
 export type UmrechnungsregelTyp = "faktor" | "faktor_plus_offset" | "formel";
+export type ParameterKlassifikationCode = "krankwert" | "schluesselwert" | "gesundmachwert";
+export type ZielbereichTyp = "allgemein" | "optimalbereich" | "therapieziel" | "mangelbereich" | "risikobereich";
 
 export type PersonCreatePayload = {
   anzeigename: string;
@@ -32,11 +34,22 @@ export type ParameterCreatePayload = {
   beschreibung?: string | null;
   standard_einheit?: string | null;
   wert_typ_standard: WertTyp;
+  primaere_klassifikation?: ParameterKlassifikationCode | null;
   sortierschluessel?: string | null;
 };
 
 export type ParameterStandardEinheitUpdatePayload = {
   standard_einheit?: string | null;
+};
+
+export type ParameterPrimaereKlassifikationUpdatePayload = {
+  primaere_klassifikation?: ParameterKlassifikationCode | null;
+};
+
+export type ParameterPrimaereKlassifikationUpdateResult = {
+  parameter_id: string;
+  parameter_anzeigename: string;
+  primaere_klassifikation?: ParameterKlassifikationCode | null;
 };
 
 export type ParameterUmrechnungsregelCreatePayload = {
@@ -95,6 +108,7 @@ export type MesswertReferenzCreatePayload = {
 
 export type ZielbereichCreatePayload = {
   wert_typ: WertTyp;
+  zielbereich_typ: ZielbereichTyp;
   untere_grenze_num?: number | null;
   obere_grenze_num?: number | null;
   einheit?: string | null;
@@ -127,6 +141,7 @@ export type Parameter = {
   beschreibung?: string | null;
   standard_einheit?: string | null;
   wert_typ_standard: WertTyp;
+  primaere_klassifikation?: ParameterKlassifikationCode | null;
   sortierschluessel?: string | null;
   aktiv: boolean;
   erstellt_am: string;
@@ -170,6 +185,27 @@ export type ParameterAlias = {
   geaendert_am: string;
 };
 
+export type ParameterKlassifikation = {
+  id: string;
+  laborparameter_id: string;
+  klassifikation: ParameterKlassifikationCode;
+  kontext_beschreibung?: string | null;
+  begruendung?: string | null;
+  aktiv: boolean;
+  erstellt_am: string;
+  geaendert_am: string;
+};
+
+export type ParameterKlassifikationCreatePayload = {
+  klassifikation: ParameterKlassifikationCode;
+  kontext_beschreibung?: string | null;
+  begruendung?: string | null;
+};
+
+export type ParameterKlassifikationDeleteResult = {
+  klassifikation_id: string;
+};
+
 export type ParameterAliasSuggestion = {
   laborparameter_id: string;
   parameter_anzeigename: string;
@@ -210,6 +246,7 @@ export type ParameterUsageSummary = {
   interner_schluessel: string;
   standard_einheit?: string | null;
   wert_typ_standard: WertTyp;
+  primaere_klassifikation?: ParameterKlassifikationCode | null;
   messwerte_anzahl: number;
   gruppen_anzahl: number;
   zielbereiche_anzahl: number;
@@ -336,6 +373,7 @@ export type Messwert = {
   pruefbedarf_flag: boolean;
   person_anzeigename?: string | null;
   parameter_anzeigename?: string | null;
+  parameter_primaere_klassifikation?: ParameterKlassifikationCode | null;
   labor_id?: string | null;
   labor_name?: string | null;
   entnahmedatum?: string | null;
@@ -366,6 +404,7 @@ export type Zielbereich = {
   id: string;
   laborparameter_id: string;
   wert_typ: WertTyp;
+  zielbereich_typ: ZielbereichTyp;
   untere_grenze_num?: number | null;
   obere_grenze_num?: number | null;
   einheit?: string | null;
@@ -502,6 +541,7 @@ export type ImportParameterVorschlag = {
   anzeigename: string;
   wert_typ_standard?: WertTyp | null;
   standard_einheit?: string | null;
+  primaere_klassifikation?: ParameterKlassifikationCode | null;
   beschreibung_kurz?: string | null;
   moegliche_aliase: string[];
   begruendung_aus_dokument?: string | null;
@@ -610,6 +650,7 @@ export type ArztberichtEintrag = {
   person_anzeigename: string;
   laborparameter_id: string;
   parameter_anzeigename: string;
+  parameter_primaere_klassifikation?: ParameterKlassifikationCode | null;
   datum?: string | null;
   wert_typ: WertTyp;
   wert_anzeige: string;
@@ -638,6 +679,7 @@ export type VerlaufsberichtPunkt = {
   person_anzeigename: string;
   laborparameter_id: string;
   parameter_anzeigename: string;
+  parameter_primaere_klassifikation?: ParameterKlassifikationCode | null;
   datum?: string | null;
   wert_typ: WertTyp;
   wert_anzeige: string;
@@ -681,6 +723,7 @@ export type AuswertungPunkt = {
   messwert_id: string;
   person_id: string;
   person_anzeigename: string;
+  parameter_primaere_klassifikation?: ParameterKlassifikationCode | null;
   datum?: string | null;
   wert_typ: WertTyp;
   wert_operator: WertOperator;
@@ -704,6 +747,7 @@ export type AuswertungPunkt = {
 export type AuswertungsSerie = {
   laborparameter_id: string;
   parameter_anzeigename: string;
+  parameter_primaere_klassifikation?: ParameterKlassifikationCode | null;
   wert_typ_standard: WertTyp;
   standard_einheit?: string | null;
   statistik: AuswertungsStatistik;
