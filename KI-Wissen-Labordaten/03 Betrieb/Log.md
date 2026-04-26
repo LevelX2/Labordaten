@@ -11,6 +11,26 @@
 
 ## 2026-04
 
+### [2026-04-26] update | Datumsbereiche in Auswertung und Berichten validiert
+- Anlass oder Quelle: Abschlussprüfung offener Frontend-Änderungen nach dem Finito-Abschluss.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../../apps/backend/src/labordaten_backend/api/routes/auswertung.py
+  - ../../../apps/backend/src/labordaten_backend/api/routes/berichte.py
+  - ../../../apps/backend/src/labordaten_backend/api/routes/messwerte.py
+  - ../../../apps/backend/tests/test_api_contract_fixed_codes.py
+  - ../../../apps/frontend/src/shared/components/DateRangeFilterFields.tsx
+  - ../../../apps/frontend/src/features/auswertung/AuswertungPage.tsx
+  - ../../../apps/frontend/src/features/berichte/BerichtePage.tsx
+  - ../../../apps/frontend/src/features/planung/PlanungPage.tsx
+  - ../03 Betrieb/Generische Entwicklungsvorgaben.md
+- Kern der inhaltlichen Anpassung:
+  - Der gemeinsame Datumsbereich-Filter erkennt nun ungültige Bereiche, bei denen das Bis-Datum vor dem Von-Datum liegt.
+  - Messwertliste, Auswertung und Berichte weisen solche API-Anfragen mit HTTP 400 und einem deutschen Fehlerhinweis ab.
+  - Auswertung, Berichte und die Fälligkeitsübersicht der Planung blockieren Vorschau, Laden und PDF-Export bei ungültigem Datumsbereich und zeigen einen deutschen Fehlerhinweis an.
+  - Die projektinterne Vorgabenseite hält diese Validierungsregel nun als wiederverwendbare Leitlinie für vergleichbare Datumsfilter fest.
+
 ### [2026-04-26] update | PDF-Berichtsstandard mit App-Icon vereinheitlicht
 - Anlass oder Quelle: Nutzerhinweis, dass links oben vor `Labordaten` das App-Icon erscheinen soll und diese Form zunächst Standard für Berichte sein soll.
 - Neu angelegte Seiten:

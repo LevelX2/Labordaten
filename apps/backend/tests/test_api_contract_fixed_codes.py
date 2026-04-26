@@ -81,6 +81,25 @@ def test_create_person_api_accepts_fixed_gender_codes_and_rejects_free_text(monk
         assert invalid_response.status_code == 422
 
 
+def test_date_range_filters_reject_bis_before_von(monkeypatch, tmp_path: Path) -> None:
+    client, _ = _make_client(monkeypatch, tmp_path)
+    invalid_range = {"datum_von": "2026-04-26", "datum_bis": "2026-04-25"}
+    payload = {"person_ids": ["person-1"], **invalid_range}
+
+    with client:
+        responses = [
+            client.get("/api/messwerte", params=invalid_range),
+            client.post("/api/auswertung/verlauf", json=payload),
+            client.post("/api/berichte/arztbericht-vorschau", json=payload),
+            client.post("/api/berichte/verlauf-vorschau", json=payload),
+            client.post("/api/berichte/arztbericht-pdf", json=payload),
+            client.post("/api/berichte/verlauf-pdf", json=payload),
+        ]
+
+    assert [response.status_code for response in responses] == [400, 400, 400, 400, 400, 400]
+    assert all(response.json()["detail"] == "Das Bis-Datum darf nicht vor dem Von-Datum liegen." for response in responses)
+
+
 def test_create_referenz_api_enforces_fixed_value_and_gender_codes(monkeypatch, tmp_path: Path) -> None:
     client, test_session_factory = _make_client(monkeypatch, tmp_path)
     with test_session_factory() as db:

@@ -1,3 +1,5 @@
+import { useId } from "react";
+
 type DateRangeFilterFieldsProps = {
   fromValue: string;
   toValue: string;
@@ -7,8 +9,13 @@ type DateRangeFilterFieldsProps = {
   onToChange: (value: string) => void;
   fromLabel?: string;
   toLabel?: string;
+  errorMessage?: string;
   className?: string;
 };
+
+export function isInvalidDateRange(fromValue: string, toValue: string): boolean {
+  return Boolean(fromValue && toValue && toValue < fromValue);
+}
 
 function formatIsoDate(date: Date): string {
   const year = date.getFullYear();
@@ -42,9 +49,19 @@ export function DateRangeFilterFields({
   onToChange,
   fromLabel = "Datum von",
   toLabel = "Datum bis",
+  errorMessage = "Das Bis-Datum darf nicht vor dem Von-Datum liegen.",
   className
 }: DateRangeFilterFieldsProps) {
-  const rootClassName = ["date-range-filter", "field--full", className].filter(Boolean).join(" ");
+  const errorId = useId();
+  const isInvalid = isInvalidDateRange(fromValue, toValue);
+  const rootClassName = [
+    "date-range-filter",
+    "field--full",
+    isInvalid ? "date-range-filter--invalid" : null,
+    className
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div className={rootClassName}>
@@ -60,7 +77,13 @@ export function DateRangeFilterFields({
           >
             -1 J
           </button>
-          <input type="date" value={fromValue} onChange={(event) => onFromChange(event.target.value)} />
+          <input
+            type="date"
+            value={fromValue}
+            onChange={(event) => onFromChange(event.target.value)}
+            aria-invalid={isInvalid}
+            aria-describedby={isInvalid ? errorId : undefined}
+          />
           <button
             type="button"
             className="date-range-filter__button date-range-filter__button--next"
@@ -85,7 +108,13 @@ export function DateRangeFilterFields({
           >
             -1 J
           </button>
-          <input type="date" value={toValue} onChange={(event) => onToChange(event.target.value)} />
+          <input
+            type="date"
+            value={toValue}
+            onChange={(event) => onToChange(event.target.value)}
+            aria-invalid={isInvalid}
+            aria-describedby={isInvalid ? errorId : undefined}
+          />
           <button
             type="button"
             className="date-range-filter__button date-range-filter__button--next"
@@ -97,6 +126,12 @@ export function DateRangeFilterFields({
           </button>
         </div>
       </div>
+
+      {isInvalid ? (
+        <p id={errorId} className="form-error date-range-filter__error" role="alert">
+          {errorMessage}
+        </p>
+      ) : null}
     </div>
   );
 }

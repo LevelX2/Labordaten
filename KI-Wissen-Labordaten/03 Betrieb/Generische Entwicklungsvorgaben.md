@@ -118,6 +118,8 @@ Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitp
 - Die Schrittaktionen `-1 J` und `+1 J` gehören direkt an das jeweilige Datumsfeld, damit Zeiträume schnell verschoben werden können, ohne dass getrennte Zusatzzeilen oder lose Button-Reihen entstehen.
 - Wenn die verfügbare Breite nicht mehr reicht, sollen ganze Datumsblöcke umbrechen; einzelne Teilstücke eines Blocks dürfen nicht unruhig auseinanderfallen.
 - Für vergleichbare Seiten soll dieselbe gemeinsame Frontend-Komponente verwendet werden, damit Optik, Verhalten, Tastaturfokus und spätere Detailanpassungen projektweit konsistent bleiben.
+- Wenn beide Grenzen gesetzt sind und `Datum bis` vor `Datum von` liegt, ist der Datumsbereich ungültig. Die Oberfläche soll diesen Fehler direkt am Datumsbereich sichtbar markieren und primäre Aktionen wie Laden, Vorschau oder PDF-Erzeugung blockieren, damit der Nutzer eine leere Ergebnisliste nicht mit fehlenden Daten verwechselt.
+- API-Einstiege, die solche Datumsbereiche verarbeiten, sollen dieselbe Regel serverseitig prüfen und mit einem verständlichen deutschen Fehlerhinweis ablehnen.
 
 ## Kompakte Listensortierung in Arbeitsseiten
 - Auf arbeitsorientierten Seiten mit linker Auswahlliste und rechtem Detailbereich sollte die Sortierung als kompakte Zusatzsteuerung in oder nahe der Liste erscheinen statt als dauerhaft breite Werkzeugleiste.

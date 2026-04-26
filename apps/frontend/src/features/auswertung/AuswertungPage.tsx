@@ -12,7 +12,7 @@ import {
 } from "recharts";
 
 import { apiFetch } from "../../shared/api/client";
-import { DateRangeFilterFields } from "../../shared/components/DateRangeFilterFields";
+import { DateRangeFilterFields, isInvalidDateRange } from "../../shared/components/DateRangeFilterFields";
 import { SelectionChecklist } from "../../shared/components/SelectionChecklist";
 import {
   PARAMETER_KLASSIFIKATION_OPTIONS,
@@ -668,6 +668,7 @@ export function AuswertungPage() {
   const autoLoadKeyRef = useRef<string | null>(null);
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(() => form.person_ids.length === 0);
   const previewQueryString = useMemo(() => buildSharedFilterSearchParams(form).toString(), [form]);
+  const isDateRangeInvalid = isInvalidDateRange(form.datum_von, form.datum_bis);
 
   const personenQuery = useQuery({
     queryKey: ["personen"],
@@ -688,7 +689,7 @@ export function AuswertungPage() {
   const auswertungPreviewQuery = useQuery({
     queryKey: ["auswertung", "treffer-vorab", previewQueryString],
     queryFn: () => apiFetch<Messwert[]>(`/api/messwerte?${previewQueryString}`),
-    enabled: form.person_ids.length > 0
+    enabled: form.person_ids.length > 0 && !isDateRangeInvalid
   });
   const gesamtzahlenQuery = useQuery({
     queryKey: ["auswertung", "gesamtzahlen"],
@@ -792,7 +793,7 @@ export function AuswertungPage() {
     }
   ];
   const hasTooManyPreviewParameters = auswertungPreviewCounts.parameter > maxAuswertungParameter;
-  const isLoadBlocked = auswertungMutation.isPending || !form.person_ids.length;
+  const isLoadBlocked = auswertungMutation.isPending || !form.person_ids.length || isDateRangeInvalid;
   const handleLoadAuswertung = () => {
     if (isLoadBlocked) {
       return;
@@ -964,6 +965,9 @@ export function AuswertungPage() {
           </div>
         )}
 
+        {isDateRangeInvalid && !isFilterPanelOpen ? (
+          <p className="form-error">Das Bis-Datum darf nicht vor dem Von-Datum liegen.</p>
+        ) : null}
         {hasTooManyPreviewParameters ? (
           <p className="form-hint">
             Diese Auswahl umfasst mehr als {maxAuswertungParameter} Parameter. Beim Laden fragt die Anwendung nach.

@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
 import { apiFetch, apiFetchBlob } from "../../shared/api/client";
-import { DateRangeFilterFields } from "../../shared/components/DateRangeFilterFields";
+import { DateRangeFilterFields, isInvalidDateRange } from "../../shared/components/DateRangeFilterFields";
 import { LoeschAktionPanel } from "../../shared/components/LoeschAktionPanel";
 import { SelectionChecklist } from "../../shared/components/SelectionChecklist";
 import type {
@@ -256,6 +256,7 @@ export function PlanungPage() {
   const [faelligkeitPersonFilter, setFaelligkeitPersonFilter] = useState("");
   const [faelligkeitDatumVon, setFaelligkeitDatumVon] = useState(defaultFaelligkeitDatumVon);
   const [faelligkeitDatumBis, setFaelligkeitDatumBis] = useState(defaultFaelligkeitDatumBis);
+  const isFaelligkeitDateRangeInvalid = isInvalidDateRange(faelligkeitDatumVon, faelligkeitDatumBis);
   const [showFaelligkeitenOverview, setShowFaelligkeitenOverview] = useState(false);
   const [planningTypeFilter, setPlanningTypeFilter] = useState<"" | PlanungListItem["typ"]>("");
   const [planningSearchQuery, setPlanningSearchQuery] = useState("");
@@ -314,7 +315,8 @@ export function PlanungPage() {
   }, [faelligkeitDatumBis, faelligkeitDatumVon, faelligkeitPersonFilter]);
   const faelligkeitenQuery = useQuery({
     queryKey: ["planung", "faelligkeiten", faelligkeitPersonFilter, faelligkeitDatumVon, faelligkeitDatumBis],
-    queryFn: () => apiFetch<PlanungFaelligkeit[]>(`/api/planung/faelligkeiten${faelligkeitenQueryString}`)
+    queryFn: () => apiFetch<PlanungFaelligkeit[]>(`/api/planung/faelligkeiten${faelligkeitenQueryString}`),
+    enabled: !isFaelligkeitDateRangeInvalid
   });
 
   const personById = useMemo(
@@ -987,7 +989,11 @@ export function PlanungPage() {
                 <button
                   type="button"
                   onClick={() => downloadFaelligkeitenPdfMutation.mutate()}
-                  disabled={faelligkeitenQuery.isLoading || downloadFaelligkeitenPdfMutation.isPending}
+                  disabled={
+                    faelligkeitenQuery.isLoading ||
+                    downloadFaelligkeitenPdfMutation.isPending ||
+                    isFaelligkeitDateRangeInvalid
+                  }
                 >
                   {downloadFaelligkeitenPdfMutation.isPending ? "PDF wird erstellt..." : "PDF-Merkzettel"}
                 </button>

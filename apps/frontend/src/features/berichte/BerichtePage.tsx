@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { apiFetch, apiFetchBlob } from "../../shared/api/client";
-import { DateRangeFilterFields } from "../../shared/components/DateRangeFilterFields";
+import { DateRangeFilterFields, isInvalidDateRange } from "../../shared/components/DateRangeFilterFields";
 import { MesswertDetailCard } from "../../shared/components/MesswertDetailCard";
 import { SelectionChecklist } from "../../shared/components/SelectionChecklist";
 import {
@@ -159,6 +159,7 @@ export function BerichtePage() {
     form.person_ids.length ? null : "filters"
   );
   const [showPageInfo, setShowPageInfo] = useState(false);
+  const isDateRangeInvalid = isInvalidDateRange(form.datum_von, form.datum_bis);
 
   const personenQuery = useQuery({
     queryKey: ["personen"],
@@ -313,12 +314,18 @@ export function BerichtePage() {
   }, [doctorReportMutation.data, selectedMesswertId, trendReportMutation.data]);
 
   const handlePreviewLoad = () => {
+    if (isDateRangeInvalid || !form.person_ids.length) {
+      return;
+    }
     doctorReportMutation.mutate();
     trendReportMutation.mutate();
     setActivePanel(null);
   };
 
   const handlePdfExport = () => {
+    if (isDateRangeInvalid || !form.person_ids.length) {
+      return;
+    }
     if (selectedAnsicht === "arztbericht") {
       doctorPdfMutation.mutate();
       return;
@@ -571,7 +578,7 @@ export function BerichtePage() {
                 type="button"
                 className="parameter-toolrail__button"
                 onClick={handlePreviewLoad}
-                disabled={previewPending || !form.person_ids.length}
+                disabled={previewPending || !form.person_ids.length || isDateRangeInvalid}
               >
                 {previewPending ? "Lädt..." : "Vorschau laden"}
               </button>
@@ -581,8 +588,8 @@ export function BerichtePage() {
                 onClick={handlePdfExport}
                 disabled={
                   selectedAnsicht === "arztbericht"
-                    ? doctorPdfMutation.isPending || !form.person_ids.length
-                    : trendPdfMutation.isPending || !form.person_ids.length
+                    ? doctorPdfMutation.isPending || !form.person_ids.length || isDateRangeInvalid
+                    : trendPdfMutation.isPending || !form.person_ids.length || isDateRangeInvalid
                 }
               >
                 {selectedAnsicht === "arztbericht"
@@ -751,7 +758,7 @@ export function BerichtePage() {
                     <button type="button" onClick={() => setForm(initialForm)}>
                       Filter zurücksetzen
                     </button>
-                    <button type="submit" disabled={previewPending || !form.person_ids.length}>
+                    <button type="submit" disabled={previewPending || !form.person_ids.length || isDateRangeInvalid}>
                       {previewPending ? "Lädt..." : "Vorschau laden"}
                     </button>
                   </div>
@@ -789,6 +796,9 @@ export function BerichtePage() {
               </div>
             </div>
 
+            {isDateRangeInvalid && activePanel !== "filters" ? (
+              <p className="form-error">Das Bis-Datum darf nicht vor dem Von-Datum liegen.</p>
+            ) : null}
             {selectedAnsicht === "arztbericht" && doctorPdfMutation.isError ? (
               <p className="form-error">{doctorPdfMutation.error.message}</p>
             ) : null}
