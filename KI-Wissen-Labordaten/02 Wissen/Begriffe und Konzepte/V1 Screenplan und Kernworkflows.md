@@ -1,12 +1,23 @@
 ---
 typ: screenplan
 status: entwurf
-letzte_aktualisierung: 2026-04-21
+letzte_aktualisierung: 2026-04-26
 quellen:
   - V1 Ziel-Datenmodell.md
   - V1 Technisches Schema.md
   - ../Entscheidungen/V1 Vorentscheidungen Produktform und Kernmodell.md
+  - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung Zeitraum-Faelligkeiten.md
+  - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung Gruppenbemerkung.md
   - ../../../apps/frontend/src/shared/components/StartPage.tsx
+  - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung Parameter-Suche und Gruppenauswahl.md
+  - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung Anstehende Messungen und Textumbruch.md
+  - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung PDF-Merkzettel anstehende Messungen.md
+  - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung PDF-Merkzettel Branding und Seitenzahlen.md
+  - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung Suche vorhandene Planungen.md
+  - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung Labortermine statt Blutabnahmen.md
+  - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung Statusfilter Geplant missverstaendlich.md
+  - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung Filter nach Planungstyp.md
+  - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckfrage Gruppen Bearbeitung.md
 tags:
   - screenplan
   - ui
@@ -168,7 +179,7 @@ Die V1-Oberfläche soll arbeitsbereichsorientiert und sachlich aufgebaut sein. D
 ### Gruppendetail
 - Stammdaten
 - Parameterliste mit Sortierung
-- Aktionen für Berichte, Auswertung und Planung
+- Aktionen für Name/Beschreibung bearbeiten, Parameter zuordnen, Löschprüfung sowie Nutzung in Berichten, Auswertung und Planung
 
 ## Planung
 
@@ -178,10 +189,22 @@ Die V1-Oberfläche soll arbeitsbereichsorientiert und sachlich aufgebaut sein. D
   - `Einmalig`
   - `Fälligkeiten`
   - `Nächster Termin`
+- Beim Anlegen zyklischer Planungen und einmaliger Vormerkungen muss die Parameterauswahl für große Parameterbestände suchbar sein.
+- Die Parametersuche soll mindestens Anzeigename, internen Schlüssel, Beschreibung oder fachlichen Bemerkungstext und Einheit berücksichtigen.
+- Lange Parameterbezeichnungen und ergänzende Metadaten müssen in Auswahlkacheln innerhalb des rechten Rands umbrechen.
+- Gruppen dürfen in der Planung als Eingabehilfe verwendet werden, um mehrere gleichartig zu planende Parameter in einem Schritt auszuwählen.
+- Die gespeicherte Planung bleibt dabei auf Einzelparametern; eine Gruppe ist Auswahlhilfe und keine eigene Planungsziel-Entität.
+- Im Bereich `Vorhandene Planungen` soll die Textsuche kurz und eindeutig auf Person und Parameter ausgerichtet sein.
+- Der primäre Zusatzfilter in `Vorhandene Planungen` soll nach Planungstyp unterscheiden: `Zyklisch` oder `Einmalig`.
+- Fälligkeit und Status bleiben Informationen am einzelnen Planungseintrag, sind dort aber nicht der primäre Bestandsfilter.
+- Der berechnete zyklische Fälligkeitsstatus `geplant` soll sichtbar als `Noch nicht fällig` bezeichnet werden, weil `Geplant` bei vorhandenen Planungen missverständlich ist.
+- Sichtbare Beschreibungstexte im Planungsbereich sollen neutral von Laborterminen oder Laboruntersuchungen sprechen, wenn nicht ausdrücklich eine Blutprobe gemeint ist.
 
 ### Zyklische Planung
 - Filter: Person, Gruppe, Parameter, Status, fällig oder bald fällig
 - Spalten: Person, Parameter, Intervall, letzte Messung, nächste Fälligkeit, Priorität, Status
+- Beim Übernehmen einer Gruppe darf eine leere Bemerkung automatisch mit einer sprechenden Kombination aus Zyklus und Gruppenname vorbelegt werden, zum Beispiel `Alle 6 Monate Eisenwerte kontrollieren.`
+- Eine bereits manuell ausgefüllte Bemerkung wird durch die Gruppenübernahme nicht überschrieben.
 
 ### Einmalige Vormerkungen
 - Spalten: Person, Parameter, Status, Zieltermin, Bemerkung
@@ -189,6 +212,13 @@ Die V1-Oberfläche soll arbeitsbereichsorientiert und sachlich aufgebaut sein. D
 ### Fälligkeitsansicht
 - Konsolidierte Vorschlagsliste für nächsten Termin
 - Zusammenführung aus zyklischen Planungen und offenen Vormerkungen
+- Zeitraumansicht für geplante und fällige Werte als eingeklappter Überblick `Anstehende Messungen`.
+- Der Überblick startet eingeklappt und zeigt im Kopf Anzahl, Personenauswahl und Zeitraum zusammengefasst.
+- Im aufgeklappten Zustand müssen ein eigener Personenfilter sowie frei wählbares `Datum von` und `Datum bis` verfügbar sein.
+- Schnellzeiträume für die nächsten 6 Monate und die nächsten 12 Monate sollen als runde, zum restlichen UI passende Aktionsknöpfe erscheinen.
+- In der Zeitraumansicht werden aktive zyklische Planungen mit nächster Fälligkeit im Bereich sowie offene oder als nächster Termin markierte Einmalvormerkungen mit Zieltermin im Bereich angezeigt.
+- Die aktuell gefilterte Liste `Anstehende Messungen` soll als kompakter PDF-Merkzettel herunterladbar oder druckbar sein. Der Merkzettel ist eine Arbeitsliste mit den notwendigen Angaben zu Termin, Person, Parameter, Typ, Status, Priorität, letzter Messung und Hinweis, kein ausführlicher medizinischer Bericht.
+- Der PDF-Merkzettel soll als App-Ausgabe erkennbar sein, zum Beispiel durch `Labordaten`-Branding in Kopf- oder Fußzeile, und bei mehrseitigen Listen Seitennummern tragen.
 
 ### Aktionen
 - `Planung anlegen`

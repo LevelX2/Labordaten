@@ -5,6 +5,7 @@ letzte_aktualisierung: 2026-04-21
 quellen:
   - ../../01 Rohquellen/fachkonzepte/2026-04-20 Erste Konzeptvorgabe Laboranwendung.md
   - ../../01 Rohquellen/fachkonzepte/2026-04-20 Konzeptklaerungen V1 aus Rueckfragen.md
+  - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Gruppen Sortierschluessel.md
   - ../Entscheidungen/V1 Vorentscheidungen Produktform und Kernmodell.md
   - Planung Erstarchitektur und Umsetzungsphasen.md
   - ../../../apps/backend/src/labordaten_backend/modules/personen/schemas.py
@@ -216,6 +217,8 @@ Regel:
 
 Regel:
 - Ein Parameter kann in mehreren Gruppen vorkommen.
+- Gruppen dienen in V1 primär als Auswahlbündel für Parameter und werden alphabetisch sortiert; ein eigener Sortierschlüssel an der Gruppenentität wird aktuell nicht geführt.
+- Die optionale `sortierung` in `GruppenParameter` betrifft nur die Reihenfolge der Parameter innerhalb einer Gruppe und ist von einer Gruppenreihenfolge zu trennen.
 
 ### Wissensseite
 - `id`

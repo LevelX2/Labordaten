@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { apiFetch } from "../../shared/api/client";
-import { buildZielbereichCreatePayload } from "../../shared/api/payloadBuilders";
+import { buildZielbereichCreatePayload, buildZielbereichUpdatePayload } from "../../shared/api/payloadBuilders";
 import { LoeschAktionPanel } from "../../shared/components/LoeschAktionPanel";
 import {
   KONTEXT_GESCHLECHT_OPTIONS,
@@ -43,6 +43,7 @@ import type {
   WertTyp,
   WissensseiteListItem,
   ZielbereichTyp,
+  ZielbereichUpdatePayload,
   Zielbereich
 } from "../../shared/types/api";
 
@@ -289,6 +290,7 @@ export function ParameterPage() {
   const [klassifikationForm, setKlassifikationForm] =
     useState<ParameterKlassifikationFormState>(initialKlassifikationForm);
   const [zielbereichForm, setZielbereichForm] = useState<ZielbereichFormState>(initialZielbereichForm);
+  const [editingZielbereichId, setEditingZielbereichId] = useState<string | null>(null);
   const [umrechnungsregelForm, setUmrechnungsregelForm] =
     useState<ParameterUmrechnungsregelFormState>(initialUmrechnungsregelForm);
   const [mergeNameBySuggestion, setMergeNameBySuggestion] = useState<Record<string, string>>({});
@@ -362,6 +364,7 @@ export function ParameterPage() {
       setWissensseiteForm(initialWissensseiteForm);
       setKlassifikationForm(initialKlassifikationForm);
       setZielbereichForm(initialZielbereichForm);
+      setEditingZielbereichId(null);
       setUmrechnungsregelForm(initialUmrechnungsregelForm);
       return;
     }
@@ -628,6 +631,31 @@ export function ParameterPage() {
     }
   });
 
+  const updateZielbereichMutation = useMutation({
+    mutationFn: () => {
+      if (!editingZielbereichId) {
+        throw new Error("Bitte zuerst einen Zielbereich auswählen.");
+      }
+      return apiFetch<Zielbereich>(`/api/zielbereiche/${editingZielbereichId}`, {
+        method: "PATCH",
+        body: JSON.stringify(
+          buildZielbereichUpdatePayload(zielbereichForm, selectedParameter?.standard_einheit) satisfies ZielbereichUpdatePayload
+        )
+      });
+    },
+    onSuccess: async (updatedZielbereich) => {
+      setEditingZielbereichId(null);
+      setZielbereichForm((current) => ({
+        ...initialZielbereichForm,
+        parameter_id: current.parameter_id,
+        wert_typ: selectedParameter?.wert_typ_standard ?? "numerisch",
+        einheit: selectedParameter?.standard_einheit ?? ""
+      }));
+      setActivePanel(null);
+      await queryClient.invalidateQueries({ queryKey: ["zielbereiche", updatedZielbereich.laborparameter_id] });
+    }
+  });
+
   const updateWissensseiteMutation = useMutation({
     mutationFn: () =>
       apiFetch<ParameterWissensseiteUpdateResult>(`/api/parameter/${wissensseiteForm.parameter_id}/wissensseite`, {
@@ -881,6 +909,7 @@ export function ParameterPage() {
     }
 
     if (panel === "zielbereich" && selectedParameter) {
+      setEditingZielbereichId(null);
       setZielbereichForm({
         ...initialZielbereichForm,
         parameter_id: selectedParameter.id,
@@ -894,6 +923,22 @@ export function ParameterPage() {
       queryClient.removeQueries({ queryKey: ["parameter-dublettenvorschlaege"] });
     }
     setActivePanel(nextPanel);
+  };
+
+  const startZielbereichEdit = (zielbereich: Zielbereich) => {
+    setEditingZielbereichId(zielbereich.id);
+    setZielbereichForm({
+      parameter_id: zielbereich.laborparameter_id,
+      wert_typ: zielbereich.wert_typ,
+      zielbereich_typ: zielbereich.zielbereich_typ,
+      untere_grenze_num: zielbereich.untere_grenze_num?.toString() ?? "",
+      obere_grenze_num: zielbereich.obere_grenze_num?.toString() ?? "",
+      einheit: zielbereich.einheit ?? selectedParameter?.standard_einheit ?? "",
+      soll_text: zielbereich.soll_text ?? "",
+      geschlecht_code: zielbereich.geschlecht_code ?? "",
+      bemerkung: zielbereich.bemerkung ?? ""
+    });
+    setActivePanel("zielbereich");
   };
 
   const renderPanelCloseButton = (label = "Werkzeug schließen") => (
@@ -1610,15 +1655,16 @@ export function ParameterPage() {
     }
 
     if (activePanel === "zielbereich") {
+      const isEditMode = Boolean(editingZielbereichId);
       return (
         <article className="card card--soft parameter-action-panel">
           <div className="parameter-panel__header">
             <div>
-              <h3>Allgemeinen Zielbereich anlegen</h3>
+              <h3>{isEditMode ? "Allgemeinen Zielbereich bearbeiten" : "Allgemeinen Zielbereich anlegen"}</h3>
               <p>
-                Hier hinterlegst Du einen allgemeinen Zielbereich für den ausgewählten Parameter. Dieser Bereich dient
-                als fachliche Orientierung für Auswertung, Berichte und Planung und kann später bei Bedarf noch
-                personenspezifisch überschrieben werden.
+                {isEditMode
+                  ? "Passe hier fachliche Grenzen, Zielbereichstyp, Kontext und Bemerkung an. Parameterbezug, technische ID und Werttyp bleiben stabil."
+                  : "Hier hinterlegst Du einen allgemeinen Zielbereich für den ausgewählten Parameter. Dieser Bereich dient als fachliche Orientierung für Auswertung, Berichte und Planung und kann später bei Bedarf noch personenspezifisch überschrieben werden."}
               </p>
             </div>
             {renderPanelCloseButton("Panel Zielbereich schließen")}
@@ -1627,7 +1673,11 @@ export function ParameterPage() {
             className="form-grid"
             onSubmit={(event) => {
               event.preventDefault();
-              createZielbereichMutation.mutate();
+              if (isEditMode) {
+                updateZielbereichMutation.mutate();
+              } else {
+                createZielbereichMutation.mutate();
+              }
             }}
           >
             <label className="field">
@@ -1727,10 +1777,17 @@ export function ParameterPage() {
 
             <div className="form-actions">
               <button type="submit" disabled={createZielbereichMutation.isPending || !zielbereichForm.parameter_id}>
-                {createZielbereichMutation.isPending ? "Speichert..." : "Zielbereich anlegen"}
+                {createZielbereichMutation.isPending || updateZielbereichMutation.isPending
+                  ? "Speichert..."
+                  : isEditMode
+                    ? "Zielbereich speichern"
+                    : "Zielbereich anlegen"}
               </button>
               {createZielbereichMutation.isError ? (
                 <p className="form-error">{createZielbereichMutation.error.message}</p>
+              ) : null}
+              {updateZielbereichMutation.isError ? (
+                <p className="form-error">{updateZielbereichMutation.error.message}</p>
               ) : null}
             </div>
           </form>
@@ -2527,6 +2584,7 @@ export function ParameterPage() {
                                   <th>Bereich</th>
                                   <th>Einheit</th>
                                   <th>Geschlecht</th>
+                                  <th>Aktion</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -2537,11 +2595,20 @@ export function ParameterPage() {
                                     <td>{formatZielbereichValue(zielbereich)}</td>
                                     <td>{zielbereich.einheit || "—"}</td>
                                     <td>{formatGeschlechtCode(zielbereich.geschlecht_code, "Alle Geschlechter")}</td>
+                                    <td>
+                                      <button
+                                        type="button"
+                                        className="inline-button"
+                                        onClick={() => startZielbereichEdit(zielbereich)}
+                                      >
+                                        Bearbeiten
+                                      </button>
+                                    </td>
                                   </tr>
                                 ))}
                                 {!zielbereicheQuery.data?.length ? (
                                   <tr>
-                                    <td colSpan={5}>Noch keine Zielbereiche für diesen Parameter vorhanden.</td>
+                                    <td colSpan={6}>Noch keine Zielbereiche für diesen Parameter vorhanden.</td>
                                   </tr>
                                 ) : null}
                               </tbody>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { apiFetch } from "../../shared/api/client";
 import { EinheitenPflegeCard } from "../../shared/components/EinheitenPflegeCard";
+import { LaborePflegeCard } from "../../shared/components/LaborePflegeCard";
 import {
   colorDesigns,
   getStoredColorDesignKey,
@@ -18,6 +19,7 @@ type EinstellungenAnsichtKey =
   | "pfade"
   | "standards"
   | "design"
+  | "labore"
   | "einheiten"
   | "technik";
 
@@ -68,6 +70,13 @@ function getSectionMeta(section: EinstellungenAnsichtKey): { title: string; desc
     return {
       title: "Einheiten",
       description: "Hier legst Du die führende Schreibweise einer Einheit fest und ordnest abweichende Labor-Schreibweisen als Aliase zu.",
+      badge: "Zentrale Fachstammdaten"
+    };
+  }
+  if (section === "labore") {
+    return {
+      title: "Labore",
+      description: "Hier pflegst Du Laborstammdaten, die in Befunden, Filtern, Auswertungen und Berichten verwendet werden.",
       badge: "Zentrale Fachstammdaten"
     };
   }
@@ -469,6 +478,10 @@ export function EinstellungenPage() {
       return <EinheitenPflegeCard className="card card--soft" />;
     }
 
+    if (selectedAnsicht === "labore") {
+      return <LaborePflegeCard className="card card--soft" />;
+    }
+
     if (selectedAnsicht === "design") {
       return (
         <div className="color-design-grid" role="radiogroup" aria-label="Farbdesign auswählen">
@@ -603,6 +616,13 @@ export function EinstellungenPage() {
             onClick={() => setSelectedAnsicht("einheiten")}
           >
             Einheiten
+          </button>
+          <button
+            type="button"
+            className={`parameter-toolrail__button ${selectedAnsicht === "labore" ? "parameter-toolrail__button--active" : ""}`}
+            onClick={() => setSelectedAnsicht("labore")}
+          >
+            Labore
           </button>
           <button
             type="button"

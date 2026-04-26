@@ -11,6 +11,395 @@
 
 ## 2026-04
 
+### [2026-04-26] update | PDF-Merkzettel mit Branding und Seitenzahlen ergänzt
+- Anlass oder Quelle: Nutzerhinweis, dass der Merkzettel als App-Ausgabe erkennbar sein und bei mehreren Seiten Seitennummern enthalten soll.
+- Neu angelegte Seiten:
+  - ../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung PDF-Merkzettel Branding und Seitenzahlen.md
+- Geänderte Seiten:
+  - ../../../apps/backend/src/labordaten_backend/modules/planung/service.py
+  - ../02 Wissen/Begriffe und Konzepte/V1 Screenplan und Kernworkflows.md
+- Kern der inhaltlichen Anpassung:
+  - Der PDF-Merkzettel `Anstehende Messungen` zeichnet auf jeder Seite eine Kopfzeile mit `Labordaten` und `Planungs-Merkzettel`.
+  - Die Fußzeile enthält `Labordaten · Anstehende Messungen` sowie die laufende Seitennummer.
+  - Verifiziert mit `python -m pytest apps/backend/tests/test_planung_faelligkeiten.py`.
+
+### [2026-04-26] update | Fachlicher Labordaten-Wissenspool von KI-Projektwissen getrennt
+- Anlass oder Quelle: Nutzerklärung, dass die Anwendung einen fachlichen Informationspool zu Labordaten anzeigen soll und nicht die projektbezogene KI- und Entwicklungsdokumentation.
+- Neu angelegte Seiten:
+  - ../../Labordaten-Wissen/README.md
+  - ../../Labordaten-Wissen/00 Einstieg/Index.md
+  - ../../Labordaten-Wissen/01 Grundlagen/Laborwerte richtig einordnen.md
+  - ../../Labordaten-Wissen/01 Grundlagen/Referenzbereiche und Zielbereiche.md
+  - ../../Labordaten-Wissen/01 Grundlagen/KSG-Systematik.md
+  - ../../Labordaten-Wissen/01 Grundlagen/Krankwerte.md
+  - ../../Labordaten-Wissen/01 Grundlagen/Schluesselwerte.md
+  - ../../Labordaten-Wissen/01 Grundlagen/Gesundmachwerte.md
+  - ../../Labordaten-Wissen/02 Parameter/Allgemein/README.md
+  - ../../Labordaten-Wissen/03 Testprofile und Kombinationen/README.md
+  - ../../Labordaten-Wissen/04 Teststrategien/README.md
+  - ../../Labordaten-Wissen/05 Zielbereiche und Gesundheitswerte/README.md
+  - ../../Labordaten-Wissen/90 Quellen und Belege/Quellenuebersicht.md
+  - ../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Fachlicher Labordaten-Wissenspool.md
+- Geänderte Seiten:
+  - ../../../apps/backend/labordaten.runtime.json
+  - ../../../apps/backend/src/labordaten_backend/api/routes/parameter.py
+  - ../../../apps/backend/src/labordaten_backend/core/config.py
+  - ../../../apps/backend/src/labordaten_backend/modules/importe/service.py
+  - ../../../apps/backend/src/labordaten_backend/modules/parameter/service.py
+  - ../../../apps/backend/tests/test_wissensbasis_api.py
+  - ../../../apps/frontend/src/app/layout/AppLayout.tsx
+  - ../../../apps/frontend/src/features/einstellungen/EinstellungenPage.tsx
+  - ../../../apps/frontend/src/features/wissensbasis/WissensbasisPage.tsx
+  - ../02 Wissen/00 Uebersichten/Aktueller Projektstatus.md
+- Kern der inhaltlichen Anpassung:
+  - Der Standard-Wissensordner der Anwendung zeigt nun auf `Labordaten-Wissen/` statt auf `KI-Wissen-Labordaten/`.
+  - `Labordaten-Wissen/` wurde als fachlicher Markdown-Pool mit Einstieg, Grundlagen, KSG-Systematik, Parameterseiten, Testprofilen, Teststrategien, Zielbereichen und Quellenübersicht angelegt.
+  - Die Navigation benennt den Arbeitsbereich als `Laborwissen`, um ihn von der KI-Projektdokumentation zu unterscheiden.
+  - Beim Anlegen eines neuen Parameters über die API wird automatisch eine Fachwissensseite unter `02 Parameter/Allgemein/` erzeugt, mit dem Parameter verknüpft und mit dem Beschreibungstext als Kurzdefinition vorbefüllt.
+  - Auch im Import bewusst neu angelegte Parameter erhalten eine solche Fachwissensseite.
+  - Verifiziert mit `python -m pytest tests/test_wissensbasis_api.py tests/test_parameter_key_generation.py tests/test_import_group_suggestions.py` im Backend und `npm run build` im Frontend.
+
+### [2026-04-26] update | Vorhandene Planungen nach Typ filterbar gemacht
+- Anlass oder Quelle: Nutzerhinweis, dass ein Fälligkeits- oder Statusfilter im Unterpanel `Vorhandene Planungen` fachlich unverständlich ist und die Liste stattdessen einfach nach zyklischen oder einmaligen Planungen gefiltert werden sollte.
+- Neu angelegte Seiten:
+  - ../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung Filter nach Planungstyp.md
+- Geänderte Seiten:
+  - ../../../apps/frontend/src/features/planung/PlanungPage.tsx
+  - ../02 Wissen/Begriffe und Konzepte/V1 Screenplan und Kernworkflows.md
+- Kern der inhaltlichen Anpassung:
+  - Der Filter `Fälligkeit / Status` in `Vorhandene Planungen` wurde durch `Planungstyp` ersetzt.
+  - Die Filteroptionen sind nun `Alle Planungen`, `Zyklisch` und `Einmalig`.
+  - Fälligkeit und Status bleiben als sichtbare Informationen am Planungseintrag erhalten, steuern aber nicht mehr die Bestandsliste.
+
+### [2026-04-26] update | Statusfilter vorhandener Planungen präzisiert
+- Anlass oder Quelle: Nutzerhinweis, dass die Statusoption `Geplant` im Filter vorhandener Planungen missverständlich ist, weil sowohl zyklische als auch einmalige Einträge geplant sein können.
+- Neu angelegte Seiten:
+  - ../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung Statusfilter Geplant missverstaendlich.md
+- Geänderte Seiten:
+  - ../../../apps/frontend/src/features/planung/PlanungPage.tsx
+  - ../../../apps/backend/src/labordaten_backend/modules/planung/service.py
+  - ../02 Wissen/Begriffe und Konzepte/V1 Screenplan und Kernworkflows.md
+- Kern der inhaltlichen Anpassung:
+  - Der kombinierte Filter in `Vorhandene Planungen` heißt nun `Fälligkeit / Status`.
+  - Der berechnete zyklische Fälligkeitsstatus `geplant` wird in Oberfläche und PDF-Ausgabe als `Noch nicht fällig` angezeigt.
+
+### [2026-04-26] update | Planungstext auf Labortermine verallgemeinert
+- Anlass oder Quelle: Nutzerhinweis, dass Planungstexte nicht nur von Blutabnahmen sprechen sollen, weil auch Urin-, Stuhl- und andere Laboruntersuchungen geplant werden können.
+- Neu angelegte Seiten:
+  - ../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung Labortermine statt Blutabnahmen.md
+- Geänderte Seiten:
+  - ../../../apps/frontend/src/features/planung/PlanungPage.tsx
+  - ../02 Wissen/Begriffe und Konzepte/V1 Screenplan und Kernworkflows.md
+- Kern der inhaltlichen Anpassung:
+  - Der Infotext der Planungsseite spricht nun von `Laborterminen oder Arztterminen` statt von `Blutabnahmen oder Arztterminen`.
+  - Der Screenplan hält fest, dass Planungstexte neutral von Laborterminen oder Laboruntersuchungen sprechen sollen, wenn nicht ausdrücklich eine Blutprobe gemeint ist.
+
+### [2026-04-26] update | Gruppenbearbeitung ergänzt
+- Anlass oder Quelle: Nutzerfrage, wie Name oder Beschreibung einer bestehenden Gruppe geändert werden können; die Funktion war in der Gruppenseite bisher nicht vorhanden.
+- Neu angelegte Seiten:
+  - ../01 Rohquellen/fachkonzepte/2026-04-26 Rueckfrage Gruppen Bearbeitung.md
+- Geänderte Seiten:
+  - ../../../apps/backend/src/labordaten_backend/api/routes/gruppen.py
+  - ../../../apps/backend/src/labordaten_backend/modules/gruppen/schemas.py
+  - ../../../apps/backend/src/labordaten_backend/modules/gruppen/service.py
+  - ../../../apps/backend/tests/test_gruppen_api.py
+  - ../../../apps/frontend/src/features/gruppen/GruppenPage.tsx
+  - ../02 Wissen/Begriffe und Konzepte/V1 Screenplan und Kernworkflows.md
+- Kern der inhaltlichen Anpassung:
+  - Gruppen können jetzt über `PATCH /api/gruppen/{gruppe_id}` umbenannt und in ihrer Beschreibung geändert werden.
+  - Die Gruppenseite hat ein Werkzeug `Gruppe bearbeiten`, das Name und Beschreibung der ausgewählten Gruppe speichert.
+  - Leere Gruppennamen werden backendseitig abgelehnt.
+  - Verifiziert mit `python -m pytest apps/backend/tests/test_gruppen_api.py apps/backend/tests/test_import_group_suggestions.py`, `npm run build` im Frontend und `git diff --check`.
+
+### [2026-04-26] update | Gruppensortierschlüssel entfernt
+- Anlass oder Quelle: Nutzerhinweis, dass Gruppen aktuell primär als Auswahlbündel für Parameter dienen und keine eigene relative Sortierreihenfolge brauchen.
+- Neu angelegte Seiten:
+  - ../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Gruppen Sortierschluessel.md
+- Geänderte Seiten:
+  - ../../../apps/backend/src/labordaten_backend/models/parameter_gruppe.py
+  - ../../../apps/backend/src/labordaten_backend/modules/gruppen/schemas.py
+  - ../../../apps/backend/src/labordaten_backend/modules/importe/schemas.py
+  - ../../../apps/backend/src/labordaten_backend/modules/importe/service.py
+  - ../../../apps/backend/src/labordaten_backend/modules/parameter/schemas.py
+  - ../../../apps/backend/src/labordaten_backend/modules/parameter/service.py
+  - ../../../apps/backend/migrations/versions/20260426_0014_remove_group_sort_key.py
+  - ../../../apps/frontend/src/features/gruppen/GruppenPage.tsx
+  - ../../../apps/frontend/src/features/parameter/ParameterPage.tsx
+  - ../../../apps/frontend/src/shared/types/api.ts
+  - ../../../packages/contracts/import-v1.schema.json
+  - ../02 Wissen/Begriffe und Konzepte/V1 Ziel-Datenmodell.md
+- Kern der inhaltlichen Anpassung:
+  - Der eigene Sortierschlüssel der Gruppenentität wurde aus Modell, API, Importvertrag und Gruppenoberfläche entfernt.
+  - Gruppen werden weiter alphabetisch geführt; die optionale Reihenfolge von Parametern innerhalb einer Gruppe bleibt bestehen.
+  - Eine neue Migration entfernt die Spalte `parameter_gruppe.sortierschluessel` aus bestehenden Datenbanken.
+  - Verifiziert mit `python -m pytest apps/backend/tests/test_import_group_suggestions.py apps/backend/tests/test_import_prompt.py`, `npm run build` im Frontend, `python -m py_compile apps/backend/migrations/versions/20260426_0014_remove_group_sort_key.py` und `git diff --check`.
+
+### [2026-04-26] update | Suche vorhandener Planungen verständlicher gemacht
+- Anlass oder Quelle: Nutzerhinweis, dass im Unterpanel `Vorhandene Planungen` die Suche nach Person und Parameter funktioniert, `Status` als Suchbegriff aber unklar bleibt und der Platzhaltertext `oder Hinweis` in der Seitenleiste abgeschnitten wird.
+- Neu angelegte Seiten:
+  - ../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung Suche vorhandene Planungen.md
+- Geänderte Seiten:
+  - ../../../apps/frontend/src/features/planung/PlanungPage.tsx
+  - ../02 Wissen/Begriffe und Konzepte/V1 Screenplan und Kernworkflows.md
+- Kern der inhaltlichen Anpassung:
+  - Das Suchfeld in `Vorhandene Planungen` ist nun kurz als Suche nach Person oder Parameter beschriftet.
+  - Der Status wird als eigener Filter mit deutschen Statusbezeichnungen angeboten, statt über technische Statuscodes im Textsuchfeld erwartet zu werden.
+  - Verifiziert mit `npm run build` im Frontend.
+
+### [2026-04-26] update | PDF-Merkzettel für anstehende Messungen ergänzt
+- Anlass oder Quelle: Nutzerhinweis, dass die Liste anstehender Messungen als druckbarer Merkzettel beziehungsweise PDF-Download verfügbar sein soll.
+- Neu angelegte Seiten:
+  - ../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung PDF-Merkzettel anstehende Messungen.md
+- Geänderte Seiten:
+  - ../../../apps/backend/src/labordaten_backend/api/routes/planung.py
+  - ../../../apps/backend/src/labordaten_backend/modules/planung/service.py
+  - ../../../apps/backend/tests/test_planung_faelligkeiten.py
+  - ../../../apps/frontend/src/features/planung/PlanungPage.tsx
+  - ../../../apps/frontend/src/styles.css
+  - ../02 Wissen/00 Uebersichten/Aktueller Projektstatus.md
+  - ../02 Wissen/Begriffe und Konzepte/V1 Screenplan und Kernworkflows.md
+- Kern der inhaltlichen Anpassung:
+  - Für die aktuell gefilterten `Anstehenden Messungen` gibt es einen PDF-Endpunkt und eine Download-Aktion im aufgeklappten Planungsüberblick.
+  - Der PDF-Merkzettel enthält Termin, Person, Parameter, Planungstyp, Status, Priorität, letzte Messung und Hinweis.
+  - Verifiziert mit `python -m pytest apps/backend/tests/test_planung_faelligkeiten.py apps/backend/tests/test_planung_batch_api.py`, `npm run build` im Frontend und `git diff --check`.
+
+### [2026-04-26] update | Einheitenpflege als geführter Arbeitsbereich überarbeitet
+- Anlass oder Quelle: Nutzerhinweis, dass die Einheitenansicht in den Einstellungen nicht intuitiv verständlich war und unklar blieb, was dort zu tun ist.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../../apps/frontend/src/shared/components/EinheitenPflegeCard.tsx
+  - ../../../apps/frontend/src/features/einstellungen/EinstellungenPage.tsx
+  - ../../../apps/frontend/src/styles.css
+  - ../02 Wissen/Begriffe und Konzepte/Ist-Stand Einheiten, Normeinheiten und Umrechnung.md
+- Kern der inhaltlichen Anpassung:
+  - Die Einheitenpflege ist nun als Arbeitsbereich mit Bestand, Suche und Neuanlage links sowie ausgewählter Einheit rechts aufgebaut.
+  - Alias-Schreibweisen werden direkt im Kontext der ausgewählten kanonischen Einheit gepflegt; die doppelte Zieleinheiten-Auswahl im Aliasformular entfällt.
+  - Lösch- und Deaktivierungsprüfung ist als nachgelagerte Option zur gewählten Einheit erreichbar statt als separater Auswahlblock.
+  - Verifiziert mit `npm run build` im Frontend und Browserprüfung der Einstellungsansicht unter `http://localhost:5173/einstellungen`.
+
+### [2026-04-26] update | Gruppenbemerkung in zyklischer Planung vorbelegt
+- Anlass oder Quelle: Nutzerhinweis, dass beim Anlegen einer Planung über eine Gruppe der Gruppenname und der Zyklus als Bemerkung vorbelegt werden können, wenn die Bemerkung noch leer ist.
+- Neu angelegte Seiten:
+  - ../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung Gruppenbemerkung.md
+- Geänderte Seiten:
+  - ../../../apps/frontend/src/features/planung/PlanungPage.tsx
+  - ../02 Wissen/Begriffe und Konzepte/V1 Screenplan und Kernworkflows.md
+- Kern der inhaltlichen Anpassung:
+  - Beim Übernehmen einer Gruppe in der zyklischen Planung wird eine leere Bemerkung automatisch als Kombination aus Intervall und Gruppenname vorbelegt, zum Beispiel `Alle 6 Monate Eisenwerte kontrollieren.`
+  - Manuell eingetragene Bemerkungen werden nicht überschrieben.
+  - Verifiziert mit isoliertem TypeScript-Check der Planungsseite, `npm run build` und `git diff --check`.
+
+### [2026-04-26] update | Planungsüberblick Anstehende Messungen verfeinert
+- Anlass oder Quelle: Nutzerhinweis, dass der obere Zeitraumfilter in der Planung einklappbar sein, fachlich als anstehende oder geplante Messungen benannt werden, eigene Personenwahl besitzen und runde Schnellwahlknöpfe verwenden soll; zusätzlich sollten lange Parametertexte in Auswahlkacheln sauber umbrechen.
+- Neu angelegte Seiten:
+  - ../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung Anstehende Messungen und Textumbruch.md
+- Geänderte Seiten:
+  - ../../../apps/frontend/src/features/planung/PlanungPage.tsx
+  - ../../../apps/frontend/src/styles.css
+  - ../02 Wissen/Begriffe und Konzepte/V1 Screenplan und Kernworkflows.md
+- Kern der inhaltlichen Anpassung:
+  - Die Planungsseite zeigt den oberen Zeitraumüberblick nun als eingeklappt startenden Block `Anstehende Messungen`.
+  - Der Block hat einen eigenen Personenfilter, nutzt Zeitraumfelder erst im aufgeklappten Zustand und zeigt die Schnellwahl für 6 oder 12 Monate als runde Aktionsknöpfe.
+  - Die Auswahlkacheln der gemeinsamen `SelectionChecklist` erlauben lange Parameterbezeichnungen und Metadaten innerhalb der Kachel umzubrechen.
+  - Verifiziert mit `npm run build` im Frontend und `git diff --check` für die geänderten Frontend-Dateien.
+
+### [2026-04-26] update | Wissensbasis-Seiten lesbar, verlinkbar und mit Parametern verknüpfbar
+- Anlass oder Quelle: Nutzerhinweis, dass Markdown-Texte in der Wissensbasis angezeigt, untereinander verlinkt, manuell angelegt und aus Parameterdetails erreichbar sein sollen.
+- Neu angelegte Seiten:
+  - ../../../apps/backend/tests/test_wissensbasis_api.py
+- Geänderte Seiten:
+  - ../../../apps/backend/src/labordaten_backend/api/routes/parameter.py
+  - ../../../apps/backend/src/labordaten_backend/api/routes/wissensbasis.py
+  - ../../../apps/backend/src/labordaten_backend/modules/parameter/schemas.py
+  - ../../../apps/backend/src/labordaten_backend/modules/parameter/service.py
+  - ../../../apps/backend/src/labordaten_backend/modules/wissensbasis/schemas.py
+  - ../../../apps/backend/src/labordaten_backend/modules/wissensbasis/service.py
+  - ../../../apps/frontend/src/features/parameter/ParameterPage.tsx
+  - ../../../apps/frontend/src/features/wissensbasis/WissensbasisPage.tsx
+  - ../../../apps/frontend/src/shared/types/api.ts
+  - ../../../apps/frontend/src/styles.css
+  - ../02 Wissen/00 Uebersichten/Aktueller Projektstatus.md
+- Kern der inhaltlichen Anpassung:
+  - Wissensseiten können über die API als neue Markdown-Dateien im konfigurierten Wissensordner angelegt werden; Pfade werden auf den Wissensbasis-Ordner begrenzt.
+  - Beim manuellen Anlegen schlägt die Oberfläche aus Zielbereich und Titel automatisch einen relativen Markdown-Pfad vor, der bei Bedarf bearbeitet werden kann.
+  - Wissensseiten können über API und Oberfläche gelöscht werden; Rohquellen und noch mit Parametern verknüpfte Seiten werden dabei geschützt und in der Oberfläche gar nicht erst mit einer Löschaktion angeboten.
+  - Die Wissensbasis-Oberfläche rendert Markdown jetzt als lesbaren Artikel statt als Rohtext.
+  - Interne Obsidian-Links wie `[[Seite]]` und Markdown-Links auf andere `.md`-Seiten werden innerhalb der Wissensbasis aufgelöst und öffnen die Zielseite im selben Arbeitsbereich.
+  - Parameter können mit einer vorhandenen Wissensseite verknüpft werden; im Parameterdetail gibt es einen direkten Sprung zur verknüpften Seite oder zur passenden Wissensbasis-Suche.
+  - Verifiziert mit `python -m pytest tests/test_wissensbasis_api.py tests/test_parameter_key_generation.py` im Backend und `npm run build` im Frontend.
+
+### [2026-04-26] update | Zeitraumansicht für Planungsfälligkeiten ergänzt
+- Anlass oder Quelle: Nutzerhinweis, dass in der Planung kommende fällige Werte für frei wählbare Zeiträume wie das nächste halbe Jahr oder die nächsten 12 Monate sichtbar sein sollen.
+- Neu angelegte Seiten:
+  - ../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung Zeitraum-Faelligkeiten.md
+  - ../../../apps/backend/tests/test_planung_faelligkeiten.py
+- Geänderte Seiten:
+  - ../../../apps/backend/src/labordaten_backend/api/routes/planung.py
+  - ../../../apps/backend/src/labordaten_backend/modules/planung/service.py
+  - ../../../apps/frontend/src/features/planung/PlanungPage.tsx
+  - ../../../apps/frontend/src/styles.css
+  - ../02 Wissen/00 Uebersichten/Aktueller Projektstatus.md
+  - ../02 Wissen/Begriffe und Konzepte/V1 Screenplan und Kernworkflows.md
+- Kern der inhaltlichen Anpassung:
+  - Der Fälligkeiten-Endpunkt akzeptiert jetzt `datum_von` und `datum_bis` und liefert bei gesetztem Zeitraum auch kommende aktive zyklische Fälligkeiten sowie datierte offene Einmalvormerkungen im Bereich.
+  - Die Planungsseite zeigt eine eigene Übersicht `Fälligkeiten im Zeitraum` mit Von/Bis-Auswahl sowie Schnellwahl für die nächsten 6 und 12 Monate.
+  - Die bestehende konsolidierte Fälligkeitstabelle wird wiederverwendet und bleibt mit dem Personenfilter gekoppelt.
+  - Verifiziert mit `python -m pytest apps/backend/tests/test_planung_faelligkeiten.py`, isoliertem TypeScript-Check der Planungsseite und `git diff --check`. Der vollständige Frontend-Build ist aktuell durch die gelöschte Datei `apps/frontend/src/features/wissensbasis/WissensbasisPage.tsx` blockiert.
+
+### [2026-04-26] update | Planungsparameter suchbar und gruppenbasiert auswählbar
+- Anlass oder Quelle: Nutzerhinweis, dass die reine Dropdown-Auswahl in der Planung bei mehreren hundert Parametern unpraktisch ist und Gruppen als Eingabehilfe für gleichartig zu planende Parameter sinnvoll wären.
+- Neu angelegte Seiten:
+  - ../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung Parameter-Suche und Gruppenauswahl.md
+  - ../../../apps/backend/tests/test_planung_batch_api.py
+- Geänderte Seiten:
+  - ../../../apps/backend/src/labordaten_backend/api/routes/planung.py
+  - ../../../apps/backend/src/labordaten_backend/modules/planung/schemas.py
+  - ../../../apps/backend/src/labordaten_backend/modules/planung/service.py
+  - ../../../apps/frontend/src/features/planung/PlanungPage.tsx
+  - ../../../apps/frontend/src/styles.css
+  - ../02 Wissen/00 Uebersichten/Aktueller Projektstatus.md
+  - ../02 Wissen/Begriffe und Konzepte/V1 Screenplan und Kernworkflows.md
+- Kern der inhaltlichen Anpassung:
+  - Die Planungsformulare verwenden nun eine suchbare Mehrfachauswahl für Parameter statt einer reinen Dropdown-Liste.
+  - Die Suche berücksichtigt Anzeigename, internen Schlüssel, Beschreibung, Einheit und Werttyp der Parameter.
+  - Gruppen können beim Anlegen zyklischer Planungen und einmaliger Vormerkungen als Eingabehilfe übernommen werden; gespeichert werden weiterhin einzelne Planungen je Parameter.
+  - Backendseitig gibt es Batch-Endpunkte für zyklische Planungen und Einmalvormerkungen, damit eine Mehrfachauswahl atomar gespeichert wird.
+  - Verifiziert mit `python -m pytest apps/backend/tests/test_planung_batch_api.py` und `npm run build` im Frontend.
+
+### [2026-04-26] update | Personenauswahl im Import-Prüfschritt ergänzt
+- Anlass oder Quelle: Nutzerhinweis, dass beim Import eines Skript- oder JSON-Ergebnisses eine Person ausgewählt werden muss, in der Oberfläche aber keine erkennbare Auswahlmöglichkeit vorhanden war und die Übernahme deshalb unten blockiert blieb.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../../apps/backend/src/labordaten_backend/modules/importe/schemas.py
+  - ../../../apps/backend/src/labordaten_backend/modules/importe/service.py
+  - ../../../apps/backend/src/labordaten_backend/modules/loeschlogik/schemas.py
+  - ../../../apps/backend/src/labordaten_backend/modules/loeschlogik/service.py
+  - ../../../apps/backend/tests/test_delete_logic_api.py
+  - ../../../apps/backend/tests/test_import_person_override.py
+  - ../../../apps/backend/tests/test_import_prompt.py
+  - ../../../apps/frontend/src/features/importe/ImportPage.tsx
+  - ../../../apps/frontend/src/shared/components/LoeschAktionPanel.tsx
+  - ../../../apps/frontend/src/shared/types/api.ts
+  - ../../../apps/frontend/src/styles.css
+  - ../../../packages/contracts/import-v1.schema.json
+  - ../02 Wissen/Begriffe und Konzepte/Ist-Stand Importstrecke und PDF-Grenzen.md
+- Kern der inhaltlichen Anpassung:
+  - Der JSON-Startbereich enthält eine Personenauswahl als Anwendungskontext für den Import des KI-Ergebnisses.
+  - Der JSON-Upload-Endpunkt ignoriert `befund.personId` aus dem KI- oder Skript-JSON und verwendet nur die separat in der Anwendung gewählte Person.
+  - In der Prüfansicht `Befund prüfen` gibt es für offene Importe eine nachträgliche Personenauswahl; eine dort gewählte Person hebt den blockierenden Personenfehler in der UI auf.
+  - Die Backend-Übernahme akzeptiert eine `person_id_override`, schreibt sie in den gespeicherten Importpayload zurück und verwendet sie für Befund und Messwerte.
+  - Die bisherige Dropdown-Liste zur Parameterzuordnung wurde durch einen Suchdialog ergänzt, der verdächtige Kandidaten mit Einheit, Werttyp, Treffergrund und Beschreibung zeigt und die Filterung auf mehr Kandidaten oder alle Parameter lockern kann.
+  - In `Messwerte klären` bleiben Hinweise zum aktuell zugeordneten oder neu anzulegenden Parameter direkt in der Übersicht sichtbar.
+  - Der Importvertrag trennt nun originale Laborbericht-Kommentare (`bemerkungKurz`, `bemerkungLang`) von KI-eigenen Extraktions- oder Mapping-Hinweisen (`kiHinweis`). Die Prüfübersicht zeigt diese Informationen getrennt an, damit Originaltext nicht mit KI-Kommentar vermischt wird.
+  - KI-Hinweise, Detailbemerkungen, Unsicherheitsflag und Prüfbedarfsflag aus einzelnen Messwerten werden nun in der Import-Prüfübersicht angezeigt; beim Speichern des Messwerts bleiben die originalen Bemerkungsfelder und die Flags relevant, während `kiHinweis` als Importprüfhinweis dient.
+  - Die Messwertübersicht kann nach Zuordnungsweg gefiltert werden, zum Beispiel offene Zuordnungen, Neuanlage, manuell angepasst, automatisch oder explizit importiert.
+  - Die missverständlichen Aktionen wurden sprachlich geschärft: `Löschprüfung öffnen` heißt in der Importoberfläche nun `Import löschen prüfen`; `Leeren` am einzelnen Messwert heißt nun `Zuordnung zurücksetzen` und löscht den Messwert nicht.
+  - Die allgemeine Löschprüfung für Importvorgänge bietet nun eine Option, ein exklusiv verknüpftes Importdokument mitzulöschen. Wird das Dokument noch von anderen Importen oder Befunden verwendet, bleibt es geschützt.
+  - Verifiziert mit Backend-Importtests, Backend-Löschlogiktests, Frontend-Tests, Frontend-Build und `git diff --check`.
+
+### [2026-04-26] update | Vitamin-D-Dubletten zusammengeführt
+- Anlass oder Quelle: Nutzerhinweis, dass `25-Hydroxy-Vitamin D` und `Vitamin D3 (25-OH)` fachlich zusammengehören und für ein gemeinsames Diagramm zusammengeführt werden sollen
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../../apps/backend/labordaten.db
+- Kern der inhaltlichen Anpassung:
+  - Vor der Änderung wurde eine lokale Sicherung `apps/backend/labordaten.pre-vitamin-d-duplicates-20260426-175951.db` angelegt.
+  - `Vitamin D3 (25-OH)` wurde in den kanonischen Parameter `25-Hydroxy-Vitamin D` zusammengeführt.
+  - Die bisherigen Messwerte, der Zielbereich und die Gruppenzuordnung wurden auf den Zielparameter umgehängt; `Vitamin D3 (25-OH)` und `Vitamin D3 (25-OH) LCMS` bleiben als Aliase erhalten.
+  - Die aktive Umrechnungsregel `ng/ml` nach `µg/l` bleibt am Zielparameter; die redundante Gegenrichtung wurde deaktiviert, damit die Standardeinheit `µg/l` eindeutig bleibt.
+  - Der übernommene Zielbereich wurde wegen der 1:1-Umrechnung von `ng/ml` auf `µg/l` umgestellt.
+  - Verifiziert mit direkter DB-Abfrage auf Quellparameter, Aliase, Messwerte, Zielbereich, Umrechnungsregeln und Backend-Tests `python -m pytest tests/test_parameter_duplicate_merge.py tests/test_parameter_conversion_rules.py`.
+
+### [2026-04-26] update | FT3- und FT4-Dubletten zusammengeführt
+- Anlass oder Quelle: Nutzerhinweis, dass `freies Thyroxin fT4`/`FT4` und entsprechend `freies Trijodthyronin fT3`/`FT3` noch Dubletten sind
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../../apps/backend/labordaten.db
+- Kern der inhaltlichen Anpassung:
+  - Vor der Änderung wurde eine lokale Sicherung `apps/backend/labordaten.pre-thyroid-duplicates-20260426-175457.db` angelegt.
+  - `freies Trijodthyronin fT3` wurde in den kanonischen Parameter `FT3` zusammengeführt; vorhandene Messwerte wurden umgehängt und die Langnamen inklusive Importalias bleiben als Aliase erhalten.
+  - `freies Thyroxin fT4` wurde in den kanonischen Parameter `FT4` zusammengeführt; vorhandene Messwerte wurden umgehängt und die Langnamen inklusive Importalias bleiben als Aliase erhalten.
+  - Die Gruppe `Schilddrüsenwerte` wurde nach der Zusammenführung auf die Reihenfolge `TSH basal`, `FT3`, `FT4`, `Calcitonin im Serum (hCT)` gebracht.
+  - Verifiziert mit direkter DB-Abfrage auf entfernte Quellparameter, Aliasbestand, Messwertzahlen, Gruppensortierung und Backend-Test `python -m pytest tests/test_parameter_duplicate_merge.py`.
+
+### [2026-04-26] update | Auswertungsdiagramme interaktiver und MPV-Alias ergänzt
+- Anlass oder Quelle: Nutzerwunsch, Wertetabellen unter den Auswertungsdiagrammen einklappbar zu machen, Personenlinien im Diagramm per Klick ein- und auszuschalten sowie `mittl. Plättchenvolumen` als MPV-Wert im kleinen Blutbild zu behandeln
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../../apps/backend/labordaten.db
+  - ../../../apps/frontend/src/features/auswertung/AuswertungPage.tsx
+  - ../../../apps/frontend/src/styles.css
+- Kern der inhaltlichen Anpassung:
+  - Die Messwerttabellen unter den Diagrammen sind nun pro Parameter ein- und ausklappbar; standardmäßig bleiben sie eingeklappt.
+  - Im Auswertungsfilter gibt es die Option, Wertetabellen nach dem Laden direkt geöffnet zu starten.
+  - Diagramme zeigen eine klickbare Personen-Legende, über die einzelne Personenlinien je Diagramm ein- und ausgeschaltet werden können.
+  - Für den Parameter `mittl. Plättchenvolumen` wurde der Alias `MPV` ergänzt; der Wert bleibt als eigener Thrombozytenindex in den Blutbildgruppen bestehen.
+  - Verifiziert mit Frontend-Build `npm run build`, Frontend-Tests `npm test` und direkter DB-Abfrage des Alias.
+
+### [2026-04-26] update | Differentialblutbild und sichere Blutbild-Dubletten gepflegt
+- Anlass oder Quelle: Nutzerwunsch, zusätzlich eine eigene Gruppe `Differentialblutbild` anzulegen und erkennbare Blutbild-Dubletten mit Alias-Rückfall zu bereinigen
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../../apps/backend/labordaten.db
+- Kern der inhaltlichen Anpassung:
+  - Vor der Änderung wurde eine lokale Sicherung `apps/backend/labordaten.pre-differential-duplicates-20260426-172937.db` angelegt.
+  - Die neue Gruppe `Differentialblutbild` wurde als reine Leukozyten-Differenzierung ohne kleines Blutbild angelegt und in üblicher Reihenfolge sortiert.
+  - Sichere Dubletten mit gleicher Einheit wurden zusammengeführt: `RDW`, `RDW (Ery-Verteilungsbreite)` und `Ery. Verteilbreite (RDW)` in `RDW-CV`; `Neutrophile Granulozyten` in `Neutrophile`; `Eosinophile Granulozyten` in `Eosinophile`; `Basophile Granulozyten` in `Basophile`.
+  - Die bisherigen Anzeigenamen wurden als Aliase an den Zielparametern erhalten, damit künftige Importe weiterhin gemappt werden können.
+  - Absolute Granulozyten-Dubletten mit abweichenden Standardeinheiten (`/µl` versus `Tsd./µl`) wurden bewusst nicht automatisch zusammengeführt, weil dafür zuerst eine saubere Umrechnungsentscheidung nötig ist.
+  - `Kleines Blutbild` und `Großes Blutbild` wurden nach der Dublettenbereinigung neu sortiert und auf die kanonischen Parameter umgestellt.
+  - Verifiziert mit direkten DB-Queries auf Gruppeninhalt, Aliasbestand und entfernte Quellparameter.
+  - Ein zusätzlicher `PRAGMA foreign_key_check` zeigte eine bereits in der Sicherung vorhandene verwaiste `parameter_umrechnungsregel`; sie hängt nicht an den Blutbild-Zusammenführungen und wurde nicht ohne sichere fachliche Zielzuordnung umgehängt.
+
+### [2026-04-26] update | Blutbild-Gruppen fachlich bereinigt
+- Anlass oder Quelle: Nutzerwunsch, `Kleines Blutbild` anzulegen beziehungsweise zuzuordnen, `Großes Blutbild` von falsch zugeordneten Parametern zu bereinigen und die übliche Laborreihenfolge zu setzen
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../../apps/backend/labordaten.db
+- Kern der inhaltlichen Anpassung:
+  - Vor der Änderung wurde eine lokale Sicherung `apps/backend/labordaten.pre-blutbild-20260426-172009.db` angelegt.
+  - Die bestehende aktive Gruppe `Kleines Blutbild` wurde als Zielgruppe verwendet und auf 13 passende aktive Blutbildparameter mit üblicher Reihenfolge gesetzt.
+  - Die Gruppe `Großes Blutbild` wurde auf `Kleines Blutbild` plus Differenzialblutbild der Leukozyten gesetzt; fachfremde Eisen-, Vitamin-, Zucker-, Lipid-, Elektrolyt-, Nieren- und Chemiewerte wurden aus dieser Gruppe entfernt.
+  - Fachgleiche aktive Varianten wie `RDW-CV`, `Neutrophile Granulozyten` und absolute Differenzialwerte bleiben bewusst zugeordnet, damit vorhandene ältere Messwerte in Gruppenfiltern nicht herausfallen.
+  - Verifiziert mit direkten DB-Queries auf Gruppeninhalt, Sortierung und fachfremde Restzuordnungen.
+
+### [2026-04-26] update | Auswertungsfilter kompakter zusammengefasst
+- Anlass oder Quelle: Nutzerwunsch, den Knopf `Auswertung laden` unter den Auswertungsfilter zu setzen und den eingeklappten Filter platzsparend als Text zusammenzufassen
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../../apps/frontend/src/features/auswertung/AuswertungPage.tsx
+  - ../../../apps/frontend/src/styles.css
+- Kern der inhaltlichen Anpassung:
+  - Der Ladeknopf steht nun als eigene Aktionszeile unterhalb des Rahmens `Auswertungsfilter` und bleibt auch bei eingeklapptem Filter sichtbar.
+  - `Filter zurücksetzen` steht als eigene Aktion oberhalb der eigentlichen Filterauswahl statt am Ende des Filterformulars.
+  - Der Auswertungsfilter wird im Browser gespeichert und beim Zurückkehren zur Auswertungsseite wiederhergestellt; explizite URL-Filter aus Kontextabsprüngen haben weiterhin Vorrang.
+  - `Filter öffnen`, `Filter zurücksetzen` und das Schließen-X stehen platzsparend rechts im Kopf des Auswertungsfilters.
+  - Der Umschalter für die Wertetabelle unter Diagrammen nutzt nun statt eines langen Textbuttons einen kompakten Chevron-Button wie andere Einklappbereiche.
+  - Personen-Schalter in Diagrammen werden nur noch für Personen angezeigt, die in der konkreten Parameter-Serie auch numerische Diagrammpunkte haben.
+  - Die Wertetabelle wird unter dem Diagramm nur noch als `Werte` mit Chevron beschriftet; die Anzahl der numerischen Werte steht stattdessen direkt je Person im Diagramm-Schalter.
+  - Parameterbeschreibungen werden in Auswertungsserien mitgeliefert und im Diagrammkopf platzsparend einzeilig mit optionalem Chevron zum Ausklappen angezeigt.
+  - Unter dem Auswertungsfilter gibt es nun einen eigenen Bereich `Darstellung`; dort werden Diagrammtyp, Zeitraumdarstellung, Laborreferenzen, Zielbereiche und Standardöffnung der Wertetabellen konfiguriert.
+  - Als Diagrammtypen stehen `Verlauf`, `Punkte` und `Punkte + Bereiche` zur Verfügung; die Punkte-Ansichten zeichnen keine Verbindungslinien zwischen Messpunkten.
+  - Optionale, nicht genutzte Auswahlfilter in der Auswertung werden im eingeklappten Zustand kompakt als einfache Filter-Pillen angezeigt; erst bei Auswahl oder Öffnen erscheint der große Auswahlkasten.
+  - Die eingeklappten Auswahltexte wurden gekürzt und verzichten auf erklärende Sätze wie `Liste eingeklappt. Bei Bedarf aufklappen.`
+  - Die Darstellungsoption für Wertetabellen heißt nun `Wertetabellen standardmäßig geöffnet`, damit sie den Zustand klarer beschreibt.
+  - Die eingeklappte Filterzusammenfassung zeigt bei überschaubaren Auswahlen die konkreten Namen für Personen, Gruppen, Parameter, KSG-Klassen und Labore; bei mehr als 20 Parametern fällt sie auf die reine Anzahl zurück.
+  - Die oberen Kennzahlenkarten zeigen nun die Treffer der aktuellen Filterauswahl für Personen, Parameter, Messwerte und Befunde; die jeweiligen Gesamtzahlen bleiben als Vergleich sichtbar.
+  - Ein kurzer Hinweis unter den Karten benennt den aktiven Zeitraum, damit Standard-Datumsfilter und echte Gesamtbetrachtung unterscheidbar bleiben.
+  - Wenn mehr als 20 Parameter betroffen sind, startet die Auswertung nicht ungefragt, sondern verlangt vor dem Laden eine Bestätigung.
+  - Der Ladebutton bleibt textlich stabil bei `Auswertung laden`; nur während des echten Ladevorgangs wechselt er auf `Lädt...`.
+  - Die Vorab-Trefferzählung deaktiviert den Ladebutton nicht mehr; blockierend sind nur fehlende Personenauswahl und eine bereits laufende Auswertung.
+  - Anzeigeoptionen wie Achsenmodus, Laborreferenzen und Zielbereiche werden in der kompakten Filterzeile nicht mehr als Filtertext geführt.
+  - Verifiziert mit `npm run build` und `npm test` im Frontend.
+
 ### [2026-04-26] update | KSG-Festlegungen in lokale Datenbank übernommen
 - Anlass oder Quelle: Nutzerwunsch, die abgestimmten KSG-Festlegungen in die Datenbank zu übernehmen
 - Neu angelegte Seiten:
