@@ -11,6 +11,28 @@
 
 ## 2026-04
 
+### [2026-04-26] update | Personen-Blutgruppe und Rhesusfaktor als Auswahlwerte
+- Anlass oder Quelle: Nutzerhinweis, dass Blutgruppe und Rhesusfaktor in den Personen-Stammdaten bekannte feste Werte sind und keine Textfelder sein müssen.
+- Neu angelegte Seiten:
+  - ../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Personen Blutgruppe Rhesus Auswahlwerte.md
+- Geänderte Seiten:
+  - ../02 Wissen/Begriffe und Konzepte/V1 Ziel-Datenmodell.md
+  - ../02 Wissen/Begriffe und Konzepte/Ist-Stand Stammdaten-Bearbeitbarkeit.md
+  - ../../../apps/backend/src/labordaten_backend/core/field_options.py
+  - ../../../apps/backend/src/labordaten_backend/modules/personen/schemas.py
+  - ../../../apps/backend/tests/test_code_field_validation.py
+  - ../../../apps/backend/tests/test_api_contract_fixed_codes.py
+  - ../../../apps/frontend/src/features/personen/PersonenPage.tsx
+  - ../../../apps/frontend/src/shared/api/payloadBuilders.ts
+  - ../../../apps/frontend/src/shared/api/payloadBuilders.test.ts
+  - ../../../apps/frontend/src/shared/constants/fieldOptions.ts
+  - ../../../apps/frontend/src/shared/types/api.ts
+- Kern der inhaltlichen Anpassung:
+  - Die Personenmaske nutzt für Blutgruppe und Rhesusfaktor jetzt Select-Felder.
+  - Die Backend-Schemas validieren Blutgruppe auf `0`, `A`, `B`, `AB` und Rhesusfaktor auf `positiv`, `negativ`.
+  - Frontend-Typen, Anzeigeformatierung und Payload-Builder führen die Werte ebenfalls als feste Codes.
+  - Verifiziert mit gezielten Backend-Tests, Payload-Builder-Test und Frontend-Produktionsbuild.
+
 ### [2026-04-26] refactor | Routen-Lazy-Loading und gemeinsame Datumsvalidierung
 - Anlass oder Quelle: Senior-Engineering-Review des aktuellen Workspace mit Fokus auf Architektur, Datenfluss, Duplizierung, Performance und Wartbarkeit.
 - Neu angelegte Seiten:

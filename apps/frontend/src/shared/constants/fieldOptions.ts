@@ -1,8 +1,10 @@
 import type {
   BefundQuelleTyp,
+  BlutgruppeCode,
   GeschlechtCode,
   ParameterKlassifikationCode,
   ReferenzGrenzOperator,
+  RhesusfaktorCode,
   WertOperator,
   WertTyp,
   ZielbereichTyp
@@ -22,6 +24,28 @@ export const PERSON_GESCHLECHT_OPTIONS = [
 export const KONTEXT_GESCHLECHT_OPTIONS = [
   { value: "", label: "Alle Geschlechter" },
   ...GESCHLECHT_CODE_OPTIONS
+] as const;
+
+export const BLUTGRUPPE_OPTIONS = [
+  { value: "0", label: "0" },
+  { value: "A", label: "A" },
+  { value: "B", label: "B" },
+  { value: "AB", label: "AB" }
+] as const satisfies ReadonlyArray<{ value: BlutgruppeCode; label: string }>;
+
+export const PERSON_BLUTGRUPPE_OPTIONS = [
+  { value: "", label: "Nicht angegeben" },
+  ...BLUTGRUPPE_OPTIONS
+] as const;
+
+export const RHESUSFAKTOR_OPTIONS = [
+  { value: "positiv", label: "Positiv" },
+  { value: "negativ", label: "Negativ" }
+] as const satisfies ReadonlyArray<{ value: RhesusfaktorCode; label: string }>;
+
+export const PERSON_RHESUSFAKTOR_OPTIONS = [
+  { value: "", label: "Nicht angegeben" },
+  ...RHESUSFAKTOR_OPTIONS
 ] as const;
 
 export const WERT_TYP_OPTIONS = [
@@ -105,6 +129,18 @@ const BEFUND_QUELLE_LABELS: Record<BefundQuelleTyp, string> = {
   ki_import: "KI-Import"
 };
 
+const BLUTGRUPPE_LABELS: Record<BlutgruppeCode, string> = {
+  "0": "0",
+  A: "A",
+  B: "B",
+  AB: "AB"
+};
+
+const RHESUSFAKTOR_LABELS: Record<RhesusfaktorCode, string> = {
+  positiv: "Positiv",
+  negativ: "Negativ"
+};
+
 export function formatGeschlechtCode(code?: string | null, emptyLabel = "—"): string {
   if (!code) {
     return emptyLabel;
@@ -112,6 +148,22 @@ export function formatGeschlechtCode(code?: string | null, emptyLabel = "—"): 
 
   const option = GESCHLECHT_CODE_OPTIONS.find((item) => item.value === code);
   return option?.label ?? code;
+}
+
+export function formatBlutgruppe(code?: string | null, emptyLabel = "—"): string {
+  if (!code) {
+    return emptyLabel;
+  }
+
+  return BLUTGRUPPE_LABELS[code as BlutgruppeCode] ?? code;
+}
+
+export function formatRhesusfaktor(code?: string | null, emptyLabel = "—"): string {
+  if (!code) {
+    return emptyLabel;
+  }
+
+  return RHESUSFAKTOR_LABELS[code as RhesusfaktorCode] ?? code;
 }
 
 export function formatWertTyp(value: string): string {

@@ -62,12 +62,16 @@ def test_create_person_api_accepts_fixed_gender_codes_and_rejects_free_text(monk
                 "anzeigename": "Ludwig",
                 "geburtsdatum": "1964-01-12",
                 "geschlecht_code": "w",
+                "blutgruppe": "0",
+                "rhesusfaktor": "negativ",
                 "hinweise_allgemein": None,
             },
         )
 
         assert response.status_code == 201
         assert response.json()["geschlecht_code"] == "w"
+        assert response.json()["blutgruppe"] == "0"
+        assert response.json()["rhesusfaktor"] == "negativ"
 
         invalid_response = client.post(
             "/api/personen",
@@ -79,6 +83,19 @@ def test_create_person_api_accepts_fixed_gender_codes_and_rejects_free_text(monk
         )
 
         assert invalid_response.status_code == 422
+
+        invalid_blood_group_response = client.post(
+            "/api/personen",
+            json={
+                "anzeigename": "Ludwig 3",
+                "geburtsdatum": "1964-01-12",
+                "geschlecht_code": "m",
+                "blutgruppe": "A positiv",
+                "rhesusfaktor": "+",
+            },
+        )
+
+        assert invalid_blood_group_response.status_code == 422
 
 
 def test_date_range_filters_reject_bis_before_von(monkeypatch, tmp_path: Path) -> None:

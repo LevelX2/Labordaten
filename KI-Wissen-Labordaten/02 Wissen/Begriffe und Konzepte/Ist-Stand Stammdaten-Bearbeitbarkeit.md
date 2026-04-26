@@ -6,6 +6,7 @@ quellen:
   - V1 Ziel-Datenmodell.md
   - V1 Technisches Schema.md
   - V1 Screenplan und Kernworkflows.md
+  - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Personen Blutgruppe Rhesus Auswahlwerte.md
   - ../../../apps/backend/src/labordaten_backend/api/routes/personen.py
   - ../../../apps/backend/src/labordaten_backend/api/routes/labore.py
   - ../../../apps/backend/src/labordaten_backend/api/routes/parameter.py
@@ -40,7 +41,7 @@ Die Anwendung soll Stammdaten nachträglich bearbeiten können, ohne technische 
 
 | Entität | Attribut | Aktueller Stand | Empfohlene Änderung | Begründung | Risiko/Abgrenzung |
 |---|---|---|---|---|---|
-| Person | `anzeigename`, `vollname`, `geburtsdatum`, `geschlecht_code`, `blutgruppe`, `rhesusfaktor`, `hinweise_allgemein` | Per `PATCH /api/personen/{person_id}` und Werkzeug `Bearbeiten` auf der Personenseite pflegbar. | Umgesetzt. | Personenstammdaten ändern sich oder werden nachträglich präzisiert; Befunde und Messwerte sollen an derselben Person hängen bleiben. | `id`, Zeitstempel und Abhängigkeiten bleiben unverändert; Deaktivierung läuft weiter über Löschprüfung. |
+| Person | `anzeigename`, `vollname`, `geburtsdatum`, `geschlecht_code`, `blutgruppe`, `rhesusfaktor`, `hinweise_allgemein` | Per `PATCH /api/personen/{person_id}` und Werkzeug `Bearbeiten` auf der Personenseite pflegbar. `geschlecht_code`, `blutgruppe` und `rhesusfaktor` werden als feste Auswahlwerte geführt. | Umgesetzt. | Personenstammdaten ändern sich oder werden nachträglich präzisiert; Befunde und Messwerte sollen an derselben Person hängen bleiben. Blutgruppe und Rhesusfaktor sind bekannte Stammdatenwerte und sollen deshalb nicht als Freitext auseinanderlaufen. | `id`, Zeitstempel und Abhängigkeiten bleiben unverändert; Deaktivierung läuft weiter über Löschprüfung. |
 | Labor | `name`, `adresse`, `bemerkung` | Per `PATCH /api/labore/{labor_id}` und Einstellungsbereich `Labore` pflegbar. | Umgesetzt. | Laboradressen, Firmierungen und Hinweise können sich ändern, ohne Befundhistorie umzuhängen. | Labor-ID bleibt stabil; verwendete Labore werden nicht hart gelöscht, sondern über Löschprüfung/deaktivieren behandelt. |
 | Laborparameter | `anzeigename` | Über `Parameter umbenennen` pflegbar; alter Name kann als Alias erhalten bleiben. | Beibehalten. | Sichtbare Namen können korrigiert werden, ohne Messwerte oder Zielbereiche zu verlieren. | `interner_schluessel` bleibt stabil und wird nicht direkt bearbeitet. |
 | Laborparameter | `beschreibung`, `sortierschluessel`, `wert_typ_standard` | Beschreibung und Sortierschlüssel sind aktuell nur bei Anlage setzbar; Werttyp ist technisch bei Anlage festgelegt. | Offen prüfen. Beschreibung und Sortierschlüssel sind fachlich bearbeitbar; Werttyp sollte höchstens ohne vorhandene Messwerte oder mit gesonderter Migration geändert werden. | Beschreibungen werden iterativ besser; der Werttyp wirkt dagegen auf Messwertvalidierung und Darstellung. | Werttypänderungen können vorhandene Messwerte inkonsistent machen und sind deshalb kein risikoarmer Schnellpfad. |
@@ -60,6 +61,7 @@ Die Anwendung soll Stammdaten nachträglich bearbeiten können, ohne technische 
 
 ## Umgesetzte Änderung vom 2026-04-26
 - Personenstammdaten sind nachträglich bearbeitbar.
+- Blutgruppe und Rhesusfaktor in Personenstammdaten sind feste optionale Auswahlwerte statt Freitextfelder.
 - Laborstammdaten sind unter `Einstellungen > Labore` nachträglich bearbeitbar.
 - Allgemeine Zielbereiche sind in der Parameterseite aus der Zielbereichstabelle heraus nachträglich bearbeitbar.
 - Neue Backend-Tests sichern die drei API-Pfade ab.

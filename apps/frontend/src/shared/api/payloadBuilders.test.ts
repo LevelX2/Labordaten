@@ -28,6 +28,24 @@ describe("payloadBuilders", () => {
     });
   });
 
+  it("keeps fixed blood group and rhesus codes in person payloads", () => {
+    expect(
+      buildPersonCreatePayload({
+        anzeigename: "Ludwig",
+        vollname: "",
+        geburtsdatum: "1964-01-12",
+        geschlecht_code: "m",
+        blutgruppe: "AB",
+        rhesusfaktor: "positiv",
+        hinweise_allgemein: "",
+      }),
+    ).toMatchObject({
+      geschlecht_code: "m",
+      blutgruppe: "AB",
+      rhesusfaktor: "positiv",
+    });
+  });
+
   it("builds numeric measurement payloads with numbers and null text fields", () => {
     expect(
       buildMesswertCreatePayload({

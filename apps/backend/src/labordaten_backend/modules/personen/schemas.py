@@ -2,7 +2,12 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
-from labordaten_backend.core.field_options import GESCHLECHT_CODES, validate_optional_code
+from labordaten_backend.core.field_options import (
+    BLUTGRUPPEN,
+    GESCHLECHT_CODES,
+    RHESUSFAKTOREN,
+    validate_optional_code,
+)
 
 
 class PersonCreate(BaseModel):
@@ -18,6 +23,16 @@ class PersonCreate(BaseModel):
     @classmethod
     def validate_geschlecht_code(cls, value: str | None) -> str | None:
         return validate_optional_code(value, valid_values=GESCHLECHT_CODES, field_label="Geschlecht")
+
+    @field_validator("blutgruppe")
+    @classmethod
+    def validate_blutgruppe(cls, value: str | None) -> str | None:
+        return validate_optional_code(value, valid_values=BLUTGRUPPEN, field_label="Blutgruppe")
+
+    @field_validator("rhesusfaktor")
+    @classmethod
+    def validate_rhesusfaktor(cls, value: str | None) -> str | None:
+        return validate_optional_code(value, valid_values=RHESUSFAKTOREN, field_label="Rhesusfaktor")
 
 
 class PersonUpdate(BaseModel):
@@ -41,6 +56,16 @@ class PersonUpdate(BaseModel):
     @classmethod
     def validate_geschlecht_code(cls, value: str | None) -> str | None:
         return validate_optional_code(value, valid_values=GESCHLECHT_CODES, field_label="Geschlecht")
+
+    @field_validator("blutgruppe")
+    @classmethod
+    def validate_blutgruppe(cls, value: str | None) -> str | None:
+        return validate_optional_code(value, valid_values=BLUTGRUPPEN, field_label="Blutgruppe")
+
+    @field_validator("rhesusfaktor")
+    @classmethod
+    def validate_rhesusfaktor(cls, value: str | None) -> str | None:
+        return validate_optional_code(value, valid_values=RHESUSFAKTOREN, field_label="Rhesusfaktor")
 
 
 class PersonRead(BaseModel):

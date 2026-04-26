@@ -6,6 +6,7 @@ quellen:
   - ../../01 Rohquellen/fachkonzepte/2026-04-20 Erste Konzeptvorgabe Laboranwendung.md
   - ../../01 Rohquellen/fachkonzepte/2026-04-20 Konzeptklaerungen V1 aus Rueckfragen.md
   - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Gruppen Sortierschluessel.md
+  - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Personen Blutgruppe Rhesus Auswahlwerte.md
   - ../Entscheidungen/V1 Vorentscheidungen Produktform und Kernmodell.md
   - Planung Erstarchitektur und Umsetzungsphasen.md
   - ../../../apps/backend/src/labordaten_backend/modules/personen/schemas.py
@@ -86,6 +87,7 @@ Das V1-Datenmodell trennt Stammdaten, Messdaten, Referenzlogik, Zielbereiche, Pl
 Regel:
 - `geschlecht_code` soll nicht als Freitext geführt werden, sondern als feste kleine Auswahlliste oder klar definierte Referenzkategorie.
 - Für den aktuellen Projektstand ist eine schlanke Codierung wie `w`, `m`, `d` plus leer beziehungsweise unbekannt als praktikable V1-Lösung ausreichend.
+- `blutgruppe` und `rhesusfaktor` sind ebenfalls keine Freitexte, sondern feste optionale Personen-Stammdatenwerte. V1 nutzt für die Blutgruppe `0`, `A`, `B`, `AB` und für den Rhesusfaktor `positiv`, `negativ`.
 
 ### BasisdatenTyp
 - `id`

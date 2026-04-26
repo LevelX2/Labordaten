@@ -4,8 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../../shared/api/client";
 import { buildPersonCreatePayload, buildPersonUpdatePayload } from "../../shared/api/payloadBuilders";
 import {
+  PERSON_BLUTGRUPPE_OPTIONS,
   PERSON_GESCHLECHT_OPTIONS,
-  formatGeschlechtCode
+  PERSON_RHESUSFAKTOR_OPTIONS,
+  formatBlutgruppe,
+  formatGeschlechtCode,
+  formatRhesusfaktor
 } from "../../shared/constants/fieldOptions";
 import { LoeschAktionPanel } from "../../shared/components/LoeschAktionPanel";
 import type { Parameter, Person, WertTyp, Zielbereich, ZielbereichOverride } from "../../shared/types/api";
@@ -370,18 +374,30 @@ export function PersonenPage() {
 
             <label className="field">
               <span>Blutgruppe</span>
-              <input
+              <select
                 value={form.blutgruppe}
                 onChange={(event) => setForm((current) => ({ ...current, blutgruppe: event.target.value }))}
-              />
+              >
+                {PERSON_BLUTGRUPPE_OPTIONS.map((option) => (
+                  <option key={option.value || "empty"} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </label>
 
             <label className="field">
               <span>Rhesusfaktor</span>
-              <input
+              <select
                 value={form.rhesusfaktor}
                 onChange={(event) => setForm((current) => ({ ...current, rhesusfaktor: event.target.value }))}
-              />
+              >
+                {PERSON_RHESUSFAKTOR_OPTIONS.map((option) => (
+                  <option key={option.value || "empty"} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </label>
 
             <label className="field field--full">
@@ -740,11 +756,11 @@ export function PersonenPage() {
                   </div>
                   <div className="detail-grid__item">
                     <span>Blutgruppe</span>
-                    <strong>{selectedPerson.blutgruppe || "Nicht hinterlegt"}</strong>
+                    <strong>{formatBlutgruppe(selectedPerson.blutgruppe, "Nicht hinterlegt")}</strong>
                   </div>
                   <div className="detail-grid__item">
                     <span>Rhesusfaktor</span>
-                    <strong>{selectedPerson.rhesusfaktor || "Nicht hinterlegt"}</strong>
+                    <strong>{formatRhesusfaktor(selectedPerson.rhesusfaktor, "Nicht hinterlegt")}</strong>
                   </div>
                 </div>
 

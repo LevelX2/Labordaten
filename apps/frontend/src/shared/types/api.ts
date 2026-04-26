@@ -1,4 +1,6 @@
 export type GeschlechtCode = "w" | "m" | "d";
+export type BlutgruppeCode = "0" | "A" | "B" | "AB";
+export type RhesusfaktorCode = "positiv" | "negativ";
 export type WertTyp = "numerisch" | "text";
 export type WertOperator =
   | "exakt"
@@ -23,8 +25,8 @@ export type PersonCreatePayload = {
   vollname?: string | null;
   geburtsdatum: string;
   geschlecht_code?: GeschlechtCode | null;
-  blutgruppe?: string | null;
-  rhesusfaktor?: string | null;
+  blutgruppe?: BlutgruppeCode | null;
+  rhesusfaktor?: RhesusfaktorCode | null;
   hinweise_allgemein?: string | null;
 };
 
@@ -149,8 +151,8 @@ export type Person = {
   vollname?: string | null;
   geburtsdatum: string;
   geschlecht_code?: GeschlechtCode | null;
-  blutgruppe?: string | null;
-  rhesusfaktor?: string | null;
+  blutgruppe?: BlutgruppeCode | null;
+  rhesusfaktor?: RhesusfaktorCode | null;
   hinweise_allgemein?: string | null;
   aktiv: boolean;
   erstellt_am: string;

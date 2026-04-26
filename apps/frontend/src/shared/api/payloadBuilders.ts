@@ -1,10 +1,12 @@
 import type {
+  BlutgruppeCode,
   GeschlechtCode,
   MesswertCreatePayload,
   MesswertReferenzCreatePayload,
   PersonCreatePayload,
   PersonUpdatePayload,
   ReferenzGrenzOperator,
+  RhesusfaktorCode,
   WertOperator,
   WertTyp,
   ZielbereichCreatePayload,
@@ -68,6 +70,14 @@ function emptyToOptionalGeschlechtCode(value: string): GeschlechtCode | null {
   return value ? (value as GeschlechtCode) : null;
 }
 
+function emptyToOptionalBlutgruppeCode(value?: string): BlutgruppeCode | null {
+  return value ? (value as BlutgruppeCode) : null;
+}
+
+function emptyToOptionalRhesusfaktorCode(value?: string): RhesusfaktorCode | null {
+  return value ? (value as RhesusfaktorCode) : null;
+}
+
 function stringNumberToNull(value: string): number | null {
   return value ? Number(value) : null;
 }
@@ -78,8 +88,8 @@ export function buildPersonCreatePayload(input: PersonPayloadInput): PersonCreat
     vollname: emptyToNull(input.vollname),
     geburtsdatum: input.geburtsdatum,
     geschlecht_code: emptyToOptionalGeschlechtCode(input.geschlecht_code),
-    blutgruppe: input.blutgruppe ? emptyToNull(input.blutgruppe) : null,
-    rhesusfaktor: input.rhesusfaktor ? emptyToNull(input.rhesusfaktor) : null,
+    blutgruppe: emptyToOptionalBlutgruppeCode(input.blutgruppe),
+    rhesusfaktor: emptyToOptionalRhesusfaktorCode(input.rhesusfaktor),
     hinweise_allgemein: emptyToNull(input.hinweise_allgemein),
   };
 }
