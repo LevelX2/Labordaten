@@ -11,6 +11,18 @@
 
 ## 2026-04
 
+### [2026-04-27] refactor | Alembic-Migrationen zu Initialmigration verdichtet
+- Anlass oder Quelle: Nutzerentscheidung, die nicht mehr benötigte Alembic-Historie zu squashen, weil kein alter produktiver Datenbankstand erhalten werden muss.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../../apps/backend/migrations/versions/20260420_0001_initial_core_schema.py
+  - ../../../apps/backend/migrations/versions/
+- Kern der inhaltlichen Anpassung:
+  - Die Backend-Migrationen sind auf eine einzige Initialmigration verdichtet.
+  - Die neue Initialmigration erzeugt den aktuellen Schema-Endzustand inklusive Zielbereichen, Planung, Import-Prüfpunkten, Parametergruppen, Alias-Tabellen, Einheiten, Umrechnungsregeln, Dublettenausschlüssen und KSG-Klassifikationen direkt.
+  - Die vorbelegten kanonischen Einheit-Aliase bleiben Teil der Initialmigration; reine Datenmigrationen für damals bereits vorhandene Messwerte oder Parameter entfallen, weil es keinen zu migrierenden Altbestand gibt.
+
 ### [2026-04-26] update | README-Funktionsstand und Version 0.2.0
 - Anlass oder Quelle: Nutzerauftrag, die `README.md` insbesondere bezüglich der enthaltenen Funktionalitäten zu aktualisieren und die Versionsnummer hochzusetzen.
 - Neu angelegte Seiten:
