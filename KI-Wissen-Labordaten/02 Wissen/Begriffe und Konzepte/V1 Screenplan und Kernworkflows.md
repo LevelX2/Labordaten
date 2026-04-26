@@ -19,6 +19,7 @@ quellen:
   - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung Statusfilter Geplant missverstaendlich.md
   - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung Filter nach Planungstyp.md
   - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckfrage Gruppen Bearbeitung.md
+  - ../../../apps/frontend/src/app/layout/AppLayout.tsx
 tags:
   - screenplan
   - ui
@@ -37,18 +38,27 @@ Die V1-Oberfläche soll arbeitsbereichsorientiert und sachlich aufgebaut sein. D
 - Berichte und Auswertungen werden erst klar, wenn Zielbereiche, Referenzen und Messwerttypen technisch feststehen.
 
 ## Hauptnavigation V1
-- `Start`
-- `Personen`
-- `Befunde`
-- `Messwerte`
-- `Parameter`
-- `Parametergruppen`
-- `Planung`
-- `Auswertung`
-- `Berichte`
-- `Import`
-- `Laborwissen`
-- `Einstellungen`
+Die Hauptnavigation soll nicht als rein flache Liste erscheinen, sondern nach Arbeitslogik gegliedert sein. Dadurch bleiben tägliche Datenarbeit, abgeleitete Arbeitsschritte, Stammdatenpflege, Wissen und Systemverwaltung unterscheidbar.
+
+- `Übersicht`
+  - `Start`
+- `Daten & Erfassung`
+  - `Personen`
+  - `Import`
+  - `Befunde`
+  - `Messwerte`
+- `Arbeiten`
+  - `Planung`
+  - `Auswertung`
+  - `Berichte`
+- `Stammdaten & Wissen`
+  - `Parameter`
+  - `Parametergruppen`
+  - `Laborwissen`
+- `System`
+  - `Einstellungen`
+
+Auf breiten Bildschirmen erscheinen diese Gruppen als Abschnitte in der linken Navigation. Im eingeklappten Rail-Zustand sollen die Gruppennamen ausgeblendet und nur dezente Trennungen sichtbar sein. Auf schmalen Bildschirmen kann die Navigation oben stehen; dann bleiben die Gruppen als kleine Abschnittslabels sichtbar, während die einzelnen Ziele als kompakte, umbrechende Links erscheinen.
 
 ## Grundmuster der Oberfläche
 - Linke Hauptnavigation oder obere sachliche Hauptnavigation

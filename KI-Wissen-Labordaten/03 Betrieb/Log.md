@@ -11,6 +11,21 @@
 
 ## 2026-04
 
+### [2026-04-26] update | Hauptnavigation fachlich gruppiert
+- Anlass oder Quelle: Nutzerhinweis, dass die Menüfolge von Start bis Einstellungen zufällig wirkt und sinnvoller gegliedert werden sollte.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../02 Wissen/Begriffe und Konzepte/V1 Screenplan und Kernworkflows.md
+  - ../../../apps/frontend/src/app/layout/AppLayout.tsx
+  - ../../../apps/frontend/src/styles.css
+- Kern der inhaltlichen Anpassung:
+  - Die Hauptnavigation ist nun in `Übersicht`, `Daten & Erfassung`, `Arbeiten`, `Stammdaten & Wissen` und `System` gegliedert.
+  - `Import` steht im Datenfluss direkt nach `Personen` und vor `Befunde`/`Messwerte`, weil neue Labordaten typischerweise zuerst geprüft und übernommen werden.
+  - `Parameter`, `Parametergruppen` und `Laborwissen` bilden gemeinsam den Stammdaten- und Wissensbereich; `Einstellungen` bleibt als Systembereich am Ende.
+  - Auf schmalen Bildschirmen bleibt die Navigation als oberer Bereich mit Gruppenlabels und umbrechenden Navigationslinks nutzbar; im eingeklappten Desktop-Rail werden Gruppennamen ausgeblendet und nur Trennungen gezeigt.
+  - Verifiziert mit `npm run build` im Frontend.
+
 ### [2026-04-26] update | Messwerte im Import bewusst nicht übernehmen
 - Anlass oder Quelle: Nutzerhinweis, dass KI-Importe auch Hinweise oder Fremdleistungsvermerke enthalten können, die keinen sinnvollen Messwert darstellen und pro Zeile bewusst ausgelassen werden müssen.
 - Neu angelegte Seiten:

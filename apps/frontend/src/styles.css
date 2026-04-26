@@ -498,8 +498,30 @@ a {
 
 .sidebar__nav {
   display: grid;
-  gap: 8px;
-  margin-top: 28px;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.nav-group {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.nav-group__label {
+  padding-inline: 12px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.nav-group__items {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
 }
 
 .version-badge {
@@ -589,6 +611,7 @@ a {
 
 .sidebar--collapsed .sidebar__brand-copy,
 .sidebar--collapsed .sidebar__footer,
+.sidebar--collapsed .nav-group__label,
 .sidebar--collapsed .nav-link__label {
   display: none;
 }
@@ -606,6 +629,22 @@ a {
 
 .sidebar--collapsed .sidebar__nav {
   justify-items: center;
+  gap: 10px;
+}
+
+.sidebar--collapsed .nav-group {
+  justify-items: center;
+  width: 100%;
+}
+
+.sidebar--collapsed .nav-group + .nav-group {
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.sidebar--collapsed .nav-group__items {
+  justify-items: center;
+  width: 100%;
 }
 
 .sidebar--collapsed .nav-link {
@@ -3377,7 +3416,8 @@ a {
   }
 
   .sidebar--collapsed .sidebar__brand-copy,
-  .sidebar--collapsed .sidebar__footer {
+  .sidebar--collapsed .sidebar__footer,
+  .sidebar--collapsed .nav-group__label {
     display: block;
   }
 
@@ -3411,10 +3451,36 @@ a {
 
   .sidebar__nav,
   .sidebar--collapsed .sidebar__nav {
+    display: grid;
+    gap: 12px;
+    margin-top: 18px;
+  }
+
+  .nav-group,
+  .sidebar--collapsed .nav-group {
+    display: grid;
+    gap: 6px;
+    justify-items: stretch;
+    width: 100%;
+  }
+
+  .sidebar--collapsed .nav-group + .nav-group {
+    padding-top: 0;
+    border-top: none;
+  }
+
+  .nav-group__label,
+  .sidebar--collapsed .nav-group__label {
+    padding-inline: 4px;
+  }
+
+  .nav-group__items,
+  .sidebar--collapsed .nav-group__items {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-top: 18px;
+    justify-items: stretch;
+    width: 100%;
   }
 
   .nav-link,

@@ -4,19 +4,58 @@ import { NavLink, Outlet } from "react-router-dom";
 import { LabordatenBrandMark } from "../../shared/components/LabordatenBrandMark";
 import { APP_VERSION } from "../../shared/constants/appInfo";
 
-const navItems = [
-  { to: "/", label: "Start", shortLabel: "St", end: true },
-  { to: "/personen", label: "Personen", shortLabel: "Pe" },
-  { to: "/befunde", label: "Befunde", shortLabel: "Be" },
-  { to: "/messwerte", label: "Messwerte", shortLabel: "Mw" },
-  { to: "/parameter", label: "Parameter", shortLabel: "Pa" },
-  { to: "/gruppen", label: "Parametergruppen", shortLabel: "Pg" },
-  { to: "/planung", label: "Planung", shortLabel: "Pl" },
-  { to: "/auswertung", label: "Auswertung", shortLabel: "Au" },
-  { to: "/berichte", label: "Berichte", shortLabel: "Br" },
-  { to: "/import", label: "Import", shortLabel: "Im" },
-  { to: "/wissensbasis", label: "Laborwissen", shortLabel: "Lw" },
-  { to: "/einstellungen", label: "Einstellungen", shortLabel: "Ei" }
+type NavItem = {
+  to: string;
+  label: string;
+  shortLabel: string;
+  end?: boolean;
+};
+
+type NavGroup = {
+  key: string;
+  label: string;
+  items: NavItem[];
+};
+
+const navGroups: NavGroup[] = [
+  {
+    key: "uebersicht",
+    label: "Übersicht",
+    items: [{ to: "/", label: "Start", shortLabel: "St", end: true }]
+  },
+  {
+    key: "daten",
+    label: "Daten & Erfassung",
+    items: [
+      { to: "/personen", label: "Personen", shortLabel: "Pe" },
+      { to: "/import", label: "Import", shortLabel: "Im" },
+      { to: "/befunde", label: "Befunde", shortLabel: "Be" },
+      { to: "/messwerte", label: "Messwerte", shortLabel: "Mw" }
+    ]
+  },
+  {
+    key: "arbeiten",
+    label: "Arbeiten",
+    items: [
+      { to: "/planung", label: "Planung", shortLabel: "Pl" },
+      { to: "/auswertung", label: "Auswertung", shortLabel: "Au" },
+      { to: "/berichte", label: "Berichte", shortLabel: "Br" }
+    ]
+  },
+  {
+    key: "stammdaten",
+    label: "Stammdaten & Wissen",
+    items: [
+      { to: "/parameter", label: "Parameter", shortLabel: "Pa" },
+      { to: "/gruppen", label: "Parametergruppen", shortLabel: "Pg" },
+      { to: "/wissensbasis", label: "Laborwissen", shortLabel: "Lw" }
+    ]
+  },
+  {
+    key: "system",
+    label: "System",
+    items: [{ to: "/einstellungen", label: "Einstellungen", shortLabel: "Ei" }]
+  }
 ];
 
 const SIDEBAR_STATE_KEY = "labordaten.sidebarCollapsed";
@@ -61,19 +100,26 @@ export function AppLayout() {
           </div>
 
           <nav className="sidebar__nav" aria-label="Hauptnavigation">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                title={isSidebarCollapsed ? item.label : undefined}
-                className={({ isActive }) => (isActive ? "nav-link nav-link--active" : "nav-link")}
-              >
-                <span className="nav-link__short" aria-hidden={!isSidebarCollapsed}>
-                  {item.shortLabel}
-                </span>
-                <span className="nav-link__label">{item.label}</span>
-              </NavLink>
+            {navGroups.map((group) => (
+              <section key={group.key} className="nav-group" aria-label={group.label}>
+                <span className="nav-group__label">{group.label}</span>
+                <div className="nav-group__items">
+                  {group.items.map((item) => (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      end={item.end}
+                      title={isSidebarCollapsed ? item.label : undefined}
+                      className={({ isActive }) => (isActive ? "nav-link nav-link--active" : "nav-link")}
+                    >
+                      <span className="nav-link__short" aria-hidden={!isSidebarCollapsed}>
+                        {item.shortLabel}
+                      </span>
+                      <span className="nav-link__label">{item.label}</span>
+                    </NavLink>
+                  ))}
+                </div>
+              </section>
             ))}
           </nav>
         </div>
