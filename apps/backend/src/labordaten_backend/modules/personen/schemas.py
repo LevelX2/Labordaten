@@ -20,6 +20,29 @@ class PersonCreate(BaseModel):
         return validate_optional_code(value, valid_values=GESCHLECHT_CODES, field_label="Geschlecht")
 
 
+class PersonUpdate(BaseModel):
+    anzeigename: str
+    vollname: str | None = None
+    geburtsdatum: date
+    geschlecht_code: str | None = None
+    blutgruppe: str | None = None
+    rhesusfaktor: str | None = None
+    hinweise_allgemein: str | None = None
+
+    @field_validator("anzeigename")
+    @classmethod
+    def validate_anzeigename(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Personen brauchen einen Anzeigenamen.")
+        return cleaned
+
+    @field_validator("geschlecht_code")
+    @classmethod
+    def validate_geschlecht_code(cls, value: str | None) -> str | None:
+        return validate_optional_code(value, valid_values=GESCHLECHT_CODES, field_label="Geschlecht")
+
+
 class PersonRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

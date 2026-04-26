@@ -8,7 +8,7 @@ from labordaten_backend.models.zielbereich import Zielbereich
 from labordaten_backend.models.zielbereich_person_override import ZielbereichPersonOverride
 from labordaten_backend.models.base import utcnow
 from labordaten_backend.modules.einheiten import service as einheiten_service
-from labordaten_backend.modules.personen.schemas import PersonCreate, PersonRead
+from labordaten_backend.modules.personen.schemas import PersonCreate, PersonRead, PersonUpdate
 from labordaten_backend.modules.personen.schemas import ZielbereichOverrideCreate, ZielbereichOverrideRead
 
 
@@ -31,6 +31,24 @@ def create_person(db: Session, payload: PersonCreate) -> PersonRead:
     db.commit()
     db.refresh(person)
     return PersonRead.model_validate(person, from_attributes=True).model_copy(update={"messwerte_anzahl": 0})
+
+
+def update_person(db: Session, person_id: str, payload: PersonUpdate) -> PersonRead:
+    person = db.get(Person, person_id)
+    if person is None:
+        raise ValueError("Person nicht gefunden.")
+
+    for key, value in payload.model_dump().items():
+        if isinstance(value, str):
+            value = value.strip() or None
+        setattr(person, key, value)
+
+    db.add(person)
+    db.commit()
+    db.refresh(person)
+
+    messwerte_anzahl = db.scalar(select(func.count(Messwert.id)).where(Messwert.person_id == person.id)) or 0
+    return PersonRead.model_validate(person, from_attributes=True).model_copy(update={"messwerte_anzahl": messwerte_anzahl})
 
 
 def get_person(db: Session, person_id: str) -> Person | None:

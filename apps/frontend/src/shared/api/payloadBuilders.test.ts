@@ -22,6 +22,8 @@ describe("payloadBuilders", () => {
       vollname: null,
       geburtsdatum: "1964-01-12",
       geschlecht_code: null,
+      blutgruppe: null,
+      rhesusfaktor: null,
       hinweise_allgemein: null,
     });
   });

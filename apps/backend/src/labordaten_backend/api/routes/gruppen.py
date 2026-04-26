@@ -21,6 +21,21 @@ def create_gruppe(
     return schemas.GruppeRead.model_validate(gruppe, from_attributes=True).model_copy(update={"parameter_anzahl": 0})
 
 
+@router.patch("/{gruppe_id}", response_model=schemas.GruppeRead)
+def update_gruppe(
+    gruppe_id: str,
+    payload: schemas.GruppeUpdate,
+    db: Session = Depends(get_db),
+) -> schemas.GruppeRead:
+    try:
+        gruppe = service.update_gruppe(db, gruppe_id, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return schemas.GruppeRead.model_validate(gruppe, from_attributes=True).model_copy(
+        update={"parameter_anzahl": len(service.list_gruppen_parameter(db, gruppe_id))}
+    )
+
+
 @router.get("/{gruppe_id}", response_model=schemas.GruppeRead)
 def get_gruppe(gruppe_id: str, db: Session = Depends(get_db)) -> schemas.GruppeRead:
     gruppe = service.get_gruppe(db, gruppe_id)

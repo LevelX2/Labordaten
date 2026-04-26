@@ -1,8 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
 
 import { apiFetch } from "../../shared/api/client";
 import { EinheitenPflegeCard } from "../../shared/components/EinheitenPflegeCard";
+import {
+  colorDesigns,
+  getStoredColorDesignKey,
+  storeAndApplyColorDesign,
+  type ColorDesignKey
+} from "../../shared/theme/colorDesigns";
 import type { LockStatus, RuntimeSettings, SystemHealth } from "../../shared/types/api";
 
 type EinstellungenAnsichtKey =
@@ -10,6 +17,7 @@ type EinstellungenAnsichtKey =
   | "sperre"
   | "pfade"
   | "standards"
+  | "design"
   | "einheiten"
   | "technik";
 
@@ -59,8 +67,15 @@ function getSectionMeta(section: EinstellungenAnsichtKey): { title: string; desc
   if (section === "einheiten") {
     return {
       title: "Einheiten",
-      description: "Hier pflegst Du kanonische Einheiten und deren Alias-Schreibweisen für Import und manuelle Erfassung.",
+      description: "Hier legst Du die führende Schreibweise einer Einheit fest und ordnest abweichende Labor-Schreibweisen als Aliase zu.",
       badge: "Zentrale Fachstammdaten"
+    };
+  }
+  if (section === "design") {
+    return {
+      title: "Farbdesign",
+      description: "Hier wählst Du ein harmonisches Farbdesign für die lokale Oberfläche.",
+      badge: "Darstellung"
     };
   }
   return {
@@ -75,6 +90,7 @@ export function EinstellungenPage() {
   const [form, setForm] = useState<RuntimeSettings | null>(null);
   const [showPageInfo, setShowPageInfo] = useState(false);
   const [selectedAnsicht, setSelectedAnsicht] = useState<EinstellungenAnsichtKey>("uebersicht");
+  const [selectedColorDesign, setSelectedColorDesign] = useState<ColorDesignKey>(() => getStoredColorDesignKey());
   const backendDocsUrl = "/api/docs";
   const backendOpenApiUrl = "/api/openapi.json";
 
@@ -126,6 +142,11 @@ export function EinstellungenPage() {
   });
 
   const sectionMeta = getSectionMeta(selectedAnsicht);
+
+  const handleColorDesignChange = (key: ColorDesignKey) => {
+    setSelectedColorDesign(key);
+    storeAndApplyColorDesign(key);
+  };
 
   const renderSection = () => {
     if (selectedAnsicht === "uebersicht") {
@@ -264,7 +285,7 @@ export function EinstellungenPage() {
               </label>
 
               <label className="field field--full">
-                <span>Wissensordner</span>
+                <span>Laborwissen-Ordner</span>
                 <input
                   value={form.knowledge_path}
                   onChange={(event) =>
@@ -448,6 +469,43 @@ export function EinstellungenPage() {
       return <EinheitenPflegeCard className="card card--soft" />;
     }
 
+    if (selectedAnsicht === "design") {
+      return (
+        <div className="color-design-grid" role="radiogroup" aria-label="Farbdesign auswählen">
+          {colorDesigns.map((design) => {
+            const isSelected = selectedColorDesign === design.key;
+            return (
+              <button
+                key={design.key}
+                type="button"
+                className={`color-design-card ${isSelected ? "color-design-card--selected" : ""}`}
+                role="radio"
+                aria-checked={isSelected}
+                onClick={() => handleColorDesignChange(design.key)}
+                style={
+                  {
+                    "--design-swatch-a": design.swatches[0],
+                    "--design-swatch-b": design.swatches[1],
+                    "--design-swatch-c": design.swatches[2]
+                  } as CSSProperties
+                }
+              >
+                <span className="color-design-card__swatches" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                </span>
+                <span className="color-design-card__copy">
+                  <strong>{design.name}</strong>
+                  <span>{design.description}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      );
+    }
+
     return (
       <article className="card card--soft parameter-action-panel">
         <div className="parameter-panel__header">
@@ -531,6 +589,13 @@ export function EinstellungenPage() {
             onClick={() => setSelectedAnsicht("standards")}
           >
             Standards
+          </button>
+          <button
+            type="button"
+            className={`parameter-toolrail__button ${selectedAnsicht === "design" ? "parameter-toolrail__button--active" : ""}`}
+            onClick={() => setSelectedAnsicht("design")}
+          >
+            Farbdesign
           </button>
           <button
             type="button"

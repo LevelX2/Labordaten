@@ -97,6 +97,7 @@ def build_auswertung(db: Session, payload: AuswertungRequest) -> AuswertungRespo
             AuswertungsSerie(
                 laborparameter_id=parameter_id,
                 parameter_anzeigename=parameter.anzeigename,
+                parameter_beschreibung=parameter.beschreibung,
                 parameter_primaere_klassifikation=parameter.primaere_klassifikation,
                 wert_typ_standard=parameter.wert_typ_standard,
                 standard_einheit=parameter.standard_einheit,

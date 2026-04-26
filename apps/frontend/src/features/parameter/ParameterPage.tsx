@@ -1049,9 +1049,9 @@ export function ParameterPage() {
         <article className="card card--soft parameter-action-panel">
           <div className="parameter-panel__header">
             <div>
-              <h3>Wissensseite verknüpfen</h3>
+              <h3>Laborwissen-Seite verknüpfen</h3>
               <p>
-                Verknüpfe den Parameter mit einer Markdown-Seite aus der Wissensbasis. Danach kannst Du direkt aus dem
+                Verknüpfe den Parameter mit einer Markdown-Seite aus dem Laborwissen. Danach kannst Du direkt aus dem
                 Parameterdetail zu dieser Seite springen.
               </p>
             </div>
@@ -1079,7 +1079,7 @@ export function ParameterPage() {
                   </option>
                 ))}
               </select>
-              <small>Neue Seiten kannst Du im Bereich Wissensbasis anlegen und anschließend hier auswählen.</small>
+              <small>Neue Seiten kannst Du im Bereich Laborwissen anlegen und anschließend hier auswählen.</small>
             </label>
 
             <div className="form-actions">
@@ -2285,7 +2285,7 @@ export function ParameterPage() {
                       <strong>{formatDateTime(selectedParameter.geaendert_am)}</strong>
                     </div>
                     <div className="detail-grid__item detail-grid__item--full">
-                      <span>Wissensbasis</span>
+                      <span>Laborwissen</span>
                       {selectedParameter.wissensseite_pfad_relativ ? (
                         <strong>
                           <Link

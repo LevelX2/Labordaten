@@ -8,7 +8,6 @@ import type { Gruppe, GruppenParameter, Parameter } from "../../shared/types/api
 type GruppenFormState = {
   name: string;
   beschreibung: string;
-  sortierschluessel: string;
 };
 
 type ZuordnungState = {
@@ -16,13 +15,12 @@ type ZuordnungState = {
   sortierung: string;
 };
 
-type GruppenPanelKey = "create" | "assignments" | "delete";
+type GruppenPanelKey = "create" | "edit" | "assignments" | "delete";
 type AssignmentViewMode = "all" | "assigned";
 
 const initialForm: GruppenFormState = {
   name: "",
-  beschreibung: "",
-  sortierschluessel: ""
+  beschreibung: ""
 };
 
 function summarizeDescription(text: string | null | undefined): string {
@@ -67,6 +65,7 @@ function formatCountLabel(count: number, singular: string, plural: string): stri
 export function GruppenPage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<GruppenFormState>(initialForm);
+  const [editForm, setEditForm] = useState<GruppenFormState>(initialForm);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [zuordnungen, setZuordnungen] = useState<Record<string, ZuordnungState>>({});
   const [groupSearchQuery, setGroupSearchQuery] = useState("");
@@ -118,7 +117,7 @@ export function GruppenPage() {
     }
 
     return sortedGroups.filter((gruppe) =>
-      [gruppe.name, gruppe.beschreibung ?? "", gruppe.sortierschluessel ?? ""]
+      [gruppe.name, gruppe.beschreibung ?? ""]
         .join(" ")
         .toLocaleLowerCase("de-DE")
         .includes(normalizedSearchQuery)
@@ -143,6 +142,14 @@ export function GruppenPage() {
     setAssignmentSearchQuery("");
     setAssignmentViewMode("all");
     setShowRelatedParameters(true);
+    if (selectedGroup) {
+      setEditForm({
+        name: selectedGroup.name,
+        beschreibung: selectedGroup.beschreibung ?? ""
+      });
+    } else {
+      setEditForm(initialForm);
+    }
   }, [selectedGroupId]);
 
   const currentAssignments = useMemo(() => {
@@ -189,8 +196,7 @@ export function GruppenPage() {
         method: "POST",
         body: JSON.stringify({
           name: form.name,
-          beschreibung: form.beschreibung || null,
-          sortierschluessel: form.sortierschluessel || null
+          beschreibung: form.beschreibung || null
         })
       }),
     onSuccess: async (gruppe) => {
@@ -232,7 +238,29 @@ export function GruppenPage() {
     }
   });
 
+  const updateMutation = useMutation({
+    mutationFn: () =>
+      apiFetch<Gruppe>(`/api/gruppen/${selectedGroupId}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          name: editForm.name,
+          beschreibung: editForm.beschreibung || null
+        })
+      }),
+    onSuccess: async (gruppe) => {
+      setSelectedGroupId(gruppe.id);
+      setActivePanel(null);
+      await queryClient.invalidateQueries({ queryKey: ["gruppen"] });
+    }
+  });
+
   const handleOpenPanel = (panel: GruppenPanelKey) => {
+    if (panel === "edit" && selectedGroup) {
+      setEditForm({
+        name: selectedGroup.name,
+        beschreibung: selectedGroup.beschreibung ?? ""
+      });
+    }
     setActivePanel((current) => (current === panel ? null : panel));
   };
 
@@ -292,14 +320,6 @@ export function GruppenPage() {
               />
             </label>
 
-            <label className="field">
-              <span>Sortierschlüssel</span>
-              <input
-                value={form.sortierschluessel}
-                onChange={(event) => setForm((current) => ({ ...current, sortierschluessel: event.target.value }))}
-              />
-            </label>
-
             <label className="field field--full">
               <span>Beschreibung</span>
               <textarea
@@ -329,6 +349,52 @@ export function GruppenPage() {
       );
     }
 
+    if (activePanel === "edit") {
+      return (
+        <article className="card card--soft parameter-action-panel">
+          <div className="parameter-panel__header">
+            <div>
+              <h3>Gruppe bearbeiten</h3>
+              <p>Ändere Name und Beschreibung der ausgewählten Gruppe.</p>
+            </div>
+            {renderPanelCloseButton("Panel Gruppe bearbeiten schließen")}
+          </div>
+          <form
+            className="form-grid"
+            onSubmit={(event) => {
+              event.preventDefault();
+              updateMutation.mutate();
+            }}
+          >
+            <label className="field">
+              <span>Name</span>
+              <input
+                required
+                value={editForm.name}
+                onChange={(event) => setEditForm((current) => ({ ...current, name: event.target.value }))}
+              />
+            </label>
+
+            <label className="field field--full">
+              <span>Beschreibung</span>
+              <textarea
+                rows={4}
+                value={editForm.beschreibung}
+                onChange={(event) => setEditForm((current) => ({ ...current, beschreibung: event.target.value }))}
+              />
+            </label>
+
+            <div className="form-actions">
+              <button type="submit" disabled={updateMutation.isPending || !selectedGroupId}>
+                {updateMutation.isPending ? "Speichert..." : "Änderungen speichern"}
+              </button>
+              {updateMutation.isError ? <p className="form-error">{updateMutation.error.message}</p> : null}
+            </div>
+          </form>
+        </article>
+      );
+    }
+
     return (
       <article className="card card--soft parameter-action-panel">
         <div className="parameter-panel__header">
@@ -346,7 +412,7 @@ export function GruppenPage() {
               className="clearable-field__input"
               value={assignmentSearchQuery}
               onChange={(event) => setAssignmentSearchQuery(event.target.value)}
-              placeholder="Name, Schlüssel oder Beschreibung"
+                placeholder="Name oder Beschreibung"
             />
             <button
               type="button"
@@ -499,7 +565,7 @@ export function GruppenPage() {
                 className="clearable-field__input"
                 value={groupSearchQuery}
                 onChange={(event) => setGroupSearchQuery(event.target.value)}
-                placeholder="Name, Schlüssel oder Beschreibung"
+                placeholder="Name oder Beschreibung"
               />
               <button
                 type="button"
@@ -530,7 +596,6 @@ export function GruppenPage() {
                   <span className="parameter-pill">
                     {formatCountLabel(gruppe.parameter_anzahl, "Parameter", "Parameter")}
                   </span>
-                  {gruppe.sortierschluessel ? <span className="parameter-pill">{gruppe.sortierschluessel}</span> : null}
                 </div>
               </button>
             ))}
@@ -558,6 +623,13 @@ export function GruppenPage() {
                   </button>
                   <button
                     type="button"
+                    className={`parameter-toolrail__button ${activePanel === "edit" ? "parameter-toolrail__button--active" : ""}`}
+                    onClick={() => handleOpenPanel("edit")}
+                  >
+                    Gruppe bearbeiten
+                  </button>
+                  <button
+                    type="button"
                     className={`parameter-toolrail__button ${activePanel === "assignments" ? "parameter-toolrail__button--active" : ""}`}
                     onClick={() => handleOpenPanel("assignments")}
                   >
@@ -577,7 +649,7 @@ export function GruppenPage() {
                 <div className="parameter-detail__header">
                   <div>
                     <h3 className="parameter-detail__title">{selectedGroup.name}</h3>
-                    <p>{selectedGroup.beschreibung?.trim() || "Zu dieser Gruppe ist noch keine Erläuterung hinterlegt."}</p>
+                <p>{selectedGroup.beschreibung?.trim() || "Zu dieser Gruppe ist noch keine Erläuterung hinterlegt."}</p>
                   </div>
                   <div className="parameter-header-controls">
                     <button
@@ -602,10 +674,6 @@ export function GruppenPage() {
                   <div className="detail-grid__item">
                     <span>Zugeordnete Parameter</span>
                     <strong>{assignedParameterCount}</strong>
-                  </div>
-                  <div className="detail-grid__item">
-                    <span>Sortierschlüssel</span>
-                    <strong>{selectedGroup.sortierschluessel || "Nicht gesetzt"}</strong>
                   </div>
                 </div>
 

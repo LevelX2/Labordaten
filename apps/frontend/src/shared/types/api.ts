@@ -28,6 +28,16 @@ export type PersonCreatePayload = {
   hinweise_allgemein?: string | null;
 };
 
+export type PersonUpdatePayload = PersonCreatePayload;
+
+export type LaborCreatePayload = {
+  name: string;
+  adresse?: string | null;
+  bemerkung?: string | null;
+};
+
+export type LaborUpdatePayload = LaborCreatePayload;
+
 export type ParameterCreatePayload = {
   interner_schluessel?: string | null;
   anzeigename: string;
@@ -130,6 +140,8 @@ export type ZielbereichCreatePayload = {
   alter_max_tage?: number | null;
   bemerkung?: string | null;
 };
+
+export type ZielbereichUpdatePayload = Omit<ZielbereichCreatePayload, "wert_typ">;
 
 export type Person = {
   id: string;

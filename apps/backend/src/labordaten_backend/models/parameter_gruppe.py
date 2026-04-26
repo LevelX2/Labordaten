@@ -15,4 +15,3 @@ class ParameterGruppe(Base, TimestampMixin, ActiveMixin):
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     beschreibung: Mapped[str | None] = mapped_column(Text)
     wissensseite_id: Mapped[str | None] = mapped_column(ForeignKey("wissensseite.id"))
-    sortierschluessel: Mapped[str | None] = mapped_column(String(120))

@@ -9,6 +9,7 @@ from labordaten_backend.models.laborparameter import Laborparameter
 from labordaten_backend.models.parameter_gruppe import ParameterGruppe
 from labordaten_backend.modules.gruppen.schemas import (
     GruppeCreate,
+    GruppeUpdate,
     GruppenParameterAssignItem,
     GruppenParameterAssignRequest,
     GruppenParameterRead,
@@ -33,6 +34,22 @@ def list_gruppen(db: Session) -> list[GruppeRead]:
 def create_gruppe(db: Session, payload: GruppeCreate) -> ParameterGruppe:
     gruppe = ParameterGruppe(**payload.model_dump())
     db.add(gruppe)
+    db.commit()
+    db.refresh(gruppe)
+    return gruppe
+
+
+def update_gruppe(db: Session, gruppe_id: str, payload: GruppeUpdate) -> ParameterGruppe:
+    gruppe = db.get(ParameterGruppe, gruppe_id)
+    if gruppe is None or not gruppe.aktiv:
+        raise ValueError("Die gewählte Gruppe existiert nicht.")
+
+    name = payload.name.strip()
+    if not name:
+        raise ValueError("Gruppen brauchen einen Namen.")
+
+    gruppe.name = name
+    gruppe.beschreibung = payload.beschreibung.strip() if payload.beschreibung and payload.beschreibung.strip() else None
     db.commit()
     db.refresh(gruppe)
     return gruppe

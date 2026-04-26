@@ -72,6 +72,7 @@ class AuswertungPunkt(BaseModel):
 class AuswertungsSerie(BaseModel):
     laborparameter_id: str
     parameter_anzeigename: str
+    parameter_beschreibung: str | None = None
     parameter_primaere_klassifikation: str | None = None
     wert_typ_standard: str
     standard_einheit: str | None = None

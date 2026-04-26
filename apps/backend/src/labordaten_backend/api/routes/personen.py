@@ -20,6 +20,18 @@ def create_person(
     return service.create_person(db, payload)
 
 
+@router.patch("/{person_id}", response_model=schemas.PersonRead)
+def update_person(
+    person_id: str,
+    payload: schemas.PersonUpdate,
+    db: Session = Depends(get_db),
+) -> schemas.PersonRead:
+    try:
+        return service.update_person(db, person_id, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
 @router.get("/{person_id}", response_model=schemas.PersonRead)
 def get_person(person_id: str, db: Session = Depends(get_db)) -> schemas.PersonRead:
     person = service.get_person(db, person_id)
