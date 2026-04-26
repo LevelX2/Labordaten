@@ -824,6 +824,23 @@ export type LockStatus = {
   stale: boolean;
 };
 
+export type InitialdatenStatus = {
+  snapshot_verfuegbar: boolean;
+  snapshot_version?: string | null;
+  stammdaten_vorhanden: boolean;
+  nutzerdaten_vorhanden: boolean;
+  initialimport_empfohlen: boolean;
+  tabellen: Record<string, number>;
+};
+
+export type InitialdatenApplyResult = {
+  snapshot_version?: string | null;
+  aktualisieren: boolean;
+  angelegt: Record<string, number>;
+  aktualisiert: Record<string, number>;
+  uebersprungen: Record<string, number>;
+};
+
 export type WissensseiteListItem = {
   pfad_relativ: string;
   pfad_absolut: string;

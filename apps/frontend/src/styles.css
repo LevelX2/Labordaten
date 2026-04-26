@@ -2874,6 +2874,72 @@ a {
   color: var(--accent);
 }
 
+.initialdaten-dialog {
+  width: min(760px, 100%);
+}
+
+.initialdaten-dialog .initialdaten-panel {
+  padding: 18px;
+  overflow: auto;
+}
+
+.initialdaten-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.initialdaten-panel__intro {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.initialdaten-panel__intro h3 {
+  margin: 0 0 6px;
+}
+
+.initialdaten-panel__intro p {
+  max-width: 760px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.initialdaten-panel__status {
+  margin: 0;
+}
+
+.initialdaten-table-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.initialdaten-table-grid__item {
+  display: grid;
+  gap: 4px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+}
+
+.initialdaten-table-grid__item span {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.initialdaten-table-grid__item strong {
+  color: var(--text);
+}
+
+.initialdaten-panel__actions {
+  align-items: center;
+}
+
 .import-parameter-dialog {
   grid-template-rows: auto auto auto minmax(0, 1fr) auto;
 }
@@ -3104,6 +3170,12 @@ a {
 .form-error {
   margin: 0;
   color: var(--danger);
+}
+
+.form-success {
+  margin: 0;
+  color: var(--accent);
+  font-weight: 700;
 }
 
 .form-hint {
@@ -3582,6 +3654,7 @@ a {
     align-items: start;
   }
 }
+
 .route-loading {
   margin: 32px auto;
   max-width: 360px;

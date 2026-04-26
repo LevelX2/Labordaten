@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 
+import { InitialdatenStartupDialog } from "../../shared/components/InitialdatenStartupDialog";
 import { LabordatenBrandMark } from "../../shared/components/LabordatenBrandMark";
 import { APP_VERSION } from "../../shared/constants/appInfo";
 
@@ -132,6 +133,7 @@ export function AppLayout() {
       <main className="content">
         <Outlet />
       </main>
+      <InitialdatenStartupDialog />
     </div>
   );
 }

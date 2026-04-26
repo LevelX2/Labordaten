@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { apiFetch } from "../../shared/api/client";
 import { EinheitenPflegeCard } from "../../shared/components/EinheitenPflegeCard";
+import { InitialdatenPanel } from "../../shared/components/InitialdatenPanel";
 import { LaborePflegeCard } from "../../shared/components/LaborePflegeCard";
 import {
   colorDesigns,
@@ -18,6 +19,7 @@ type EinstellungenAnsichtKey =
   | "sperre"
   | "pfade"
   | "standards"
+  | "initialdaten"
   | "design"
   | "labore"
   | "einheiten"
@@ -64,6 +66,14 @@ function getSectionMeta(section: EinstellungenAnsichtKey): { title: string; desc
       title: "Standardvorgaben",
       description: "Hier legst Du die typischen Voreinstellungen für Import, Berichte und technische Freigaben fest.",
       badge: "Vorgaben für neue Abläufe"
+    };
+  }
+  if (section === "initialdaten") {
+    return {
+      title: "Initialdaten",
+      description:
+        "Hier lädst Du die mitgelieferten Messstammdaten für Parameter, Gruppen, Aliase, Einheiten und Laborwissen-Verweise.",
+      badge: "Messstammdaten"
     };
   }
   if (section === "einheiten") {
@@ -478,6 +488,14 @@ export function EinstellungenPage() {
       return <EinheitenPflegeCard className="card card--soft" />;
     }
 
+    if (selectedAnsicht === "initialdaten") {
+      return (
+        <article className="card card--soft parameter-action-panel">
+          <InitialdatenPanel />
+        </article>
+      );
+    }
+
     if (selectedAnsicht === "labore") {
       return <LaborePflegeCard className="card card--soft" />;
     }
@@ -609,6 +627,13 @@ export function EinstellungenPage() {
             onClick={() => setSelectedAnsicht("design")}
           >
             Farbdesign
+          </button>
+          <button
+            type="button"
+            className={`parameter-toolrail__button ${selectedAnsicht === "initialdaten" ? "parameter-toolrail__button--active" : ""}`}
+            onClick={() => setSelectedAnsicht("initialdaten")}
+          >
+            Initialdaten
           </button>
           <button
             type="button"
