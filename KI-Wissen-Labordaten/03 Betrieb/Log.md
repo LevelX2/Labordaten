@@ -73,6 +73,35 @@
   - Auf schmalen Bildschirmen bleibt die Navigation als oberer Bereich mit Gruppenlabels und umbrechenden Navigationslinks nutzbar; im eingeklappten Desktop-Rail werden Gruppennamen ausgeblendet und nur Trennungen gezeigt.
   - Verifiziert mit `npm run build` im Frontend.
 
+### [2026-04-26] update | Initialdaten-Snapshot für leere Installationen angelegt
+- Anlass oder Quelle: Nutzerhinweis, dass heruntergeladene oder neu gestartete Installationen bei leerer Datenbank optional sinnvolle Vorgaben für Parameter, Gruppen, Aliase und weitere Grunddaten übernehmen können sollen.
+- Neu angelegte Seiten:
+  - ../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Initialdaten Stammdaten-Snapshot.md
+  - ../02 Wissen/Begriffe und Konzepte/Ist-Stand Initialdaten und Stammdaten-Snapshot.md
+- Geänderte Seiten:
+  - ../02 Wissen/00 Uebersichten/Index.md
+  - ../../../apps/backend/pyproject.toml
+  - ../../../apps/backend/scripts/export_initialdaten_snapshot.py
+  - ../../../apps/backend/scripts/import_initialdaten_snapshot.py
+  - ../../../apps/backend/src/labordaten_backend/api/routes/system.py
+  - ../../../apps/backend/src/labordaten_backend/modules/initialdaten/*
+  - ../../../apps/backend/tests/test_initialdaten.py
+  - ../../../apps/frontend/src/app/layout/AppLayout.tsx
+  - ../../../apps/frontend/src/features/einstellungen/EinstellungenPage.tsx
+  - ../../../apps/frontend/src/shared/components/InitialdatenPanel.tsx
+  - ../../../apps/frontend/src/shared/components/InitialdatenStartupDialog.tsx
+  - ../../../apps/frontend/src/shared/types/api.ts
+  - ../../../apps/frontend/src/styles.css
+- Kern der inhaltlichen Anpassung:
+  - Ein versionierter Initialdaten-Snapshot aus dem aktuellen Datenbankstand wurde erzeugt.
+  - Enthalten sind Stammdaten für Wissensseiten, Einheiten, Einheiten-Aliase, Laborparameter, Parameter-Aliase, Parametergruppen, Gruppenzuordnungen, KSG-Klassifikationen, Umrechnungsregeln, Zielbereiche und Dublettenausschlüsse.
+  - Personen, Labore, Dokumente, Befunde, Messwerte, Planung, Importhistorie und personenspezifische Zielbereichs-Overrides bleiben bewusst außerhalb des Snapshots.
+  - Eine verwaiste Umrechnungsregel ohne existierenden Parameter wurde aus der lokalen Datenbank entfernt; Backup: `apps/backend/labordaten.pre-initialdaten-orphan-20260426-222328.db`.
+  - Backendseitig gibt es Status- und Anwenden-Endpunkte für Erststart- und Einstellungs-UI.
+  - Das Frontend prüft beim App-Start, ob Stammdaten fehlen, und bietet dann in einem Dialog das Laden der mitgelieferten Messstammdaten an.
+  - In den Einstellungen gibt es zusätzlich den Bereich `Initialdaten`, über den die Vorgaben geladen oder bei vorhandenem Stammdatenbestand aktualisiert werden können.
+  - Verifiziert mit `python -m pytest tests/test_initialdaten.py`, einem Vollsnapshot-Import in eine frische SQLite-Datenbank, `npm run build`, `npm test` und `python -m pytest`; der Backend-Gesamttestlauf ist aktuell grün.
+
 ### [2026-04-26] update | Messwerte im Import bewusst nicht übernehmen
 - Anlass oder Quelle: Nutzerhinweis, dass KI-Importe auch Hinweise oder Fremdleistungsvermerke enthalten können, die keinen sinnvollen Messwert darstellen und pro Zeile bewusst ausgelassen werden müssen.
 - Neu angelegte Seiten:

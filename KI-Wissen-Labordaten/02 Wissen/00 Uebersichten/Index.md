@@ -26,6 +26,7 @@
 - [[../Begriffe und Konzepte/Ist-Stand Parameter-Dubletten und Zusammenfuehrung]]: aktueller Stand der Dublettenprüfung für vorhandene Parameter und der bestätigten Zusammenführung mit Alias-Rückfall.
 - [[../Begriffe und Konzepte/Ist-Stand PDF-Seitenumbrueche in Berichten]]: aktueller Stand der Block- und Fortsetzungslogik für drucktaugliche Seitenumbrüche in PDF-Berichten.
 - [[../Begriffe und Konzepte/Ist-Stand Automatische interne Parameterschluessel]]: aktueller Stand der automatischen technischen Schlüsselvergabe bei neuer Parameter-Stammdatenpflege.
+- [[../Begriffe und Konzepte/Ist-Stand Initialdaten und Stammdaten-Snapshot]]: aktueller Stand des Initialdaten-Snapshots für leere Installationen inklusive enthaltener Stammdatentabellen, ausgeschlossener Nutzerdaten und offener UI-Punkte.
 
 ## Projektentscheidungen und Prozesse
 - [[../Prozesse/Arbeitsworkflow Wissenspflege und Projektanfragen]]: Standardablauf für Projektarbeit und Wissenspflege.
