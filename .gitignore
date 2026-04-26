@@ -32,6 +32,7 @@ apps/backend/.labordaten.lock.json
 labordaten.runtime.json
 apps/backend/labordaten.runtime.json
 KI-Wissen-Labordaten/.obsidian/
+AGENTS.local.md
 
 # Editor and OS
 .DS_Store

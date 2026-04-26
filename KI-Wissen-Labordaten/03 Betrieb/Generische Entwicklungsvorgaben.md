@@ -25,18 +25,19 @@ tags:
 # Generische Entwicklungsvorgaben
 
 ## Zweck
-Diese Seite sammelt generische Regeln und wiederverwendbare Entwicklungsvorgaben für das aktuelle Projekt `Labordaten`.
+Diese Seite sammelt projektinterne, wiederverwendbare Regeln und Entwicklungsvorgaben für das aktuelle Projekt `Labordaten`.
 
 Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitplanken zu sammeln:
 - für neue Funktionen innerhalb dieses Projekts
 - für spätere Überarbeitungen bestehender Bereiche
-- als Ausgangsbasis für ähnliche künftige Projekte, wenn dort bewusst geprüft wird, welche Regeln übernommen, angepasst oder verworfen werden sollen
+- als lokale Delta-Sammlung gegenüber dem führenden Haupt-Vault `mein-wissen`, wenn dort globale oder typspezifische Regeln bereits definiert sind
 
 ## Einordnung neuer Erkenntnisse
 - Neue Erkenntnisse sollen nicht nur auf den konkreten Einzelfall beschrieben werden, sondern darauf geprüft werden, ob sie eine allgemeinere Regel für vergleichbare UI-, Modellierungs- oder Prozessfragen ausdrücken.
-- Generisch ist eine Erkenntnis dann, wenn sie auch bei anderen fachlichen Seiten, ähnlichen Stammdatenobjekten, weiteren Formularen oder vergleichbaren Systembestandteilen sinnvoll wäre.
+- Global oder typspezifisch ist eine Erkenntnis dann, wenn sie auch außerhalb dieses Projekts sinnvoll wiederverwendbar wäre; solche Regeln sollen nach Freigabe in das Haupt-Vault zurückgeführt werden.
+- Projektintern generisch ist eine Erkenntnis dann, wenn sie innerhalb dieses Projekts für mehrere fachliche Seiten, ähnliche Stammdatenobjekte, weitere Formulare oder vergleichbare Systembestandteile sinnvoll wäre.
 - Spezifisch ist eine Erkenntnis dann, wenn sie im Wesentlichen nur für einen einzelnen Sonderfall, eine konkrete Fachentscheidung oder einen eng begrenzten Ablauf gilt.
-- Generische Regeln gehören auf diese Seite.
+- Projektinterne generische Regeln gehören auf diese Seite.
 - Spezifische Regeln gehören in die jeweils fachlich passende Wissensseite, damit die generischen Entwicklungsvorgaben schlank und wiederverwendbar bleiben.
 
 ## UI-Texte und Seitenköpfe
@@ -47,7 +48,6 @@ Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitp
 - Formulierungen sollen sich am produktiven Einsatz der Anwendung orientieren und nicht an Entwicklungsstand, Scaffold-Status oder Einführungslogik.
 - Kleine Vorspann-Labels über der Hauptüberschrift sind nur sinnvoll, wenn sie einen zusätzlichen fachlichen Informationswert liefern; reine Stimmungs- oder Orientierungswörter ohne Mehrwert können entfallen.
 
-## Shell und Zeichencodierung unter Windows
 ## Arbeitswege und Entscheidungsführung in Weboberflächen
 - Eine Oberfläche soll zuerst die gedankliche Aufgabe des Anwenders und seine Arbeitswege abbilden, nicht die technische Architektur der Anwendung.
 - Wenn ein Nutzer zwischen unterschiedlichen Wegen wählen muss, sollen diese Wege als klar getrennte Einstiege erscheinen; ein gemeinsamer Prüf- oder Bearbeitungsschritt danach gehört in einen eigenen Arbeitsbereich.
@@ -69,6 +69,7 @@ Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitp
 - Kopierpfade brauchen robuste Bedienbarkeit: Ein Copy-Button soll zuverlässig funktionieren, und bei Browsergrenzen muss der Text dennoch leicht manuell markierbar bleiben.
 - Dialoge und Rückfragen sollen direkte, handlungsorientierte Entscheidungen formulieren statt abstrakte oder unnötig technische Umschreibungen zu verwenden.
 
+## Shell und Zeichencodierung unter Windows
 - Für lokale Textarbeit, Repo-Inspektion und Skriptstarts unter Windows sollte nach Möglichkeit PowerShell 7 (`pwsh`) statt Windows PowerShell 5.1 verwendet werden.
 - Der Grund ist nicht nur Komfort, sondern die konsistentere UTF-8-Verarbeitung bei Markdown-, JSON-, TypeScript-, CSS- und ähnlichen Textdateien.
 - Wenn Skripte oder Einmalbefehle Textdateien lesen oder schreiben, sollte die Zeichencodierung zusätzlich an kritischen Stellen explizit angegeben werden, statt auf implizite Standardwerte des aufrufenden Prozesses zu vertrauen.

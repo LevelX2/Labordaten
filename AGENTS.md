@@ -8,6 +8,8 @@ Für dieses Repository existiert eine projektbezogene KI-Wissensbasis im Ordner:
 
 Bei neuen Threads, neuen Aufgaben und Projektfragen ist diese Wissensbasis primär zu verwenden.
 
+Falls lokal vorhanden, soll zusätzlich `AGENTS.local.md` gelesen werden. Diese Datei kann auf das führende Haupt-Vault und den passenden Projekttyp verweisen.
+
 ## Pflicht-Einstieg für neue Threads
 
 Zu Beginn projektbezogener Arbeit zuerst diese Dateien lesen:
@@ -17,15 +19,22 @@ Zu Beginn projektbezogener Arbeit zuerst diese Dateien lesen:
 3. `KI-Wissen-Labordaten/02 Wissen/Prozesse/Arbeitsworkflow Wissenspflege und Projektanfragen.md`
 4. `KI-Wissen-Labordaten/00 Steuerung/Regeldatei KI-Wissenspflege.md`
 
+## Haupt-Vault-Anbindung
+
+- Allgemeine Entwicklungsregeln, globale Abschlusskommandos und projektübergreifende Wissenspflege-Regeln leben führend im persönlichen Haupt-Vault.
+- Globale Regeln sollen hier nicht vollständig dupliziert werden.
+- Projektspezifische Deltas, Beispiele und lokale Präzisierungen bleiben in dieser Wissensbasis.
+
 ## Arbeitsmodus
 
 - Arbeite `wiki-first`.
 - Beantworte Projektfragen zuerst aus dem vorhandenen Wissensbestand.
 - Ziehe Rohquellen, Repository-Dateien oder Webquellen nur dann nach, wenn die Wissensbasis Lücken hat, veraltet ist oder verifiziert werden muss.
 - Wenn neue belastbare Erkenntnisse entstehen, die einen erkennbaren dauerhaften Wert haben, führe sie in die Wissensbasis zurück.
-- Wenn du bei einer Änderung eine Regel oder Anforderung erkennst, prüfe, ob sie generisch für vergleichbare Funktionen oder Systeme ist oder nur den Einzelfall betrifft.
-- Generische Regeln und wiederverwendbare Entwicklungsvorgaben sammle in `KI-Wissen-Labordaten/03 Betrieb/Generische Entwicklungsvorgaben.md`.
-- Spezifische Erkenntnisse für nur einen Fachfall, eine Seite oder einen einzelnen Ablauf gehören stattdessen in die fachlich passende Wissensseite und nicht in die generischen Entwicklungsvorgaben.
+- Wenn du bei einer Änderung eine Regel oder Anforderung erkennst, prüfe, ob sie global, typspezifisch oder nur für dieses Projekt gilt.
+- Projektinterne, wiederverwendbare Regeln und lokale Deltas sammle in `KI-Wissen-Labordaten/03 Betrieb/Generische Entwicklungsvorgaben.md`.
+- Projektübergreifende Regeln werden nach Freigabe in das Haupt-Vault zurückgeführt.
+- Spezifische Erkenntnisse für nur einen Fachfall, eine Seite oder einen einzelnen Ablauf gehören in die fachlich passende Wissensseite und nicht in die generischen Entwicklungsvorgaben.
 
 ## Sprachregeln
 
@@ -79,7 +88,7 @@ Eine ausdrückliche Zustimmung vor der Änderung ist besonders dann wichtig, wen
 - die Zuordnung zur Zielseite nicht offensichtlich ist
 - neue Seiten angelegt werden sollen, deren Nutzen oder Abgrenzung nicht klar ist
 - die Erkenntnis weitreichende fachliche oder strukturelle Folgen haben kann
-- Unsicherheit besteht, ob etwas generisch oder projektspezifisch dokumentiert werden sollte
+- Unsicherheit besteht, ob etwas global, typspezifisch oder projektspezifisch dokumentiert werden sollte
 
 Wenn die Einordnung dagegen klar ist und der Nutzer nicht widersprochen hat, kann die Wissenspflege direkt durchgeführt werden.
 
@@ -112,40 +121,8 @@ Ausnahmen:
 
 ## Abschlusskommandos
 
-Wenn der Nutzer `Finito`, `Finale`, `Endfinale` oder `Ende` schreibt, führt der Agent die passende Abschlusssequenz für den aktuellen Thread aus.
+Wenn der Nutzer `Finito`, `Finale`, `Endfinale` oder `Ende` schreibt, gelten die globalen Abschlusskommandos aus dem Haupt-Vault. Falls `AGENTS.local.md` vorhanden ist, ist dessen Referenz auf die globale Definition führend.
 
-### `Finito` oder `Ende`
-
-Lokaler Abschluss ohne automatischen Merge nach `main` und ohne automatischen Push.
-
-1. Der Agent teilt die Änderungen in sinnvolle Commit-Blöcke auf. Nicht direkt zusammenhängende Änderungen sollen in getrennten Commits mit jeweils eigener passender Commit-Message landen.
-2. Der Agent committet alle Teile, zu denen keine offenen Fragen mehr bestehen und die fachlich wie technisch konsistent abgeschlossen sind.
-3. Nötige Anpassungen am KI-Wissen werden nach den sonstigen Wissensregeln nachgezogen, dokumentiert und ebenfalls committed.
-4. Verbleibende offene Fragen, Konflikte oder bewusste Entscheidungsbedarfe werden danach kompakt benannt.
-
-Zusätzlich gilt:
-
-- Teile, die noch von offenen Fragen abhängen, sollen nicht vorschnell committed werden.
-- Uncommittete Änderungen, die erkennbar nicht zu diesem Thread gehören, sind kein automatischer Blocker und können am Ende kurz als Hinweis genannt werden.
-- Gemachte Commits sollen im Abschluss jeweils in einer eigenen Zeile mit ihrer Commit-Message genannt werden, damit sie schnell erkennbar sind.
-- Wenn nach der Finito-Sequenz keine relevanten offenen Punkte mehr für diesen Thread übrig sind, gilt der Thread als abgeschlossen und archivierungsreif.
-
-### `Finale`
-
-Vollständiger Arbeitsabschluss.
-
-1. Der Agent führt zuerst die `Finito`-Sequenz aus.
-2. Wenn keine relevanten offenen Punkte, roten Checks oder Merge-Konflikte bestehen, wechselt der Agent nach `main`.
-3. Der Agent aktualisiert `main` per Fast-Forward, soweit möglich.
-4. Der Agent merged den Arbeitsbranch nach `main`.
-5. Der Agent führt die passenden Checks erneut aus.
-6. Wenn der Merge und die Checks erfolgreich sind, pusht der Agent `main`.
-7. Erfolgreich gemergte Arbeitsbranches dürfen lokal und remote aufgeräumt werden.
-
-Der Agent stoppt und fragt nach, wenn Tests oder Checks fehlschlagen, ein Merge-Konflikt entsteht, ein Push nicht ohne Risiko möglich ist oder fachliche offene Punkte bestehen. Force-Push ist nicht Teil von `Finale`.
-
-### `Endfinale`
-
-Großer Projektabschluss.
-
-`Endfinale` umfasst `Finale` und zusätzlich einen bewussten Abschluss-Check: vollständigerer Verify-Lauf, Wissensbasis-Check, Aktualisierung relevanter Projektstatus- oder Risikoseiten und kompakte Benennung verbleibender Projektfragen.
+Für dieses Projekt gilt ergänzend:
+- projektspezifische Checks, Wissenspflege und Zusatzschritte dürfen die globale Sequenz erweitern
+- lokale offene Änderungen außerhalb dieses Threads sind kein automatischer Blocker, sollen aber im Abschluss sichtbar benannt werden

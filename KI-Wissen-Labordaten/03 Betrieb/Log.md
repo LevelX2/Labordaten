@@ -11,6 +11,19 @@
 
 ## 2026-04
 
+### [2026-04-26] update | Agentensteuerung auf Haupt-Vault und lokale Deltas ausgerichtet
+- Anlass oder Quelle: offene lokale Projektanpassung zur Trennung von globalen, typspezifischen und projektspezifischen Agenten- und Wissensregeln
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../../AGENTS.md
+  - [[../03 Betrieb/Generische Entwicklungsvorgaben]]
+- Kern der inhaltlichen Anpassung:
+  - `AGENTS.md` verweist nun auf eine optionale lokale Datei `AGENTS.local.md`, über die das führende Haupt-Vault und der passende Projekttyp eingebunden werden können.
+  - Die Projektanweisungen unterscheiden Regeln jetzt bewusster nach global, typspezifisch und projektspezifisch, statt nur zwischen generisch und projektspezifisch.
+  - Die generischen Entwicklungsvorgaben werden dadurch ausdrücklich als projektinterne Delta-Sammlung gegenüber dem führenden Haupt-Vault eingeordnet.
+  - Die globalen Abschlusskommandos werden nicht mehr vollständig lokal dupliziert, sondern über die Haupt-Vault-Anbindung als führend behandelt; projektspezifische Ergänzungen bleiben weiterhin lokal dokumentiert.
+
 ### [2026-04-25] update | UI-Leitlinien aus Thread als generische Regeln verdichtet
 - Anlass oder Quelle: Nutzerauftrag, eine in einem anderen Thread erarbeitete UI-Regelliste auf Konsistenz zu prüfen, prägnanter zu formulieren und passend in der KI-Wissensbasis zu verankern
 - Neu angelegte Seiten:
