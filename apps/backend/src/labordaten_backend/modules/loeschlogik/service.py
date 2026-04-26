@@ -3,10 +3,12 @@ from __future__ import annotations
 from calendar import monthrange
 from dataclasses import dataclass
 from datetime import date, timedelta
+from pathlib import Path
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
+from labordaten_backend.core.documents import get_documents_root
 from labordaten_backend.models.befund import Befund
 from labordaten_backend.models.dokument import Dokument
 from labordaten_backend.models.einheit import Einheit
@@ -93,7 +95,11 @@ def execute_loeschaktion(
             leeren_befund_mitloeschen=payload.leeren_befund_mitloeschen,
         )
     if normalized == "importvorgang":
-        return _execute_delete_importvorgang(db, entitaet_id)
+        return _execute_delete_importvorgang(
+            db,
+            entitaet_id,
+            dokument_entfernen=payload.dokument_entfernen,
+        )
     if normalized == "einheit":
         return _execute_delete_einheit(db, entitaet_id)
     if normalized == "labor":
@@ -307,6 +313,20 @@ def _pruefe_importvorgang(db: Session, importvorgang_id: str) -> schemas.LoeschP
     befund_anzahl = _count(Befund.id, db, Befund.importvorgang_id == importvorgang_id)
     messwert_anzahl = _count(Messwert.id, db, Messwert.importvorgang_id == importvorgang_id)
     dokument = db.get(Dokument, importvorgang.dokument_id) if importvorgang.dokument_id else None
+    dokument_andere_importe = 0
+    dokument_befunde = 0
+    dokument_entfernen_verfuegbar = False
+    if dokument is not None:
+        dokument_andere_importe = (
+            db.scalar(
+                select(func.count(Importvorgang.id))
+                .where(Importvorgang.dokument_id == dokument.id)
+                .where(Importvorgang.id != importvorgang_id)
+            )
+            or 0
+        )
+        dokument_befunde = db.scalar(select(func.count(Befund.id)).where(Befund.dokument_id == dokument.id)) or 0
+        dokument_entfernen_verfuegbar = not dokument_andere_importe and not dokument_befunde
 
     dependencies: list[schemas.LoeschAbhaengigkeitRead] = []
     if pruefpunkte_anzahl:
@@ -345,18 +365,35 @@ def _pruefe_importvorgang(db: Session, importvorgang_id: str) -> schemas.LoeschP
 
     hinweise = []
     if dokument is not None:
-        hinweise.append(
-            f"Das verknuepfte Dokument '{dokument.dateiname}' bleibt unveraendert und wird nicht automatisch geloescht."
-        )
+        if dokument_entfernen_verfuegbar:
+            dependencies.append(
+                _dependency(
+                    "dokument",
+                    1,
+                    "folge",
+                    "Das verknuepfte Importdokument kann optional mitgeloescht werden.",
+                )
+            )
+            hinweise.append(
+                f"Das verknuepfte Dokument '{dokument.dateiname}' bleibt erhalten, wenn die Dokument-Option nicht gesetzt wird."
+            )
+        else:
+            hinweise.append(
+                f"Das verknuepfte Dokument '{dokument.dateiname}' bleibt bestehen, weil es noch anderweitig verwendet wird."
+            )
     return schemas.LoeschPruefungRead(
         entitaet_typ="importvorgang",
         entitaet_id=importvorgang.id,
         anzeige_name=f"Import {importvorgang.id}",
-        modus="kaskade" if pruefpunkte_anzahl else "direkt",
+        modus="kaskade" if pruefpunkte_anzahl or dokument_entfernen_verfuegbar else "direkt",
         empfehlung="loeschen",
         standard_aktion="loeschen",
         abhaengigkeiten=dependencies,
         hinweise=hinweise,
+        optionen=schemas.LoeschOptionenRead(
+            dokument_entfernen_verfuegbar=dokument_entfernen_verfuegbar,
+            dokument_entfernen_standard=False,
+        ),
     )
 
 
@@ -887,22 +924,47 @@ def _execute_delete_messwert(
     )
 
 
-def _execute_delete_importvorgang(db: Session, importvorgang_id: str) -> schemas.LoeschAusfuehrungRead:
+def _execute_delete_importvorgang(
+    db: Session,
+    importvorgang_id: str,
+    *,
+    dokument_entfernen: bool,
+) -> schemas.LoeschAusfuehrungRead:
     importvorgang = db.get(Importvorgang, importvorgang_id)
     if importvorgang is None:
         raise LookupError("Importvorgang nicht gefunden.")
+
+    dokument_id = importvorgang.dokument_id
+    dokument = db.get(Dokument, dokument_id) if dokument_id and dokument_entfernen else None
+    if dokument is not None:
+        other_imports = (
+            db.scalar(
+                select(func.count(Importvorgang.id))
+                .where(Importvorgang.dokument_id == dokument.id)
+                .where(Importvorgang.id != importvorgang_id)
+            )
+            or 0
+        )
+        befund_refs = db.scalar(select(func.count(Befund.id)).where(Befund.dokument_id == dokument.id)) or 0
+        if other_imports or befund_refs:
+            raise ValueError("Das Dokument wird noch an anderer Stelle verwendet und kann nicht entfernt werden.")
 
     pruefpunkte = list(db.scalars(select(ImportPruefpunkt).where(ImportPruefpunkt.importvorgang_id == importvorgang_id)))
     pruefpunkte_count = len(pruefpunkte)
     for pruefpunkt in pruefpunkte:
         db.delete(pruefpunkt)
     db.delete(importvorgang)
+    if dokument is not None:
+        _delete_stored_document_file(dokument)
+        db.delete(dokument)
     db.commit()
     geloeschte_objekte = [_dependency("importvorgang", 1, "folge", "Importvorgang wurde geloescht.")]
     if pruefpunkte_count:
         geloeschte_objekte.append(
             _dependency("import_pruefpunkt", pruefpunkte_count, "kind", "Import-Pruefpunkte wurden mitgeloescht.")
         )
+    if dokument is not None:
+        geloeschte_objekte.append(_dependency("dokument", 1, "folge", "Verknuepftes Dokument wurde mitgeloescht."))
     return schemas.LoeschAusfuehrungRead(
         entitaet_typ="importvorgang",
         entitaet_id=importvorgang_id,
@@ -1181,6 +1243,33 @@ def _count_for_ids(column, db: Session, foreign_key_column, ids: list[str]) -> i
     if not ids:
         return 0
     return int(db.scalar(select(func.count(column)).where(foreign_key_column.in_(ids))) or 0)
+
+
+def _delete_stored_document_file(dokument: Dokument) -> None:
+    if not dokument.pfad_relativ:
+        return
+
+    root = get_documents_root()
+    file_path = (root / dokument.pfad_relativ).resolve()
+    try:
+        file_path.relative_to(root.resolve())
+    except ValueError as exc:
+        raise ValueError("Der relative Dokumentpfad liegt ausserhalb der konfigurierten Dokumentablage.") from exc
+
+    if file_path.exists() and file_path.is_file():
+        file_path.unlink()
+        _remove_empty_parent_directories(file_path.parent, root)
+
+
+def _remove_empty_parent_directories(path: Path, stop_at: Path) -> None:
+    stop_at = stop_at.resolve()
+    current = path.resolve()
+    while current != stop_at and stop_at in current.parents:
+        try:
+            current.rmdir()
+        except OSError:
+            break
+        current = current.parent
 
 
 def _count_overrides_for_parameter(db: Session, parameter_id: str) -> int:

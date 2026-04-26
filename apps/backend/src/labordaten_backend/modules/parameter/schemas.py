@@ -50,6 +50,9 @@ class ParameterRead(BaseModel):
     wert_typ_standard: str
     primaere_klassifikation: str | None = None
     sortierschluessel: str | None = None
+    wissensseite_id: str | None = None
+    wissensseite_pfad_relativ: str | None = None
+    wissensseite_titel: str | None = None
     aktiv: bool
     erstellt_am: datetime
     geaendert_am: datetime
@@ -77,6 +80,18 @@ class ParameterPrimaereKlassifikationUpdateResult(BaseModel):
     parameter_id: str
     parameter_anzeigename: str
     primaere_klassifikation: str | None = None
+
+
+class ParameterWissensseiteUpdate(BaseModel):
+    pfad_relativ: str | None = None
+
+
+class ParameterWissensseiteUpdateResult(BaseModel):
+    parameter_id: str
+    parameter_anzeigename: str
+    wissensseite_id: str | None = None
+    wissensseite_pfad_relativ: str | None = None
+    wissensseite_titel: str | None = None
 
 
 class ParameterStandardEinheitUpdateResult(BaseModel):
@@ -189,7 +204,6 @@ class ParameterGruppenzuordnungRead(BaseModel):
     id: str
     parameter_gruppe_id: str
     gruppenname: str
-    gruppen_sortierschluessel: str | None = None
     sortierung: int | None = None
 
 

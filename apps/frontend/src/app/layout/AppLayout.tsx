@@ -15,7 +15,7 @@ const navItems = [
   { to: "/auswertung", label: "Auswertung", shortLabel: "Au" },
   { to: "/berichte", label: "Berichte", shortLabel: "Br" },
   { to: "/import", label: "Import", shortLabel: "Im" },
-  { to: "/wissensbasis", label: "Wissensbasis", shortLabel: "Wi" },
+  { to: "/wissensbasis", label: "Laborwissen", shortLabel: "Lw" },
   { to: "/einstellungen", label: "Einstellungen", shortLabel: "Ei" }
 ];
 

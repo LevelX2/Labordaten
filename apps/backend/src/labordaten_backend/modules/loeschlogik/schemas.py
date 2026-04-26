@@ -21,6 +21,8 @@ class LoeschAbhaengigkeitRead(BaseModel):
 class LoeschOptionenRead(BaseModel):
     deaktivieren_verfuegbar: bool = False
     leeren_befund_mitloeschen_standard: bool = False
+    dokument_entfernen_verfuegbar: bool = False
+    dokument_entfernen_standard: bool = False
 
 
 class LoeschPruefungRead(BaseModel):
@@ -39,6 +41,7 @@ class LoeschPruefungRead(BaseModel):
 class LoeschAusfuehrenRequest(BaseModel):
     aktion: Loeschaktion = "loeschen"
     leeren_befund_mitloeschen: bool = True
+    dokument_entfernen: bool = False
 
 
 class LoeschAusfuehrungRead(BaseModel):

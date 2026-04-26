@@ -52,6 +52,18 @@ export type ParameterPrimaereKlassifikationUpdateResult = {
   primaere_klassifikation?: ParameterKlassifikationCode | null;
 };
 
+export type ParameterWissensseiteUpdatePayload = {
+  pfad_relativ?: string | null;
+};
+
+export type ParameterWissensseiteUpdateResult = {
+  parameter_id: string;
+  parameter_anzeigename: string;
+  wissensseite_id?: string | null;
+  wissensseite_pfad_relativ?: string | null;
+  wissensseite_titel?: string | null;
+};
+
 export type ParameterUmrechnungsregelCreatePayload = {
   von_einheit: string;
   nach_einheit: string;
@@ -143,6 +155,9 @@ export type Parameter = {
   wert_typ_standard: WertTyp;
   primaere_klassifikation?: ParameterKlassifikationCode | null;
   sortierschluessel?: string | null;
+  wissensseite_id?: string | null;
+  wissensseite_pfad_relativ?: string | null;
+  wissensseite_titel?: string | null;
   aktiv: boolean;
   erstellt_am: string;
   geaendert_am: string;
@@ -236,7 +251,6 @@ export type ParameterGruppenzuordnung = {
   id: string;
   parameter_gruppe_id: string;
   gruppenname: string;
-  gruppen_sortierschluessel?: string | null;
   sortierung?: number | null;
 };
 
@@ -304,7 +318,6 @@ export type Gruppe = {
   id: string;
   name: string;
   beschreibung?: string | null;
-  sortierschluessel?: string | null;
   aktiv: boolean;
   erstellt_am: string;
   geaendert_am: string;
@@ -523,6 +536,10 @@ export type ImportMesswertPreview = {
   wert_text?: string | null;
   einheit_original?: string | null;
   bemerkung_kurz?: string | null;
+  bemerkung_lang?: string | null;
+  ki_hinweis?: string | null;
+  unsicher_flag: boolean;
+  pruefbedarf_flag: boolean;
   referenz_text_original?: string | null;
   untere_grenze_num?: number | null;
   untere_grenze_operator?: ReferenzGrenzOperator | null;
@@ -562,7 +579,6 @@ export type ImportGruppenvorschlag = {
   index: number;
   name: string;
   beschreibung?: string | null;
-  sortierschluessel?: string | null;
   messwert_indizes: number[];
   parameter_ids: string[];
   parameter_namen: string[];
@@ -747,6 +763,7 @@ export type AuswertungPunkt = {
 export type AuswertungsSerie = {
   laborparameter_id: string;
   parameter_anzeigename: string;
+  parameter_beschreibung?: string | null;
   parameter_primaere_klassifikation?: ParameterKlassifikationCode | null;
   wert_typ_standard: WertTyp;
   standard_einheit?: string | null;
@@ -800,11 +817,24 @@ export type WissensseiteListItem = {
   aliases: string[];
   excerpt?: string | null;
   geaendert_am: string;
+  loeschbar: boolean;
+  loesch_sperrgrund?: string | null;
 };
 
 export type WissensseiteDetail = WissensseiteListItem & {
   frontmatter: Record<string, unknown>;
   inhalt_markdown: string;
+};
+
+export type WissensseiteCreatePayload = {
+  pfad_relativ: string;
+  titel: string;
+  inhalt_markdown?: string | null;
+};
+
+export type WissensseiteDeleteResult = {
+  pfad_relativ: string;
+  geloescht: boolean;
 };
 
 export type Loeschmodus = "direkt" | "kaskade" | "blockiert";
@@ -822,6 +852,8 @@ export type LoeschAbhaengigkeit = {
 export type LoeschOptionen = {
   deaktivieren_verfuegbar: boolean;
   leeren_befund_mitloeschen_standard: boolean;
+  dokument_entfernen_verfuegbar: boolean;
+  dokument_entfernen_standard: boolean;
 };
 
 export type LoeschPruefung = {

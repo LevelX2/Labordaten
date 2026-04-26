@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { apiFetch } from "../../shared/api/client";
 import { buildZielbereichCreatePayload } from "../../shared/api/payloadBuilders";
@@ -36,8 +37,11 @@ import type {
   ParameterUmrechnungsregel,
   ParameterUmrechnungsregelCreatePayload,
   ParameterUsageSummary,
+  ParameterWissensseiteUpdatePayload,
+  ParameterWissensseiteUpdateResult,
   UmrechnungsregelTyp,
   WertTyp,
+  WissensseiteListItem,
   ZielbereichTyp,
   Zielbereich
 } from "../../shared/types/api";
@@ -65,6 +69,11 @@ type ParameterRenameFormState = {
 type ParameterStandardEinheitFormState = {
   parameter_id: string;
   standard_einheit: string;
+};
+
+type ParameterWissensseiteFormState = {
+  parameter_id: string;
+  pfad_relativ: string;
 };
 
 type ParameterKlassifikationFormState = {
@@ -104,6 +113,7 @@ type ParameterPanelKey =
   | "create"
   | "standardUnit"
   | "classification"
+  | "knowledge"
   | "rename"
   | "alias"
   | "conversion"
@@ -139,6 +149,11 @@ const initialRenameForm: ParameterRenameFormState = {
 const initialStandardEinheitForm: ParameterStandardEinheitFormState = {
   parameter_id: "",
   standard_einheit: ""
+};
+
+const initialWissensseiteForm: ParameterWissensseiteFormState = {
+  parameter_id: "",
+  pfad_relativ: ""
 };
 
 const initialKlassifikationForm: ParameterKlassifikationFormState = {
@@ -269,6 +284,8 @@ export function ParameterPage() {
   const [renameForm, setRenameForm] = useState<ParameterRenameFormState>(initialRenameForm);
   const [standardEinheitForm, setStandardEinheitForm] =
     useState<ParameterStandardEinheitFormState>(initialStandardEinheitForm);
+  const [wissensseiteForm, setWissensseiteForm] =
+    useState<ParameterWissensseiteFormState>(initialWissensseiteForm);
   const [klassifikationForm, setKlassifikationForm] =
     useState<ParameterKlassifikationFormState>(initialKlassifikationForm);
   const [zielbereichForm, setZielbereichForm] = useState<ZielbereichFormState>(initialZielbereichForm);
@@ -306,6 +323,11 @@ export function ParameterPage() {
     queryKey: ["einheiten"],
     queryFn: () => apiFetch<Einheit[]>("/api/einheiten")
   });
+  const wissensseitenQuery = useQuery({
+    queryKey: ["wissensbasis", "seiten", "parameter-link"],
+    queryFn: () => apiFetch<WissensseiteListItem[]>("/api/wissensbasis/seiten"),
+    enabled: activePanel === "knowledge"
+  });
 
   const sortedParameters = useMemo(
     () =>
@@ -337,6 +359,7 @@ export function ParameterPage() {
       setAliasForm(initialAliasForm);
       setRenameForm(initialRenameForm);
       setStandardEinheitForm(initialStandardEinheitForm);
+      setWissensseiteForm(initialWissensseiteForm);
       setKlassifikationForm(initialKlassifikationForm);
       setZielbereichForm(initialZielbereichForm);
       setUmrechnungsregelForm(initialUmrechnungsregelForm);
@@ -366,6 +389,14 @@ export function ParameterPage() {
         : {
             parameter_id: selectedParameter.id,
             standard_einheit: selectedParameter.standard_einheit ?? ""
+          }
+    );
+    setWissensseiteForm((current) =>
+      current.parameter_id === selectedParameter.id
+        ? current
+        : {
+            parameter_id: selectedParameter.id,
+            pfad_relativ: selectedParameter.wissensseite_pfad_relativ ?? ""
           }
     );
     setKlassifikationForm((current) =>
@@ -597,6 +628,24 @@ export function ParameterPage() {
     }
   });
 
+  const updateWissensseiteMutation = useMutation({
+    mutationFn: () =>
+      apiFetch<ParameterWissensseiteUpdateResult>(`/api/parameter/${wissensseiteForm.parameter_id}/wissensseite`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          pfad_relativ: wissensseiteForm.pfad_relativ || null
+        } satisfies ParameterWissensseiteUpdatePayload)
+      }),
+    onSuccess: async (result) => {
+      setWissensseiteForm({
+        parameter_id: result.parameter_id,
+        pfad_relativ: result.wissensseite_pfad_relativ ?? ""
+      });
+      setActivePanel(null);
+      await queryClient.invalidateQueries({ queryKey: ["parameter"] });
+    }
+  });
+
   const createUmrechnungsregelMutation = useMutation({
     mutationFn: () =>
       apiFetch<ParameterUmrechnungsregel>(
@@ -816,6 +865,13 @@ export function ParameterPage() {
       });
     }
 
+    if (panel === "knowledge" && selectedParameter) {
+      setWissensseiteForm({
+        parameter_id: selectedParameter.id,
+        pfad_relativ: selectedParameter.wissensseite_pfad_relativ ?? ""
+      });
+    }
+
     if (panel === "conversion" && selectedParameter) {
       setUmrechnungsregelForm({
         ...initialUmrechnungsregelForm,
@@ -984,6 +1040,72 @@ export function ParameterPage() {
         <article className="card card--soft">
           <h3>Werkzeuge</h3>
           <p>Es ist noch kein Parameter ausgewählt.</p>
+        </article>
+      );
+    }
+
+    if (activePanel === "knowledge") {
+      return (
+        <article className="card card--soft parameter-action-panel">
+          <div className="parameter-panel__header">
+            <div>
+              <h3>Wissensseite verknüpfen</h3>
+              <p>
+                Verknüpfe den Parameter mit einer Markdown-Seite aus der Wissensbasis. Danach kannst Du direkt aus dem
+                Parameterdetail zu dieser Seite springen.
+              </p>
+            </div>
+            {renderPanelCloseButton("Panel Wissensseite verknüpfen schließen")}
+          </div>
+          <form
+            className="form-grid"
+            onSubmit={(event) => {
+              event.preventDefault();
+              updateWissensseiteMutation.mutate();
+            }}
+          >
+            <label className="field field--full">
+              <span>Wissensseite</span>
+              <select
+                value={wissensseiteForm.pfad_relativ}
+                onChange={(event) =>
+                  setWissensseiteForm((current) => ({ ...current, pfad_relativ: event.target.value }))
+                }
+              >
+                <option value="">Keine Verknüpfung</option>
+                {wissensseitenQuery.data?.map((seite) => (
+                  <option key={seite.pfad_relativ} value={seite.pfad_relativ}>
+                    {seite.titel} · {seite.pfad_relativ}
+                  </option>
+                ))}
+              </select>
+              <small>Neue Seiten kannst Du im Bereich Wissensbasis anlegen und anschließend hier auswählen.</small>
+            </label>
+
+            <div className="form-actions">
+              <button type="submit" disabled={updateWissensseiteMutation.isPending}>
+                {updateWissensseiteMutation.isPending ? "Speichert..." : "Verknüpfung speichern"}
+              </button>
+              {selectedParameter.wissensseite_pfad_relativ ? (
+                <Link
+                  className="inline-button"
+                  to={`/wissensbasis?seite=${encodeURIComponent(selectedParameter.wissensseite_pfad_relativ)}`}
+                >
+                  Verknüpfte Seite öffnen
+                </Link>
+              ) : (
+                <Link
+                  className="inline-button"
+                  to={`/wissensbasis?suche=${encodeURIComponent(selectedParameter.anzeigename)}`}
+                >
+                  Passende Seite suchen
+                </Link>
+              )}
+              {updateWissensseiteMutation.isError ? (
+                <p className="form-error">{updateWissensseiteMutation.error.message}</p>
+              ) : null}
+            </div>
+          </form>
         </article>
       );
     }
@@ -2037,6 +2159,13 @@ export function ParameterPage() {
                     </button>
                     <button
                       type="button"
+                      className={`parameter-toolrail__button ${activePanel === "knowledge" ? "parameter-toolrail__button--active" : ""}`}
+                      onClick={() => handleOpenPanel("knowledge")}
+                    >
+                      Wissen
+                    </button>
+                    <button
+                      type="button"
                       className={`parameter-toolrail__button ${activePanel === "rename" ? "parameter-toolrail__button--active" : ""}`}
                       onClick={() => handleOpenPanel("rename")}
                     >
@@ -2157,7 +2286,25 @@ export function ParameterPage() {
                     </div>
                     <div className="detail-grid__item detail-grid__item--full">
                       <span>Wissensbasis</span>
-                      <strong>Für diesen Detailbereich ist noch keine Zusatzinformation verknüpft.</strong>
+                      {selectedParameter.wissensseite_pfad_relativ ? (
+                        <strong>
+                          <Link
+                            className="text-link"
+                            to={`/wissensbasis?seite=${encodeURIComponent(selectedParameter.wissensseite_pfad_relativ)}`}
+                          >
+                            {selectedParameter.wissensseite_titel ?? selectedParameter.wissensseite_pfad_relativ}
+                          </Link>
+                        </strong>
+                      ) : (
+                        <strong>
+                          <Link
+                            className="text-link"
+                            to={`/wissensbasis?suche=${encodeURIComponent(selectedParameter.anzeigename)}`}
+                          >
+                            Nach passender Wissensseite suchen
+                          </Link>
+                        </strong>
+                      )}
                     </div>
                   </div>
                 ) : null}
@@ -2429,7 +2576,6 @@ export function ParameterPage() {
                               <thead>
                                 <tr>
                                   <th>Gruppe</th>
-                                  <th>Gruppen-Schlüssel</th>
                                   <th>Sortierung</th>
                                 </tr>
                               </thead>
@@ -2437,13 +2583,12 @@ export function ParameterPage() {
                                 {parameterGruppenQuery.data?.map((gruppe) => (
                                   <tr key={gruppe.id}>
                                     <td>{gruppe.gruppenname}</td>
-                                    <td>{gruppe.gruppen_sortierschluessel || "—"}</td>
                                     <td>{gruppe.sortierung ?? "—"}</td>
                                   </tr>
                                 ))}
                                 {!parameterGruppenQuery.data?.length ? (
                                   <tr>
-                                    <td colSpan={3}>Dieser Parameter ist aktuell keiner Gruppe zugeordnet.</td>
+                                    <td colSpan={2}>Dieser Parameter ist aktuell keiner Gruppe zugeordnet.</td>
                                   </tr>
                                 ) : null}
                               </tbody>
