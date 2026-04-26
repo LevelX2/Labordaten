@@ -69,6 +69,7 @@ class ImportParameterVorschlagPayload(BaseModel):
 class ImportMesswertPayload(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
+    uebernahme_status: Literal["offen", "ignoriert"] = Field(default="offen", alias="uebernahmeStatus")
     parameter_id: str | None = Field(default=None, alias="parameterId")
     original_parametername: str = Field(alias="originalParametername")
     wert_typ: str = Field(alias="wertTyp")
@@ -198,7 +199,7 @@ class ImportParameterMapping(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     messwert_index: int
-    aktion: Literal["vorhanden", "neu"] = "vorhanden"
+    aktion: Literal["vorhanden", "neu", "ignorieren"] = "vorhanden"
     laborparameter_id: str | None = None
     neuer_parameter_name: str | None = Field(default=None, alias="neuerParameterName")
     alias_uebernehmen: bool = False

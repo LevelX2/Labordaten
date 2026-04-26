@@ -426,6 +426,7 @@ def uebernehmen_import(
         db.add(importvorgang)
 
     mappings = payload.parameter_mappings
+    _apply_ignored_measurement_mappings(import_payload, mappings)
     pruefregeln = _generate_checks(db, importvorgang.id, import_payload, mappings)
 
     fehler = [item for item in pruefregeln if item.status == "fehler"]
@@ -462,6 +463,8 @@ def uebernehmen_import(
 
     for index, item in enumerate(import_payload.messwerte):
         mapping_request = mapping_lookup.get(index)
+        if _is_ignored_parameter_mapping(mapping_request) or item.uebernahme_status == "ignoriert":
+            continue
         measurement_unit = (
             einheiten_service.ensure_einheit_exists(db, item.einheit_original)
             if item.wert_typ == "numerisch"
@@ -566,6 +569,7 @@ def uebernehmen_import(
     _replace_checks(db, importvorgang.id, pruefregeln, bestaetige_warnungen=payload.bestaetige_warnungen)
     importvorgang.status = "uebernommen"
     importvorgang.warnungen_text = _summarize_warnings(pruefregeln)
+    importvorgang.roh_payload_text = import_payload.model_dump_json(by_alias=True)
 
     db.add(importvorgang)
     db.commit()
@@ -660,6 +664,7 @@ def anwenden_gruppenvorschlaege(
             .order_by(Messwert.erstellt_am.asc())
         )
     )
+    imported_measurements_by_index = _map_imported_measurements_by_payload_index(import_payload, imported_measurements)
 
     results: list[ImportGruppenvorschlagErgebnisRead] = []
     for item in payload.vorschlaege:
@@ -670,7 +675,7 @@ def anwenden_gruppenvorschlaege(
         parameter_ids, _ = _resolve_group_suggestion_parameters(
             payload=import_payload,
             suggestion_index=item.vorschlag_index,
-            imported_measurements=imported_measurements,
+            imported_measurements_by_index=imported_measurements_by_index,
             parameter_resolver=ParameterResolver(db),
         )
 
@@ -1049,6 +1054,7 @@ def _build_detail(db: Session, importvorgang: Importvorgang) -> ImportvorgangDet
             .order_by(Messwert.erstellt_am.asc())
         )
     )
+    imported_measurements_by_index = _map_imported_measurements_by_payload_index(payload, imported_measurements)
     imported_befund = db.scalar(
         select(Befund).where(Befund.importvorgang_id == importvorgang.id).order_by(Befund.erstellt_am.asc())
     )
@@ -1057,7 +1063,7 @@ def _build_detail(db: Session, importvorgang: Importvorgang) -> ImportvorgangDet
     gruppenvorschlaege = _build_group_suggestion_previews(
         db,
         payload=payload,
-        imported_measurements=imported_measurements,
+        imported_measurements_by_index=imported_measurements_by_index,
         parameter_resolver=parameter_resolver,
     )
     parameter_vorschlaege = _build_parameter_suggestion_previews(payload)
@@ -1102,7 +1108,7 @@ def _build_detail(db: Session, importvorgang: Importvorgang) -> ImportvorgangDet
             _build_measurement_preview(
                 index=index,
                 item=item,
-                imported_measurements=imported_measurements,
+                imported_measurements_by_index=imported_measurements_by_index,
                 parameter_resolver=parameter_resolver,
                 parameter_vorschlag=parameter_suggestion_by_index.get(index),
             )
@@ -1118,18 +1124,23 @@ def _build_measurement_preview(
     *,
     index: int,
     item: ImportMesswertPayload,
-    imported_measurements: list[Messwert],
+    imported_measurements_by_index: dict[int, Messwert],
     parameter_resolver: ParameterResolver,
     parameter_vorschlag: ImportParameterVorschlagRead | None = None,
 ) -> ImportMesswertPreviewRead:
-    imported_parameter_id = imported_measurements[index].laborparameter_id if index < len(imported_measurements) else None
+    imported_measurement = imported_measurements_by_index.get(index)
+    imported_parameter_id = imported_measurement.laborparameter_id if imported_measurement is not None else None
     resolution = parameter_resolver.resolve(
         original_name=item.original_parametername,
         explicit_parameter_id=item.parameter_id,
         manual_parameter_id=None,
     )
 
-    if imported_parameter_id is not None:
+    if item.uebernahme_status == "ignoriert":
+        parameter_id = None
+        mapping_herkunft = "ignoriert"
+        mapping_hinweis = "Wird nicht übernommen."
+    elif imported_parameter_id is not None:
         parameter_id = imported_parameter_id
         mapping_herkunft = "uebernommen"
         mapping_hinweis = parameter_resolver.get_parameter_name(imported_parameter_id)
@@ -1202,7 +1213,7 @@ def _build_group_suggestion_previews(
     db: Session,
     *,
     payload: ImportPayload,
-    imported_measurements: list[Messwert],
+    imported_measurements_by_index: dict[int, Messwert],
     parameter_resolver: ParameterResolver,
 ) -> list[ImportGruppenvorschlagRead]:
     existing_groups = _load_existing_group_contexts(db)
@@ -1212,7 +1223,7 @@ def _build_group_suggestion_previews(
         parameter_ids, missing_indices = _resolve_group_suggestion_parameters(
             payload=payload,
             suggestion_index=index,
-            imported_measurements=imported_measurements,
+            imported_measurements_by_index=imported_measurements_by_index,
             parameter_resolver=parameter_resolver,
         )
         parameter_names = [
@@ -1244,7 +1255,7 @@ def _resolve_group_suggestion_parameters(
     *,
     payload: ImportPayload,
     suggestion_index: int,
-    imported_measurements: list[Messwert],
+    imported_measurements_by_index: dict[int, Messwert],
     parameter_resolver: ParameterResolver,
 ) -> tuple[list[str], list[int]]:
     suggestion = payload.gruppen_vorschlaege[suggestion_index]
@@ -1252,13 +1263,13 @@ def _resolve_group_suggestion_parameters(
     missing_indices: list[int] = []
 
     for messwert_index in suggestion.messwert_indizes:
-        imported_parameter_id = (
-            imported_measurements[messwert_index].laborparameter_id
-            if 0 <= messwert_index < len(imported_measurements)
-            else None
-        )
+        imported_measurement = imported_measurements_by_index.get(messwert_index)
+        imported_parameter_id = imported_measurement.laborparameter_id if imported_measurement is not None else None
         payload_item = payload.messwerte[messwert_index] if 0 <= messwert_index < len(payload.messwerte) else None
         if payload_item is None:
+            missing_indices.append(messwert_index)
+            continue
+        if payload_item.uebernahme_status == "ignoriert":
             missing_indices.append(messwert_index)
             continue
 
@@ -1410,6 +1421,8 @@ def _generate_checks(
 
     for index, item in enumerate(payload.messwerte):
         mapping_request = mapping_lookup.get(index)
+        if _is_ignored_parameter_mapping(mapping_request) or item.uebernahme_status == "ignoriert":
+            continue
         resolution = (
             ParameterResolution(parameter_id=None, herkunft="neu")
             if _is_new_parameter_mapping(mapping_request)
@@ -1668,6 +1681,35 @@ def _resolve_alias_request(
 
 def _is_new_parameter_mapping(mapping_request: ImportParameterMapping | None) -> bool:
     return bool(mapping_request and mapping_request.aktion == "neu")
+
+
+def _is_ignored_parameter_mapping(mapping_request: ImportParameterMapping | None) -> bool:
+    return bool(mapping_request and mapping_request.aktion == "ignorieren")
+
+
+def _apply_ignored_measurement_mappings(payload: ImportPayload, mappings: list[ImportParameterMapping]) -> None:
+    for mapping in mappings:
+        if not _is_ignored_parameter_mapping(mapping):
+            continue
+        if mapping.messwert_index < 0 or mapping.messwert_index >= len(payload.messwerte):
+            raise ValueError(f"Der Messwert mit Index {mapping.messwert_index} existiert nicht.")
+        payload.messwerte[mapping.messwert_index].uebernahme_status = "ignoriert"
+
+
+def _map_imported_measurements_by_payload_index(
+    payload: ImportPayload,
+    imported_measurements: list[Messwert],
+) -> dict[int, Messwert]:
+    mapped: dict[int, Messwert] = {}
+    measurement_index = 0
+    for payload_index, item in enumerate(payload.messwerte):
+        if item.uebernahme_status == "ignoriert":
+            continue
+        if measurement_index >= len(imported_measurements):
+            break
+        mapped[payload_index] = imported_measurements[measurement_index]
+        measurement_index += 1
+    return mapped
 
 
 def _create_parameter_from_import_mapping(

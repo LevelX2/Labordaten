@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type ClipboardEvent } from "react";
 
 import { apiFetch } from "../../shared/api/client";
-import { LoeschAktionPanel } from "../../shared/components/LoeschAktionPanel";
 import { formatGeschlechtCode, formatParameterKlassifikation, formatWertTyp } from "../../shared/constants/fieldOptions";
 import { getDocumentContentUrl } from "../../shared/utils/documents";
 import { formatReferenzAnzeige } from "../../shared/utils/laborFormatting";
@@ -31,7 +30,7 @@ type ImportFormState = {
 
 type GruppenVorschlagAktion = "neu" | "vorhanden" | "ignorieren";
 type ImportMode = "ki" | "json" | "pruefen" | "historie";
-type MappingFilterMode = "alle" | "offen" | "neu" | "manuell" | "automatisch" | "explizit";
+type MappingFilterMode = "alle" | "offen" | "neu" | "ignoriert" | "manuell" | "automatisch" | "explizit";
 
 type GruppenVorschlagState = {
   aktion: GruppenVorschlagAktion;
@@ -40,6 +39,7 @@ type GruppenVorschlagState = {
 };
 
 const NEW_PARAMETER_MAPPING_VALUE = "__new_parameter__";
+const IGNORE_MEASUREMENT_MAPPING_VALUE = "__ignore_measurement__";
 
 type ParameterDialogFilterMode = "streng" | "locker" | "alle";
 
@@ -197,6 +197,9 @@ function formatImportReference(messwert: ImportMesswertPreview): string {
 }
 
 function formatMappingInfo(messwert: ImportMesswertPreview, currentParameterId?: string): string {
+  if (currentParameterId === IGNORE_MEASUREMENT_MAPPING_VALUE || messwert.parameter_mapping_herkunft === "ignoriert") {
+    return "Wird nicht übernommen";
+  }
   if (currentParameterId === NEW_PARAMETER_MAPPING_VALUE) {
     return "Neuanlage vorgesehen";
   }
@@ -228,6 +231,9 @@ function formatMappingInfo(messwert: ImportMesswertPreview, currentParameterId?:
 }
 
 function getMappingFilterMode(messwert: ImportMesswertPreview, currentParameterId?: string): MappingFilterMode {
+  if (currentParameterId === IGNORE_MEASUREMENT_MAPPING_VALUE || messwert.parameter_mapping_herkunft === "ignoriert") {
+    return "ignoriert";
+  }
   if (currentParameterId === NEW_PARAMETER_MAPPING_VALUE) {
     return "neu";
   }
@@ -385,7 +391,7 @@ function getAliasRecommendation(args: {
   parameterById: Map<string, Parameter>;
 }): { recommended: boolean; note: string | null } {
   const { messwert, parameterId, parameterById } = args;
-  if (!parameterId || parameterId === NEW_PARAMETER_MAPPING_VALUE) {
+  if (!parameterId || parameterId === NEW_PARAMETER_MAPPING_VALUE || parameterId === IGNORE_MEASUREMENT_MAPPING_VALUE) {
     return { recommended: false, note: null };
   }
 
@@ -450,6 +456,14 @@ function isResolvedMissingParameterCheck(item: ImportPruefpunkt, mappingState: R
   return messwertIndex !== null && Boolean(mappingState[messwertIndex]);
 }
 
+function isIgnoredMeasurementCheck(item: ImportPruefpunkt, mappingState: Record<number, string>): boolean {
+  if (item.objekt_typ !== "messwert") {
+    return false;
+  }
+  const messwertIndex = getMesswertIndexFromCheck(item);
+  return messwertIndex !== null && mappingState[messwertIndex] === IGNORE_MEASUREMENT_MAPPING_VALUE;
+}
+
 function getVisibleImportChecks(
   importDetail: ImportVorgangDetail | undefined | null,
   mappingState: Record<number, string>,
@@ -460,6 +474,9 @@ function getVisibleImportChecks(
   }
   return importDetail.pruefpunkte.filter((item) => {
     if (item.pruefart === "person_zuordnung" && item.status === "fehler" && reviewPersonId) {
+      return false;
+    }
+    if (isIgnoredMeasurementCheck(item, mappingState)) {
       return false;
     }
     return !isResolvedMissingParameterCheck(item, mappingState);
@@ -486,8 +503,27 @@ function getOpenMappingCount(importDetail: ImportVorgangDetail | undefined, mapp
   if (!importDetail || importDetail.status === "uebernommen" || !Array.isArray(importDetail.messwerte)) {
     return 0;
   }
-  return importDetail.messwerte.filter((messwert) => !(mappingState[messwert.messwert_index] || messwert.parameter_id))
+  return importDetail.messwerte.filter((messwert) => {
+    if (messwert.parameter_mapping_herkunft === "ignoriert") {
+      return false;
+    }
+    return !(mappingState[messwert.messwert_index] || messwert.parameter_id);
+  })
     .length;
+}
+
+function getIgnoredMeasurementCount(
+  importDetail: ImportVorgangDetail | undefined,
+  mappingState: Record<number, string>
+): number {
+  if (!importDetail || !Array.isArray(importDetail.messwerte)) {
+    return 0;
+  }
+  return importDetail.messwerte.filter(
+    (messwert) =>
+      mappingState[messwert.messwert_index] === IGNORE_MEASUREMENT_MAPPING_VALUE ||
+      messwert.parameter_mapping_herkunft === "ignoriert"
+  ).length;
 }
 
 function shouldPreselectNewParameter(messwert: ImportMesswertPreview): boolean {
@@ -547,7 +583,6 @@ export function ImportPage() {
   const [parameterDialogMesswertIndex, setParameterDialogMesswertIndex] = useState<number | null>(null);
   const [parameterDialogSearch, setParameterDialogSearch] = useState("");
   const [parameterDialogFilterMode, setParameterDialogFilterMode] = useState<ParameterDialogFilterMode>("streng");
-  const [showDeletePanel, setShowDeletePanel] = useState(false);
   const [showDiscardPanel, setShowDiscardPanel] = useState(false);
   const [removeLinkedDocument, setRemoveLinkedDocument] = useState(false);
   const promptTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -585,7 +620,6 @@ export function ImportPage() {
   }, [importsQuery.data, selectedImportId]);
 
   useEffect(() => {
-    setShowDeletePanel(false);
     setShowDiscardPanel(false);
     setRemoveLinkedDocument(false);
     setGruppenResult(null);
@@ -612,7 +646,9 @@ export function ImportPage() {
     const nextAliases: Record<number, boolean> = {};
     const nextGruppen: Record<number, GruppenVorschlagState> = {};
     selectedImportQuery.data?.messwerte.forEach((messwert) => {
-      if (messwert.parameter_id) {
+      if (messwert.parameter_mapping_herkunft === "ignoriert") {
+        nextMappings[messwert.messwert_index] = IGNORE_MEASUREMENT_MAPPING_VALUE;
+      } else if (messwert.parameter_id) {
         nextMappings[messwert.messwert_index] = messwert.parameter_id;
       } else if (shouldPreselectNewParameter(messwert)) {
         nextMappings[messwert.messwert_index] = NEW_PARAMETER_MAPPING_VALUE;
@@ -695,7 +731,12 @@ export function ImportPage() {
           parameter_mappings: Object.entries(mappingState)
             .filter(([, mappingValue]) => Boolean(mappingValue))
             .map(([messwert_index, mappingValue]) =>
-              mappingValue === NEW_PARAMETER_MAPPING_VALUE
+              mappingValue === IGNORE_MEASUREMENT_MAPPING_VALUE
+                ? {
+                    messwert_index: Number(messwert_index),
+                    aktion: "ignorieren"
+                  }
+                : mappingValue === NEW_PARAMETER_MAPPING_VALUE
                 ? {
                     messwert_index: Number(messwert_index),
                     aktion: "neu",
@@ -841,6 +882,7 @@ export function ImportPage() {
   const selectedImportDocumentName =
     selectedImport?.dokument_dateiname ?? selectedImport?.befund.dokument_dateiname ?? null;
   const openMappingCount = getOpenMappingCount(selectedImport, mappingState);
+  const ignoredMeasurementCount = getIgnoredMeasurementCount(selectedImport, mappingState);
   const groupsAvailable = Boolean(selectedImport?.gruppenvorschlaege.length);
   const groupsDone = Boolean(groupsAvailable && gruppenResult);
   const openBefundSection = Boolean(selectedImport && selectedImportChecks.errors > 0);
@@ -938,7 +980,7 @@ export function ImportPage() {
       [messwert.messwert_index]: nextValue
     }));
     setAliasState((current) => {
-      if (!nextValue || nextValue === NEW_PARAMETER_MAPPING_VALUE) {
+      if (!nextValue || nextValue === NEW_PARAMETER_MAPPING_VALUE || nextValue === IGNORE_MEASUREMENT_MAPPING_VALUE) {
         return { ...current, [messwert.messwert_index]: false };
       }
       const nextRecommendation = getAliasRecommendation({
@@ -1040,7 +1082,7 @@ export function ImportPage() {
             <div className="prompt-help">
               <p>
                 Beide Varianten enthalten denselben technischen Importvertrag und dieselben vorhandenen Stammdaten für
-                Labore, Parameter, Aliasse, Einheiten und Gruppen. Sie unterscheiden sich nur in der Eingangs-Anweisung
+                Labore, Parameter, Aliasse, Einheiten und Parametergruppen. Sie unterscheiden sich nur in der Eingangs-Anweisung
                 für die Quelle.
               </p>
               <div className="import-prompt-choice">
@@ -1149,13 +1191,13 @@ export function ImportPage() {
               <p>
                 Der Prompt erzeugt noch keinen Import. Er beschreibt einer externen KI, wie sie eine Quelle analysieren
                 und in das gemeinsame Import-JSON überführen soll. Die vorhandenen Stammdaten werden mitgegeben, damit
-                die KI vorhandene Labore, Parameter, Aliasse, Einheiten und Gruppen konservativ erkennen kann.
+                die KI vorhandene Labore, Parameter, Aliasse, Einheiten und Parametergruppen konservativ erkennen kann.
               </p>
               <p>
                 Die Person wird nicht im Prompt ausgewählt und nicht aus dem JSON übernommen. Beim Einfügen des
                 KI-Ergebnisses wählst Du sie in der Anwendung; bei Bedarf kannst Du sie im Bereich{" "}
                 <strong>Befund prüfen</strong> noch ändern. Danach prüfst Du Messwerte, neue Parameter, Prüfhinweise und
-                Gruppen vor der Übernahme.
+                Parametergruppen vor der Übernahme.
               </p>
             </div>
           </details>
@@ -1389,6 +1431,9 @@ export function ImportPage() {
                 <span className={openMappingCount ? "parameter-pill parameter-pill--warning" : "parameter-pill"}>
                   {openMappingCount} offene Zuordnungen
                 </span>
+                <span className={ignoredMeasurementCount ? "parameter-pill parameter-pill--warning" : "parameter-pill"}>
+                  {ignoredMeasurementCount} nicht übernommen
+                </span>
               </div>
 
               <details className="import-review-section" open={openBefundSection}>
@@ -1478,6 +1523,7 @@ export function ImportPage() {
                     <option value="alle">Alle Messwerte</option>
                     <option value="offen">Noch offen</option>
                     <option value="neu">Neuanlage vorgesehen</option>
+                    <option value="ignoriert">Nicht übernehmen</option>
                     <option value="manuell">Manuell angepasst</option>
                     <option value="automatisch">Automatisch durch Stammdaten erkannt</option>
                     <option value="explizit">Aus KI-/JSON-Ergebnis übernommen</option>
@@ -1543,6 +1589,8 @@ export function ImportPage() {
                                 ? `Neuanlage: ${
                                     messwert.parameter_vorschlag?.anzeigename ?? messwert.original_parametername
                                   }`
+                                : mappingState[messwert.messwert_index] === IGNORE_MEASUREMENT_MAPPING_VALUE
+                                ? "Wird nicht übernommen"
                                 : mappingState[messwert.messwert_index]
                                 ? parameterById.get(mappingState[messwert.messwert_index])?.anzeigename ?? "Zugeordnet"
                                 : "Noch nicht zugeordnet"}
@@ -1556,7 +1604,9 @@ export function ImportPage() {
                               </small>
                             ) : mappingState[messwert.messwert_index] ? (
                               <small>
-                                {parameterById.get(mappingState[messwert.messwert_index])?.standard_einheit ?? "ohne Standardeinheit"}
+                                {mappingState[messwert.messwert_index] === IGNORE_MEASUREMENT_MAPPING_VALUE
+                                  ? "Dieser Eintrag wird beim Übernehmen ausgelassen."
+                                  : parameterById.get(mappingState[messwert.messwert_index])?.standard_einheit ?? "ohne Standardeinheit"}
                               </small>
                             ) : null}
                             {assignedParameter ? (
@@ -1662,6 +1712,13 @@ export function ImportPage() {
                               >
                                 Neuen Parameter
                               </button>
+                              <button
+                                type="button"
+                                className="inline-button inline-button--danger"
+                                onClick={() => setMesswertParameterMapping(messwert, IGNORE_MEASUREMENT_MAPPING_VALUE)}
+                              >
+                                Nicht übernehmen
+                              </button>
                               {mappingState[messwert.messwert_index] ? (
                                 <button
                                   type="button"
@@ -1682,7 +1739,8 @@ export function ImportPage() {
                               checked={Boolean(aliasState[messwert.messwert_index])}
                               disabled={
                                 !mappingState[messwert.messwert_index] ||
-                                mappingState[messwert.messwert_index] === NEW_PARAMETER_MAPPING_VALUE
+                                mappingState[messwert.messwert_index] === NEW_PARAMETER_MAPPING_VALUE ||
+                                mappingState[messwert.messwert_index] === IGNORE_MEASUREMENT_MAPPING_VALUE
                               }
                               onChange={(event) =>
                                 setAliasState((current) => ({
@@ -1710,9 +1768,9 @@ export function ImportPage() {
 
               {selectedImport.status === "uebernommen" && selectedImport.gruppenvorschlaege.length ? (
                 <details className="import-review-section" open={openGruppenSection}>
-                  <summary>Gruppen entscheiden</summary>
+                  <summary>Parametergruppen entscheiden</summary>
                   <p>
-                    Berichtsblöcke können nach der Importübernahme als Gruppen angelegt oder mit vorhandenen Gruppen
+                    Berichtsblöcke können nach der Importübernahme als Parametergruppen angelegt oder mit vorhandenen Parametergruppen
                     zusammengeführt werden.
                   </p>
                   <div className="table-wrap">
@@ -1721,7 +1779,7 @@ export function ImportPage() {
                         <tr>
                           <th>Vorschlag</th>
                           <th>Parameter</th>
-                          <th>Ähnliche Gruppen</th>
+                          <th>Ähnliche Parametergruppen</th>
                           <th>Aktion</th>
                         </tr>
                       </thead>
@@ -1756,7 +1814,7 @@ export function ImportPage() {
                                     </p>
                                   ))
                                 ) : (
-                                  "Keine ähnliche Gruppe gefunden."
+                                  "Keine ähnliche Parametergruppe gefunden."
                                 )}
                               </td>
                               <td>
@@ -1774,14 +1832,14 @@ export function ImportPage() {
                                       }))
                                     }
                                   >
-                                    <option value="neu">Neue Gruppe anlegen</option>
-                                    <option value="vorhanden">Vorhandene Gruppe verwenden</option>
+                                    <option value="neu">Neue Parametergruppe anlegen</option>
+                                    <option value="vorhanden">Vorhandene Parametergruppe verwenden</option>
                                     <option value="ignorieren">Ignorieren</option>
                                   </select>
                                 </label>
                                 {currentState.aktion === "neu" ? (
                                   <label className="field">
-                                    <span>Gruppenname</span>
+                                    <span>Parametergruppenname</span>
                                     <input
                                       value={currentState.gruppenname}
                                       onChange={(event) =>
@@ -1798,7 +1856,7 @@ export function ImportPage() {
                                 ) : null}
                                 {currentState.aktion === "vorhanden" ? (
                                   <label className="field">
-                                    <span>Zielgruppe</span>
+                                    <span>Ziel-Parametergruppe</span>
                                     <select
                                       value={currentState.gruppe_id}
                                       onChange={(event) =>
@@ -1836,14 +1894,14 @@ export function ImportPage() {
                       onClick={() => gruppenVorschlaegeMutation.mutate()}
                       disabled={gruppenVorschlaegeMutation.isPending || selectedImport.status !== "uebernommen"}
                     >
-                      {gruppenVorschlaegeMutation.isPending ? "Wendet an..." : "Gruppenvorschläge anwenden"}
+                      {gruppenVorschlaegeMutation.isPending ? "Wendet an..." : "Parametergruppenvorschläge anwenden"}
                     </button>
                     {gruppenVorschlaegeMutation.isError ? (
                       <p className="form-error">{gruppenVorschlaegeMutation.error.message}</p>
                     ) : null}
                     {gruppenResult ? (
                       <p>
-                        Gruppenentscheidungen verarbeitet:{" "}
+                        Parametergruppenentscheidungen verarbeitet:{" "}
                         {gruppenResult.ergebnisse
                           .map((item) => item.gruppenname || item.gruppe_id || item.aktion)
                           .join(", ")}
@@ -1915,7 +1973,8 @@ export function ImportPage() {
                 ) : null}
                 {openMappingCount > 0 ? (
                   <p className="form-hint">
-                    Übernahme ist möglich, sobald alle Messwerte einem vorhandenen oder neuen Parameter zugeordnet sind.
+                    Übernahme ist möglich, sobald jeder Messwert einem vorhandenen oder neuen Parameter zugeordnet ist
+                    oder bewusst nicht übernommen wird.
                   </p>
                 ) : null}
                 {selectedImportChecks.errors > 0 ? (
@@ -1957,27 +2016,12 @@ export function ImportPage() {
                 <details className="import-review-section" open={openAbschlussSection}>
                   <summary>Abschluss</summary>
                   <p>
-                    Der Import ist übernommen. Prüfe bei vorhandenen Gruppenvorschlägen noch, ob neue Gruppen angelegt,
-                    vorhandene Gruppen verwendet oder Vorschläge ignoriert werden sollen.
+                    Der Import ist übernommen. Prüfe bei vorhandenen Parametergruppenvorschlägen noch, ob neue Parametergruppen angelegt,
+                    vorhandene Parametergruppen verwendet oder Vorschläge ignoriert werden sollen.
                   </p>
                 </details>
               ) : null}
 
-              <div className="inline-actions">
-                <button type="button" className="inline-button" onClick={() => setShowDeletePanel((current) => !current)}>
-                  {showDeletePanel ? "Löschbereich ausblenden" : "Importversuch löschen"}
-                </button>
-              </div>
-
-              {showDeletePanel ? (
-                <LoeschAktionPanel
-                  entitaetTyp="importvorgang"
-                  entitaetId={selectedImportId}
-                  title="Importversuch löschen"
-                  emptyText="Bitte zuerst einen Import auswählen."
-                  invalidateQueryKeys={[["importe"], ["importe", selectedImportId], ["befunde"], ["messwerte"]]}
-                />
-              ) : null}
             </>
           ) : null}
         </article>
