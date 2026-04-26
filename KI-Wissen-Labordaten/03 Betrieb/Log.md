@@ -11,6 +11,47 @@
 
 ## 2026-04
 
+### [2026-04-26] update | KSG-Festlegungen in lokale Datenbank übernommen
+- Anlass oder Quelle: Nutzerwunsch, die abgestimmten KSG-Festlegungen in die Datenbank zu übernehmen
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../../apps/backend/labordaten.db
+  - [[../03 Betrieb/KSG-Klassifikationsvorschlag vorhandene Parameter 2026-04-26]]
+- Kern der inhaltlichen Anpassung:
+  - Vor der Änderung wurde eine lokale Sicherung `apps/backend/labordaten.pre-ksg-20260426-140145.db` angelegt.
+  - Alle 353 vorhandenen Laborparameter wurden gegen den KSG-Vorschlag abgeglichen; 350 erhielten eine primäre KSG-Klasse, 3 bleiben bewusst ohne Klassifikation.
+  - Die Primärverteilung in der DB lautet nun: `krankwert` 88, `schluesselwert` 119, `gesundmachwert` 143, ohne KSG-Klasse 3.
+  - Aus der Spalte `Sinnvolle Zusatzrolle` wurden 481 aktive Einträge in `parameter_klassifikation` angelegt.
+  - Verifiziert mit direkten DB-Queries und Backend-Tests `test_api_contract_fixed_codes.py`, `test_code_field_validation.py`, `test_import_prompt.py`.
+
+### [2026-04-26] update | KSG-Tabellen S01 und S06-S16 ausgewertet
+- Anlass oder Quelle: Nutzerquellen `KSG-Klassifikation Tab S01.pdf` sowie `KSG-Klassifikation Tab S06.pdf` bis `KSG-Klassifikation Tab S16.pdf`
+- Neu angelegte Seiten:
+  - [[../01 Rohquellen/externe-quellen/KSG-Klassifikation Tab S01 Transkription]]
+  - [[../01 Rohquellen/externe-quellen/KSG-Klassifikation Tab S06 Transkription]]
+  - [[../01 Rohquellen/externe-quellen/KSG-Klassifikation Tab S07 Transkription]]
+  - [[../01 Rohquellen/externe-quellen/KSG-Klassifikation Tab S08 Transkription]]
+  - [[../01 Rohquellen/externe-quellen/KSG-Klassifikation Tab S09 Transkription]]
+  - [[../01 Rohquellen/externe-quellen/KSG-Klassifikation Tab S10 Transkription]]
+  - [[../01 Rohquellen/externe-quellen/KSG-Klassifikation Tab S11 Transkription]]
+  - [[../01 Rohquellen/externe-quellen/KSG-Klassifikation Tab S12 Transkription]]
+  - [[../01 Rohquellen/externe-quellen/KSG-Klassifikation Tab S13 Transkription]]
+  - [[../01 Rohquellen/externe-quellen/KSG-Klassifikation Tab S14 Transkription]]
+  - [[../01 Rohquellen/externe-quellen/KSG-Klassifikation Tab S15 Transkription]]
+  - [[../01 Rohquellen/externe-quellen/KSG-Klassifikation Tab S16 Transkription]]
+- Geänderte Seiten:
+  - [[../02 Wissen/00 Uebersichten/Index]]
+  - [[../02 Wissen/Begriffe und Konzepte/KSG Klassifizierung von Laborparametern]]
+  - [[../03 Betrieb/KSG-Klassifikationsvorschlag vorhandene Parameter 2026-04-26]]
+  - ../../../apps/backend/src/labordaten_backend/modules/importe/service.py
+- Kern der inhaltlichen Anpassung:
+  - Die zusätzlichen Tabellen wurden als Rohquellen übernommen und als manuelle Transkriptionen aus den Bild-PDFs dokumentiert.
+  - eGFR wurde im Vorschlag auf primär `schluesselwert` korrigiert, weil S07 eGFR ausdrücklich so führt; die Niereninsuffizienz-Abklärung bleibt Zusatzrolle `krankwert`.
+  - Prolaktin wurde im vorhandenen Vorschlag auf primär `krankwert` korrigiert, weil S13 dies für den nicht-schwangeren Kontext vorgibt.
+  - Neu in der Datenbank vorhandene Parameter wurden im Vorschlag ergänzt: intrazelluläres ATP und intrazelluläres Glutathion als `gesundmachwert`, Nitrotyrosin im Serum als `krankwert`.
+  - Mehrfachrollen wie fT3 `S/G`, fT4 `S/K`, HDL-C `G/S`, Homocystein `K/S`, TSH `S/K` und geschlechtsabhängiges Testosteron wurden in Wissensbasis und Import-Prompt ergänzt.
+
 ### [2026-04-26] update | Absprung vom Befundmesswert in die Auswertung ergänzt
 - Anlass oder Quelle: Nutzerwunsch, aus einem angezeigten Befund je Messwert direkt dessen zeitlichen Verlauf für die betroffene Person öffnen zu können
 - Neu angelegte Seiten:
@@ -25,6 +66,88 @@
   - Die Auswertung lädt bei diesem Kontextsprung automatisch, ohne dass der Nutzer zusätzlich `Auswertung laden` klicken muss.
   - Verifiziert mit `npm run build` und `npm test` im Frontend.
 
+### [2026-04-26] update | KSG-Tabellen S04/S05 ausgewertet
+- Anlass oder Quelle: Nutzerquellen `KSG-Klassifikation Tab S04.pdf` und `KSG-Klassifikation Tab S05.pdf`
+- Neu angelegte Seiten:
+  - [[../01 Rohquellen/externe-quellen/KSG-Klassifikation Tab S04 Transkription]]
+  - [[../01 Rohquellen/externe-quellen/KSG-Klassifikation Tab S05 Transkription]]
+- Geänderte Seiten:
+  - [[../02 Wissen/Begriffe und Konzepte/KSG Klassifizierung von Laborparametern]]
+  - [[../03 Betrieb/KSG-Klassifikationsvorschlag vorhandene Parameter 2026-04-26]]
+  - ../../../apps/backend/src/labordaten_backend/modules/importe/service.py
+- Kern der inhaltlichen Anpassung:
+  - Die zwei weiteren bildbasierten PDF-Tabellen wurden als Rohquellen übernommen und transkribiert.
+  - Der KSG-Vorschlag wurde bei AP auf primär `schluesselwert` mit Zusatzrolle `krankwert` korrigiert, weil S04 AP als Schlüsselwert führt, obwohl eine frühere Übersicht AP auch als Extra-Krankwert nennt.
+  - Coenzym Q10 wurde konsolidiert als `gesundmachwert` geführt, auch für die cholesterinkorrigierte vorhandene Größe.
+  - Weitere nicht vorhandene Beispiele wie reverse T3, Zonulin, ANA-AK, Apo-B, CCP-AK und Cystatin C wurden in Projektwissen und Import-Prompt ergänzt.
+
+### [2026-04-26] update | Primäre KSG-Klasse in Messwerten und Auswertungen sichtbar gemacht
+- Anlass oder Quelle: Nutzerentscheidung, die primäre KSG-Klassifikation in Messwerten und Auswertungen auf jeden Fall mit anzuzeigen
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../../apps/backend/src/labordaten_backend/modules/messwerte/schemas.py
+  - ../../../apps/backend/src/labordaten_backend/modules/messwerte/service.py
+  - ../../../apps/frontend/src/features/messwerte/MesswertePage.tsx
+  - ../../../apps/frontend/src/features/auswertung/AuswertungPage.tsx
+  - ../../../apps/frontend/src/shared/types/api.ts
+- Kern der inhaltlichen Anpassung:
+  - Messwert-API-Antworten enthalten nun die primäre KSG-Klasse des zugehörigen Parameters.
+  - Die Messwertliste und das Messwertdetail zeigen die primäre KSG-Klasse sichtbar an.
+  - Die Auswertung zeigt die primäre KSG-Klasse zusätzlich in Werttabellen und qualitativen Ereignissen, nicht nur im Serienkopf.
+
+### [2026-04-26] update | KSG-Klasse als gemeinsamer Filter für Messwerte ergänzt
+- Anlass oder Quelle: Nutzerprüfung, ob die Anzeige der KSG-Klassifikation auch in den zugehörigen Filterungen berücksichtigt ist
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../../apps/backend/src/labordaten_backend/api/routes/messwerte.py
+  - ../../../apps/backend/src/labordaten_backend/modules/messwerte/service.py
+  - ../../../apps/frontend/src/features/messwerte/MesswertePage.tsx
+  - ../../../apps/frontend/src/shared/utils/filterNavigation.ts
+- Kern der inhaltlichen Anpassung:
+  - Die Messwertliste kann nun nach `klassifikationen` filtern und weist ungültige KSG-Freitexte backendseitig ab.
+  - Die Messwert-Filteroberfläche enthält eine eigene Auswahl für KSG-Klassen.
+  - Der gemeinsame URL-Filter übernimmt `klassifikationen`, sodass Navigation von Messwerten zu Berichten und Auswertung die KSG-Auswahl mitnimmt.
+
+### [2026-04-26] update | Zusätzliche KSG-Tabellen S02/S03 ausgewertet
+- Anlass oder Quelle: Nutzerquellen `KSG-Klassifikation Tab S02.pdf` und `KSG-Klassifikation Tab S03.pdf`
+- Neu angelegte Seiten:
+  - [[../01 Rohquellen/externe-quellen/KSG-Klassifikation Tab S02 Transkription]]
+  - [[../01 Rohquellen/externe-quellen/KSG-Klassifikation Tab S03 Transkription]]
+- Geänderte Seiten:
+  - [[../02 Wissen/Begriffe und Konzepte/KSG Klassifizierung von Laborparametern]]
+  - [[../03 Betrieb/KSG-Klassifikationsvorschlag vorhandene Parameter 2026-04-26]]
+  - ../../../apps/backend/src/labordaten_backend/modules/importe/service.py
+- Kern der inhaltlichen Anpassung:
+  - Die zwei bildbasierten PDF-Tabellen wurden als Rohquellen übernommen und für die Wissensarbeit transkribiert.
+  - Der bestehende KSG-Vorschlag wurde bei Kupfer/Kupfer-Zink von reinem `gesundmachwert` auf primär `schluesselwert` mit Zusatzrolle `gesundmachwert` korrigiert, weil die Quelle Kupfer im Vollblut als `S/G` führt.
+  - Weitere genannte, aktuell nicht vorhandene Parameter wie BDNF, DAO, HNMT, I-FABP, Lp-PLA2, MDA-LDL und Nitrotyrosin wurden als Orientierungsbeispiele in Projektwissen und Import-Prompt übernommen.
+
+### [2026-04-26] update | KSG-Vorschlag gegen PDF-Quelle für Knochen und Gefäße abgeglichen
+- Anlass oder Quelle: Nutzerquelle `KSG-Klassifikation.pdf` mit Übersicht zu Krank-, Schlüssel- und Gesundmachwerten für Knochen und Gefäße
+- Neu angelegte Seiten:
+  - [[../01 Rohquellen/externe-quellen/KSG-Klassifikation Transkription]]
+- Geänderte Seiten:
+  - [[../02 Wissen/Begriffe und Konzepte/KSG Klassifizierung von Laborparametern]]
+  - [[../03 Betrieb/KSG-Klassifikationsvorschlag vorhandene Parameter 2026-04-26]]
+- Kern der inhaltlichen Anpassung:
+  - Die PDF wurde als externe Rohquelle übernommen; weil sie keinen extrahierbaren Text enthält, wurde eine aus dem Seitenbild abgeleitete Transkription für die Wissensarbeit angelegt.
+  - Der KSG-Klassifikationsvorschlag wurde bei den explizit genannten Knochen- und Gefäßmarkern korrigiert.
+  - Betroffen waren insbesondere Knochenumbauwerte, LDL-/Small-LDL-Werte, Triglyceride, HbA1c, HOMA, Harnsäure, Ferritin, Transferrinsättigung, Magnesium, Progesteron, DHEA-S und freies Testosteron.
+  - Der Import-Prompt wurde um kurze KSG-Orientierungsbeispiele aus der PDF ergänzt, damit neue Parameter-Vorschläge fachlich näher an der Quelle liegen.
+
+### [2026-04-26] create | KSG-Klassifikationsvorschlag für vorhandene Parameter erstellt
+- Anlass oder Quelle: Nutzerauftrag zur KSG-Einordnung der bestehenden Parameter und Prüfung der Import-/Prompt-Abbildung
+- Neu angelegte Seiten:
+  - [[../03 Betrieb/KSG-Klassifikationsvorschlag vorhandene Parameter 2026-04-26]]
+- Geänderte Seiten:
+  - [[../02 Wissen/00 Uebersichten/Index]]
+- Kern der inhaltlichen Anpassung:
+  - Für die aktuell 348 vorhandenen `laborparameter` wurde ein datierter Vorschlag zur primären KSG-Klasse erstellt.
+  - Der Vorschlag setzt keine Datenbankwerte, sondern dient als prüfbare Grundlage für eine spätere fachliche Freigabe oder Migration.
+  - Die Importstrecke wurde daraufhin geprüft, ob `primaereKlassifikation` in Prompt, Contract, Validierung, Preview und bewusster Neuanlage neuer Parameter abgebildet ist.
+
 ### [2026-04-26] update | Haupt-Vault-Anbindung mit Priorität und lokalem Fallback präzisiert
 - Anlass oder Quelle: Review der Umstellung auf `AGENTS.local.md` und Haupt-Vault-Modell mit Bedarf nach klarerem Vorrang und robusterem Fallback
 - Neu angelegte Seiten:
@@ -36,6 +159,25 @@
   - `AGENTS.md` beschreibt jetzt ausdrücklich die Prioritätsreihenfolge zwischen lokalen Projektregeln, optionaler Auflösung über `AGENTS.local.md` und globalen oder typspezifischen Default-Regeln aus dem Haupt-Vault.
   - Für Abschlusskommandos wie `Finito`, `Finale`, `Endfinale` und `Ende` gibt es zusätzlich einen lokalen Minimalkontrakt, falls die globale Definition in einer Umgebung nicht auflösbar ist.
   - Der konkrete private Vault-Name wurde aus der getrackten Wissensseite entfernt; dort bleibt nur noch die neutrale Einordnung als Delta gegenüber dem führenden Haupt-Vault bestehen.
+
+### [2026-04-26] update | KSG-Klassifizierung für Laborparameter umgesetzt
+- Anlass oder Quelle: Nutzerauftrag zur Prüfung und Umsetzung der Rohquelle [[../01 Rohquellen/externe-quellen/Laborwerte_Systematik_KSG]] als Klassifizierung von Laborparametern
+- Neu angelegte Seiten:
+  - [[../02 Wissen/Begriffe und Konzepte/KSG Klassifizierung von Laborparametern]]
+- Geänderte Seiten:
+  - [[../02 Wissen/00 Uebersichten/Index]]
+  - [[../02 Wissen/Begriffe und Konzepte/V1 Ziel-Datenmodell]]
+  - [[../02 Wissen/Begriffe und Konzepte/V1 Technisches Schema]]
+  - ../../../apps/backend/src/labordaten_backend/models/laborparameter.py
+  - ../../../apps/backend/src/labordaten_backend/models/parameter_klassifikation.py
+  - ../../../apps/backend/src/labordaten_backend/models/zielbereich.py
+  - ../../../apps/frontend/src/features/parameter/ParameterPage.tsx
+  - ../../../packages/contracts/import-v1.schema.json
+- Kern der inhaltlichen Anpassung:
+  - Die KSG-Systematik wird als Parameter-Klassifikation umgesetzt, nicht als Messwert-Ampel und nicht als normale Gruppe.
+  - `Laborparameter` kann nun eine primäre KSG-Klasse tragen; kontextabhängige Mehrfachrollen werden über `parameter_klassifikation` dokumentiert.
+  - Zielbereiche erhalten einen Typ wie `optimalbereich`, `therapieziel`, `mangelbereich` oder `risikobereich`, damit Referenzbereich und Zielbereich fachlich besser getrennt werden können.
+  - Importvertrag, API-Schemas, Auswertung, Berichte und Parameteroberfläche wurden um die neuen festen Codes ergänzt.
 
 ### [2026-04-26] update | Agentensteuerung auf Haupt-Vault und lokale Deltas ausgerichtet
 - Anlass oder Quelle: offene lokale Projektanpassung zur Trennung von globalen, typspezifischen und projektspezifischen Agenten- und Wissensregeln

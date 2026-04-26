@@ -45,6 +45,7 @@ Das technische V1-Schema setzt das fachliche Ziel-Datenmodell in eine relational
 - `parameter_synonym`
 - `parameter_umrechnungsregel`
 - `parameter_beziehung`
+- `parameter_klassifikation`
 - `parameter_gruppe`
 - `gruppen_parameter`
 - `dokument`
@@ -149,6 +150,7 @@ Constraints:
 - `beschreibung`
 - `standard_einheit`
 - `wert_typ_standard` NOT NULL
+- `primaere_klassifikation`
 - `wissensseite_id` FK -> `wissensseite.id`
 - `aktiv` NOT NULL DEFAULT 1
 - `sortierschluessel`
@@ -159,9 +161,11 @@ Indizes:
 - UNIQUE auf `interner_schluessel`
 - Index auf `anzeigename`
 - Index auf `aktiv, anzeigename`
+- Index auf `primaere_klassifikation`
 
 Checks:
 - `wert_typ_standard` in `numerisch`, `text`
+- `primaere_klassifikation` NULL oder in `krankwert`, `schluesselwert`, `gesundmachwert`
 
 ### parameter_synonym
 - `id` PK
@@ -207,6 +211,23 @@ Checks:
 
 Indizes:
 - Unique auf `quelle_parameter_id, ziel_parameter_id, beziehungs_typ`
+
+### parameter_klassifikation
+- `id` PK
+- `laborparameter_id` NOT NULL FK -> `laborparameter.id`
+- `klassifikation` NOT NULL
+- `kontext_beschreibung`
+- `begruendung`
+- `aktiv` NOT NULL DEFAULT 1
+- `erstellt_am` NOT NULL
+- `geaendert_am` NOT NULL
+
+Indizes:
+- Index auf `laborparameter_id`
+- Index auf `klassifikation`
+
+Checks:
+- `klassifikation` in `krankwert`, `schluesselwert`, `gesundmachwert`
 
 ### parameter_gruppe
 - `id` PK
@@ -375,6 +396,7 @@ Hinweis:
 - `id` PK
 - `laborparameter_id` NOT NULL FK -> `laborparameter.id`
 - `wert_typ` NOT NULL
+- `zielbereich_typ` NOT NULL DEFAULT `allgemein`
 - `untere_grenze_num`
 - `obere_grenze_num`
 - `einheit`
@@ -389,7 +411,11 @@ Hinweis:
 
 Indizes:
 - Index auf `laborparameter_id, aktiv`
+- Index auf `zielbereich_typ`
 - Index auf `geschlecht_code, alter_min_tage, alter_max_tage`
+
+Checks:
+- `zielbereich_typ` in `allgemein`, `optimalbereich`, `therapieziel`, `mangelbereich`, `risikobereich`
 
 ### zielbereich_person_override
 - `id` PK

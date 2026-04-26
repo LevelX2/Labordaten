@@ -12,6 +12,7 @@
 - [[../Begriffe und Konzepte/Planung Erstarchitektur und Umsetzungsphasen]]: empfohlene Erstarchitektur und schrittweise Umsetzung vor dem Start der eigentlichen Entwicklung.
 - [[../Begriffe und Konzepte/V1 Ziel-Datenmodell]]: verbindlicher fachlicher Zuschnitt der V1-Entitäten, Felder und Beziehungen.
 - [[../Begriffe und Konzepte/V1 Technisches Schema]]: relationale Tabellen, Constraints, Indizes und Konsistenzregeln für V1.
+- [[../Begriffe und Konzepte/KSG Klassifizierung von Laborparametern]]: fachliche KSG-Einordnung von Parametern in Krankwerte, Schlüsselwerte und Gesundmachwerte inklusive Mehrfachrollen, Zielbereichstypen und Abgleich der KSG-Tabellenquellen bis S16.
 - [[../Begriffe und Konzepte/V1 Screenplan und Kernworkflows]]: arbeitsbereichsorientierte V1-Oberfläche und Hauptabläufe.
 - [[../Begriffe und Konzepte/Geraeteprofile und mobile Bedienbarkeit]]: Einordnung, wie gut der aktuelle Stand auf Desktop, Tablet und Smartphone bedienbar ist.
 - [[../Begriffe und Konzepte/V1 Projektstruktur, Module und Schnittstellen]]: konkreter Zuschnitt für Backend, Frontend, API und Ordnerstruktur.
@@ -44,6 +45,7 @@
 - [[../../03 Betrieb/Log]]
 - [[../../03 Betrieb/Qualitaetspruefung]]
 - [[../../03 Betrieb/Generische Entwicklungsvorgaben]]: wiederverwendbare Entwicklungsregeln und generische Leitplanken für neue Funktionen und ähnliche Bereiche im Projekt.
+- [[../../03 Betrieb/KSG-Klassifikationsvorschlag vorhandene Parameter 2026-04-26]]: datierter Vorschlag zur primären KSG-Einordnung der aktuell vorhandenen Laborparameter inklusive Begründungen, Sicherheit und Zusatzrollen-Hinweisen.
 
 ## Workspace-Quellen
 - [[../../01 Rohquellen/repo-root/2026-04-20 V1 Scaffold Workspace-Stand]]: Referenz auf den aktuellen technischen Scaffold-Stand im Repository inklusive Durchstich für Referenzen, Zielbereiche, Zielbereichs-Overrides, Planung, Importprüfung, Berichte, Auswertung und echte Gruppenlogik.

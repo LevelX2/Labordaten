@@ -64,6 +64,8 @@ Das V1-Datenmodell trennt Stammdaten, Messdaten, Referenzlogik, Zielbereiche, Pl
 - `import_status`: `neu`, `in_pruefung`, `freigegeben`, `teilweise_uebernommen`, `uebernommen`, `verworfen`
 - `pruefpunkt_status`: `offen`, `warnung`, `fehler`, `bestaetigt`
 - `dokument_typ`: `laborbericht_pdf`, `import_rohquelle`, `wissensdatei_link`, `sonstiges`
+- `parameter_klassifikation`: `krankwert`, `schluesselwert`, `gesundmachwert`
+- `zielbereich_typ`: `allgemein`, `optimalbereich`, `therapieziel`, `mangelbereich`, `risikobereich`
 
 ## Entitäten und Felder
 
@@ -133,6 +135,7 @@ Regel:
 - `beschreibung`
 - `standard_einheit`
 - `wert_typ_standard`: `numerisch`, `text` oder später erweiterbar
+- `primaere_klassifikation`: optionale KSG-Hauptrolle als `krankwert`, `schluesselwert` oder `gesundmachwert`
 - `wissensseite_id`: optionaler Verweis
 - `aktiv`
 - `sortierschluessel`: optional für Listen
@@ -142,6 +145,8 @@ Regel:
 Regel:
 - `interner_schluessel` ist eindeutig.
 - `wert_typ_standard` beschreibt den erwarteten Regelfall, blockiert aber Sonderfälle nicht vollständig.
+- Die KSG-Klassifikation beschreibt die typische Funktion des Parameters und keine Bewertung eines konkreten Messwerts.
+- Kontextabhängige Mehrfachrollen werden über `ParameterKlassifikation` abgebildet, nicht über Parameter-Dubletten oder Gruppen.
 
 ### ParameterSynonym
 - `id`
@@ -178,6 +183,20 @@ Regel:
 - `ziel_parameter_id`
 - `beziehungs_typ`: z. B. `verwandt`, `vorstufe`, `ratio_partner`
 - `bemerkung`
+
+### ParameterKlassifikation
+- `id`
+- `laborparameter_id`
+- `klassifikation`: `krankwert`, `schluesselwert` oder `gesundmachwert`
+- `kontext_beschreibung`
+- `begruendung`
+- `aktiv`
+- `erstellt_am`
+- `geaendert_am`
+
+Regel:
+- Diese Entität hält Zusatzrollen für kontextabhängige Mehrfachfunktionen eines Parameters.
+- Sie ersetzt nicht die primäre Klassifikation am Parameter, sondern ergänzt sie begründet.
 
 ### ParameterGruppe
 - `id`
@@ -298,6 +317,7 @@ Regeln:
 - `id`
 - `laborparameter_id`
 - `wert_typ`
+- `zielbereich_typ`: `allgemein`, `optimalbereich`, `therapieziel`, `mangelbereich` oder `risikobereich`
 - `untere_grenze_num`
 - `obere_grenze_num`
 - `einheit`
@@ -313,6 +333,7 @@ Regeln:
 Regel:
 - Zielbereiche sind allgemeine Vorgaben für einen Parameter.
 - Für qualitative Parameter kann statt Zahlenbereich ein `soll_text` verwendet werden, falls fachlich sinnvoll.
+- Der `zielbereich_typ` unterscheidet neutrale Vorgaben von funktionellen Optimalbereichen, Therapiezielen, Mangelbereichen und Risikobereichen.
 
 ### ZielbereichUeberschreibungPerson
 - `id`
@@ -437,6 +458,7 @@ Regel:
 - Ein `Messwert` hat null bis viele `MesswertReferenz`.
 - Ein `Laborparameter` hat viele `ParameterSynonym`.
 - Ein `Laborparameter` hat viele `ParameterUmrechnungsregel`.
+- Ein `Laborparameter` hat null bis viele zusätzliche `ParameterKlassifikation`.
 - Ein `Laborparameter` ist über `GruppenParameter` mit vielen `ParameterGruppe` verbunden.
 - Ein `Laborparameter` hat null bis viele allgemeine `Zielbereich`.
 - Ein `Zielbereich` hat null bis viele `ZielbereichUeberschreibungPerson`.
@@ -486,6 +508,7 @@ erDiagram
 - `Importvorgang.quelle_typ` und `Importvorgang.status`: fachliche Steuerfelder, die für Historie, Prüfansicht und Freigabe besonders konsistent sein müssen.
 - `ImportPruefpunkt.status` und mittelfristig auch `objekt_typ`: sinnvoll mit kontrolliertem Vokabular, damit Warnungen, Fehler und Bestätigungen stabil filterbar bleiben.
 - `ParameterUmrechnungsregel.regel_typ` und `ParameterBeziehung.beziehungs_typ`: sollten nicht als freie Texte auseinanderlaufen, sobald mehrere Regeln und Beziehungen gepflegt werden.
+- `Laborparameter.primaere_klassifikation`, `ParameterKlassifikation.klassifikation` und `Zielbereich.zielbereich_typ`: feste Codes, weil Auswertung, Berichte und Filter sonst fachlich auseinanderlaufen.
 - `Einstellung.bereich`: sollte nur aus einem kleinen bekannten Bereichskatalog stammen, damit Konfiguration gruppierbar und wartbar bleibt.
 
 ## Empfohlene Eindeutigkeiten und Prüfregeln
