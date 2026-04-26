@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ClipboardEvent } from "react";
 
 import { apiFetch } from "../../shared/api/client";
 import { LoeschAktionPanel } from "../../shared/components/LoeschAktionPanel";
@@ -140,13 +140,15 @@ Regeln:
 - Bei unsicheren Zuordnungen "parameterId" weglassen und "pruefbedarfFlag": true setzen.
 - Originalkommentare aus der Quelle zu einem Messwert gehören in "bemerkungKurz" oder "bemerkungLang".
 - Eigene KI-Anmerkungen, Extraktionszweifel oder Begründungen für Unsicherheit gehören in "kiHinweis".
+- Für neue Parameter-Vorschläge soll "beschreibungKurz" eine allgemeine, berichtsunabhängige Fachbeschreibung sein. Empfehlungen, Einsendehinweise oder patientenbezogene Kommentare aus dem Bericht gehören nicht dort hinein.
+- Wenn keine belastbare allgemeine Parameterbeschreibung ableitbar ist, "beschreibungKurz" weglassen oder null setzen.
 - Qualitative Werte wie "positiv", "negativ" oder "nicht nachweisbar" mit "wertTyp": "text" und "wertText" abbilden.
 - Referenzbereiche als Originaltext erhalten; strukturierte Grenzen nur setzen, wenn sie eindeutig sind.
 - "beschreibungKurz" bei Parameter-Vorschlägen darf keine konkrete Befundbewertung enthalten und muss unabhängig vom konkreten Import verständlich sein.
 - Berichtsspezifische Hinweise zu einem Parameter-Vorschlag gehören in "begruendungAusDokument".`;
 
 const initialForm: ImportFormState = {
-  payload_json: examplePayload,
+  payload_json: "",
   person_id_override: "",
   bemerkung: "",
   dokument_file: null,
@@ -214,7 +216,7 @@ function formatMappingInfo(messwert: ImportMesswertPreview, currentParameterId?:
     return hint ? `Automatisch über Schlüssel: ${hint}` : "Automatisch über Schlüssel";
   }
   if (source === "explizit") {
-    return "Im Import bereits zugeordnet";
+    return "Aus KI-/JSON-Ergebnis übernommen";
   }
   if (source === "manuell") {
     return "Manuell zugeordnet";
@@ -960,6 +962,16 @@ export function ImportPage() {
     setParameterDialogFilterMode("streng");
   }
 
+  function handlePayloadJsonPaste(event: ClipboardEvent<HTMLTextAreaElement>): void {
+    const pastedText = event.clipboardData.getData("text");
+    if (!pastedText) {
+      return;
+    }
+
+    event.preventDefault();
+    setForm((current) => ({ ...current, payload_json: pastedText }));
+  }
+
   return (
     <section className="page">
       <header className="page__header">
@@ -1206,9 +1218,11 @@ export function ImportPage() {
               <textarea
                 rows={18}
                 value={form.payload_json}
-                placeholder="Komplette KI-Antwort mit json-Codeblock oder reines Import-JSON einfügen"
+                placeholder="Komplette KI-Antwort mit json-Codeblock oder reines Import-JSON einfügen. Beispielwerte stehen nicht mehr als echter Feldinhalt im Eingabefeld."
+                onPaste={handlePayloadJsonPaste}
                 onChange={(event) => setForm((current) => ({ ...current, payload_json: event.target.value }))}
               />
+              <small>Einfügen ersetzt den aktuellen Feldinhalt, damit Du vorher nichts markieren musst.</small>
             </label>
 
             <details className="import-review-section field--full" open>
@@ -1465,8 +1479,8 @@ export function ImportPage() {
                     <option value="offen">Noch offen</option>
                     <option value="neu">Neuanlage vorgesehen</option>
                     <option value="manuell">Manuell angepasst</option>
-                    <option value="automatisch">Automatisch zugeordnet</option>
-                    <option value="explizit">Im Import bereits zugeordnet</option>
+                    <option value="automatisch">Automatisch durch Stammdaten erkannt</option>
+                    <option value="explizit">Aus KI-/JSON-Ergebnis übernommen</option>
                   </select>
                 </label>
                 <span>
@@ -1602,29 +1616,34 @@ export function ImportPage() {
                                 ) : null}
                               </div>
                             ) : null}
-                            {mappingState[messwert.messwert_index] === NEW_PARAMETER_MAPPING_VALUE &&
-                            messwert.parameter_vorschlag ? (
+                            {mappingState[messwert.messwert_index] === NEW_PARAMETER_MAPPING_VALUE ? (
                               <div className="import-parameter-assignment__hint">
                                 <p>
                                   <strong>Parameter-Vorschlag aus KI</strong>
                                 </p>
-                                {messwert.parameter_vorschlag.primaere_klassifikation ? (
+                                {messwert.parameter_vorschlag?.primaere_klassifikation ? (
                                   <p>
                                     <strong>KSG:</strong>{" "}
                                     {formatParameterKlassifikation(messwert.parameter_vorschlag.primaere_klassifikation)}
                                   </p>
                                 ) : null}
-                                {messwert.parameter_vorschlag.beschreibung_kurz ? (
+                                {messwert.parameter_vorschlag?.beschreibung_kurz ? (
                                   <p>
                                     <strong>Beschreibung:</strong> {messwert.parameter_vorschlag.beschreibung_kurz}
                                   </p>
-                                ) : null}
-                                {messwert.parameter_vorschlag.begruendung_aus_dokument ? (
+                                ) : (
                                   <p>
-                                    <strong>Anmerkung:</strong> {messwert.parameter_vorschlag.begruendung_aus_dokument}
+                                    <strong>Beschreibung:</strong> Keine allgemeine Parameterbeschreibung im KI-Ergebnis.
+                                    Der Parameter würde ohne Beschreibung angelegt.
+                                  </p>
+                                )}
+                                {messwert.parameter_vorschlag?.begruendung_aus_dokument ? (
+                                  <p>
+                                    <strong>Begründung aus Dokument:</strong>{" "}
+                                    {messwert.parameter_vorschlag.begruendung_aus_dokument}
                                   </p>
                                 ) : null}
-                                {messwert.parameter_vorschlag.moegliche_aliase.length ? (
+                                {messwert.parameter_vorschlag?.moegliche_aliase.length ? (
                                   <p>
                                     <strong>Alias-Vorschläge:</strong>{" "}
                                     {messwert.parameter_vorschlag.moegliche_aliase.join(", ")}
@@ -1946,7 +1965,7 @@ export function ImportPage() {
 
               <div className="inline-actions">
                 <button type="button" className="inline-button" onClick={() => setShowDeletePanel((current) => !current)}>
-                  {showDeletePanel ? "Import-Löschen ausblenden" : "Import löschen prüfen"}
+                  {showDeletePanel ? "Löschbereich ausblenden" : "Importversuch löschen"}
                 </button>
               </div>
 
@@ -1954,7 +1973,7 @@ export function ImportPage() {
                 <LoeschAktionPanel
                   entitaetTyp="importvorgang"
                   entitaetId={selectedImportId}
-                  title="Importvorgang löschen prüfen"
+                  title="Importversuch löschen"
                   emptyText="Bitte zuerst einen Import auswählen."
                   invalidateQueryKeys={[["importe"], ["importe", selectedImportId], ["befunde"], ["messwerte"]]}
                 />

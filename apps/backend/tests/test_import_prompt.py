@@ -122,6 +122,8 @@ def test_import_prompt_contains_file_json_and_context_instructions(tmp_path: Pat
         assert 'Originale Labor-Kommentare zu einzelnen Werten in "bemerkungKurz" oder "bemerkungLang"' in text
         assert 'Eigene KI-Anmerkungen, Extraktionszweifel, Mapping-Hinweise' in text
         assert "vom konkreten Bericht und Import unabhängige Fachbeschreibung" in text
+        assert "Empfehlungen, Zusatzuntersuchungen, Einsendehinweise" in text
+        assert 'lasse "beschreibungKurz" weg oder null' in text
         assert "ausschließlich in \"begruendungAusDokument\"" in text
         assert prompt.schema_version == "1.0"
         assert "Labore: 1" in prompt.kontext_zusammenfassung

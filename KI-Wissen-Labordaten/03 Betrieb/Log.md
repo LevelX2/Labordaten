@@ -333,15 +333,17 @@
   - ../02 Wissen/Begriffe und Konzepte/Ist-Stand Importstrecke und PDF-Grenzen.md
 - Kern der inhaltlichen Anpassung:
   - Der JSON-Startbereich enthält eine Personenauswahl als Anwendungskontext für den Import des KI-Ergebnisses.
+  - Das Feld `KI-Ergebnis oder Import-JSON` startet nun leer statt mit echtem Beispiel-JSON. Beim Einfügen ersetzt der Paste-Vorgang den aktuellen Feldinhalt, damit neue KI-Ergebnisse ohne vorheriges Markieren übernommen werden können.
   - Der JSON-Upload-Endpunkt ignoriert `befund.personId` aus dem KI- oder Skript-JSON und verwendet nur die separat in der Anwendung gewählte Person.
   - In der Prüfansicht `Befund prüfen` gibt es für offene Importe eine nachträgliche Personenauswahl; eine dort gewählte Person hebt den blockierenden Personenfehler in der UI auf.
   - Die Backend-Übernahme akzeptiert eine `person_id_override`, schreibt sie in den gespeicherten Importpayload zurück und verwendet sie für Befund und Messwerte.
   - Die bisherige Dropdown-Liste zur Parameterzuordnung wurde durch einen Suchdialog ergänzt, der verdächtige Kandidaten mit Einheit, Werttyp, Treffergrund und Beschreibung zeigt und die Filterung auf mehr Kandidaten oder alle Parameter lockern kann.
   - In `Messwerte klären` bleiben Hinweise zum aktuell zugeordneten oder neu anzulegenden Parameter direkt in der Übersicht sichtbar.
   - Der Importvertrag trennt nun originale Laborbericht-Kommentare (`bemerkungKurz`, `bemerkungLang`) von KI-eigenen Extraktions- oder Mapping-Hinweisen (`kiHinweis`). Die Prüfübersicht zeigt diese Informationen getrennt an, damit Originaltext nicht mit KI-Kommentar vermischt wird.
+  - Für neue Parameter-Vorschläge wurde die Abgrenzung von `beschreibungKurz` geschärft: Dort gehört nur eine allgemeine, berichtsunabhängige Fachbeschreibung hin. Berichtskommentare, Zusatzuntersuchungs-Empfehlungen, Einsendehinweise oder patientenbezogene Risikohinweise bleiben Messwertbemerkung oder Dokumentbegründung; wenn keine allgemeine Beschreibung ableitbar ist, zeigt die UI an, dass der Parameter ohne Beschreibung angelegt würde.
   - KI-Hinweise, Detailbemerkungen, Unsicherheitsflag und Prüfbedarfsflag aus einzelnen Messwerten werden nun in der Import-Prüfübersicht angezeigt; beim Speichern des Messwerts bleiben die originalen Bemerkungsfelder und die Flags relevant, während `kiHinweis` als Importprüfhinweis dient.
-  - Die Messwertübersicht kann nach Zuordnungsweg gefiltert werden, zum Beispiel offene Zuordnungen, Neuanlage, manuell angepasst, automatisch oder explizit importiert.
-  - Die missverständlichen Aktionen wurden sprachlich geschärft: `Löschprüfung öffnen` heißt in der Importoberfläche nun `Import löschen prüfen`; `Leeren` am einzelnen Messwert heißt nun `Zuordnung zurücksetzen` und löscht den Messwert nicht.
+  - Die Messwertübersicht kann nach Zuordnungsweg gefiltert werden, zum Beispiel offene Zuordnungen, Neuanlage, manuell angepasst, automatisch durch Stammdaten erkannt oder aus dem KI-/JSON-Ergebnis übernommen.
+  - Die missverständlichen Aktionen wurden sprachlich geschärft: Der Löschbereich heißt in der Importoberfläche nun `Importversuch löschen`; `Leeren` am einzelnen Messwert heißt nun `Zuordnung zurücksetzen` und löscht den Messwert nicht.
   - Die allgemeine Löschprüfung für Importvorgänge bietet nun eine Option, ein exklusiv verknüpftes Importdokument mitzulöschen. Wird das Dokument noch von anderen Importen oder Befunden verwendet, bleibt es geschützt.
   - Verifiziert mit Backend-Importtests, Backend-Löschlogiktests, Frontend-Tests, Frontend-Build und `git diff --check`.
 
