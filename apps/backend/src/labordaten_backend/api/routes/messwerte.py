@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from labordaten_backend.api.deps import get_db
+from labordaten_backend.api.validation import validate_date_range
 from labordaten_backend.modules.messwerte import schemas, service
 
 router = APIRouter()
@@ -22,11 +23,7 @@ def list_messwerte(
     sort: list[str] | None = Query(default=None),
     db: Session = Depends(get_db),
 ) -> list[schemas.MesswertRead]:
-    if datum_von and datum_bis and datum_bis < datum_von:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Das Bis-Datum darf nicht vor dem Von-Datum liegen.",
-        )
+    validate_date_range(datum_von, datum_bis)
     try:
         return service.list_messwerte(
             db,

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from labordaten_backend.api.deps import get_db
+from labordaten_backend.api.validation import validate_date_range
 from labordaten_backend.modules.auswertung import schemas, service
 
 router = APIRouter(prefix="/auswertung")
@@ -17,11 +18,7 @@ def auswertung_verlauf(
     payload: schemas.AuswertungRequest,
     db: Session = Depends(get_db),
 ) -> schemas.AuswertungResponse:
-    if payload.datum_von and payload.datum_bis and payload.datum_bis < payload.datum_von:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Das Bis-Datum darf nicht vor dem Von-Datum liegen.",
-        )
+    validate_date_range(payload.datum_von, payload.datum_bis)
     try:
         return service.build_auswertung(db, payload)
     except ValueError as exc:

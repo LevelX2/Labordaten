@@ -3582,3 +3582,14 @@ a {
     align-items: start;
   }
 }
+.route-loading {
+  margin: 32px auto;
+  max-width: 360px;
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--muted);
+  box-shadow: var(--shadow);
+  text-align: center;
+}

@@ -1,36 +1,46 @@
+import { lazy, Suspense, type ReactElement } from "react";
 import { createBrowserRouter } from "react-router-dom";
 
 import { AppLayout } from "./layout/AppLayout";
-import { AuswertungPage } from "../features/auswertung/AuswertungPage";
-import { BefundePage } from "../features/befunde/BefundePage";
-import { BerichtePage } from "../features/berichte/BerichtePage";
-import { EinstellungenPage } from "../features/einstellungen/EinstellungenPage";
-import { GruppenPage } from "../features/gruppen/GruppenPage";
-import { ImportPage } from "../features/importe/ImportPage";
-import { MesswertePage } from "../features/messwerte/MesswertePage";
-import { ParameterPage } from "../features/parameter/ParameterPage";
-import { PlanungPage } from "../features/planung/PlanungPage";
-import { PersonenPage } from "../features/personen/PersonenPage";
-import { WissensbasisPage } from "../features/wissensbasis/WissensbasisPage";
-import { StartPage } from "../shared/components/StartPage";
+
+const StartPage = lazy(() => import("../shared/components/StartPage").then((module) => ({ default: module.StartPage })));
+const PersonenPage = lazy(() => import("../features/personen/PersonenPage").then((module) => ({ default: module.PersonenPage })));
+const BefundePage = lazy(() => import("../features/befunde/BefundePage").then((module) => ({ default: module.BefundePage })));
+const MesswertePage = lazy(() => import("../features/messwerte/MesswertePage").then((module) => ({ default: module.MesswertePage })));
+const ParameterPage = lazy(() => import("../features/parameter/ParameterPage").then((module) => ({ default: module.ParameterPage })));
+const GruppenPage = lazy(() => import("../features/gruppen/GruppenPage").then((module) => ({ default: module.GruppenPage })));
+const PlanungPage = lazy(() => import("../features/planung/PlanungPage").then((module) => ({ default: module.PlanungPage })));
+const AuswertungPage = lazy(() => import("../features/auswertung/AuswertungPage").then((module) => ({ default: module.AuswertungPage })));
+const BerichtePage = lazy(() => import("../features/berichte/BerichtePage").then((module) => ({ default: module.BerichtePage })));
+const ImportPage = lazy(() => import("../features/importe/ImportPage").then((module) => ({ default: module.ImportPage })));
+const WissensbasisPage = lazy(() => import("../features/wissensbasis/WissensbasisPage").then((module) => ({ default: module.WissensbasisPage })));
+const EinstellungenPage = lazy(() => import("../features/einstellungen/EinstellungenPage").then((module) => ({ default: module.EinstellungenPage })));
+
+function routeElement(element: ReactElement) {
+  return (
+    <Suspense fallback={<div className="route-loading">Lade Arbeitsbereich...</div>}>
+      {element}
+    </Suspense>
+  );
+}
 
 export const router = createBrowserRouter([
   {
     path: "/",
     element: <AppLayout />,
     children: [
-      { index: true, element: <StartPage /> },
-      { path: "personen", element: <PersonenPage /> },
-      { path: "befunde", element: <BefundePage /> },
-      { path: "messwerte", element: <MesswertePage /> },
-      { path: "parameter", element: <ParameterPage /> },
-      { path: "gruppen", element: <GruppenPage /> },
-      { path: "planung", element: <PlanungPage /> },
-      { path: "auswertung", element: <AuswertungPage /> },
-      { path: "berichte", element: <BerichtePage /> },
-      { path: "import", element: <ImportPage /> },
-      { path: "wissensbasis", element: <WissensbasisPage /> },
-      { path: "einstellungen", element: <EinstellungenPage /> }
+      { index: true, element: routeElement(<StartPage />) },
+      { path: "personen", element: routeElement(<PersonenPage />) },
+      { path: "befunde", element: routeElement(<BefundePage />) },
+      { path: "messwerte", element: routeElement(<MesswertePage />) },
+      { path: "parameter", element: routeElement(<ParameterPage />) },
+      { path: "gruppen", element: routeElement(<GruppenPage />) },
+      { path: "planung", element: routeElement(<PlanungPage />) },
+      { path: "auswertung", element: routeElement(<AuswertungPage />) },
+      { path: "berichte", element: routeElement(<BerichtePage />) },
+      { path: "import", element: routeElement(<ImportPage />) },
+      { path: "wissensbasis", element: routeElement(<WissensbasisPage />) },
+      { path: "einstellungen", element: routeElement(<EinstellungenPage />) }
     ]
   }
 ]);

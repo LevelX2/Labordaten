@@ -11,6 +11,31 @@
 
 ## 2026-04
 
+### [2026-04-26] refactor | Routen-Lazy-Loading und gemeinsame Datumsvalidierung
+- Anlass oder Quelle: Senior-Engineering-Review des aktuellen Workspace mit Fokus auf Architektur, Datenfluss, Duplizierung, Performance und Wartbarkeit.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../../apps/backend/src/labordaten_backend/api/validation.py
+  - ../../../apps/backend/src/labordaten_backend/api/routes/auswertung.py
+  - ../../../apps/backend/src/labordaten_backend/api/routes/berichte.py
+  - ../../../apps/backend/src/labordaten_backend/api/routes/messwerte.py
+  - ../../../apps/backend/src/labordaten_backend/api/routes/planung.py
+  - ../../../apps/frontend/src/app/router.tsx
+  - ../../../apps/frontend/src/shared/utils/dateFormatting.ts
+  - ../../../apps/frontend/src/shared/utils/dateRangeDefaults.ts
+  - ../../../apps/frontend/src/shared/components/DateRangeFilterFields.tsx
+  - ../../../apps/frontend/src/features/auswertung/AuswertungPage.tsx
+  - ../../../apps/frontend/src/features/berichte/BerichtePage.tsx
+  - ../../../apps/frontend/src/features/planung/PlanungPage.tsx
+  - ../../../apps/frontend/src/styles.css
+- Kern der inhaltlichen Anpassung:
+  - Die wiederholte API-Prüfung `Datum bis vor Datum von` ist in `api.validation.validate_date_range` zentralisiert und wird von Messwerte-, Auswertungs-, Berichts- und Planungsrouten genutzt.
+  - Wiederholte Frontend-Datumsformatierung für ISO-Eingabewerte und deutsche Anzeigeformate ist in `shared/utils/dateFormatting.ts` gebündelt.
+  - Die React-Routen laden die großen Arbeitsbereiche jetzt per `React.lazy` und `Suspense`, sodass der Hauptbundle im Produktionsbuild von etwa 974 kB auf etwa 267 kB sinkt; große Fachbereiche werden als eigene Chunks geladen.
+  - Der größte verbleibende Einzelchunk ist die Auswertungsseite mit Diagrammabhängigkeiten und bleibt ein naheliegender späterer Kandidat für weiteres feineres Code-Splitting.
+  - Verifiziert mit `python -m pytest`, `npm test` und `npm run build`.
+
 ### [2026-04-26] update | Hauptnavigation fachlich gruppiert
 - Anlass oder Quelle: Nutzerhinweis, dass die Menüfolge von Start bis Einstellungen zufällig wirkt und sinnvoller gegliedert werden sollte.
 - Neu angelegte Seiten:

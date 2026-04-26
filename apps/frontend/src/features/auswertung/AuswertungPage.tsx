@@ -19,6 +19,10 @@ import {
   formatParameterKlassifikation
 } from "../../shared/constants/fieldOptions";
 import { getDefaultDateRange } from "../../shared/utils/dateRangeDefaults";
+import {
+  formatDisplayDate as formatDate,
+  formatShortDisplayDate as formatShortDate
+} from "../../shared/utils/dateFormatting";
 import { applySharedFilterSearchParams, buildSharedFilterSearchParams } from "../../shared/utils/filterNavigation";
 import { formatReferenzAnzeige } from "../../shared/utils/laborFormatting";
 import type {
@@ -142,24 +146,6 @@ function readStoredAuswertungFilter(): AuswertungFormState | null {
   } catch {
     return null;
   }
-}
-
-function formatDate(value?: string | null): string {
-  if (!value) {
-    return "—";
-  }
-  return new Intl.DateTimeFormat("de-DE").format(new Date(value));
-}
-
-function formatShortDate(value?: string | null): string {
-  if (!value) {
-    return "offen";
-  }
-  return new Intl.DateTimeFormat("de-DE", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "2-digit"
-  }).format(new Date(value));
 }
 
 function formatSelectedSummary(

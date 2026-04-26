@@ -11,6 +11,7 @@ import {
   formatParameterKlassifikation
 } from "../../shared/constants/fieldOptions";
 import { getDefaultDateRange } from "../../shared/utils/dateRangeDefaults";
+import { formatDisplayDate as formatDate } from "../../shared/utils/dateFormatting";
 import { applySharedFilterSearchParams } from "../../shared/utils/filterNavigation";
 import type {
   ArztberichtResponse,
@@ -54,13 +55,6 @@ const initialForm: BerichtFormState = {
   include_befundbemerkung: true,
   include_messwertbemerkung: true
 };
-
-function formatDate(value?: string | null): string {
-  if (!value) {
-    return "—";
-  }
-  return new Intl.DateTimeFormat("de-DE").format(new Date(value));
-}
 
 function formatCount(value: number, singular: string, plural: string): string {
   return `${value} ${value === 1 ? singular : plural}`;

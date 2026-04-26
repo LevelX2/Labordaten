@@ -1,5 +1,7 @@
 import { useId } from "react";
 
+import { formatDateInputValue } from "../utils/dateFormatting";
+
 type DateRangeFilterFieldsProps = {
   fromValue: string;
   toValue: string;
@@ -17,13 +19,6 @@ export function isInvalidDateRange(fromValue: string, toValue: string): boolean 
   return Boolean(fromValue && toValue && toValue < fromValue);
 }
 
-function formatIsoDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
 function shiftDateByYears(value: string, years: number, fallbackValue: string): string {
   const baseValue = value || fallbackValue;
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(baseValue);
@@ -37,7 +32,7 @@ function shiftDateByYears(value: string, years: number, fallbackValue: string): 
   const day = Number(dayText);
   const maxDayInTargetMonth = new Date(targetYear, monthIndex + 1, 0).getDate();
   const nextDate = new Date(targetYear, monthIndex, Math.min(day, maxDayInTargetMonth));
-  return formatIsoDate(nextDate);
+  return formatDateInputValue(nextDate);
 }
 
 export function DateRangeFilterFields({
