@@ -29,7 +29,6 @@ def create_zielbereich(
 
 
 @router.patch("/zielbereiche/{zielbereich_id}", response_model=schemas.ZielbereichRead)
-@router.patch("/{zielbereich_id}", response_model=schemas.ZielbereichRead)
 def update_zielbereich(
     zielbereich_id: str,
     payload: schemas.ZielbereichUpdate,
