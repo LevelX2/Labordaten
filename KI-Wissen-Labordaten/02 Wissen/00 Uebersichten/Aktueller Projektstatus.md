@@ -45,7 +45,8 @@ Diese Seite beschreibt den aktuellen Projektstand als Snapshot. Zeitliche Abfolg
 - Die in der Anwendung sichtbare Wissensbasis ist als fachlicher Labordaten-Informationspool von der projektbezogenen KI-Wissensbasis getrennt; der Standardordner ist `Labordaten-Wissen/`.
 - Der fachliche Informationspool ist als Markdown-Arbeitsbereich in der Anwendung eingebunden: Seiten können aus dem konfigurierten Wissensordner gelesen, als formatierter Text angezeigt, intern per Wiki- oder Markdown-Link angesprungen und mit geführter Pfaderzeugung manuell neu angelegt werden.
 - Wissensseiten können aus der Oberfläche gelöscht werden, sofern sie keine Rohquellen sind und nicht noch mit einem Parameter verknüpft sind.
-- Parameter können mit einer Wissensseite verknüpft werden; bei neuer Parameteranlage über die API wird automatisch eine Fachwissensseite mit dem Beschreibungstext als Ausgangsinhalt angelegt und verknüpft.
+- Parameter können mit einer Wissensseite verknüpft werden; bei neuer Parameteranlage über die API wird automatisch eine Fachwissensseite mit dem Beschreibungstext als Ausgangsinhalt angelegt und verknüpft. Die aktuell vorhandenen 344 Parameter sind mit Fachwissensseiten verknüpft.
+- Der Fachwissenspool enthält zusätzlich einen Bereich `10 Anwendungshilfe`, der die Hauptbereiche der Anwendung wie Personen, Befunde, Messwerte, Parameter, Gruppen, Planung, Auswertungen, Berichte, Import, Laborwissen und Einstellungen erklärt.
 - Eine zentrale Löschprüfung mit getrennter Ausführung ist im Backend für `person`, `befund`, `messwert`, `importvorgang`, `einheit`, `labor`, `laborparameter`, `parameter_gruppe`, `zielbereich`, `parameter_umrechnungsregel`, `planung_zyklisch` und `planung_einmalig` vorhanden.
 - Die Oberfläche bindet diese Löschprüfung inzwischen auch im Planungsbereich an, sodass zyklische Planungen und Einmalvormerkungen sichtbar geprüft und gelöscht werden können.
 

@@ -60,6 +60,30 @@ export const colorDesigns = [
     name: "Pflaume",
     description: "Ruhige Pflaume mit gedämpftem Blaugrün",
     swatches: ["#7a4f63", "#43747a", "#eadde3"]
+  },
+  {
+    key: "neonnacht",
+    name: "Neonnacht",
+    description: "Dunkle Arbeitsfläche mit elektrischem Cyan und Pink",
+    swatches: ["#00a8b5", "#d23f9a", "#1e3240"]
+  },
+  {
+    key: "tropenlabor",
+    name: "Tropenlabor",
+    description: "Kräftiges Türkis mit Papaya und hellem Blattgrün",
+    swatches: ["#008f83", "#e56b3c", "#dff2d0"]
+  },
+  {
+    key: "synthwave",
+    name: "Synthwave",
+    description: "Satter Violettton mit Koralle und kühlem Blau",
+    swatches: ["#6b4bb8", "#e45f7a", "#dfe5ff"]
+  },
+  {
+    key: "polarlicht",
+    name: "Polarlicht",
+    description: "Leuchtendes Grünblau mit violettem Gegenakzent",
+    swatches: ["#008c72", "#7d56c2", "#d8f1ee"]
   }
 ] as const;
 

@@ -50,6 +50,10 @@ const KNOWLEDGE_TARGET_AREAS = [
   {
     value: "05 Zielbereiche und Gesundheitswerte",
     label: "Zielbereiche und Gesundheitswerte"
+  },
+  {
+    value: "10 Anwendungshilfe",
+    label: "Anwendungshilfe"
   }
 ];
 
@@ -109,6 +113,18 @@ function slugifyKnowledgeTitle(title: string): string {
 
 function buildSuggestedPagePath(targetArea: string, title: string): string {
   return `${targetArea}/${slugifyKnowledgeTitle(title)}.md`;
+}
+
+function buildDirectoryIndexPath(path: string): string {
+  return `${path.replace(/\/$/, "")}/README.md`;
+}
+
+function findDirectoryIndexPath(path: string, lookup: PageLookup): string | null {
+  const direct = lookup.byPath.get(normalizeKnowledgePath(buildDirectoryIndexPath(path)));
+  if (direct) {
+    return direct;
+  }
+  return lookup.byPath.get(normalizeKnowledgePath(`${path}/Index.md`)) ?? null;
 }
 
 function buildPageLookup(pages: WissensseiteListItem[]): PageLookup {
@@ -450,6 +466,15 @@ export function WissensbasisPage() {
   const markdownContent = detailQuery.data
     ? renderMarkdown(detailQuery.data.inhalt_markdown, detailQuery.data.pfad_relativ, pageLookup, openPage)
     : null;
+  const pathSegments = detailQuery.data?.pfad_relativ.split("/") ?? [];
+  const breadcrumbSegments = pathSegments.slice(0, -1).map((segment, index) => {
+    const path = pathSegments.slice(0, index + 1).join("/");
+    return {
+      label: segment,
+      path,
+      targetPath: findDirectoryIndexPath(path, pageLookup)
+    };
+  });
 
   return (
     <section className="page">
@@ -593,8 +618,30 @@ export function WissensbasisPage() {
           {detailQuery.data ? (
             <>
               <div className="knowledge-reader__topline">
-                <div className="knowledge-reader__meta">
-                  <span>{detailQuery.data.pfad_relativ}</span>
+                <div className="knowledge-reader__meta knowledge-reader__meta--stacked">
+                  <nav className="knowledge-breadcrumb" aria-label="Laborwissen-Pfad">
+                    {breadcrumbSegments.map((segment) => {
+                      const targetPath = segment.targetPath;
+                      return (
+                        <span key={segment.path} className="knowledge-breadcrumb__item">
+                          {typeof targetPath === "string" ? (
+                            <button
+                              type="button"
+                              className="text-link markdown-link-button"
+                              onClick={() => openPage(targetPath)}
+                            >
+                              {segment.label}
+                            </button>
+                          ) : (
+                            <span>{segment.label}</span>
+                          )}
+                        </span>
+                      );
+                    })}
+                    <span className="knowledge-breadcrumb__item knowledge-breadcrumb__item--current">
+                      {pathSegments[pathSegments.length - 1]}
+                    </span>
+                  </nav>
                   <span>Geändert: {formatDate(detailQuery.data.geaendert_am)}</span>
                 </div>
                 {detailQuery.data.loeschbar ? (

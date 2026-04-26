@@ -194,23 +194,26 @@ def ensure_parameter_knowledge_page(db: Session, parameter: Laborparameter) -> W
     if parameter.wissensseite_id:
         return db.get(Wissensseite, parameter.wissensseite_id)
 
-    page_path = _build_unique_parameter_knowledge_page_path(parameter)
-    detail = wissensbasis_service.create_wissensseite(
-        WissensseiteCreate(
-            pfad_relativ=page_path,
-            titel=parameter.anzeigename,
-            inhalt_markdown=_build_parameter_knowledge_markdown(parameter),
+    page_path = _build_parameter_knowledge_page_path(db, parameter)
+    detail = wissensbasis_service.get_wissensseite_detail(page_path)
+    if detail is None:
+        detail = wissensbasis_service.create_wissensseite(
+            WissensseiteCreate(
+                pfad_relativ=page_path,
+                titel=parameter.anzeigename,
+                inhalt_markdown=_build_parameter_knowledge_markdown(parameter),
+            )
         )
-    )
-    wissensseite = Wissensseite(
-        pfad_relativ=detail.pfad_relativ,
-        titel_cache=detail.titel,
-        alias_cache="\n".join(detail.aliases) if detail.aliases else None,
-        frontmatter_json=json.dumps(detail.frontmatter, ensure_ascii=False) if detail.frontmatter else None,
-        letzter_scan_am=detail.geaendert_am.isoformat(),
-        aktiv=True,
-    )
-    db.add(wissensseite)
+
+    wissensseite = db.scalar(select(Wissensseite).where(Wissensseite.pfad_relativ == detail.pfad_relativ))
+    if wissensseite is None:
+        wissensseite = Wissensseite(pfad_relativ=detail.pfad_relativ)
+        db.add(wissensseite)
+    wissensseite.titel_cache = detail.titel
+    wissensseite.alias_cache = "\n".join(detail.aliases) if detail.aliases else None
+    wissensseite.frontmatter_json = json.dumps(detail.frontmatter, ensure_ascii=False) if detail.frontmatter else None
+    wissensseite.letzter_scan_am = detail.geaendert_am.isoformat()
+    wissensseite.aktiv = True
     db.flush()
     parameter.wissensseite_id = wissensseite.id
     return wissensseite
@@ -766,14 +769,38 @@ def _build_parameter_knowledge_pages(
     }
 
 
-def _build_unique_parameter_knowledge_page_path(parameter: Laborparameter) -> str:
+def _build_parameter_knowledge_page_path(db: Session, parameter: Laborparameter) -> str:
     base_slug = _slugify_knowledge_filename(parameter.anzeigename)
     candidate = f"02 Parameter/Allgemein/{base_slug}.md"
+    detail = wissensbasis_service.get_wissensseite_detail(candidate)
+    if detail is None:
+        return candidate
+
+    existing_page = db.scalar(select(Wissensseite).where(Wissensseite.pfad_relativ == detail.pfad_relativ))
+    if existing_page is None:
+        return candidate
+
+    linked_parameter_id = db.scalar(
+        select(Laborparameter.id).where(Laborparameter.wissensseite_id == existing_page.id)
+    )
+    if linked_parameter_id is None or linked_parameter_id == parameter.id:
+        return candidate
+
     suffix = 2
-    while wissensbasis_service.get_wissensseite_detail(candidate) is not None:
+    while True:
         candidate = f"02 Parameter/Allgemein/{base_slug}-{suffix}.md"
+        detail = wissensbasis_service.get_wissensseite_detail(candidate)
+        if detail is None:
+            return candidate
+        existing_page = db.scalar(select(Wissensseite).where(Wissensseite.pfad_relativ == detail.pfad_relativ))
+        if existing_page is None:
+            return candidate
+        linked_parameter_id = db.scalar(
+            select(Laborparameter.id).where(Laborparameter.wissensseite_id == existing_page.id)
+        )
+        if linked_parameter_id is None or linked_parameter_id == parameter.id:
+            return candidate
         suffix += 1
-    return candidate
 
 
 def _slugify_knowledge_filename(value: str) -> str:

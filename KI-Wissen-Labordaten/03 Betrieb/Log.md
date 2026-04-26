@@ -100,6 +100,9 @@
 - Kern der inhaltlichen Anpassung:
   - Der Standard-Wissensordner der Anwendung zeigt nun auf `Labordaten-Wissen/` statt auf `KI-Wissen-Labordaten/`.
   - `Labordaten-Wissen/` wurde als fachlicher Markdown-Pool mit Einstieg, Grundlagen, KSG-Systematik, Parameterseiten, Testprofilen, Teststrategien, Zielbereichen und Quellenübersicht angelegt.
+  - Für die 344 aktuell vorhandenen Parameter wurden Fachwissensseiten erzeugt oder vorhandene passende Seiten wiederverwendet und in der Datenbank mit den Parametern verknüpft.
+  - Der Bereich `10 Anwendungshilfe` ergänzt kurze Hilfeseiten zu den Hauptbereichen der Anwendung.
+  - In der Laborwissen-Ansicht sind die Ordnersegmente im Seitenkopf als Breadcrumbs anklickbar, sofern für den Ordner eine `README.md` oder `Index.md` vorhanden ist.
   - Die Navigation benennt den Arbeitsbereich als `Laborwissen`, um ihn von der KI-Projektdokumentation zu unterscheiden.
   - Beim Anlegen eines neuen Parameters über die API wird automatisch eine Fachwissensseite unter `02 Parameter/Allgemein/` erzeugt, mit dem Parameter verknüpft und mit dem Beschreibungstext als Kurzdefinition vorbefüllt.
   - Auch im Import bewusst neu angelegte Parameter erhalten eine solche Fachwissensseite.

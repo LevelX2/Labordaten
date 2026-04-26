@@ -177,6 +177,74 @@
   --bg-gradient-end: #eee6eb;
 }
 
+:root[data-color-design="neonnacht"] {
+  --bg: #101821;
+  --panel: #16222d;
+  --panel-soft: #1e3240;
+  --line: #385365;
+  --text: #eef8fb;
+  --muted: #adc2ca;
+  --accent: #00a8b5;
+  --accent-rgb: 0 168 181;
+  --accent-warm: #d23f9a;
+  --accent-warm-rgb: 210 63 154;
+  --accent-soft: #1b4652;
+  --shadow: 0 18px 44px rgba(2, 8, 14, 0.34);
+  --bg-gradient-start: #111a25;
+  --bg-gradient-end: #0d121a;
+}
+
+:root[data-color-design="tropenlabor"] {
+  --bg: #eef7eb;
+  --panel: #fdfff8;
+  --panel-soft: #eaf6dd;
+  --line: #c5ddb8;
+  --text: #1f2a22;
+  --muted: #5f715f;
+  --accent: #008f83;
+  --accent-rgb: 0 143 131;
+  --accent-warm: #e56b3c;
+  --accent-warm-rgb: 229 107 60;
+  --accent-soft: #dff2d0;
+  --shadow: 0 16px 40px rgba(24, 58, 42, 0.09);
+  --bg-gradient-start: #fbfff2;
+  --bg-gradient-end: #e8f5dd;
+}
+
+:root[data-color-design="synthwave"] {
+  --bg: #f1edf8;
+  --panel: #fffafe;
+  --panel-soft: #efe9fb;
+  --line: #d5c7ed;
+  --text: #292333;
+  --muted: #665d75;
+  --accent: #6b4bb8;
+  --accent-rgb: 107 75 184;
+  --accent-warm: #e45f7a;
+  --accent-warm-rgb: 228 95 122;
+  --accent-soft: #dfe5ff;
+  --shadow: 0 16px 40px rgba(50, 35, 86, 0.1);
+  --bg-gradient-start: #fff7fd;
+  --bg-gradient-end: #ebe7fb;
+}
+
+:root[data-color-design="polarlicht"] {
+  --bg: #edf7f5;
+  --panel: #fbfffd;
+  --panel-soft: #e6f5f3;
+  --line: #c2ddd8;
+  --text: #1e2c2d;
+  --muted: #5a6d70;
+  --accent: #008c72;
+  --accent-rgb: 0 140 114;
+  --accent-warm: #7d56c2;
+  --accent-warm-rgb: 125 86 194;
+  --accent-soft: #d8f1ee;
+  --shadow: 0 16px 40px rgba(24, 57, 61, 0.09);
+  --bg-gradient-start: #f7fffb;
+  --bg-gradient-end: #e5f2f5;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -979,6 +1047,36 @@ a {
   gap: 8px 14px;
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+.knowledge-reader__meta--stacked {
+  display: grid;
+  gap: 6px;
+}
+
+.knowledge-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  color: var(--muted);
+}
+
+.knowledge-breadcrumb__item {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.knowledge-breadcrumb__item:not(:last-child)::after {
+  content: "/";
+  color: var(--muted);
+}
+
+.knowledge-breadcrumb__item--current {
+  color: var(--text);
+  font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .knowledge-delete-panel {
@@ -2343,6 +2441,11 @@ a {
   background: rgba(255, 255, 255, 0.72);
 }
 
+.date-range-filter--invalid .date-range-filter__field {
+  border-color: rgba(176, 43, 43, 0.8);
+  background: rgba(255, 246, 246, 0.96);
+}
+
 .date-range-filter__control,
 .auswertung-date-field__control {
   display: grid;
@@ -2397,6 +2500,19 @@ a {
   border: none;
   border-radius: 0;
   background: transparent;
+}
+
+.date-range-filter--invalid .date-range-filter__control {
+  border-color: rgba(176, 43, 43, 0.75);
+}
+
+.date-range-filter--invalid .date-range-filter__control input[type="date"] {
+  background: #fff8f8;
+}
+
+.date-range-filter__error {
+  flex-basis: 100%;
+  margin: -4px 0 0;
 }
 
 .import-review-summary {
