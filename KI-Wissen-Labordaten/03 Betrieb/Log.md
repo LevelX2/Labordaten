@@ -23,6 +23,18 @@
   - Eine zwischenzeitlich ergänzte importspezifische Ableitung wurde wieder verworfen, weil sie für die generische Wissenspflege zu speziell ist.
   - Bewusst nicht als eigene Wissensseite angelegt wurde eine parallele UI-Regelsammlung, damit die generischen Vorgaben die zentrale Regelbasis bleiben.
 
+### [2026-04-25] update | Startdokumentation nach Workspace-Umzug auf relative Pfade bereinigt
+- Anlass oder Quelle: Nutzerauftrag, nach dem Ordnerumzug alle Tests laufen zu lassen und auf alte Referenzen zu prüfen
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - [[../02 Wissen/Prozesse/Lokaler Start von Backend und Frontend]]
+- Kern der inhaltlichen Anpassung:
+  - Die Prozessseite zum lokalen Start enthielt noch mehrere absolute OneDrive-Pfade zum alten Repository-Standort.
+  - Die Befehlsbeispiele wurden auf pfadrelative Startaufrufe wie `.\apps\backend`, `.\apps\frontend` und `.\scripts\start-dev.ps1` umgestellt.
+  - Dadurch passt die Wissensseite wieder zum aktuellen Workspace und zugleich besser zur bereits pfadrelativen VS-Code- und Skriptkonfiguration.
+  - Verifiziert wurde der Stand durch `pytest` im Backend, `vitest` im Frontend und eine gezielte Repository-Suche nach alten absoluten `Labordaten`-Pfaden.
+
 ### [2026-04-25] update | KI-Prompt ohne Person und mit zwei Quellenvarianten
 - Anlass oder Quelle: Nutzerentscheidung, dass der Prompt nur Regeln und Stammdaten exportieren soll und die Person erst beim JSON-Import gewählt wird
 - Neu angelegte Seiten:
