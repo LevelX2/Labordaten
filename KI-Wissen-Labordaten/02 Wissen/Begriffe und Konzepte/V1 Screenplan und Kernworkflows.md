@@ -13,6 +13,7 @@ quellen:
   - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung Anstehende Messungen und Textumbruch.md
   - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung PDF-Merkzettel anstehende Messungen.md
   - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung PDF-Merkzettel Branding und Seitenzahlen.md
+  - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung PDF-Berichtsstandard Icon und Seitenzahlen.md
   - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung Suche vorhandene Planungen.md
   - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung Labortermine statt Blutabnahmen.md
   - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung Statusfilter Geplant missverstaendlich.md
@@ -278,6 +279,7 @@ Die V1-Oberfläche soll arbeitsbereichsorientiert und sachlich aufgebaut sein. D
 - Vorschau enthält zusätzlich Kennzahlen wie Anzahl enthaltener Werte und Anzahl referenzauffälliger Werte
 - Vorschau enthält eine kurze Charakterisierung des Berichtsinhalts, bevorzugt aus Gruppen oder Schwerpunkten abgeleitet
 - Ausgabe als sachlicher PDF-Bericht
+- PDF-Berichte sollen eine einheitliche Kopf- und Fußzeilenform verwenden: App-Icon vor `Labordaten`, rechts die Berichtsart, unten die Ausgabeart und die Seitennummer.
 
 ### Verlaufsbericht Zeitachse
 - Numerische Parameter als Linien oder Punkte

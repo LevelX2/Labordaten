@@ -15,6 +15,13 @@ from reportlab.platypus import LongTable, Paragraph, SimpleDocTemplate, Spacer, 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from labordaten_backend.core.pdf_branding import (
+    PDF_BOTTOM_MARGIN,
+    PDF_LEFT_MARGIN,
+    PDF_RIGHT_MARGIN,
+    PDF_TOP_MARGIN,
+    draw_labordaten_pdf_page,
+)
 from labordaten_backend.models.befund import Befund
 from labordaten_backend.models.laborparameter import Laborparameter
 from labordaten_backend.models.messwert import Messwert
@@ -31,11 +38,6 @@ from labordaten_backend.modules.planung.schemas import (
     PlanungZyklischRead,
     PlanungZyklischUpdate,
 )
-
-PDF_LEFT_MARGIN = 1.5 * cm
-PDF_RIGHT_MARGIN = 1.5 * cm
-PDF_TOP_MARGIN = 1.4 * cm
-PDF_BOTTOM_MARGIN = 1.4 * cm
 
 
 @dataclass
@@ -561,30 +563,11 @@ def _build_planning_pdf(elements: list[object]) -> bytes:
         bottomMargin=PDF_BOTTOM_MARGIN,
         title="Anstehende Messungen",
     )
-    document.build(elements, onFirstPage=_draw_planning_pdf_page, onLaterPages=_draw_planning_pdf_page)
+    def draw_page(canvas, doc) -> None:
+        draw_labordaten_pdf_page(canvas, doc, "Planungs-Merkzettel", "Labordaten · Anstehende Messungen")
+
+    document.build(elements, onFirstPage=draw_page, onLaterPages=draw_page)
     return buffer.getvalue()
-
-
-def _draw_planning_pdf_page(canvas, document) -> None:
-    page_width, page_height = document.pagesize
-    canvas.saveState()
-
-    canvas.setFillColor(colors.HexColor("#16324f"))
-    canvas.setFont("Helvetica-Bold", 10)
-    canvas.drawString(PDF_LEFT_MARGIN, page_height - 0.85 * cm, "Labordaten")
-    canvas.setFont("Helvetica", 8)
-    canvas.drawRightString(page_width - PDF_RIGHT_MARGIN, page_height - 0.85 * cm, "Planungs-Merkzettel")
-
-    canvas.setStrokeColor(colors.HexColor("#b7c6d9"))
-    canvas.setLineWidth(0.4)
-    canvas.line(PDF_LEFT_MARGIN, page_height - 1.05 * cm, page_width - PDF_RIGHT_MARGIN, page_height - 1.05 * cm)
-    canvas.line(PDF_LEFT_MARGIN, 0.95 * cm, page_width - PDF_RIGHT_MARGIN, 0.95 * cm)
-
-    canvas.setFillColor(colors.HexColor("#5b6572"))
-    canvas.setFont("Helvetica", 8)
-    canvas.drawString(PDF_LEFT_MARGIN, 0.62 * cm, "Labordaten · Anstehende Messungen")
-    canvas.drawRightString(page_width - PDF_RIGHT_MARGIN, 0.62 * cm, f"Seite {canvas.getPageNumber()}")
-    canvas.restoreState()
 
 
 def _build_faelligkeit_pdf_person_label(

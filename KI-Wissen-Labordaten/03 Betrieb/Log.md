@@ -11,6 +11,20 @@
 
 ## 2026-04
 
+### [2026-04-26] update | PDF-Berichtsstandard mit App-Icon vereinheitlicht
+- Anlass oder Quelle: Nutzerhinweis, dass links oben vor `Labordaten` das App-Icon erscheinen soll und diese Form zunächst Standard für Berichte sein soll.
+- Neu angelegte Seiten:
+  - ../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung PDF-Berichtsstandard Icon und Seitenzahlen.md
+- Geänderte Seiten:
+  - ../../../apps/backend/src/labordaten_backend/core/pdf_branding.py
+  - ../../../apps/backend/src/labordaten_backend/modules/berichte/service.py
+  - ../../../apps/backend/src/labordaten_backend/modules/planung/service.py
+  - ../02 Wissen/Begriffe und Konzepte/V1 Screenplan und Kernworkflows.md
+- Kern der inhaltlichen Anpassung:
+  - PDF-Kopf- und Fußzeilen werden jetzt zentral über ein gemeinsames Branding-Modul gezeichnet.
+  - Der Merkzettel `Anstehende Messungen`, der Arztbericht und der Verlaufsbericht erhalten in der Kopfzeile ein kleines App-Icon vor `Labordaten`, rechts die Dokumentart und unten Seitennummern.
+  - Verifiziert mit `python -m pytest apps/backend/tests/test_planung_faelligkeiten.py apps/backend/tests/test_report_pdf_layout.py`.
+
 ### [2026-04-26] update | Stammdaten-Bearbeitbarkeit geprüft und erste Lücken geschlossen
 - Anlass oder Quelle: Nutzerauftrag, alle Stammdatenbereiche auf sinnvolle nachträgliche Bearbeitbarkeit zu prüfen und klare risikoarme Lücken direkt zu schließen.
 - Neu angelegte Seiten:
