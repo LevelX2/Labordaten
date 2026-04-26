@@ -11,6 +11,21 @@
 
 ## 2026-04
 
+### [2026-04-26] update | README-Funktionsstand und Version 0.2.0
+- Anlass oder Quelle: Nutzerauftrag, die `README.md` insbesondere bezüglich der enthaltenen Funktionalitäten zu aktualisieren und die Versionsnummer hochzusetzen.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../../README.md
+  - ../../../apps/frontend/package.json
+  - ../../../apps/frontend/package-lock.json
+  - ../../../apps/backend/pyproject.toml
+  - ../../../apps/backend/src/labordaten_backend/main.py
+- Kern der inhaltlichen Anpassung:
+  - Die README beschreibt den aktuellen Funktionsstand jetzt gegliedert nach Stammdaten und Laborbestand, Import und Dokumenten, Planung/Auswertung/Berichten sowie Laborwissen und Betrieb.
+  - Die README benennt weiterhin klar die Grenzen bei direktem PDF-Import, integrierter OCR/Parser-Stufe und angebundener KI-Schnittstelle.
+  - Frontend-, Backend- und OpenAPI-Versionsangaben wurden von `0.1.0` auf `0.2.0` angehoben.
+
 ### [2026-04-26] update | Deployment- und Update-Strategie festgehalten
 - Anlass oder Quelle: Nutzerfrage zur anwenderfreundlichen Bereitstellung per ZIP oder Installer sowie ergänzende Hinweise zu Releaseupdates und Aktualisierung des fachlichen Laborwissens.
 - Neu angelegte Seiten:
