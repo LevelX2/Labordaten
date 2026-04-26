@@ -16,6 +16,7 @@
 - Neu angelegte Seiten:
   - keine
 - Geänderte Seiten:
+  - ../../../apps/backend/src/labordaten_backend/api/routes/importe.py
   - ../../../apps/backend/src/labordaten_backend/modules/importe/schemas.py
   - ../../../apps/backend/src/labordaten_backend/modules/importe/service.py
   - ../../../apps/backend/tests/test_parameter_alias_import_mapping.py
@@ -23,7 +24,8 @@
   - ../02 Wissen/Begriffe und Konzepte/Ist-Stand Importstrecke und PDF-Grenzen.md
 - Kern der inhaltlichen Anpassung:
   - In der Messwertklärung gibt es pro Zeile nun die explizite Aktion `Nicht übernehmen`, einen passenden Filter und eine Statusleisten-Zählung der bewusst ausgelassenen Messwerte.
-  - Das Backend akzeptiert dafür die Mapping-Aktion `ignorieren`, überspringt diese Messwerte bei der Übernahme und persistiert den Status im Importpayload, damit die Entscheidung später nachvollziehbar bleibt.
+  - Das Backend speichert Prüfentscheidungen direkt am Importentwurf, damit Personenauswahl, vorhandene Parameterzuordnung, Neuanlage-Entscheidung, Alias-Übernahme, Zurücksetzen und `Nicht übernehmen` beim Wechsel zwischen Anwendungsbereichen erhalten bleiben.
+  - Bei der finalen Übernahme akzeptiert das Backend zusätzlich die Mapping-Aktion `ignorieren`, überspringt diese Messwerte und persistiert den Status im Importpayload, damit die Entscheidung später nachvollziehbar bleibt.
   - Fehlende Zuordnung bedeutet weiterhin nicht stillschweigend ignorieren, sondern blockiert die Übernahme, bis der Messwert zugeordnet, als neuer Parameter markiert oder bewusst nicht übernommen wird.
   - Verifiziert mit `python -m pytest apps/backend/tests/test_parameter_alias_import_mapping.py -q`, `python -m pytest apps/backend/tests/test_import_group_suggestions.py apps/backend/tests/test_import_prompt.py -q`, `npm run build` und `npm test` im Frontend.
 

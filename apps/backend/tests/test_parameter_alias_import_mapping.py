@@ -164,17 +164,26 @@ def test_import_takeover_can_ignore_single_measurement(tmp_path: Path) -> None:
             ),
         )
 
+        detail = import_service.update_import_pruefentscheidung(
+            db,
+            detail.id,
+            import_schemas.ImportPruefentscheidungRequest(
+                messwertIndex=1,
+                aktion="ignorieren",
+            ),
+        )
+
+        assert detail.messwerte[1].parameter_mapping_herkunft == "ignoriert"
+        assert detail.warnung_anzahl == 0
+
+        neu_geladen = import_service.get_import_detail(db, detail.id)
+        assert neu_geladen is not None
+        assert neu_geladen.messwerte[1].parameter_mapping_herkunft == "ignoriert"
+
         uebernommen = import_service.uebernehmen_import(
             db,
             detail.id,
-            import_schemas.ImportUebernehmenRequest(
-                parameter_mappings=[
-                    import_schemas.ImportParameterMapping(
-                        messwert_index=1,
-                        aktion="ignorieren",
-                    )
-                ]
-            ),
+            import_schemas.ImportUebernehmenRequest(),
         )
 
         stored = list(db.scalars(select(Messwert).where(Messwert.importvorgang_id == detail.id)))
@@ -182,6 +191,86 @@ def test_import_takeover_can_ignore_single_measurement(tmp_path: Path) -> None:
         assert stored[0].original_parametername == "Ferritin"
         assert uebernommen.messwerte[1].parameter_mapping_herkunft == "ignoriert"
         assert uebernommen.messwerte[1].parameter_id is None
+
+
+def test_import_review_decision_persists_manual_parameter_mapping(tmp_path: Path) -> None:
+    with _make_session(tmp_path) as db:
+        einheiten_service.create_einheit(db, einheiten_schemas.EinheitCreate(kuerzel="ng/ml"))
+
+        person = Person(
+            anzeigename="Ludwig",
+            vollname="Ludwig Hirth",
+            geburtsdatum=date(1964, 1, 12),
+            geschlecht_code="m",
+        )
+        db.add(person)
+        db.commit()
+        db.refresh(person)
+
+        parameter = parameter_service.create_parameter(
+            db,
+            parameter_schemas.ParameterCreate(
+                anzeigename="Ferritin",
+                standard_einheit="ng/ml",
+                wert_typ_standard="numerisch",
+            ),
+        )
+
+        detail = import_service.create_import_entwurf(
+            db,
+            import_schemas.ImportEntwurfCreate(
+                payload_json=json.dumps(
+                    {
+                        "schemaVersion": "1.0",
+                        "quelleTyp": "ki_json",
+                        "befund": {
+                            "personId": person.id,
+                            "entnahmedatum": "2026-04-22",
+                        },
+                        "messwerte": [
+                            {
+                                "originalParametername": "Ferritin Fremdbezeichnung",
+                                "wertTyp": "numerisch",
+                                "wertRohText": "41",
+                                "wertNum": 41,
+                                "einheitOriginal": "ng/ml",
+                            }
+                        ],
+                    }
+                )
+            ),
+        )
+
+        assert detail.messwerte[0].parameter_id is None
+        assert detail.warnung_anzahl == 1
+
+        gespeichert = import_service.update_import_pruefentscheidung(
+            db,
+            detail.id,
+            import_schemas.ImportPruefentscheidungRequest(
+                messwertIndex=0,
+                aktion="vorhanden",
+                laborparameterId=parameter.id,
+                aliasUebernehmen=True,
+            ),
+        )
+
+        assert gespeichert.messwerte[0].parameter_id == parameter.id
+        assert gespeichert.messwerte[0].parameter_mapping_herkunft == "manuell"
+        assert gespeichert.messwerte[0].alias_uebernehmen is True
+        assert gespeichert.warnung_anzahl == 0
+
+        neu_geladen = import_service.get_import_detail(db, detail.id)
+        assert neu_geladen is not None
+        assert neu_geladen.messwerte[0].parameter_id == parameter.id
+        assert neu_geladen.messwerte[0].parameter_mapping_herkunft == "manuell"
+
+        uebernommen = import_service.uebernehmen_import(db, detail.id, import_schemas.ImportUebernehmenRequest())
+        assert uebernommen.status == "uebernommen"
+
+        messwert = db.scalar(select(Messwert).where(Messwert.importvorgang_id == detail.id))
+        assert messwert is not None
+        assert messwert.laborparameter_id == parameter.id
 
 
 def test_import_manual_mapping_can_create_alias_for_future_imports(tmp_path: Path) -> None:

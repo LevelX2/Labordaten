@@ -70,6 +70,8 @@ class ImportMesswertPayload(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     uebernahme_status: Literal["offen", "ignoriert"] = Field(default="offen", alias="uebernahmeStatus")
+    pruef_aktion: Literal["vorhanden", "neu"] | None = Field(default=None, alias="pruefAktion")
+    pruef_laborparameter_id: str | None = Field(default=None, alias="pruefLaborparameterId")
     parameter_id: str | None = Field(default=None, alias="parameterId")
     original_parametername: str = Field(alias="originalParametername")
     wert_typ: str = Field(alias="wertTyp")
@@ -209,6 +211,16 @@ class ImportUebernehmenRequest(BaseModel):
     bestaetige_warnungen: bool = False
     person_id_override: str | None = None
     parameter_mappings: list[ImportParameterMapping] = []
+
+
+class ImportPruefentscheidungRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    person_id: str | None = Field(default=None, alias="personId")
+    messwert_index: int | None = Field(default=None, alias="messwertIndex")
+    aktion: Literal["vorhanden", "neu", "ignorieren", "zuruecksetzen"] | None = None
+    laborparameter_id: str | None = Field(default=None, alias="laborparameterId")
+    alias_uebernehmen: bool | None = Field(default=None, alias="aliasUebernehmen")
 
 
 class ImportKomplettEntfernenRequest(BaseModel):

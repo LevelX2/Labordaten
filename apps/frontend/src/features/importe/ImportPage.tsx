@@ -224,6 +224,9 @@ function formatMappingInfo(messwert: ImportMesswertPreview, currentParameterId?:
   if (source === "manuell") {
     return "Manuell zugeordnet";
   }
+  if (source === "neu") {
+    return "Neuanlage vorgesehen";
+  }
   if (source === "uebernommen") {
     return hint ? `Bereits übernommen: ${hint}` : "Bereits übernommen";
   }
@@ -245,6 +248,9 @@ function getMappingFilterMode(messwert: ImportMesswertPreview, currentParameterI
   }
   if (messwert.parameter_mapping_herkunft === "explizit") {
     return "explizit";
+  }
+  if (messwert.parameter_mapping_herkunft === "neu") {
+    return "neu";
   }
   if (["alias", "anzeigename", "schluessel", "uebernommen"].includes(messwert.parameter_mapping_herkunft ?? "")) {
     return "automatisch";
@@ -507,6 +513,9 @@ function getOpenMappingCount(importDetail: ImportVorgangDetail | undefined, mapp
     if (messwert.parameter_mapping_herkunft === "ignoriert") {
       return false;
     }
+    if (messwert.parameter_mapping_herkunft === "neu") {
+      return false;
+    }
     return !(mappingState[messwert.messwert_index] || messwert.parameter_id);
   })
     .length;
@@ -648,6 +657,8 @@ export function ImportPage() {
     selectedImportQuery.data?.messwerte.forEach((messwert) => {
       if (messwert.parameter_mapping_herkunft === "ignoriert") {
         nextMappings[messwert.messwert_index] = IGNORE_MEASUREMENT_MAPPING_VALUE;
+      } else if (messwert.parameter_mapping_herkunft === "neu") {
+        nextMappings[messwert.messwert_index] = NEW_PARAMETER_MAPPING_VALUE;
       } else if (messwert.parameter_id) {
         nextMappings[messwert.messwert_index] = messwert.parameter_id;
       } else if (shouldPreselectNewParameter(messwert)) {
@@ -800,6 +811,27 @@ export function ImportPage() {
         queryClient.invalidateQueries({ queryKey: ["importe"] }),
         queryClient.invalidateQueries({ queryKey: ["befunde"] }),
         queryClient.invalidateQueries({ queryKey: ["messwerte"] })
+      ]);
+    }
+  });
+
+  const importPruefentscheidungMutation = useMutation({
+    mutationFn: (payload: {
+      personId?: string | null;
+      messwertIndex?: number;
+      aktion?: "vorhanden" | "neu" | "ignorieren" | "zuruecksetzen";
+      laborparameterId?: string | null;
+      aliasUebernehmen?: boolean;
+    }) =>
+      apiFetch<ImportVorgangDetail>(`/api/importe/${selectedImportId}/pruefentscheidung`, {
+        method: "PATCH",
+        body: JSON.stringify(payload)
+      }),
+    onSuccess: async (detail) => {
+      queryClient.setQueryData(["importe", detail.id], detail);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["importe"] }),
+        queryClient.invalidateQueries({ queryKey: ["importe", detail.id] })
       ]);
     }
   });
@@ -996,12 +1028,64 @@ export function ImportPage() {
         [messwert.messwert_index]: nextRecommendation.recommended
       };
     });
+
+    if (selectedImportId) {
+      importPruefentscheidungMutation.mutate({
+        messwertIndex: messwert.messwert_index,
+        aktion:
+          nextValue === IGNORE_MEASUREMENT_MAPPING_VALUE
+            ? "ignorieren"
+            : nextValue === NEW_PARAMETER_MAPPING_VALUE
+            ? "neu"
+            : nextValue
+            ? "vorhanden"
+            : "zuruecksetzen",
+        laborparameterId:
+          nextValue && nextValue !== IGNORE_MEASUREMENT_MAPPING_VALUE && nextValue !== NEW_PARAMETER_MAPPING_VALUE
+            ? nextValue
+            : null,
+        aliasUebernehmen:
+          nextValue && nextValue !== IGNORE_MEASUREMENT_MAPPING_VALUE && nextValue !== NEW_PARAMETER_MAPPING_VALUE
+            ? Boolean(aliasState[messwert.messwert_index])
+            : false
+      });
+    }
+  }
+
+  function setMesswertAlias(messwert: ImportMesswertPreview, checked: boolean): void {
+    setAliasState((current) => ({
+      ...current,
+      [messwert.messwert_index]: checked
+    }));
+    const currentParameterId = mappingState[messwert.messwert_index] ?? messwert.parameter_id ?? undefined;
+    if (
+      selectedImportId &&
+      currentParameterId &&
+      currentParameterId !== NEW_PARAMETER_MAPPING_VALUE &&
+      currentParameterId !== IGNORE_MEASUREMENT_MAPPING_VALUE
+    ) {
+      importPruefentscheidungMutation.mutate({
+        messwertIndex: messwert.messwert_index,
+        aktion: "vorhanden",
+        laborparameterId: currentParameterId,
+        aliasUebernehmen: checked
+      });
+    }
   }
 
   function openParameterDialog(messwert: ImportMesswertPreview): void {
     setParameterDialogMesswertIndex(messwert.messwert_index);
     setParameterDialogSearch("");
     setParameterDialogFilterMode("streng");
+  }
+
+  function setImportReviewPerson(nextPersonId: string): void {
+    setReviewPersonId(nextPersonId);
+    if (selectedImportId) {
+      importPruefentscheidungMutation.mutate({
+        personId: nextPersonId || null
+      });
+    }
   }
 
   function handlePayloadJsonPaste(event: ClipboardEvent<HTMLTextAreaElement>): void {
@@ -1441,7 +1525,7 @@ export function ImportPage() {
               {selectedImport.status === "in_pruefung" ? (
                 <label className="field">
                   <span>Person für diesen Import</span>
-                  <select value={reviewPersonId} onChange={(event) => setReviewPersonId(event.target.value)}>
+                  <select value={reviewPersonId} onChange={(event) => setImportReviewPerson(event.target.value)}>
                     <option value="">Bitte wählen</option>
                     {personenQuery.data?.map((person) => (
                       <option key={person.id} value={person.id}>
@@ -1709,6 +1793,7 @@ export function ImportPage() {
                                 type="button"
                                 className="inline-button"
                                 onClick={() => setMesswertParameterMapping(messwert, NEW_PARAMETER_MAPPING_VALUE)}
+                                disabled={importPruefentscheidungMutation.isPending}
                               >
                                 Neuen Parameter
                               </button>
@@ -1716,6 +1801,7 @@ export function ImportPage() {
                                 type="button"
                                 className="inline-button inline-button--danger"
                                 onClick={() => setMesswertParameterMapping(messwert, IGNORE_MEASUREMENT_MAPPING_VALUE)}
+                                disabled={importPruefentscheidungMutation.isPending}
                               >
                                 Nicht übernehmen
                               </button>
@@ -1724,6 +1810,7 @@ export function ImportPage() {
                                   type="button"
                                   className="inline-button"
                                   onClick={() => setMesswertParameterMapping(messwert, "")}
+                                  disabled={importPruefentscheidungMutation.isPending}
                                 >
                                   Zuordnung zurücksetzen
                                 </button>
@@ -1742,12 +1829,7 @@ export function ImportPage() {
                                 mappingState[messwert.messwert_index] === NEW_PARAMETER_MAPPING_VALUE ||
                                 mappingState[messwert.messwert_index] === IGNORE_MEASUREMENT_MAPPING_VALUE
                               }
-                              onChange={(event) =>
-                                setAliasState((current) => ({
-                                  ...current,
-                                  [messwert.messwert_index]: event.target.checked
-                                }))
-                              }
+                              onChange={(event) => setMesswertAlias(messwert, event.target.checked)}
                             />
                           </label>
                           {aliasRecommendation.note ? (
@@ -1987,6 +2069,9 @@ export function ImportPage() {
                 {verwerfenMutation.isError ? <p className="form-error">{verwerfenMutation.error.message}</p> : null}
                 {komplettEntfernenMutation.isError ? (
                   <p className="form-error">{komplettEntfernenMutation.error.message}</p>
+                ) : null}
+                {importPruefentscheidungMutation.isError ? (
+                  <p className="form-error">{importPruefentscheidungMutation.error.message}</p>
                 ) : null}
 
                 <h5>Prüfhinweise</h5>

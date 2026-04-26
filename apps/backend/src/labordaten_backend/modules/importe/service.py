@@ -53,6 +53,7 @@ from labordaten_backend.modules.importe.schemas import (
     ImportPayload,
     ImportPromptCreate,
     ImportPromptRead,
+    ImportPruefentscheidungRequest,
     ImportPruefpunktRead,
     ImportUebernehmenRequest,
     ImportvorgangDetailRead,
@@ -425,8 +426,8 @@ def uebernehmen_import(
         importvorgang.fingerprint = hashlib.sha256(importvorgang.roh_payload_text.encode("utf-8")).hexdigest()
         db.add(importvorgang)
 
-    mappings = payload.parameter_mappings
-    _apply_ignored_measurement_mappings(import_payload, mappings)
+    mappings = _build_effective_parameter_mappings(import_payload, payload.parameter_mappings)
+    _apply_parameter_mappings_to_payload(import_payload, mappings)
     pruefregeln = _generate_checks(db, importvorgang.id, import_payload, mappings)
 
     fehler = [item for item in pruefregeln if item.status == "fehler"]
@@ -569,8 +570,76 @@ def uebernehmen_import(
     _replace_checks(db, importvorgang.id, pruefregeln, bestaetige_warnungen=payload.bestaetige_warnungen)
     importvorgang.status = "uebernommen"
     importvorgang.warnungen_text = _summarize_warnings(pruefregeln)
-    importvorgang.roh_payload_text = import_payload.model_dump_json(by_alias=True)
+    importvorgang.roh_payload_text = _serialize_payload(import_payload)
 
+    db.add(importvorgang)
+    db.commit()
+    db.refresh(importvorgang)
+    return _build_detail(db, importvorgang)
+
+
+def update_import_pruefentscheidung(
+    db: Session,
+    import_id: str,
+    payload: ImportPruefentscheidungRequest,
+) -> ImportvorgangDetailRead:
+    importvorgang = db.get(Importvorgang, import_id)
+    if importvorgang is None:
+        raise ValueError("Importvorgang nicht gefunden.")
+    if importvorgang.status == "uebernommen":
+        raise ValueError("Übernommene Importe können nicht mehr in der Importprüfung geändert werden.")
+
+    import_payload = _parse_payload(importvorgang.roh_payload_text or "")
+    if "person_id" in payload.model_fields_set:
+        if not payload.person_id:
+            import_payload.befund.person_id = None
+            importvorgang.person_id_vorschlag = None
+        elif db.get(Person, payload.person_id) is None:
+            raise ValueError("Die ausgewählte Person existiert nicht.")
+        else:
+            import_payload.befund.person_id = payload.person_id
+            importvorgang.person_id_vorschlag = payload.person_id
+
+    if payload.messwert_index is not None:
+        if payload.messwert_index < 0 or payload.messwert_index >= len(import_payload.messwerte):
+            raise ValueError(f"Der Messwert mit Index {payload.messwert_index} existiert nicht.")
+        item = import_payload.messwerte[payload.messwert_index]
+        if payload.aktion == "ignorieren":
+            item.uebernahme_status = "ignoriert"
+            item.pruef_aktion = None
+            item.pruef_laborparameter_id = None
+            item.alias_uebernehmen = False
+        elif payload.aktion == "neu":
+            item.uebernahme_status = "offen"
+            item.pruef_aktion = "neu"
+            item.pruef_laborparameter_id = None
+            if payload.alias_uebernehmen is not None:
+                item.alias_uebernehmen = payload.alias_uebernehmen
+        elif payload.aktion == "vorhanden":
+            if not payload.laborparameter_id:
+                raise ValueError("Für die vorhandene Parameterzuordnung fehlt der Zielparameter.")
+            if db.get(Laborparameter, payload.laborparameter_id) is None:
+                raise ValueError("Der ausgewählte Parameter existiert nicht.")
+            item.uebernahme_status = "offen"
+            item.pruef_aktion = "vorhanden"
+            item.pruef_laborparameter_id = payload.laborparameter_id
+            if payload.alias_uebernehmen is not None:
+                item.alias_uebernehmen = payload.alias_uebernehmen
+        elif payload.aktion == "zuruecksetzen":
+            item.uebernahme_status = "offen"
+            item.pruef_aktion = None
+            item.pruef_laborparameter_id = None
+            if payload.alias_uebernehmen is not None:
+                item.alias_uebernehmen = payload.alias_uebernehmen
+        elif payload.alias_uebernehmen is not None:
+            item.alias_uebernehmen = payload.alias_uebernehmen
+
+    serialized_payload = _serialize_payload(import_payload)
+    importvorgang.roh_payload_text = serialized_payload
+    importvorgang.fingerprint = hashlib.sha256(serialized_payload.encode("utf-8")).hexdigest()
+    pruefregeln = _generate_checks(db, importvorgang.id, import_payload, _build_effective_parameter_mappings(import_payload, []))
+    importvorgang.warnungen_text = _summarize_warnings(pruefregeln)
+    _replace_checks(db, importvorgang.id, pruefregeln, bestaetige_warnungen=False)
     db.add(importvorgang)
     db.commit()
     db.refresh(importvorgang)
@@ -1140,6 +1209,14 @@ def _build_measurement_preview(
         parameter_id = None
         mapping_herkunft = "ignoriert"
         mapping_hinweis = "Wird nicht übernommen."
+    elif item.pruef_aktion == "neu":
+        parameter_id = None
+        mapping_herkunft = "neu"
+        mapping_hinweis = "Neuanlage vorgesehen."
+    elif item.pruef_aktion == "vorhanden" and item.pruef_laborparameter_id:
+        parameter_id = item.pruef_laborparameter_id
+        mapping_herkunft = "manuell"
+        mapping_hinweis = parameter_resolver.get_parameter_name(item.pruef_laborparameter_id)
     elif imported_parameter_id is not None:
         parameter_id = imported_parameter_id
         mapping_herkunft = "uebernommen"
@@ -1275,6 +1352,10 @@ def _resolve_group_suggestion_parameters(
 
         if imported_parameter_id is not None:
             parameter_id = imported_parameter_id
+        elif payload_item.pruef_aktion == "vorhanden" and payload_item.pruef_laborparameter_id:
+            parameter_id = payload_item.pruef_laborparameter_id
+        elif payload_item.pruef_aktion == "neu":
+            parameter_id = None
         else:
             resolution = parameter_resolver.resolve(
                 original_name=payload_item.original_parametername,
@@ -1687,13 +1768,53 @@ def _is_ignored_parameter_mapping(mapping_request: ImportParameterMapping | None
     return bool(mapping_request and mapping_request.aktion == "ignorieren")
 
 
-def _apply_ignored_measurement_mappings(payload: ImportPayload, mappings: list[ImportParameterMapping]) -> None:
+def _build_effective_parameter_mappings(
+    payload: ImportPayload,
+    request_mappings: list[ImportParameterMapping],
+) -> list[ImportParameterMapping]:
+    effective: dict[int, ImportParameterMapping] = {}
+    for index, item in enumerate(payload.messwerte):
+        if item.uebernahme_status == "ignoriert":
+            effective[index] = ImportParameterMapping(messwert_index=index, aktion="ignorieren")
+        elif item.pruef_aktion == "neu":
+            effective[index] = ImportParameterMapping(
+                messwert_index=index,
+                aktion="neu",
+                alias_uebernehmen=item.alias_uebernehmen,
+            )
+        elif item.pruef_aktion == "vorhanden" and item.pruef_laborparameter_id:
+            effective[index] = ImportParameterMapping(
+                messwert_index=index,
+                aktion="vorhanden",
+                laborparameter_id=item.pruef_laborparameter_id,
+                alias_uebernehmen=item.alias_uebernehmen,
+            )
+
+    for mapping in request_mappings:
+        effective[mapping.messwert_index] = mapping
+    return list(effective.values())
+
+
+def _apply_parameter_mappings_to_payload(payload: ImportPayload, mappings: list[ImportParameterMapping]) -> None:
     for mapping in mappings:
-        if not _is_ignored_parameter_mapping(mapping):
-            continue
         if mapping.messwert_index < 0 or mapping.messwert_index >= len(payload.messwerte):
             raise ValueError(f"Der Messwert mit Index {mapping.messwert_index} existiert nicht.")
-        payload.messwerte[mapping.messwert_index].uebernahme_status = "ignoriert"
+        item = payload.messwerte[mapping.messwert_index]
+        if _is_ignored_parameter_mapping(mapping):
+            item.uebernahme_status = "ignoriert"
+            item.pruef_aktion = None
+            item.pruef_laborparameter_id = None
+            item.alias_uebernehmen = False
+        elif _is_new_parameter_mapping(mapping):
+            item.uebernahme_status = "offen"
+            item.pruef_aktion = "neu"
+            item.pruef_laborparameter_id = None
+            item.alias_uebernehmen = mapping.alias_uebernehmen
+        else:
+            item.uebernahme_status = "offen"
+            item.pruef_aktion = "vorhanden" if mapping.laborparameter_id else None
+            item.pruef_laborparameter_id = mapping.laborparameter_id
+            item.alias_uebernehmen = mapping.alias_uebernehmen
 
 
 def _map_imported_measurements_by_payload_index(
