@@ -35,7 +35,6 @@ class ImportGruppenvorschlagPayload(BaseModel):
 
     name: str
     beschreibung: str | None = None
-    sortierschluessel: str | None = Field(default=None, alias="sortierschluessel")
     messwert_indizes: list[int] = Field(alias="messwertIndizes")
 
 
@@ -80,6 +79,7 @@ class ImportMesswertPayload(BaseModel):
     einheit_original: str | None = Field(default=None, alias="einheitOriginal")
     bemerkung_kurz: str | None = Field(default=None, alias="bemerkungKurz")
     bemerkung_lang: str | None = Field(default=None, alias="bemerkungLang")
+    ki_hinweis: str | None = Field(default=None, alias="kiHinweis")
     referenz_text_original: str | None = Field(default=None, alias="referenzTextOriginal")
     untere_grenze_num: float | None = Field(default=None, alias="untereGrenzeNum")
     untere_grenze_operator: str | None = Field(default=None, alias="untereGrenzeOperator")
@@ -206,6 +206,7 @@ class ImportParameterMapping(BaseModel):
 
 class ImportUebernehmenRequest(BaseModel):
     bestaetige_warnungen: bool = False
+    person_id_override: str | None = None
     parameter_mappings: list[ImportParameterMapping] = []
 
 
@@ -247,7 +248,6 @@ class ImportGruppenvorschlagRead(BaseModel):
     index: int
     name: str
     beschreibung: str | None = None
-    sortierschluessel: str | None = None
     messwert_indizes: list[int]
     parameter_ids: list[str] = []
     parameter_namen: list[str] = []
@@ -283,6 +283,10 @@ class ImportMesswertPreviewRead(BaseModel):
     wert_text: str | None = None
     einheit_original: str | None = None
     bemerkung_kurz: str | None = None
+    bemerkung_lang: str | None = None
+    ki_hinweis: str | None = None
+    unsicher_flag: bool = False
+    pruefbedarf_flag: bool = False
     referenz_text_original: str | None = None
     untere_grenze_num: float | None = None
     untere_grenze_operator: str | None = None

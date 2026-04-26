@@ -1,9 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
-import { apiFetch } from "../../shared/api/client";
+import { apiFetch, apiFetchBlob } from "../../shared/api/client";
+import { DateRangeFilterFields } from "../../shared/components/DateRangeFilterFields";
 import { LoeschAktionPanel } from "../../shared/components/LoeschAktionPanel";
+import { SelectionChecklist } from "../../shared/components/SelectionChecklist";
 import type {
+  Gruppe,
+  GruppenParameter,
   Parameter,
   Person,
   PlanungEinmalig,
@@ -13,7 +17,7 @@ import type {
 
 type ZyklischFormState = {
   person_id: string;
-  laborparameter_id: string;
+  laborparameter_ids: string[];
   intervall_wert: string;
   intervall_typ: "tage" | "wochen" | "monate" | "jahre";
   startdatum: string;
@@ -25,7 +29,7 @@ type ZyklischFormState = {
 
 type EinmaligFormState = {
   person_id: string;
-  laborparameter_id: string;
+  laborparameter_ids: string[];
   status: "offen" | "naechster_termin";
   zieltermin_datum: string;
   bemerkung: string;
@@ -49,11 +53,36 @@ type PlanungListItem =
       einmalig: PlanungEinmalig;
     };
 
-const today = new Date().toISOString().slice(0, 10);
+function formatDateInputValue(value: Date): string {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function addMonthsToDateInput(value: string, months: number): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) {
+    return value;
+  }
+
+  const [, yearText, monthText, dayText] = match;
+  const year = Number(yearText);
+  const monthIndex = Number(monthText) - 1 + months;
+  const day = Number(dayText);
+  const targetYear = year + Math.floor(monthIndex / 12);
+  const targetMonth = ((monthIndex % 12) + 12) % 12;
+  const maxDay = new Date(targetYear, targetMonth + 1, 0).getDate();
+  return formatDateInputValue(new Date(targetYear, targetMonth, Math.min(day, maxDay)));
+}
+
+const today = formatDateInputValue(new Date());
+const defaultFaelligkeitDatumVon = today;
+const defaultFaelligkeitDatumBis = addMonthsToDateInput(today, 6);
 
 const initialZyklischForm: ZyklischFormState = {
   person_id: "",
-  laborparameter_id: "",
+  laborparameter_ids: [],
   intervall_wert: "6",
   intervall_typ: "monate",
   startdatum: today,
@@ -65,7 +94,7 @@ const initialZyklischForm: ZyklischFormState = {
 
 const initialEinmaligForm: EinmaligFormState = {
   person_id: "",
-  laborparameter_id: "",
+  laborparameter_ids: [],
   status: "offen",
   zieltermin_datum: "",
   bemerkung: ""
@@ -81,6 +110,17 @@ function formatDate(value?: string | null): string {
     month: "2-digit",
     year: "numeric"
   }).format(new Date(value));
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
 }
 
 function formatDateTime(value?: string | null): string {
@@ -116,7 +156,7 @@ function formatPlanungsstatus(value: string): string {
     ueberfaellig: "Überfällig",
     faellig: "Fällig",
     bald_faellig: "Bald fällig",
-    geplant: "Geplant",
+    geplant: "Noch nicht fällig",
     ohne_faelligkeit: "Ohne Fälligkeit",
     offen: "Offen",
     naechster_termin: "Nächster Termin",
@@ -157,35 +197,67 @@ function getPlanningSortValue(item: PlanungListItem): number {
 }
 
 function getPlanningSearchText(item: PlanungListItem, person?: Person, parameter?: Parameter): string {
-  const common = [person?.anzeigename ?? "", parameter?.anzeigename ?? ""];
-
-  if (item.typ === "zyklisch") {
-    return [
-      ...common,
-      item.zyklisch.bemerkung ?? "",
-      item.zyklisch.status,
-      item.zyklisch.faelligkeitsstatus,
-      item.zyklisch.intervall_typ
-    ]
-      .join(" ")
-      .toLocaleLowerCase("de-DE");
-  }
-
   return [
-    ...common,
-    item.einmalig.bemerkung ?? "",
-    item.einmalig.status,
-    item.einmalig.zieltermin_datum ?? ""
+    person?.anzeigename ?? "",
+    parameter?.anzeigename ?? "",
+    parameter?.interner_schluessel ?? "",
+    parameter?.beschreibung ?? "",
+    parameter?.standard_einheit ?? ""
   ]
     .join(" ")
     .toLocaleLowerCase("de-DE");
+}
+
+function buildParameterSelectionMeta(parameter: Parameter): string {
+  return [
+    parameter.interner_schluessel,
+    parameter.beschreibung ?? "",
+    parameter.standard_einheit ?? "",
+    parameter.wert_typ_standard
+  ]
+    .filter(Boolean)
+    .join(" • ");
+}
+
+function mergeUniqueIds(currentIds: string[], nextIds: string[]): string[] {
+  return Array.from(new Set([...currentIds, ...nextIds]));
+}
+
+function formatRemarkInterval(valueText: string, typ: ZyklischFormState["intervall_typ"]): string {
+  const value = Number(valueText);
+  if (!Number.isFinite(value) || value <= 0) {
+    return "Regelmäßig";
+  }
+
+  if (value === 1) {
+    const labels: Record<ZyklischFormState["intervall_typ"], string> = {
+      tage: "Täglich",
+      wochen: "Wöchentlich",
+      monate: "Monatlich",
+      jahre: "Jährlich"
+    };
+    return labels[typ];
+  }
+
+  return `Alle ${formatIntervall(value, typ)}`;
+}
+
+function buildGroupPlanningRemark(groupName: string, form: ZyklischFormState): string {
+  return `${formatRemarkInterval(form.intervall_wert, form.intervall_typ)} ${groupName} kontrollieren.`;
 }
 
 export function PlanungPage() {
   const queryClient = useQueryClient();
   const [zyklischForm, setZyklischForm] = useState<ZyklischFormState>(initialZyklischForm);
   const [einmaligForm, setEinmaligForm] = useState<EinmaligFormState>(initialEinmaligForm);
+  const [zyklischGruppeId, setZyklischGruppeId] = useState("");
+  const [einmaligGruppeId, setEinmaligGruppeId] = useState("");
   const [personFilter, setPersonFilter] = useState("");
+  const [faelligkeitPersonFilter, setFaelligkeitPersonFilter] = useState("");
+  const [faelligkeitDatumVon, setFaelligkeitDatumVon] = useState(defaultFaelligkeitDatumVon);
+  const [faelligkeitDatumBis, setFaelligkeitDatumBis] = useState(defaultFaelligkeitDatumBis);
+  const [showFaelligkeitenOverview, setShowFaelligkeitenOverview] = useState(false);
+  const [planningTypeFilter, setPlanningTypeFilter] = useState<"" | PlanungListItem["typ"]>("");
   const [planningSearchQuery, setPlanningSearchQuery] = useState("");
   const [selectedPlanKey, setSelectedPlanKey] = useState<string | null>(null);
   const [activePanel, setActivePanel] = useState<PlanungPanelKey | null>(null);
@@ -202,6 +274,20 @@ export function PlanungPage() {
     queryKey: ["parameter"],
     queryFn: () => apiFetch<Parameter[]>("/api/parameter")
   });
+  const gruppenQuery = useQuery({
+    queryKey: ["gruppen"],
+    queryFn: () => apiFetch<Gruppe[]>("/api/gruppen")
+  });
+  const zyklischGruppenParameterQuery = useQuery({
+    queryKey: ["gruppen", zyklischGruppeId, "parameter"],
+    queryFn: () => apiFetch<GruppenParameter[]>(`/api/gruppen/${zyklischGruppeId}/parameter`),
+    enabled: Boolean(zyklischGruppeId)
+  });
+  const einmaligGruppenParameterQuery = useQuery({
+    queryKey: ["gruppen", einmaligGruppeId, "parameter"],
+    queryFn: () => apiFetch<GruppenParameter[]>(`/api/gruppen/${einmaligGruppeId}/parameter`),
+    enabled: Boolean(einmaligGruppeId)
+  });
   const zyklischQuery = useQuery({
     queryKey: ["planung", "zyklisch", personFilter],
     queryFn: () =>
@@ -212,12 +298,23 @@ export function PlanungPage() {
     queryFn: () =>
       apiFetch<PlanungEinmalig[]>(`/api/planung/einmalig${personFilter ? `?person_id=${personFilter}` : ""}`)
   });
+  const faelligkeitenQueryString = useMemo(() => {
+    const params = new URLSearchParams();
+    if (faelligkeitPersonFilter) {
+      params.set("person_id", faelligkeitPersonFilter);
+    }
+    if (faelligkeitDatumVon) {
+      params.set("datum_von", faelligkeitDatumVon);
+    }
+    if (faelligkeitDatumBis) {
+      params.set("datum_bis", faelligkeitDatumBis);
+    }
+    const queryString = params.toString();
+    return queryString ? `?${queryString}` : "";
+  }, [faelligkeitDatumBis, faelligkeitDatumVon, faelligkeitPersonFilter]);
   const faelligkeitenQuery = useQuery({
-    queryKey: ["planung", "faelligkeiten", personFilter],
-    queryFn: () =>
-      apiFetch<PlanungFaelligkeit[]>(
-        `/api/planung/faelligkeiten${personFilter ? `?person_id=${personFilter}` : ""}`
-      )
+    queryKey: ["planung", "faelligkeiten", faelligkeitPersonFilter, faelligkeitDatumVon, faelligkeitDatumBis],
+    queryFn: () => apiFetch<PlanungFaelligkeit[]>(`/api/planung/faelligkeiten${faelligkeitenQueryString}`)
   });
 
   const personById = useMemo(
@@ -226,6 +323,15 @@ export function PlanungPage() {
   );
   const parameterById = useMemo(
     () => new Map((parameterQuery.data ?? []).map((parameter) => [parameter.id, parameter])),
+    [parameterQuery.data]
+  );
+  const parameterSelectionOptions = useMemo(
+    () =>
+      (parameterQuery.data ?? []).map((parameter) => ({
+        id: parameter.id,
+        label: parameter.anzeigename,
+        meta: buildParameterSelectionMeta(parameter)
+      })),
     [parameterQuery.data]
   );
 
@@ -261,16 +367,16 @@ export function PlanungPage() {
 
   const filteredPlans = useMemo(() => {
     const normalizedSearchQuery = planningSearchQuery.trim().toLocaleLowerCase("de-DE");
-    if (!normalizedSearchQuery) {
-      return combinedPlans;
-    }
 
-    return combinedPlans.filter((item) =>
-      getPlanningSearchText(item, personById.get(item.person_id), parameterById.get(item.laborparameter_id)).includes(
-        normalizedSearchQuery
-      )
+    return combinedPlans.filter(
+      (item) =>
+        (!planningTypeFilter || item.typ === planningTypeFilter) &&
+        (!normalizedSearchQuery ||
+          getPlanningSearchText(item, personById.get(item.person_id), parameterById.get(item.laborparameter_id)).includes(
+            normalizedSearchQuery
+          ))
     );
-  }, [combinedPlans, parameterById, personById, planningSearchQuery]);
+  }, [combinedPlans, parameterById, personById, planningSearchQuery, planningTypeFilter]);
 
   useEffect(() => {
     if (!filteredPlans.length) {
@@ -300,10 +406,50 @@ export function PlanungPage() {
     return combinedPlans.filter((item) => item.person_id === selectedPlan.person_id && item.key !== selectedPlan.key);
   }, [combinedPlans, selectedPlan]);
 
-  const hasActivePlanningFilter = planningSearchQuery.trim().length > 0;
+  const hasActivePlanningFilter = planningSearchQuery.trim().length > 0 || planningTypeFilter.length > 0;
   const planningCountLabel = hasActivePlanningFilter
     ? `${filteredPlans.length} von ${combinedPlans.length} Planungen`
     : `${combinedPlans.length} Planungen`;
+  const zyklischGruppenParameterIds =
+    zyklischGruppenParameterQuery.data?.map((zuordnung) => zuordnung.laborparameter_id) ?? [];
+  const einmaligGruppenParameterIds =
+    einmaligGruppenParameterQuery.data?.map((zuordnung) => zuordnung.laborparameter_id) ?? [];
+  const selectedZyklischParameterLabel =
+    zyklischForm.laborparameter_ids.length === 1 ? "1 Parameter" : `${zyklischForm.laborparameter_ids.length} Parameter`;
+  const selectedEinmaligParameterLabel =
+    einmaligForm.laborparameter_ids.length === 1 ? "1 Parameter" : `${einmaligForm.laborparameter_ids.length} Parameter`;
+  const faelligkeitenCountLabel =
+    faelligkeitenQuery.data?.length === 1
+      ? "1 anstehende Messung"
+      : `${faelligkeitenQuery.data?.length ?? 0} anstehende Messungen`;
+  const faelligkeitPersonLabel = faelligkeitPersonFilter
+    ? personById.get(faelligkeitPersonFilter)?.anzeigename ?? "Gewählte Person"
+    : "Alle Personen";
+  const faelligkeitRangeLabel = `${formatDate(faelligkeitDatumVon)} bis ${formatDate(faelligkeitDatumBis)}`;
+
+  const setFaelligkeitRangeMonths = (months: number) => {
+    setFaelligkeitDatumVon(today);
+    setFaelligkeitDatumBis(addMonthsToDateInput(today, months));
+  };
+
+  const addZyklischGroupParameters = () => {
+    const selectedGroupName = gruppenQuery.data?.find((gruppe) => gruppe.id === zyklischGruppeId)?.name;
+    setZyklischForm((current) => ({
+      ...current,
+      laborparameter_ids: mergeUniqueIds(current.laborparameter_ids, zyklischGruppenParameterIds),
+      bemerkung:
+        current.bemerkung.trim() || !selectedGroupName
+          ? current.bemerkung
+          : buildGroupPlanningRemark(selectedGroupName, current)
+    }));
+  };
+
+  const addEinmaligGroupParameters = () => {
+    setEinmaligForm((current) => ({
+      ...current,
+      laborparameter_ids: mergeUniqueIds(current.laborparameter_ids, einmaligGruppenParameterIds)
+    }));
+  };
 
   const invalidatePlanning = async () => {
     await Promise.all([
@@ -313,13 +459,20 @@ export function PlanungPage() {
     ]);
   };
 
+  const downloadFaelligkeitenPdfMutation = useMutation({
+    mutationFn: async () => {
+      const result = await apiFetchBlob(`/api/planung/faelligkeiten/pdf${faelligkeitenQueryString}`);
+      downloadBlob(result.blob, result.filename ?? "anstehende_messungen.pdf");
+    }
+  });
+
   const createZyklischMutation = useMutation({
     mutationFn: () =>
-      apiFetch<PlanungZyklisch>("/api/planung/zyklisch", {
+      apiFetch<PlanungZyklisch[]>("/api/planung/zyklisch/batch", {
         method: "POST",
         body: JSON.stringify({
           person_id: zyklischForm.person_id,
-          laborparameter_id: zyklischForm.laborparameter_id,
+          laborparameter_ids: zyklischForm.laborparameter_ids,
           intervall_wert: Number(zyklischForm.intervall_wert),
           intervall_typ: zyklischForm.intervall_typ,
           startdatum: zyklischForm.startdatum,
@@ -328,9 +481,10 @@ export function PlanungPage() {
           karenz_tage: Number(zyklischForm.karenz_tage),
           bemerkung: zyklischForm.bemerkung || null
         })
-      }),
+    }),
     onSuccess: async () => {
       setZyklischForm(initialZyklischForm);
+      setZyklischGruppeId("");
       setActivePanel(null);
       await invalidatePlanning();
     }
@@ -338,18 +492,19 @@ export function PlanungPage() {
 
   const createEinmaligMutation = useMutation({
     mutationFn: () =>
-      apiFetch<PlanungEinmalig>("/api/planung/einmalig", {
+      apiFetch<PlanungEinmalig[]>("/api/planung/einmalig/batch", {
         method: "POST",
         body: JSON.stringify({
           person_id: einmaligForm.person_id,
-          laborparameter_id: einmaligForm.laborparameter_id,
+          laborparameter_ids: einmaligForm.laborparameter_ids,
           status: einmaligForm.status,
           zieltermin_datum: einmaligForm.zieltermin_datum || null,
           bemerkung: einmaligForm.bemerkung || null
         })
-      }),
+    }),
     onSuccess: async () => {
       setEinmaligForm(initialEinmaligForm);
+      setEinmaligGruppeId("");
       setActivePanel(null);
       await invalidatePlanning();
     }
@@ -405,7 +560,7 @@ export function PlanungPage() {
           <div className="parameter-panel__header">
             <div>
               <h3>Zyklische Planung anlegen</h3>
-              <p>Lege wiederkehrende Kontrollen mit Intervall, Karenz und Priorität für eine Person und einen Parameter an.</p>
+              <p>Lege wiederkehrende Kontrollen mit Intervall, Karenz und Priorität für eine Person und einen oder mehrere Parameter an.</p>
             </div>
             {renderPanelCloseButton("Panel Zyklische Planung schließen")}
           </div>
@@ -433,23 +588,48 @@ export function PlanungPage() {
               </select>
             </label>
 
-            <label className="field">
-              <span>Parameter</span>
-              <select
-                required
-                value={zyklischForm.laborparameter_id}
-                onChange={(event) =>
-                  setZyklischForm((current) => ({ ...current, laborparameter_id: event.target.value }))
-                }
-              >
-                <option value="">Bitte wählen</option>
-                {parameterQuery.data?.map((parameter) => (
-                  <option key={parameter.id} value={parameter.id}>
-                    {parameter.anzeigename}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className="field field--full">
+              <span>Gruppe übernehmen</span>
+              <div className="inline-actions">
+                <select value={zyklischGruppeId} onChange={(event) => setZyklischGruppeId(event.target.value)}>
+                  <option value="">Keine Gruppe gewählt</option>
+                  {gruppenQuery.data?.map((gruppe) => (
+                    <option key={gruppe.id} value={gruppe.id}>
+                      {gruppe.name} ({gruppe.parameter_anzahl})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="inline-button planning-group-transfer-button"
+                  onClick={addZyklischGroupParameters}
+                  disabled={
+                    !zyklischGruppeId ||
+                    zyklischGruppenParameterQuery.isLoading ||
+                    zyklischGruppenParameterIds.length === 0
+                  }
+                >
+                  Parameter übernehmen
+                </button>
+              </div>
+              <small>
+                Die Gruppe dient nur zur schnellen Auswahl. Gespeichert werden einzelne Planungen pro Parameter.
+              </small>
+            </div>
+
+            <SelectionChecklist
+              label={`Parameter (${selectedZyklischParameterLabel} ausgewählt)`}
+              options={parameterSelectionOptions}
+              selectedIds={zyklischForm.laborparameter_ids}
+              onChange={(nextIds) =>
+                setZyklischForm((current) => ({ ...current, laborparameter_ids: nextIds }))
+              }
+              emptyText="Noch keine Parameter vorhanden."
+              searchable
+              searchPlaceholder="Name, Schlüssel, Beschreibung oder Einheit suchen"
+              showSelectedOnlyToggle
+              selectedOnlyLabel="Nur gewählte"
+            />
 
             <label className="field">
               <span>Intervallwert</span>
@@ -532,7 +712,7 @@ export function PlanungPage() {
             </label>
 
             <div className="form-actions">
-              <button type="submit" disabled={createZyklischMutation.isPending}>
+              <button type="submit" disabled={createZyklischMutation.isPending || zyklischForm.laborparameter_ids.length === 0}>
                 {createZyklischMutation.isPending ? "Speichert..." : "Zyklische Planung anlegen"}
               </button>
               {createZyklischMutation.isError ? (
@@ -550,7 +730,7 @@ export function PlanungPage() {
           <div className="parameter-panel__header">
             <div>
               <h3>Einmalvormerkung anlegen</h3>
-              <p>Lege eine einmalige Aufgabe oder einen nächsten Termin für eine Person und einen Parameter an.</p>
+              <p>Lege eine einmalige Aufgabe oder einen nächsten Termin für eine Person und einen oder mehrere Parameter an.</p>
             </div>
             {renderPanelCloseButton("Panel Einmalvormerkung schließen")}
           </div>
@@ -578,23 +758,48 @@ export function PlanungPage() {
               </select>
             </label>
 
-            <label className="field">
-              <span>Parameter</span>
-              <select
-                required
-                value={einmaligForm.laborparameter_id}
-                onChange={(event) =>
-                  setEinmaligForm((current) => ({ ...current, laborparameter_id: event.target.value }))
-                }
-              >
-                <option value="">Bitte wählen</option>
-                {parameterQuery.data?.map((parameter) => (
-                  <option key={parameter.id} value={parameter.id}>
-                    {parameter.anzeigename}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className="field field--full">
+              <span>Gruppe übernehmen</span>
+              <div className="inline-actions">
+                <select value={einmaligGruppeId} onChange={(event) => setEinmaligGruppeId(event.target.value)}>
+                  <option value="">Keine Gruppe gewählt</option>
+                  {gruppenQuery.data?.map((gruppe) => (
+                    <option key={gruppe.id} value={gruppe.id}>
+                      {gruppe.name} ({gruppe.parameter_anzahl})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="inline-button planning-group-transfer-button"
+                  onClick={addEinmaligGroupParameters}
+                  disabled={
+                    !einmaligGruppeId ||
+                    einmaligGruppenParameterQuery.isLoading ||
+                    einmaligGruppenParameterIds.length === 0
+                  }
+                >
+                  Parameter übernehmen
+                </button>
+              </div>
+              <small>
+                Die Gruppe dient nur zur schnellen Auswahl. Gespeichert werden einzelne Vormerkungen pro Parameter.
+              </small>
+            </div>
+
+            <SelectionChecklist
+              label={`Parameter (${selectedEinmaligParameterLabel} ausgewählt)`}
+              options={parameterSelectionOptions}
+              selectedIds={einmaligForm.laborparameter_ids}
+              onChange={(nextIds) =>
+                setEinmaligForm((current) => ({ ...current, laborparameter_ids: nextIds }))
+              }
+              emptyText="Noch keine Parameter vorhanden."
+              searchable
+              searchPlaceholder="Name, Schlüssel, Beschreibung oder Einheit suchen"
+              showSelectedOnlyToggle
+              selectedOnlyLabel="Nur gewählte"
+            />
 
             <label className="field">
               <span>Status</span>
@@ -633,7 +838,7 @@ export function PlanungPage() {
             </label>
 
             <div className="form-actions">
-              <button type="submit" disabled={createEinmaligMutation.isPending}>
+              <button type="submit" disabled={createEinmaligMutation.isPending || einmaligForm.laborparameter_ids.length === 0}>
                 {createEinmaligMutation.isPending ? "Speichert..." : "Einmalvormerkung anlegen"}
               </button>
               {createEinmaligMutation.isError ? (
@@ -678,6 +883,40 @@ export function PlanungPage() {
     );
   };
 
+  const renderFaelligkeitenTable = () => (
+    <div className="table-wrap">
+      <table className="data-table parameter-summary-table">
+        <thead>
+          <tr>
+            <th>Typ</th>
+            <th>Person</th>
+            <th>Parameter</th>
+            <th>Status</th>
+            <th>Termin</th>
+            <th>Hinweis</th>
+          </tr>
+        </thead>
+        <tbody>
+          {faelligkeitenQuery.data?.map((item) => (
+            <tr key={`${item.planung_typ}-${item.planung_id}-${item.naechste_faelligkeit || item.zieltermin_datum || "ohne-datum"}`}>
+              <td>{formatPlanungstyp(item.planung_typ as "zyklisch" | "einmalig")}</td>
+              <td>{personById.get(item.person_id)?.anzeigename ?? item.person_id}</td>
+              <td>{parameterById.get(item.laborparameter_id)?.anzeigename ?? item.laborparameter_id}</td>
+              <td>{formatPlanungsstatus(item.status)}</td>
+              <td>{formatDate(item.naechste_faelligkeit || item.zieltermin_datum)}</td>
+              <td>{item.bemerkung || item.intervall_label || "—"}</td>
+            </tr>
+          ))}
+          {!faelligkeitenQuery.data?.length ? (
+            <tr>
+              <td colSpan={6}>Für diese Auswahl gibt es keine anstehenden Messungen.</td>
+            </tr>
+          ) : null}
+        </tbody>
+      </table>
+    </div>
+  );
+
   return (
     <section className="page">
       <header className="page__header page__header--compact">
@@ -694,11 +933,87 @@ export function PlanungPage() {
           </button>
           {showPageInfo ? (
             <div className="page__info-popover">
-              Hier verwaltest Du wiederkehrende Kontrollen, Einmalvormerkungen und die aktuelle Fälligkeitslage.
+              Hier legst Du fest, welche Laborwerte regelmäßig oder einmalig kontrolliert werden sollen. Die Seite
+              zeigt Dir außerdem, welche Werte in einem gewählten Zeitraum fällig werden, damit Du kommende
+              Labortermine oder Arzttermine gezielt vorbereiten kannst.
             </div>
           ) : null}
         </div>
       </header>
+
+      <article className="card planung-due-overview">
+        <button
+          type="button"
+          className={`planung-due-overview__toggle${showFaelligkeitenOverview ? " planung-due-overview__toggle--open" : ""}`}
+          onClick={() => setShowFaelligkeitenOverview((current) => !current)}
+          aria-expanded={showFaelligkeitenOverview}
+        >
+          <span>
+            <strong>Anstehende Messungen</strong>
+            <small>
+              {faelligkeitenCountLabel} • {faelligkeitPersonLabel} • {faelligkeitRangeLabel}
+            </small>
+          </span>
+          <span className="planung-due-overview__chevron" aria-hidden="true">
+            ▾
+          </span>
+        </button>
+
+        {showFaelligkeitenOverview ? (
+          <div className="planung-due-overview__content">
+            <div className="planung-due-overview__controls">
+              <label className="field planung-due-overview__person">
+                <span>Person</span>
+                <select
+                  value={faelligkeitPersonFilter}
+                  onChange={(event) => setFaelligkeitPersonFilter(event.target.value)}
+                >
+                  <option value="">Alle Personen</option>
+                  {personenQuery.data?.map((person) => (
+                    <option key={person.id} value={person.id}>
+                      {person.anzeigename}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="planung-due-overview__presets" aria-label="Schnellauswahl Zeitraum">
+                <button type="button" onClick={() => setFaelligkeitRangeMonths(6)}>
+                  Nächste 6 Monate
+                </button>
+                <button type="button" onClick={() => setFaelligkeitRangeMonths(12)}>
+                  Nächste 12 Monate
+                </button>
+                <button
+                  type="button"
+                  onClick={() => downloadFaelligkeitenPdfMutation.mutate()}
+                  disabled={faelligkeitenQuery.isLoading || downloadFaelligkeitenPdfMutation.isPending}
+                >
+                  {downloadFaelligkeitenPdfMutation.isPending ? "PDF wird erstellt..." : "PDF-Merkzettel"}
+                </button>
+              </div>
+            </div>
+
+            <DateRangeFilterFields
+              fromValue={faelligkeitDatumVon}
+              toValue={faelligkeitDatumBis}
+              fallbackFromValue={defaultFaelligkeitDatumVon}
+              fallbackToValue={defaultFaelligkeitDatumBis}
+              onFromChange={setFaelligkeitDatumVon}
+              onToChange={setFaelligkeitDatumBis}
+              fromLabel="Zeitraum von"
+              toLabel="Zeitraum bis"
+              className="planung-due-overview__range"
+            />
+
+            {faelligkeitenQuery.isError ? <p className="form-error">{faelligkeitenQuery.error.message}</p> : null}
+            {downloadFaelligkeitenPdfMutation.isError ? (
+              <p className="form-error">{downloadFaelligkeitenPdfMutation.error.message}</p>
+            ) : null}
+            {renderFaelligkeitenTable()}
+          </div>
+        ) : null}
+      </article>
 
       <div className="parameter-workspace">
         <aside className="card parameter-sidebar">
@@ -722,13 +1037,25 @@ export function PlanungPage() {
           </label>
 
           <label className="field field--full">
+            <span>Planungstyp</span>
+            <select
+              value={planningTypeFilter}
+              onChange={(event) => setPlanningTypeFilter(event.target.value as "" | PlanungListItem["typ"])}
+            >
+              <option value="">Alle Planungen</option>
+              <option value="zyklisch">Zyklisch</option>
+              <option value="einmalig">Einmalig</option>
+            </select>
+          </label>
+
+          <label className="field field--full">
             <span>Suche</span>
             <div className="clearable-field">
               <input
                 className="clearable-field__input"
                 value={planningSearchQuery}
                 onChange={(event) => setPlanningSearchQuery(event.target.value)}
-                placeholder="Person, Parameter, Status oder Hinweis"
+                placeholder="Person oder Parameter suchen"
               />
               <button
                 type="button"
@@ -980,37 +1307,7 @@ export function PlanungPage() {
                       </button>
                       {showRelatedFaelligkeiten ? (
                         <div className="parameter-related__content">
-                          <div className="table-wrap">
-                            <table className="data-table parameter-summary-table">
-                              <thead>
-                                <tr>
-                                  <th>Typ</th>
-                                  <th>Person</th>
-                                  <th>Parameter</th>
-                                  <th>Status</th>
-                                  <th>Fällig / Zieltermin</th>
-                                  <th>Hinweis</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {faelligkeitenQuery.data?.map((item) => (
-                                  <tr key={`${item.planung_typ}-${item.planung_id}`}>
-                                    <td>{formatPlanungstyp(item.planung_typ as "zyklisch" | "einmalig")}</td>
-                                    <td>{personById.get(item.person_id)?.anzeigename ?? item.person_id}</td>
-                                    <td>{parameterById.get(item.laborparameter_id)?.anzeigename ?? item.laborparameter_id}</td>
-                                    <td>{formatPlanungsstatus(item.status)}</td>
-                                    <td>{formatDate(item.naechste_faelligkeit || item.zieltermin_datum)}</td>
-                                    <td>{item.bemerkung || item.intervall_label || "—"}</td>
-                                  </tr>
-                                ))}
-                                {!faelligkeitenQuery.data?.length ? (
-                                  <tr>
-                                    <td colSpan={6}>Aktuell gibt es keine fälligen oder vorgemerkten Positionen.</td>
-                                  </tr>
-                                ) : null}
-                              </tbody>
-                            </table>
-                          </div>
+                          {renderFaelligkeitenTable()}
                         </div>
                       ) : null}
                     </article>

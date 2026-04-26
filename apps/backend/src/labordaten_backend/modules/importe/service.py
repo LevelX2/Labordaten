@@ -61,6 +61,7 @@ from labordaten_backend.modules.importe.schemas import (
 )
 from labordaten_backend.modules.parameter.normalization import build_parameter_key_candidate, normalize_parameter_name
 from labordaten_backend.modules.parameter import conversions as parameter_conversions
+from labordaten_backend.modules.parameter import service as parameter_service
 
 
 HEADER_ALIASES: dict[str, set[str]] = {
@@ -72,7 +73,6 @@ HEADER_ALIASES: dict[str, set[str]] = {
     "befund_bemerkung": {"befundbemerkung", "befund_bemerkung", "berichtsbemerkung"},
     "gruppe_name": {"gruppe", "gruppenname", "gruppe_name", "block", "blockname", "kategorie"},
     "gruppe_beschreibung": {"gruppenbeschreibung", "gruppe_beschreibung", "blockbeschreibung"},
-    "gruppe_sortierschluessel": {"gruppesortierung", "gruppe_sortierschluessel", "blocksortierung"},
     "parameter_id": {"parameterid", "parameter_id"},
     "original_parametername": {
         "originalparametername",
@@ -90,6 +90,7 @@ HEADER_ALIASES: dict[str, set[str]] = {
     "einheit_original": {"einheitoriginal", "einheit_original", "einheit", "unit"},
     "bemerkung_kurz": {"bemerkungkurz", "bemerkung_kurz", "bemerkung"},
     "bemerkung_lang": {"bemerkunglang", "bemerkung_lang"},
+    "ki_hinweis": {"kihinweis", "ki_hinweis", "extraktionshinweis", "extraktions_hinweis"},
     "referenz_text_original": {"referenztextoriginal", "referenztext", "referenz"},
     "untere_grenze_num": {"unteregrenzenum", "untere_grenze_num", "referenzuntere", "untergrenze"},
     "untere_grenze_operator": {"unteregrenzeoperator", "untere_grenze_operator", "referenzuntereoperator"},
@@ -319,7 +320,8 @@ def create_import_entwurf_from_json_upload(
     document_content: bytes | None,
     document_name_override: str | None,
 ) -> ImportvorgangDetailRead:
-    import_payload = _parse_payload(payload_json, person_id_override)
+    import_payload = _parse_payload(payload_json)
+    import_payload.befund.person_id = person_id_override
     dokument_id: str | None = None
 
     if document_content:
@@ -416,7 +418,13 @@ def uebernehmen_import(
     if importvorgang.status == "uebernommen":
         raise ValueError("Dieser Importvorgang wurde bereits übernommen.")
 
-    import_payload = _parse_payload(importvorgang.roh_payload_text or "")
+    import_payload = _parse_payload(importvorgang.roh_payload_text or "", payload.person_id_override)
+    if payload.person_id_override:
+        importvorgang.roh_payload_text = _serialize_payload(import_payload)
+        importvorgang.person_id_vorschlag = import_payload.befund.person_id
+        importvorgang.fingerprint = hashlib.sha256(importvorgang.roh_payload_text.encode("utf-8")).hexdigest()
+        db.add(importvorgang)
+
     mappings = payload.parameter_mappings
     pruefregeln = _generate_checks(db, importvorgang.id, import_payload, mappings)
 
@@ -697,7 +705,6 @@ def anwenden_gruppenvorschlaege(
                     gruppen_schemas.GruppeCreate(
                         name=zielname,
                         beschreibung=suggestion.beschreibung,
-                        sortierschluessel=suggestion.sortierschluessel,
                     ),
                 )
         else:
@@ -932,7 +939,7 @@ Parameter und Werte:
 - Bei "<5" setze "wertOperator": "kleiner_als", "wertRohText": "<5" und "wertNum": 5.
 - Bei ">200" setze "wertOperator": "groesser_als", "wertRohText": ">200" und "wertNum": 200.
 - Bei qualitativen Werten wie "positiv", "negativ", "++", "nicht nachweisbar" nutze "wertTyp": "text" und fülle "wertText".
-- Markiere unleserliche, widersprüchliche oder geschätzte Werte mit "unsicherFlag": true oder "pruefbedarfFlag": true und erkläre den Grund in "bemerkungKurz" oder "bemerkungLang".
+- Markiere unleserliche, widersprüchliche oder geschätzte Werte mit "unsicherFlag": true oder "pruefbedarfFlag": true und erkläre den Grund in "kiHinweis".
 - Wenn ein Originalname offensichtlich nur eine alternative Schreibweise eines sicher gematchten Parameters ist, darf "aliasUebernehmen": true vorgeschlagen werden. Die Anwendung fragt später noch einmal nach.
 
 Parameter-Vorschläge:
@@ -954,7 +961,8 @@ Referenzen und Kommentare:
 - Strukturierte "untereGrenzeNum" und "obereGrenzeNum" nur setzen, wenn die Grenzen eindeutig sind.
 - Referenzeinheit in "referenzEinheit" setzen, wenn sie erkennbar ist.
 - Alters- und geschlechtsbezogene Referenzkontexte in "referenzAlterMinTage", "referenzAlterMaxTage", "referenzGeschlechtCode" oder "referenzBemerkung" ablegen.
-- Labor-Kommentare zu einzelnen Werten in "bemerkungKurz" oder "bemerkungLang" übernehmen.
+- Originale Labor-Kommentare zu einzelnen Werten in "bemerkungKurz" oder "bemerkungLang" übernehmen. Diese Felder sind für Text aus dem Bericht selbst gedacht, möglichst originalnah und ohne eigene KI-Erklärung.
+- Eigene KI-Anmerkungen, Extraktionszweifel, Mapping-Hinweise oder Begründungen, warum ein Wert unsicher ist, gehören in "kiHinweis" und nicht in "bemerkungKurz" oder "bemerkungLang".
 
 Gruppen:
 - Wenn das Dokument erkennbare Berichtsabschnitte oder Blöcke enthält, erstelle "gruppenVorschlaege".
@@ -987,8 +995,9 @@ Beispielstruktur:
       "untereGrenzeNum": 30,
       "obereGrenzeNum": 400,
       "referenzEinheit": "ng/ml",
-      "bemerkungKurz": "optional",
-      "bemerkungLang": "optional",
+      "bemerkungKurz": "optionaler Originalkommentar aus dem Laborbericht",
+      "bemerkungLang": "optionaler längerer Originalkommentar aus dem Laborbericht",
+      "kiHinweis": "optionale KI- oder Extraktionsanmerkung, nicht Teil des Laborbericht-Originaltexts",
       "aliasUebernehmen": false,
       "unsicherFlag": false,
       "pruefbedarfFlag": false
@@ -1141,6 +1150,10 @@ def _build_measurement_preview(
         wert_text=item.wert_text,
         einheit_original=item.einheit_original,
         bemerkung_kurz=item.bemerkung_kurz,
+        bemerkung_lang=item.bemerkung_lang,
+        ki_hinweis=item.ki_hinweis,
+        unsicher_flag=item.unsicher_flag,
+        pruefbedarf_flag=item.pruefbedarf_flag,
         referenz_text_original=item.referenz_text_original,
         untere_grenze_num=item.untere_grenze_num,
         untere_grenze_operator=item.untere_grenze_operator,
@@ -1209,7 +1222,6 @@ def _build_group_suggestion_previews(
                 index=index,
                 name=suggestion.name,
                 beschreibung=suggestion.beschreibung,
-                sortierschluessel=suggestion.sortierschluessel,
                 messwert_indizes=suggestion.messwert_indizes,
                 parameter_ids=parameter_ids,
                 parameter_namen=parameter_names,
@@ -1696,6 +1708,7 @@ def _create_parameter_from_import_mapping(
     )
     db.add(parameter)
     db.flush()
+    parameter_service.ensure_parameter_knowledge_page(db, parameter)
     return parameter.id
 
 
@@ -2051,6 +2064,7 @@ def _row_to_measurement(row: dict[str, str]) -> ImportMesswertPayload | None:
         "einheitOriginal": _row_value(row, "einheit_original"),
         "bemerkungKurz": _row_value(row, "bemerkung_kurz"),
         "bemerkungLang": _row_value(row, "bemerkung_lang"),
+        "kiHinweis": _row_value(row, "ki_hinweis"),
         "referenzTextOriginal": reference_text,
         "untereGrenzeNum": lower_reference_num,
         "untereGrenzeOperator": lower_reference_operator,
@@ -2086,7 +2100,7 @@ def _extract_date(rows: list[dict[str, str]], field: str) -> date | None:
 
 def _build_tabular_group_suggestions(rows: list[dict[str, str]]) -> list[dict[str, object]]:
     grouped_indices: dict[str, list[int]] = {}
-    group_metadata: dict[str, tuple[str | None, str | None]] = {}
+    group_metadata: dict[str, str | None] = {}
 
     for index, row in enumerate(rows):
         name = _row_value(row, "gruppe_name")
@@ -2096,19 +2110,12 @@ def _build_tabular_group_suggestions(rows: list[dict[str, str]]) -> list[dict[st
         if not cleaned_name:
             continue
         grouped_indices.setdefault(cleaned_name, []).append(index)
-        group_metadata.setdefault(
-            cleaned_name,
-            (
-                _row_value(row, "gruppe_beschreibung"),
-                _row_value(row, "gruppe_sortierschluessel"),
-            ),
-        )
+        group_metadata.setdefault(cleaned_name, _row_value(row, "gruppe_beschreibung"))
 
     return [
         {
             "name": name,
-            "beschreibung": group_metadata[name][0],
-            "sortierschluessel": group_metadata[name][1],
+            "beschreibung": group_metadata[name],
             "messwertIndizes": indices,
         }
         for name, indices in grouped_indices.items()

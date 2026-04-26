@@ -1,4 +1,7 @@
+from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from labordaten_backend.api.deps import get_db
@@ -23,6 +26,17 @@ def create_planung_zyklisch(
 ) -> schemas.PlanungZyklischRead:
     try:
         return service.create_planung_zyklisch(db, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@router.post("/zyklisch/batch", response_model=list[schemas.PlanungZyklischRead], status_code=status.HTTP_201_CREATED)
+def create_planung_zyklisch_batch(
+    payload: schemas.PlanungZyklischBatchCreate,
+    db: Session = Depends(get_db),
+) -> list[schemas.PlanungZyklischRead]:
+    try:
+        return service.create_planung_zyklisch_batch(db, payload)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
@@ -62,6 +76,17 @@ def create_planung_einmalig(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
 
+@router.post("/einmalig/batch", response_model=list[schemas.PlanungEinmaligRead], status_code=status.HTTP_201_CREATED)
+def create_planung_einmalig_batch(
+    payload: schemas.PlanungEinmaligBatchCreate,
+    db: Session = Depends(get_db),
+) -> list[schemas.PlanungEinmaligRead]:
+    try:
+        return service.create_planung_einmalig_batch(db, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
 @router.patch("/einmalig/{planung_id}", response_model=schemas.PlanungEinmaligRead)
 def update_planung_einmalig(
     planung_id: str,
@@ -80,6 +105,43 @@ def update_planung_einmalig(
 @router.get("/faelligkeiten", response_model=list[schemas.FaelligkeitRead])
 def list_faelligkeiten(
     person_id: str | None = Query(default=None),
+    datum_von: date | None = Query(default=None),
+    datum_bis: date | None = Query(default=None),
     db: Session = Depends(get_db),
 ) -> list[schemas.FaelligkeitRead]:
-    return service.list_faelligkeiten(db, person_id=person_id)
+    if datum_von and datum_bis and datum_bis < datum_von:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Das Bis-Datum darf nicht vor dem Von-Datum liegen.",
+        )
+    return service.list_faelligkeiten(
+        db,
+        person_id=person_id,
+        datum_von=datum_von,
+        datum_bis=datum_bis,
+    )
+
+
+@router.get("/faelligkeiten/pdf")
+def download_faelligkeiten_pdf(
+    person_id: str | None = Query(default=None),
+    datum_von: date | None = Query(default=None),
+    datum_bis: date | None = Query(default=None),
+    db: Session = Depends(get_db),
+) -> Response:
+    if datum_von and datum_bis and datum_bis < datum_von:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Das Bis-Datum darf nicht vor dem Von-Datum liegen.",
+        )
+    filename, content = service.render_faelligkeiten_pdf(
+        db,
+        person_id=person_id,
+        datum_von=datum_von,
+        datum_bis=datum_bis,
+    )
+    return Response(
+        content,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
