@@ -1,7 +1,7 @@
 ---
 typ: uebersicht
 status: aktiv
-letzte_aktualisierung: 2026-04-25
+letzte_aktualisierung: 2026-04-26
 quellen:
   - ../../00 Projektstart.md
   - ../../03 Betrieb/Log.md
@@ -33,6 +33,7 @@ Diese Seite beschreibt den aktuellen Projektstand als Snapshot. Zeitliche Abfolg
 - Der Import kann bestehende Parameter über Anzeigename, Schlüssel oder Alias zuordnen, beim bestätigten Mapping neue Aliase aus Berichtsschreibweisen anlegen und fehlende Parameter bei bewusster Auswahl aus der Messwertklärung neu anlegen.
 - KI-JSON-Importe können für unbekannte Parameter optionale `parameterVorschlaege` mit Kurzbeschreibung, Einheit, Werttyp und Alias-Hinweisen mitbringen; diese werden in der Prüfansicht angezeigt und erst bei bewusst bestätigter Neuanlage als Stammdaten übernommen.
 - Die Befundansicht bietet jetzt neben der Freitextsuche auch strukturierte Filter nach Person, Labor, Zeitraum, Dokumentstatus, Quelle und Dublettenwarnung.
+- In der Befundansicht kann aus jedem zugeordneten Messwert direkt die Auswertung für dieselbe Person und denselben Parameter geöffnet werden; der Verlauf wird dabei ohne Datumsbegrenzung automatisch geladen.
 - Referenzoperatoren wie `<`, `>`, `<=` und `>=` werden strukturiert geführt.
 - Berichtsblöcke können im Import als Gruppenvorschläge vorbereitet und nach der Übernahme auf neue oder bestehende Gruppen angewendet werden.
 - Neue Parameter erhalten ihren internen Schlüssel automatisch aus dem Anzeigenamen; Dublettenprüfung, Zusammenführung und Alias-Vorschläge sind in der Parameterpflege vorhanden.

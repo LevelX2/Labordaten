@@ -11,6 +11,20 @@
 
 ## 2026-04
 
+### [2026-04-26] update | Absprung vom Befundmesswert in die Auswertung ergänzt
+- Anlass oder Quelle: Nutzerwunsch, aus einem angezeigten Befund je Messwert direkt dessen zeitlichen Verlauf für die betroffene Person öffnen zu können
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - [[../02 Wissen/00 Uebersichten/Aktueller Projektstatus]]
+  - ../../../apps/frontend/src/features/befunde/BefundePage.tsx
+  - ../../../apps/frontend/src/features/auswertung/AuswertungPage.tsx
+- Kern der inhaltlichen Anpassung:
+  - Die Messwerttabelle im Befunddetail erhält pro Messwert eine Aktion `Verlauf`.
+  - Der Absprung setzt Person und Laborparameter als Auswertungsfilter und lässt den Datumsbereich offen, damit der gesamte bekannte Verlauf sichtbar wird.
+  - Die Auswertung lädt bei diesem Kontextsprung automatisch, ohne dass der Nutzer zusätzlich `Auswertung laden` klicken muss.
+  - Verifiziert mit `npm run build` und `npm test` im Frontend.
+
 ### [2026-04-26] update | Haupt-Vault-Anbindung mit Priorität und lokalem Fallback präzisiert
 - Anlass oder Quelle: Review der Umstellung auf `AGENTS.local.md` und Haupt-Vault-Modell mit Bedarf nach klarerem Vorrang und robusterem Fallback
 - Neu angelegte Seiten:

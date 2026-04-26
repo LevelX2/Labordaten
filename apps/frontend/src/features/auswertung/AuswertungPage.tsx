@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   CartesianGrid,
@@ -356,6 +356,7 @@ export function AuswertungPage() {
   const [form, setForm] = useState<AuswertungFormState>(() =>
     applySharedFilterSearchParams(initialForm, searchParams)
   );
+  const autoLoadKeyRef = useRef<string | null>(null);
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(() => form.person_ids.length === 0);
 
   const personenQuery = useQuery({
@@ -395,6 +396,18 @@ export function AuswertungPage() {
         })
       })
   });
+
+  useEffect(() => {
+    const autoLoadKey = searchParams.toString();
+    if (
+      searchParams.get("auto_laden") === "1" &&
+      form.person_ids.length > 0 &&
+      autoLoadKeyRef.current !== autoLoadKey
+    ) {
+      autoLoadKeyRef.current = autoLoadKey;
+      auswertungMutation.mutate();
+    }
+  }, [auswertungMutation, form.person_ids.length, searchParams]);
 
   const qualitativeEvents = useMemo(
     () =>

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { apiFetch } from "../../shared/api/client";
 import { DateRangeFilterFields } from "../../shared/components/DateRangeFilterFields";
@@ -146,6 +147,7 @@ function buildBefundFilterSummary(filter: BefundFilterState): string[] {
 
 export function BefundePage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [form, setForm] = useState<BefundFormState>(initialForm);
   const [filter, setFilter] = useState<BefundFilterState>(initialFilter);
   const [selectedBefundId, setSelectedBefundId] = useState<string | null>(null);
@@ -287,6 +289,17 @@ export function BefundePage() {
       ]);
     }
   });
+
+  const openMesswertAuswertung = (messwert: Messwert) => {
+    const searchParams = new URLSearchParams();
+    searchParams.append("person_ids", messwert.person_id);
+    searchParams.append("laborparameter_ids", messwert.laborparameter_id);
+    searchParams.set("datum_von", "");
+    searchParams.set("datum_bis", "");
+    searchParams.set("auto_laden", "1");
+
+    navigate(`/auswertung?${searchParams.toString()}`);
+  };
 
   const renderPanelCloseButton = (label = "Werkzeug schließen") => (
     <button
@@ -770,6 +783,7 @@ export function BefundePage() {
                                   <th>Einheit</th>
                                   <th>Gruppen</th>
                                   <th>Hinweis</th>
+                                  <th>Verlauf</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -780,11 +794,21 @@ export function BefundePage() {
                                     <td>{messwert.einheit_original || "—"}</td>
                                     <td>{messwert.gruppen_namen.join(", ") || "—"}</td>
                                     <td>{messwert.bemerkung_kurz || "—"}</td>
+                                    <td>
+                                      <button
+                                        type="button"
+                                        className="inline-button"
+                                        onClick={() => openMesswertAuswertung(messwert)}
+                                        title="Zeitlichen Verlauf für diese Person und diesen Parameter öffnen"
+                                      >
+                                        Verlauf
+                                      </button>
+                                    </td>
                                   </tr>
                                 ))}
                                 {!messwerteQuery.data?.length ? (
                                   <tr>
-                                    <td colSpan={5}>Noch keine Messwerte für diesen Befund vorhanden.</td>
+                                    <td colSpan={6}>Noch keine Messwerte für diesen Befund vorhanden.</td>
                                   </tr>
                                 ) : null}
                               </tbody>
