@@ -253,6 +253,8 @@ Auf breiten Bildschirmen erscheinen diese Gruppen als Abschnitte in der linken N
 - Zeitraum
 - Anzeigeart: absolut, normiert, nur numerisch, numerisch plus qualitative Ereignisse
 - Referenzanzeige: Labor, Zielbereich, beides, keines
+- Filter- und Anzeigeeinstellungen sollen als benannte Vorlagen speicherbar und wiederladbar sein.
+- Beim Laden einer Vorlage sollen nicht mehr verfügbare Personen, Parameter, Parametergruppen oder Labore sichtbar gemeldet werden, statt die Auswahl stillschweigend zu verändern.
 
 ### Ansichten
 - Einzelparameter-Verlauf
@@ -275,6 +277,8 @@ Auf breiten Bildschirmen erscheinen diese Gruppen als Abschnitte in der linken N
 - `Arztbericht Liste`
 - `Verlaufsbericht Zeitachse`
 - später erweiterbar
+- Berichtsfilter und berichtsspezifische Ausgabeoptionen sollen über dieselbe Vorlagenlogik wie die Auswertung speicherbar und wiederladbar sein.
+- Die gemeinsame Vorlagenlogik speichert den Berichtstyp mit, damit Arztbericht- und Verlaufsbericht-Vorlagen nicht vermischt werden.
 
 ### Arztbericht Liste
 - Filter: Person, Parametergruppe, Parameter, Zeitraum, Labor

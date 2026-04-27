@@ -11,8 +11,8 @@
 
 ## 2026-04
 
-### [2026-04-27] feature | Ansichtsvorlagen für Auswertung und Berichte vorbereitet
-- Anlass oder Quelle: Lokaler Abschluss eines vorbereiteten Vorlagenblocks für wiederverwendbare Auswertungs- und Berichtskonfigurationen.
+### [2026-04-27] feature | Ansichtsvorlagen für Auswertung und Berichte umgesetzt
+- Anlass oder Quelle: Nutzerauftrag, wiederverwendbare Auswertungsfilterungen und Berichtskonfigurationen speicherbar und wiederladbar zu machen.
 - Neu angelegte Seiten:
   - keine
 - Geänderte Seiten:
@@ -20,14 +20,22 @@
   - ../../../apps/backend/src/labordaten_backend/models/ansicht_vorlage.py
   - ../../../apps/backend/src/labordaten_backend/modules/vorlagen/
   - ../../../apps/backend/src/labordaten_backend/api/routes/vorlagen.py
+  - ../../../apps/backend/tests/test_vorlagen_api.py
+  - ../../../apps/frontend/src/features/auswertung/AuswertungPage.tsx
+  - ../../../apps/frontend/src/features/berichte/BerichtePage.tsx
   - ../../../apps/frontend/src/shared/components/ViewTemplateBar.tsx
   - ../../../apps/frontend/src/shared/types/api.ts
   - ../../../apps/frontend/src/styles.css
+  - ../02 Wissen/Begriffe und Konzepte/V1 Screenplan und Kernworkflows.md
+  - ../02 Wissen/Begriffe und Konzepte/V1 Ziel-Datenmodell.md
+  - ../02 Wissen/Begriffe und Konzepte/V1 Technisches Schema.md
+  - ../02 Wissen/Begriffe und Konzepte/V1 Projektstruktur, Module und Schnittstellen.md
 - Kern der inhaltlichen Anpassung:
   - `AnsichtVorlage` speichert benannte Konfigurationen für Auswertungsverläufe, Arztberichte und Verlaufsberichte mit Bereich, Typ, JSON-Konfiguration, Sortierung und letzter Verwendung.
   - Das Backend stellt CRUD-Endpunkte unter `/api/vorlagen` bereit und validiert die Konfiguration je Vorlagentyp.
-  - Frontend-Typen und eine wiederverwendbare Vorlagenleiste bereiten die spätere UI-Anbindung in Auswertung und Berichten vor.
-  - Verifiziert mit `npm run build`, `npm test` und vollständigem Backend-Testlauf `python -m pytest` mit 112 bestandenen Tests.
+  - Auswertung und Berichte nutzen die wiederverwendbare Vorlagenleiste zum Laden, Speichern, Speichern unter, Umbenennen und Löschen von Vorlagen.
+  - Beim Laden einer Vorlage weist die UI auf nicht mehr verfügbare Auswahlwerte hin, statt solche Bezüge still zu verschlucken.
+  - Verifiziert mit `npm run build`, `npm test` und vollständigem Backend-Testlauf `pytest` mit 112 bestandenen Tests.
 
 ### [2026-04-27] feature | Zielrichtungen für Zielbereiche ergänzt
 - Anlass oder Quelle: Nutzerfrage, wie persönliche Zielwerte wie `je niedriger desto besser` oder `so niedrig wie möglich` bei AGEs, Aluminium im Vollblut und Arsen im Vollblut strukturiert abgebildet werden sollen.
