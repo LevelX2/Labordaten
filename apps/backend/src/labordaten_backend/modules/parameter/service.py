@@ -611,7 +611,7 @@ def merge_parameters(db: Session, payload: ParameterMergeRequest) -> ParameterMe
     moved_target_ranges = _reassign_parameter_rows(db, Zielbereich, source.id, target.id)
     moved_cyclic_plans = _reassign_parameter_rows(db, PlanungZyklisch, source.id, target.id)
     moved_one_time_plans = _reassign_parameter_rows(db, PlanungEinmalig, source.id, target.id)
-    _reassign_parameter_rows(db, ParameterKlassifikation, source.id, target.id)
+    _merge_parameter_klassifikationen(db, source.id, target.id)
     moved_group_assignments, removed_duplicate_group_assignments = _merge_group_assignments(db, source.id, target.id)
     created_aliases, skipped_aliases = _merge_parameter_aliases(db, target, source, common_name, original_target_name)
     _delete_duplicate_suppressions_for_parameter_ids(db, [source.id])
@@ -1008,6 +1008,7 @@ def _build_target_range_signature(target_range: Zielbereich) -> str:
         [
             target_range.wert_typ or "",
             target_range.zielbereich_typ or "",
+            target_range.zielbereich_quelle_id or "",
             lower,
             upper,
             normalize_parameter_name(target_range.einheit),
@@ -1015,6 +1016,8 @@ def _build_target_range_signature(target_range: Zielbereich) -> str:
             (target_range.geschlecht_code or "").strip().lower(),
             "" if target_range.alter_min_tage is None else str(target_range.alter_min_tage),
             "" if target_range.alter_max_tage is None else str(target_range.alter_max_tage),
+            normalize_parameter_name(target_range.quelle_original_text),
+            normalize_parameter_name(target_range.quelle_stelle),
         ]
     )
 
@@ -1313,6 +1316,28 @@ def _reassign_parameter_rows(db: Session, model, source_parameter_id: str, targe
     for row in rows:
         row.laborparameter_id = target_parameter_id
     return len(rows)
+
+
+def _merge_parameter_klassifikationen(db: Session, source_parameter_id: str, target_parameter_id: str) -> None:
+    target_klassifikationen = {
+        (entry.klassifikation, entry.kontext_beschreibung): entry
+        for entry in db.scalars(
+            select(ParameterKlassifikation).where(ParameterKlassifikation.laborparameter_id == target_parameter_id)
+        )
+    }
+    for source_klassifikation in list(
+        db.scalars(select(ParameterKlassifikation).where(ParameterKlassifikation.laborparameter_id == source_parameter_id))
+    ):
+        key = (source_klassifikation.klassifikation, source_klassifikation.kontext_beschreibung)
+        existing_target = target_klassifikationen.get(key)
+        if existing_target is not None:
+            if not existing_target.begruendung and source_klassifikation.begruendung:
+                existing_target.begruendung = source_klassifikation.begruendung
+            existing_target.aktiv = existing_target.aktiv or source_klassifikation.aktiv
+            db.delete(source_klassifikation)
+            continue
+        source_klassifikation.laborparameter_id = target_parameter_id
+        target_klassifikationen[key] = source_klassifikation
 
 
 def _merge_group_assignments(db: Session, source_parameter_id: str, target_parameter_id: str) -> tuple[int, int]:

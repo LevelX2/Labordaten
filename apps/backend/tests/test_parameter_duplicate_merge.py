@@ -15,6 +15,7 @@ from labordaten_backend.models.laborparameter_alias import LaborparameterAlias
 from labordaten_backend.models.messwert import Messwert
 from labordaten_backend.models.messwert_referenz import MesswertReferenz
 from labordaten_backend.models.parameter_dublettenausschluss import ParameterDublettenausschluss
+from labordaten_backend.models.parameter_klassifikation import ParameterKlassifikation
 from labordaten_backend.models.parameter_gruppe import ParameterGruppe
 from labordaten_backend.models.person import Person
 from labordaten_backend.models.planung_einmalig import PlanungEinmalig
@@ -454,6 +455,24 @@ def test_parameter_merge_reassigns_usage_and_creates_aliases(tmp_path: Path) -> 
                     alias_text="25 OH Vitamin D",
                     alias_normalisiert="25ohvitamind",
                 ),
+                ParameterKlassifikation(
+                    laborparameter_id=target.id,
+                    klassifikation="krankwert",
+                    kontext_beschreibung="ausgeprägter Mangel oder Intoxikation",
+                    begruendung="Zielbegründung",
+                ),
+                ParameterKlassifikation(
+                    laborparameter_id=source.id,
+                    klassifikation="krankwert",
+                    kontext_beschreibung="ausgeprägter Mangel oder Intoxikation",
+                    begruendung="Quellbegründung",
+                ),
+                ParameterKlassifikation(
+                    laborparameter_id=source.id,
+                    klassifikation="schluesselwert",
+                    kontext_beschreibung="Knochen-/Calciumstoffwechsel",
+                    begruendung="Quellbegründung",
+                ),
                 ParameterDublettenausschluss(
                     erster_parameter_id=min(target.id, source.id),
                     zweiter_parameter_id=max(target.id, source.id),
@@ -535,3 +554,14 @@ def test_parameter_merge_reassigns_usage_and_creates_aliases(tmp_path: Path) -> 
             for alias in db.scalars(select(LaborparameterAlias).where(LaborparameterAlias.laborparameter_id == target.id))
         }
         assert {"Vitamin D3 (25-OH)", "Vitamin D3 (25 OH) LCMS", "25 OH Vitamin D"} <= aliases
+
+        klassifikationen = list(
+            db.scalars(select(ParameterKlassifikation).where(ParameterKlassifikation.laborparameter_id == target.id))
+        )
+        assert {
+            (item.klassifikation, item.kontext_beschreibung, item.begruendung)
+            for item in klassifikationen
+        } == {
+            ("krankwert", "ausgeprägter Mangel oder Intoxikation", "Zielbegründung"),
+            ("schluesselwert", "Knochen-/Calciumstoffwechsel", "Quellbegründung"),
+        }

@@ -7,6 +7,7 @@ import type {
   RhesusfaktorCode,
   WertOperator,
   WertTyp,
+  ZielbereichQuelleTyp,
   ZielbereichTyp
 } from "../types/api";
 
@@ -72,6 +73,14 @@ export const ZIELBEREICH_TYP_OPTIONS = [
   { value: "risikobereich", label: "Risikobereich" }
 ] as const satisfies ReadonlyArray<{ value: ZielbereichTyp; label: string }>;
 
+export const ZIELBEREICH_QUELLE_TYP_OPTIONS = [
+  { value: "experte", label: "Experte" },
+  { value: "buch", label: "Buch" },
+  { value: "leitlinie", label: "Leitlinie" },
+  { value: "labor", label: "Labor" },
+  { value: "eigene_vorgabe", label: "Eigene Vorgabe" }
+] as const satisfies ReadonlyArray<{ value: ZielbereichQuelleTyp; label: string }>;
+
 export const WERT_OPERATOR_OPTIONS = [
   { value: "exakt", label: "Exakt" },
   { value: "kleiner_als", label: "Kleiner als (<)" },
@@ -105,6 +114,14 @@ const ZIELBEREICH_TYP_LABELS: Record<ZielbereichTyp, string> = {
   therapieziel: "Therapieziel",
   mangelbereich: "Mangelbereich",
   risikobereich: "Risikobereich"
+};
+
+const ZIELBEREICH_QUELLE_TYP_LABELS: Record<ZielbereichQuelleTyp, string> = {
+  experte: "Experte",
+  buch: "Buch",
+  leitlinie: "Leitlinie",
+  labor: "Labor",
+  eigene_vorgabe: "Eigene Vorgabe"
 };
 
 const WERT_OPERATOR_LABELS: Record<WertOperator, string> = {
@@ -182,6 +199,13 @@ export function formatZielbereichTyp(value?: string | null): string {
     return "Allgemein";
   }
   return ZIELBEREICH_TYP_LABELS[value as ZielbereichTyp] ?? value;
+}
+
+export function formatZielbereichQuelleTyp(value?: string | null): string {
+  if (!value) {
+    return "Quelle";
+  }
+  return ZIELBEREICH_QUELLE_TYP_LABELS[value as ZielbereichQuelleTyp] ?? value;
 }
 
 export function formatWertOperator(value?: string | null, emptyLabel = "—"): string {

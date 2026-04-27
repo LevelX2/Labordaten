@@ -52,6 +52,7 @@ def build_snapshot(database_path: Path, version: str) -> dict[str, Any]:
             "gruppen_parameter": _gruppen_parameter(con),
             "parameter_klassifikationen": _parameter_klassifikationen(con),
             "parameter_umrechnungsregeln": _parameter_umrechnungsregeln(con),
+            "zielbereich_quellen": _zielbereich_quellen(con),
             "zielbereiche": _zielbereiche(con),
             "parameter_dublettenausschluesse": _parameter_dublettenausschluesse(con),
         }
@@ -232,6 +233,10 @@ def _zielbereiche(con: sqlite3.Connection) -> list[dict[str, Any]]:
             """
             SELECT
                 lp.interner_schluessel AS parameter_schluessel,
+                zq.name AS zielbereich_quelle_name,
+                zq.titel AS zielbereich_quelle_titel,
+                zq.jahr AS zielbereich_quelle_jahr,
+                zq.version AS zielbereich_quelle_version,
                 z.wert_typ,
                 z.zielbereich_typ,
                 z.untere_grenze_num,
@@ -241,11 +246,28 @@ def _zielbereiche(con: sqlite3.Connection) -> list[dict[str, Any]]:
                 z.geschlecht_code,
                 z.alter_min_tage,
                 z.alter_max_tage,
+                z.quelle_original_text,
+                z.quelle_stelle,
                 z.bemerkung,
                 z.aktiv
             FROM zielbereich z
             JOIN laborparameter lp ON lp.id = z.laborparameter_id
-            ORDER BY lp.interner_schluessel, z.zielbereich_typ, z.geschlecht_code, z.alter_min_tage, z.alter_max_tage
+            LEFT JOIN zielbereich_quelle zq ON zq.id = z.zielbereich_quelle_id
+            ORDER BY lp.interner_schluessel, zq.name, z.zielbereich_typ, z.geschlecht_code, z.alter_min_tage, z.alter_max_tage
+            """,
+        ),
+        "aktiv",
+    )
+
+
+def _zielbereich_quellen(con: sqlite3.Connection) -> list[dict[str, Any]]:
+    return _bools(
+        _rows(
+            con,
+            """
+            SELECT name, quellen_typ, titel, jahr, version, bemerkung, aktiv
+            FROM zielbereich_quelle
+            ORDER BY name, jahr, titel, version
             """,
         ),
         "aktiv",

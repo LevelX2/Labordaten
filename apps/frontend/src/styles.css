@@ -1730,6 +1730,28 @@ a {
   margin-bottom: 18px;
 }
 
+.parameter-panel-section {
+  display: grid;
+  gap: 14px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.parameter-panel-section__header {
+  display: grid;
+  gap: 4px;
+}
+
+.parameter-panel-section__header h4,
+.parameter-panel-section__header p {
+  margin: 0;
+}
+
+.parameter-panel-section__header p {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
 .loesch-panel__summary,
 .loesch-panel__section {
   display: grid;
@@ -2872,6 +2894,21 @@ a {
   border-color: var(--notice-border);
   background: var(--notice-bg);
   color: var(--accent);
+}
+
+.parameter-confirm-dialog {
+  width: min(560px, 100%);
+}
+
+.parameter-confirm-dialog__body {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.parameter-confirm-dialog__body p,
+.parameter-confirm-dialog__body dl {
+  margin: 0;
 }
 
 .initialdaten-dialog {

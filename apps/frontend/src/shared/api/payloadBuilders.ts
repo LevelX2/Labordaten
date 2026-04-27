@@ -54,11 +54,14 @@ type ReferenzPayloadInput = {
 type ZielbereichPayloadInput = {
   wert_typ: WertTyp;
   zielbereich_typ: ZielbereichTyp;
+  zielbereich_quelle_id: string;
   untere_grenze_num: string;
   obere_grenze_num: string;
   einheit: string;
   soll_text: string;
   geschlecht_code: string;
+  quelle_original_text: string;
+  quelle_stelle: string;
   bemerkung: string;
 };
 
@@ -146,11 +149,14 @@ export function buildZielbereichCreatePayload(
   return {
     wert_typ: input.wert_typ,
     zielbereich_typ: input.zielbereich_typ,
+    zielbereich_quelle_id: emptyToNull(input.zielbereich_quelle_id),
     untere_grenze_num: input.wert_typ === "numerisch" ? stringNumberToNull(input.untere_grenze_num) : null,
     obere_grenze_num: input.wert_typ === "numerisch" ? stringNumberToNull(input.obere_grenze_num) : null,
     einheit: input.wert_typ === "numerisch" ? emptyToNull(input.einheit) ?? fallbackEinheit ?? null : null,
     soll_text: input.wert_typ === "text" ? emptyToNull(input.soll_text) : null,
     geschlecht_code: emptyToOptionalGeschlechtCode(input.geschlecht_code),
+    quelle_original_text: emptyToNull(input.quelle_original_text),
+    quelle_stelle: emptyToNull(input.quelle_stelle),
     bemerkung: emptyToNull(input.bemerkung),
   };
 }
@@ -162,6 +168,7 @@ export function buildZielbereichUpdatePayload(
   const payload = buildZielbereichCreatePayload(input, fallbackEinheit);
   return {
     zielbereich_typ: payload.zielbereich_typ,
+    zielbereich_quelle_id: payload.zielbereich_quelle_id,
     untere_grenze_num: payload.untere_grenze_num,
     obere_grenze_num: payload.obere_grenze_num,
     einheit: payload.einheit,
@@ -169,6 +176,8 @@ export function buildZielbereichUpdatePayload(
     geschlecht_code: payload.geschlecht_code,
     alter_min_tage: payload.alter_min_tage,
     alter_max_tage: payload.alter_max_tage,
+    quelle_original_text: payload.quelle_original_text,
+    quelle_stelle: payload.quelle_stelle,
     bemerkung: payload.bemerkung,
   };
 }

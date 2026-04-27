@@ -161,3 +161,55 @@ def test_general_target_range_can_be_updated_without_changing_parameter_or_id(mo
         assert updated["untere_grenze_num"] == 50
         assert updated["obere_grenze_num"] == 180
         assert updated["geschlecht_code"] == "m"
+
+
+def test_target_range_can_reference_structured_source(monkeypatch, tmp_path: Path) -> None:
+    client = _make_client(monkeypatch, tmp_path)
+    with client:
+        assert client.post("/api/einheiten", json={"kuerzel": "ng/ml"}).status_code == 201
+        source_response = client.post(
+            "/api/zielbereich-quellen",
+            json={
+                "name": "Dr. med. Helena Orfanos-Boeckel",
+                "quellen_typ": "experte",
+                "titel": "Nährstoff- und Hormontherapie",
+                "jahr": 2026,
+            },
+        )
+        assert source_response.status_code == 201
+        source_id = source_response.json()["id"]
+
+        parameter_response = client.post(
+            "/api/parameter",
+            json={
+                "anzeigename": "Vitamin D 25-OH",
+                "wert_typ_standard": "numerisch",
+                "standard_einheit": "ng/ml",
+            },
+        )
+        assert parameter_response.status_code == 201
+        parameter_id = parameter_response.json()["id"]
+
+        target_response = client.post(
+            f"/api/parameter/{parameter_id}/zielbereiche",
+            json={
+                "wert_typ": "numerisch",
+                "zielbereich_typ": "optimalbereich",
+                "zielbereich_quelle_id": source_id,
+                "untere_grenze_num": 50,
+                "obere_grenze_num": 70,
+                "einheit": "ng/ml",
+                "quelle_original_text": "50-70 ng/ml",
+                "quelle_stelle": "KSG Tab S15",
+            },
+        )
+        assert target_response.status_code == 201
+        target = target_response.json()
+        assert target["zielbereich_quelle_id"] == source_id
+        assert target["zielbereich_typ"] == "optimalbereich"
+        assert target["quelle_original_text"] == "50-70 ng/ml"
+        assert target["quelle_stelle"] == "KSG Tab S15"
+
+        list_response = client.get("/api/zielbereich-quellen")
+        assert list_response.status_code == 200
+        assert list_response.json()[0]["name"] == "Dr. med. Helena Orfanos-Boeckel"

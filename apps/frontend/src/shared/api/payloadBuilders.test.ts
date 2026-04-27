@@ -144,11 +144,14 @@ describe("payloadBuilders", () => {
         {
           wert_typ: "text",
           zielbereich_typ: "therapieziel",
+          zielbereich_quelle_id: "",
           untere_grenze_num: "1",
           obere_grenze_num: "2",
           einheit: "ignored",
           soll_text: "im Zielbereich",
           geschlecht_code: "w",
+          quelle_original_text: "",
+          quelle_stelle: "",
           bemerkung: "",
         },
         "mg/dl",
@@ -156,11 +159,14 @@ describe("payloadBuilders", () => {
     ).toEqual({
       wert_typ: "text",
       zielbereich_typ: "therapieziel",
+      zielbereich_quelle_id: null,
       untere_grenze_num: null,
       obere_grenze_num: null,
       einheit: null,
       soll_text: "im Zielbereich",
       geschlecht_code: "w",
+      quelle_original_text: null,
+      quelle_stelle: null,
       bemerkung: null,
     });
   });

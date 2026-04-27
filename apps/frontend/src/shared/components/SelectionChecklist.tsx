@@ -19,10 +19,53 @@ type SelectionChecklistProps = {
   showSelectedOnlyToggle?: boolean;
   selectedOnlyLabel?: string;
   compactWhenEmptyCollapsed?: boolean;
+  collapsedSummaryMaxItems?: number;
 };
 
 function buildSelectionOptionSearchText(option: SelectionOption): string {
   return [option.label, option.meta ?? ""].join(" ").toLocaleLowerCase("de-DE");
+}
+
+function formatSelectionCount(selectedCount: number, optionCount: number): string {
+  if (selectedCount === 0) {
+    return "Keine Auswahl";
+  }
+
+  if (selectedCount === optionCount && optionCount > 0) {
+    return `Alle ${optionCount} ausgewählt`;
+  }
+
+  return `${selectedCount} von ${optionCount} ausgewählt`;
+}
+
+function buildCollapsedSelectionSummary(
+  options: SelectionOption[],
+  selectedIds: string[],
+  selectedCount: number,
+  maxNamedItems: number
+): string | null {
+  if (selectedCount === 0) {
+    return null;
+  }
+
+  if (selectedCount === options.length && options.length > 0) {
+    return null;
+  }
+
+  if (selectedCount > maxNamedItems) {
+    return null;
+  }
+
+  const optionById = new Map(options.map((option) => [option.id, option]));
+  const selectedLabels = selectedIds
+    .map((id) => optionById.get(id)?.label)
+    .filter((label): label is string => Boolean(label));
+
+  if (selectedLabels.length !== selectedCount) {
+    return `${selectedCount} ausgewählt`;
+  }
+
+  return selectedLabels.join(", ");
 }
 
 export function SelectionChecklist({
@@ -37,7 +80,8 @@ export function SelectionChecklist({
   searchPlaceholder,
   showSelectedOnlyToggle = false,
   selectedOnlyLabel = "Nur ausgewählte",
-  compactWhenEmptyCollapsed = false
+  compactWhenEmptyCollapsed = false,
+  collapsedSummaryMaxItems = 20
 }: SelectionChecklistProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSelectedOnly, setShowSelectedOnly] = useState(false);
@@ -72,12 +116,16 @@ export function SelectionChecklist({
     selectedCount === 0
       ? isCompactEmptyCollapsed
         ? label
-        : "Keine Auswahl"
-      : selectedCount === options.length && options.length > 0
-        ? "Alle ausgewählt"
-        : `${selectedCount} von ${options.length} ausgewählt`;
-  const toggleHint = visibilitySummary ?? (isExpanded ? "Offen" : "Bereit");
-  const toolbarSummary = [selectedCount === options.length && options.length > 0 ? "Alle ausgewählt" : `${selectedCount} von ${options.length} ausgewählt`, visibilitySummary]
+        : formatSelectionCount(selectedCount, options.length)
+      : formatSelectionCount(selectedCount, options.length);
+  const collapsedSelectionSummary = buildCollapsedSelectionSummary(
+    options,
+    selectedIds,
+    selectedCount,
+    collapsedSummaryMaxItems
+  );
+  const toggleHint = visibilitySummary ?? (isExpanded ? "Offen" : collapsedSelectionSummary ?? "Bereit");
+  const toolbarSummary = [formatSelectionCount(selectedCount, options.length), visibilitySummary]
     .filter(Boolean)
     .join(" • ");
   const visibleEmptyText = showSelectedOnly

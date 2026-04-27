@@ -5,15 +5,58 @@ from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 from labordaten_backend.core.field_options import (
     GESCHLECHT_CODES,
     WERT_TYPEN,
+    ZIELBEREICH_QUELLE_TYPEN,
     ZIELBEREICH_TYPEN,
     validate_optional_code,
     validate_required_code,
 )
 
 
+class ZielbereichQuelleCreate(BaseModel):
+    name: str
+    quellen_typ: str = "experte"
+    titel: str | None = None
+    jahr: int | None = None
+    version: str | None = None
+    bemerkung: str | None = None
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Name der Zielwertquelle darf nicht leer sein.")
+        return cleaned
+
+    @field_validator("quellen_typ")
+    @classmethod
+    def validate_quellen_typ(cls, value: str) -> str:
+        return validate_required_code(value, valid_values=ZIELBEREICH_QUELLE_TYPEN, field_label="Quellentyp")
+
+
+class ZielbereichQuelleUpdate(ZielbereichQuelleCreate):
+    aktiv: bool = True
+
+
+class ZielbereichQuelleRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    name: str
+    quellen_typ: str
+    titel: str | None = None
+    jahr: int | None = None
+    version: str | None = None
+    bemerkung: str | None = None
+    aktiv: bool
+    erstellt_am: datetime
+    geaendert_am: datetime
+
+
 class ZielbereichCreate(BaseModel):
     wert_typ: str = "numerisch"
     zielbereich_typ: str = "allgemein"
+    zielbereich_quelle_id: str | None = None
     untere_grenze_num: float | None = None
     obere_grenze_num: float | None = None
     einheit: str | None = None
@@ -21,6 +64,8 @@ class ZielbereichCreate(BaseModel):
     geschlecht_code: str | None = None
     alter_min_tage: int | None = None
     alter_max_tage: int | None = None
+    quelle_original_text: str | None = None
+    quelle_stelle: str | None = None
     bemerkung: str | None = None
 
     @field_validator("wert_typ")
@@ -49,6 +94,7 @@ class ZielbereichCreate(BaseModel):
 
 class ZielbereichUpdate(BaseModel):
     zielbereich_typ: str = "allgemein"
+    zielbereich_quelle_id: str | None = None
     untere_grenze_num: float | None = None
     obere_grenze_num: float | None = None
     einheit: str | None = None
@@ -56,6 +102,8 @@ class ZielbereichUpdate(BaseModel):
     geschlecht_code: str | None = None
     alter_min_tage: int | None = None
     alter_max_tage: int | None = None
+    quelle_original_text: str | None = None
+    quelle_stelle: str | None = None
     bemerkung: str | None = None
 
     @field_validator("zielbereich_typ")
@@ -74,6 +122,7 @@ class ZielbereichRead(BaseModel):
 
     id: str
     laborparameter_id: str
+    zielbereich_quelle_id: str | None = None
     wert_typ: str
     zielbereich_typ: str
     untere_grenze_num: float | None = None
@@ -83,6 +132,8 @@ class ZielbereichRead(BaseModel):
     geschlecht_code: str | None = None
     alter_min_tage: int | None = None
     alter_max_tage: int | None = None
+    quelle_original_text: str | None = None
+    quelle_stelle: str | None = None
     bemerkung: str | None = None
     aktiv: bool
     erstellt_am: datetime

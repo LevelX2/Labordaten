@@ -19,6 +19,7 @@ export type BefundQuelleTyp = "manuell" | "import" | "ki_import";
 export type UmrechnungsregelTyp = "faktor" | "faktor_plus_offset" | "formel";
 export type ParameterKlassifikationCode = "krankwert" | "schluesselwert" | "gesundmachwert";
 export type ZielbereichTyp = "allgemein" | "optimalbereich" | "therapieziel" | "mangelbereich" | "risikobereich";
+export type ZielbereichQuelleTyp = "experte" | "buch" | "leitlinie" | "labor" | "eigene_vorgabe";
 
 export type PersonCreatePayload = {
   anzeigename: string;
@@ -133,6 +134,7 @@ export type MesswertReferenzCreatePayload = {
 export type ZielbereichCreatePayload = {
   wert_typ: WertTyp;
   zielbereich_typ: ZielbereichTyp;
+  zielbereich_quelle_id?: string | null;
   untere_grenze_num?: number | null;
   obere_grenze_num?: number | null;
   einheit?: string | null;
@@ -140,10 +142,25 @@ export type ZielbereichCreatePayload = {
   geschlecht_code?: GeschlechtCode | null;
   alter_min_tage?: number | null;
   alter_max_tage?: number | null;
+  quelle_original_text?: string | null;
+  quelle_stelle?: string | null;
   bemerkung?: string | null;
 };
 
 export type ZielbereichUpdatePayload = Omit<ZielbereichCreatePayload, "wert_typ">;
+
+export type ZielbereichQuelleCreatePayload = {
+  name: string;
+  quellen_typ: ZielbereichQuelleTyp;
+  titel?: string | null;
+  jahr?: number | null;
+  version?: string | null;
+  bemerkung?: string | null;
+};
+
+export type ZielbereichQuelleUpdatePayload = ZielbereichQuelleCreatePayload & {
+  aktiv: boolean;
+};
 
 export type Person = {
   id: string;
@@ -430,6 +447,7 @@ export type MesswertReferenz = {
 export type Zielbereich = {
   id: string;
   laborparameter_id: string;
+  zielbereich_quelle_id?: string | null;
   wert_typ: WertTyp;
   zielbereich_typ: ZielbereichTyp;
   untere_grenze_num?: number | null;
@@ -439,6 +457,21 @@ export type Zielbereich = {
   geschlecht_code?: GeschlechtCode | null;
   alter_min_tage?: number | null;
   alter_max_tage?: number | null;
+  quelle_original_text?: string | null;
+  quelle_stelle?: string | null;
+  bemerkung?: string | null;
+  aktiv: boolean;
+  erstellt_am: string;
+  geaendert_am: string;
+};
+
+export type ZielbereichQuelle = {
+  id: string;
+  name: string;
+  quellen_typ: ZielbereichQuelleTyp;
+  titel?: string | null;
+  jahr?: number | null;
+  version?: string | null;
   bemerkung?: string | null;
   aktiv: boolean;
   erstellt_am: string;

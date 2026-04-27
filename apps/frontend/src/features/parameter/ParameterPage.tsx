@@ -10,9 +10,11 @@ import {
   PARAMETER_KLASSIFIKATION_FILTER_OPTIONS,
   PARAMETER_KLASSIFIKATION_OPTIONS,
   WERT_TYP_OPTIONS,
+  ZIELBEREICH_QUELLE_TYP_OPTIONS,
   ZIELBEREICH_TYP_OPTIONS,
   formatGeschlechtCode,
   formatParameterKlassifikation,
+  formatZielbereichQuelleTyp,
   formatZielbereichTyp,
   formatWertTyp
 } from "../../shared/constants/fieldOptions";
@@ -42,6 +44,9 @@ import type {
   UmrechnungsregelTyp,
   WertTyp,
   WissensseiteListItem,
+  ZielbereichQuelle,
+  ZielbereichQuelleCreatePayload,
+  ZielbereichQuelleTyp,
   ZielbereichTyp,
   ZielbereichUpdatePayload,
   Zielbereich
@@ -89,11 +94,23 @@ type ZielbereichFormState = {
   parameter_id: string;
   wert_typ: WertTyp;
   zielbereich_typ: ZielbereichTyp;
+  zielbereich_quelle_id: string;
   untere_grenze_num: string;
   obere_grenze_num: string;
   einheit: string;
   soll_text: string;
   geschlecht_code: string;
+  quelle_original_text: string;
+  quelle_stelle: string;
+  bemerkung: string;
+};
+
+type ZielbereichQuelleFormState = {
+  name: string;
+  quellen_typ: ZielbereichQuelleTyp;
+  titel: string;
+  jahr: string;
+  version: string;
   bemerkung: string;
 };
 
@@ -108,6 +125,19 @@ type ParameterUmrechnungsregelFormState = {
   rundung_stellen: string;
   quelle_beschreibung: string;
   bemerkung: string;
+};
+
+type ManualMergeFormState = {
+  ziel_parameter_id: string;
+  gemeinsamer_name: string;
+};
+
+type MergeConfirmationState = {
+  ziel_parameter_id: string;
+  quell_parameter_id: string;
+  ziel_parameter_anzeigename: string;
+  quell_parameter_anzeigename: string;
+  gemeinsamer_name: string;
 };
 
 type ParameterPanelKey =
@@ -168,12 +198,24 @@ const initialKlassifikationForm: ParameterKlassifikationFormState = {
 const initialZielbereichForm: ZielbereichFormState = {
   parameter_id: "",
   wert_typ: "numerisch",
-  zielbereich_typ: "allgemein",
+  zielbereich_typ: "optimalbereich",
+  zielbereich_quelle_id: "",
   untere_grenze_num: "",
   obere_grenze_num: "",
   einheit: "",
   soll_text: "",
   geschlecht_code: "",
+  quelle_original_text: "",
+  quelle_stelle: "",
+  bemerkung: ""
+};
+
+const initialZielbereichQuelleForm: ZielbereichQuelleFormState = {
+  name: "",
+  quellen_typ: "experte",
+  titel: "",
+  jahr: "",
+  version: "",
   bemerkung: ""
 };
 
@@ -188,6 +230,11 @@ const initialUmrechnungsregelForm: ParameterUmrechnungsregelFormState = {
   rundung_stellen: "",
   quelle_beschreibung: "",
   bemerkung: ""
+};
+
+const initialManualMergeForm: ManualMergeFormState = {
+  ziel_parameter_id: "",
+  gemeinsamer_name: ""
 };
 
 const UMRECHNUNGSREGEL_TYP_OPTIONS: Array<{ value: UmrechnungsregelTyp; label: string }> = [
@@ -260,6 +307,15 @@ function formatZielbereichValue(zielbereich: Zielbereich): string {
   return zielbereich.soll_text || "—";
 }
 
+function formatZielbereichQuelle(quelle?: ZielbereichQuelle | null): string {
+  if (!quelle) {
+    return "Keine Quelle";
+  }
+
+  const details = [quelle.titel, quelle.jahr?.toString(), quelle.version].filter(Boolean);
+  return details.length ? `${quelle.name} · ${details.join(" · ")}` : quelle.name;
+}
+
 function formatUmrechnungsregel(regel: ParameterUmrechnungsregel): string {
   if (regel.regel_typ === "faktor") {
     return `x * ${regel.faktor ?? "?"}`;
@@ -278,6 +334,10 @@ function buildDuplicateSuggestionKey(zielParameterId: string, quellParameterId: 
   return `${zielParameterId}:${quellParameterId}`;
 }
 
+function normalizeUnitForComparison(value?: string | null): string {
+  return (value ?? "").trim().toLocaleLowerCase("de-DE");
+}
+
 export function ParameterPage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<ParameterFormState>(initialForm);
@@ -290,9 +350,13 @@ export function ParameterPage() {
   const [klassifikationForm, setKlassifikationForm] =
     useState<ParameterKlassifikationFormState>(initialKlassifikationForm);
   const [zielbereichForm, setZielbereichForm] = useState<ZielbereichFormState>(initialZielbereichForm);
+  const [zielbereichQuelleForm, setZielbereichQuelleForm] =
+    useState<ZielbereichQuelleFormState>(initialZielbereichQuelleForm);
   const [editingZielbereichId, setEditingZielbereichId] = useState<string | null>(null);
   const [umrechnungsregelForm, setUmrechnungsregelForm] =
     useState<ParameterUmrechnungsregelFormState>(initialUmrechnungsregelForm);
+  const [manualMergeForm, setManualMergeForm] = useState<ManualMergeFormState>(initialManualMergeForm);
+  const [mergeConfirmation, setMergeConfirmation] = useState<MergeConfirmationState | null>(null);
   const [mergeNameBySuggestion, setMergeNameBySuggestion] = useState<Record<string, string>>({});
   const [pendingDuplicateSuppressionKey, setPendingDuplicateSuppressionKey] = useState<string | null>(null);
   const [lastMergeResult, setLastMergeResult] = useState<ParameterMergeResult | null>(null);
@@ -356,6 +420,20 @@ export function ParameterPage() {
     [selectedParameterId, sortedParameters]
   );
 
+  const manualMergeTargets = useMemo(() => {
+    if (!selectedParameter) {
+      return [];
+    }
+    const selectedUnit = normalizeUnitForComparison(selectedParameter.standard_einheit);
+    return sortedParameters.filter(
+      (parameter) =>
+        parameter.id !== selectedParameter.id &&
+        parameter.aktiv &&
+        parameter.wert_typ_standard === selectedParameter.wert_typ_standard &&
+        normalizeUnitForComparison(parameter.standard_einheit) === selectedUnit
+    );
+  }, [selectedParameter, sortedParameters]);
+
   useEffect(() => {
     if (!selectedParameter) {
       setAliasForm(initialAliasForm);
@@ -364,8 +442,11 @@ export function ParameterPage() {
       setWissensseiteForm(initialWissensseiteForm);
       setKlassifikationForm(initialKlassifikationForm);
       setZielbereichForm(initialZielbereichForm);
+      setZielbereichQuelleForm(initialZielbereichQuelleForm);
       setEditingZielbereichId(null);
       setUmrechnungsregelForm(initialUmrechnungsregelForm);
+      setManualMergeForm(initialManualMergeForm);
+      setMergeConfirmation(null);
       return;
     }
 
@@ -429,7 +510,16 @@ export function ParameterPage() {
             nach_einheit: selectedParameter.standard_einheit ?? ""
           }
     );
-  }, [selectedParameter]);
+    setManualMergeForm((current) => {
+      const selectedTarget = current.ziel_parameter_id
+        ? manualMergeTargets.find((parameter) => parameter.id === current.ziel_parameter_id)
+        : null;
+      if (selectedTarget) {
+        return current;
+      }
+      return initialManualMergeForm;
+    });
+  }, [manualMergeTargets, selectedParameter]);
 
   useEffect(() => {
     setExpandedRelatedSections({
@@ -469,6 +559,17 @@ export function ParameterPage() {
     queryFn: () => apiFetch<Zielbereich[]>(`/api/parameter/${selectedParameterId}/zielbereiche`),
     enabled: Boolean(selectedParameterId)
   });
+
+  const zielbereichQuellenQuery = useQuery({
+    queryKey: ["zielbereich-quellen"],
+    queryFn: () => apiFetch<ZielbereichQuelle[]>("/api/zielbereich-quellen"),
+    enabled: activePanel === "zielbereich" || expandedRelatedSections.ranges
+  });
+
+  const zielbereichQuellenById = useMemo(
+    () => new Map((zielbereichQuellenQuery.data ?? []).map((quelle) => [quelle.id, quelle])),
+    [zielbereichQuellenQuery.data]
+  );
 
   const parameterAliaseQuery = useQuery({
     queryKey: ["parameter-aliase", selectedParameterId],
@@ -585,6 +686,29 @@ export function ParameterPage() {
       }));
       setActivePanel(null);
       await queryClient.invalidateQueries({ queryKey: ["zielbereiche", zielbereichForm.parameter_id] });
+    }
+  });
+
+  const createZielbereichQuelleMutation = useMutation({
+    mutationFn: () =>
+      apiFetch<ZielbereichQuelle>("/api/zielbereich-quellen", {
+        method: "POST",
+        body: JSON.stringify({
+          name: zielbereichQuelleForm.name,
+          quellen_typ: zielbereichQuelleForm.quellen_typ,
+          titel: zielbereichQuelleForm.titel || null,
+          jahr: zielbereichQuelleForm.jahr ? Number(zielbereichQuelleForm.jahr) : null,
+          version: zielbereichQuelleForm.version || null,
+          bemerkung: zielbereichQuelleForm.bemerkung || null
+        } satisfies ZielbereichQuelleCreatePayload)
+      }),
+    onSuccess: async (createdQuelle) => {
+      setZielbereichQuelleForm(initialZielbereichQuelleForm);
+      setZielbereichForm((current) => ({
+        ...current,
+        zielbereich_quelle_id: createdQuelle.id
+      }));
+      await queryClient.invalidateQueries({ queryKey: ["zielbereich-quellen"] });
     }
   });
 
@@ -762,6 +886,8 @@ export function ParameterPage() {
     onSuccess: async (result, payload) => {
       setLastMergeResult(result);
       setSelectedParameterId(result.ziel_parameter_id);
+      setManualMergeForm(initialManualMergeForm);
+      setMergeConfirmation(null);
       setMergeNameBySuggestion((current) => {
         const next = { ...current };
         delete next[buildDuplicateSuggestionKey(payload.ziel_parameter_id, payload.quell_parameter_id)];
@@ -931,14 +1057,32 @@ export function ParameterPage() {
       parameter_id: zielbereich.laborparameter_id,
       wert_typ: zielbereich.wert_typ,
       zielbereich_typ: zielbereich.zielbereich_typ,
+      zielbereich_quelle_id: zielbereich.zielbereich_quelle_id ?? "",
       untere_grenze_num: zielbereich.untere_grenze_num?.toString() ?? "",
       obere_grenze_num: zielbereich.obere_grenze_num?.toString() ?? "",
       einheit: zielbereich.einheit ?? selectedParameter?.standard_einheit ?? "",
       soll_text: zielbereich.soll_text ?? "",
       geschlecht_code: zielbereich.geschlecht_code ?? "",
+      quelle_original_text: zielbereich.quelle_original_text ?? "",
+      quelle_stelle: zielbereich.quelle_stelle ?? "",
       bemerkung: zielbereich.bemerkung ?? ""
     });
     setActivePanel("zielbereich");
+  };
+
+  const requestMergeConfirmation = (confirmation: MergeConfirmationState) => {
+    setMergeConfirmation(confirmation);
+  };
+
+  const confirmPendingMerge = () => {
+    if (!mergeConfirmation) {
+      return;
+    }
+    mergeDuplicateMutation.mutate({
+      ziel_parameter_id: mergeConfirmation.ziel_parameter_id,
+      quell_parameter_id: mergeConfirmation.quell_parameter_id,
+      gemeinsamer_name: mergeConfirmation.gemeinsamer_name
+    });
   };
 
   const renderPanelCloseButton = (label = "Werkzeug schließen") => (
@@ -1709,6 +1853,99 @@ export function ParameterPage() {
               </select>
             </label>
 
+            <label className="field field--full">
+              <span>Zielwertquelle</span>
+              <select
+                value={zielbereichForm.zielbereich_quelle_id}
+                onChange={(event) =>
+                  setZielbereichForm((current) => ({ ...current, zielbereich_quelle_id: event.target.value }))
+                }
+              >
+                <option value="">Keine Quelle</option>
+                {zielbereichQuellenQuery.data?.map((quelle) => (
+                  <option key={quelle.id} value={quelle.id}>
+                    {formatZielbereichQuelle(quelle)} · {formatZielbereichQuelleTyp(quelle.quellen_typ)}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="field field--full">
+              <span>Neue Zielwertquelle</span>
+              <div className="form-grid form-grid--compact">
+                <label className="field">
+                  <span>Name</span>
+                  <input
+                    value={zielbereichQuelleForm.name}
+                    onChange={(event) =>
+                      setZielbereichQuelleForm((current) => ({ ...current, name: event.target.value }))
+                    }
+                    placeholder="z. B. Dr. med. Helena Orfanos-Boeckel"
+                  />
+                </label>
+                <label className="field">
+                  <span>Quellentyp</span>
+                  <select
+                    value={zielbereichQuelleForm.quellen_typ}
+                    onChange={(event) =>
+                      setZielbereichQuelleForm((current) => ({
+                        ...current,
+                        quellen_typ: event.target.value as ZielbereichQuelleTyp
+                      }))
+                    }
+                  >
+                    {ZIELBEREICH_QUELLE_TYP_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  <span>Titel</span>
+                  <input
+                    value={zielbereichQuelleForm.titel}
+                    onChange={(event) =>
+                      setZielbereichQuelleForm((current) => ({ ...current, titel: event.target.value }))
+                    }
+                    placeholder="z. B. Nährstoff- und Hormontherapie"
+                  />
+                </label>
+                <label className="field">
+                  <span>Jahr</span>
+                  <input
+                    type="number"
+                    value={zielbereichQuelleForm.jahr}
+                    onChange={(event) =>
+                      setZielbereichQuelleForm((current) => ({ ...current, jahr: event.target.value }))
+                    }
+                  />
+                </label>
+                <label className="field field--full">
+                  <span>Bemerkung</span>
+                  <input
+                    value={zielbereichQuelleForm.bemerkung}
+                    onChange={(event) =>
+                      setZielbereichQuelleForm((current) => ({ ...current, bemerkung: event.target.value }))
+                    }
+                  />
+                </label>
+                <div className="form-actions">
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    disabled={!zielbereichQuelleForm.name.trim() || createZielbereichQuelleMutation.isPending}
+                    onClick={() => createZielbereichQuelleMutation.mutate()}
+                  >
+                    {createZielbereichQuelleMutation.isPending ? "Speichert..." : "Quelle anlegen und auswählen"}
+                  </button>
+                  {createZielbereichQuelleMutation.isError ? (
+                    <p className="form-error">{createZielbereichQuelleMutation.error.message}</p>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+
             {selectedParameter.wert_typ_standard === "numerisch" ? (
               <>
                 <label className="field">
@@ -1764,6 +2001,28 @@ export function ParameterPage() {
                   </option>
                 ))}
               </select>
+            </label>
+
+            <label className="field">
+              <span>Quellenstelle</span>
+              <input
+                value={zielbereichForm.quelle_stelle}
+                onChange={(event) =>
+                  setZielbereichForm((current) => ({ ...current, quelle_stelle: event.target.value }))
+                }
+                placeholder="z. B. KSG Tab S08"
+              />
+            </label>
+
+            <label className="field field--full">
+              <span>Originaltext aus Quelle</span>
+              <textarea
+                rows={2}
+                value={zielbereichForm.quelle_original_text}
+                onChange={(event) =>
+                  setZielbereichForm((current) => ({ ...current, quelle_original_text: event.target.value }))
+                }
+              />
             </label>
 
             <label className="field field--full">
@@ -1876,12 +2135,88 @@ export function ParameterPage() {
               Unterschied zur Alias-Pflege geht es hier nicht nur um einen zusätzlichen Namen, sondern um zwei
               getrennte Parameterdatensätze, die möglicherweise fachlich zusammengehören. Erst nach Deiner
               Bestätigung werden Messwerte, Zielbereiche und weitere Zuordnungen auf den behaltenen Parameter
-              umgestellt; frühere Namen bleiben nach Möglichkeit als Alias erhalten.
+              umgestellt; der aufgelöste Name wird als Alias übernommen, solange er nicht mit einem anderen
+              Parameter kollidiert.
             </p>
           </div>
           {renderPanelCloseButton("Panel Dubletten schließen")}
         </div>
-        <div className="parameter-panel__toolbar">
+        <section className="parameter-panel-section">
+          <div className="parameter-panel-section__header">
+            <h4>Manuelle Einzelauswahl</h4>
+            <p>Der ausgewählte Parameter wird in einen kompatiblen Zielparameter überführt.</p>
+          </div>
+          {selectedParameter ? (
+            <form
+              className="form-grid"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const target = manualMergeTargets.find((parameter) => parameter.id === manualMergeForm.ziel_parameter_id);
+                if (!target) {
+                  return;
+                }
+                const mergeName = manualMergeForm.gemeinsamer_name.trim() || target.anzeigename;
+                requestMergeConfirmation({
+                  ziel_parameter_id: target.id,
+                  quell_parameter_id: selectedParameter.id,
+                  ziel_parameter_anzeigename: target.anzeigename,
+                  quell_parameter_anzeigename: selectedParameter.anzeigename,
+                  gemeinsamer_name: mergeName
+                });
+              }}
+            >
+              <label className="field field--full">
+                <span>Diesen Parameter überführen in</span>
+                <select
+                  value={manualMergeForm.ziel_parameter_id}
+                  onChange={(event) => {
+                    const target = manualMergeTargets.find((parameter) => parameter.id === event.target.value);
+                    setManualMergeForm({
+                      ziel_parameter_id: event.target.value,
+                      gemeinsamer_name: target?.anzeigename ?? ""
+                    });
+                  }}
+                >
+                  <option value="">Zielparameter auswählen</option>
+                  {manualMergeTargets.map((parameter) => (
+                    <option key={parameter.id} value={parameter.id}>
+                      {parameter.anzeigename} · {formatWertTyp(parameter.wert_typ_standard)} ·{" "}
+                      {parameter.standard_einheit || "Keine Einheit"}
+                    </option>
+                  ))}
+                </select>
+                <small>Nur aktive Parameter mit gleichem Werttyp und gleicher Standardeinheit.</small>
+              </label>
+              <label className="field field--full">
+                <span>Beibehaltener Name</span>
+                <input
+                  value={manualMergeForm.gemeinsamer_name}
+                  onChange={(event) =>
+                    setManualMergeForm((current) => ({ ...current, gemeinsamer_name: event.target.value }))
+                  }
+                  placeholder="Name des Zielparameters"
+                />
+              </label>
+              <div className="form-actions">
+                <button
+                  type="submit"
+                  disabled={!manualMergeForm.ziel_parameter_id || mergeDuplicateMutation.isPending}
+                >
+                  {mergeDuplicateMutation.isPending ? "Führt zusammen..." : "In Zielparameter überführen"}
+                </button>
+                {!manualMergeTargets.length ? (
+                  <p className="form-hint">Es gibt aktuell keinen kompatiblen Zielparameter mit gleicher Einheit.</p>
+                ) : null}
+              </div>
+            </form>
+          ) : null}
+        </section>
+        <section className="parameter-panel-section">
+          <div className="parameter-panel-section__header">
+            <h4>Automatische Dublettensuche</h4>
+            <p>Die Suche erzeugt Vorschläge, die Du einzeln bestätigen oder ausblenden kannst.</p>
+          </div>
+          <div className="parameter-panel__toolbar">
           <button
             type="button"
             className={`parameter-toolrail__button ${duplicateViewScope === "selected" ? "parameter-toolrail__button--active" : ""}`}
@@ -1907,7 +2242,7 @@ export function ParameterPage() {
             {duplicateSuggestionsQuery.isFetching ? "Prüft..." : "Dubletten suchen"}
           </button>
         </div>
-        <div className="parameter-duplicate-sensitivity">
+          <div className="parameter-duplicate-sensitivity">
           <div className="parameter-duplicate-sensitivity__header">
             <strong>Prüfschärfe</strong>
             <span>{activeDuplicateSensitivityOption.label}</span>
@@ -1929,7 +2264,7 @@ export function ParameterPage() {
           </div>
           <p className="form-hint">{activeDuplicateSensitivityOption.description}</p>
         </div>
-        {selectedParameter ? (
+          {selectedParameter ? (
           <div className="table-wrap">
             <table className="data-table">
               <thead>
@@ -1968,23 +2303,23 @@ export function ParameterPage() {
             </table>
           </div>
         ) : null}
-        {duplicateSuggestionsQuery.isError ? <p className="form-error">{duplicateSuggestionsQuery.error.message}</p> : null}
-        {mergeDuplicateMutation.isError ? <p className="form-error">{mergeDuplicateMutation.error.message}</p> : null}
-        {duplicateSuppressionsQuery.isError ? <p className="form-error">{duplicateSuppressionsQuery.error.message}</p> : null}
-        {suppressDuplicateMutation.isError ? <p className="form-error">{suppressDuplicateMutation.error.message}</p> : null}
-        {deleteDuplicateSuppressionMutation.isError ? (
-          <p className="form-error">{deleteDuplicateSuppressionMutation.error.message}</p>
-        ) : null}
-        {lastMergeResult && selectedParameterId === lastMergeResult.ziel_parameter_id ? (
-          <p>
-            Zusammengeführt zu <strong>{lastMergeResult.gemeinsamer_name}</strong>. Verschoben: {lastMergeResult.verschobene_messwerte}{" "}
-            Messwerte, {lastMergeResult.verschobene_zielbereiche} Zielbereiche,{" "}
-            {lastMergeResult.verschobene_planung_zyklisch + lastMergeResult.verschobene_planung_einmalig} Planungen.
-            Neue Aliase: {lastMergeResult.angelegte_aliase.join(", ") || "keine"}.
-          </p>
-        ) : null}
-        {!duplicateSuggestionsQuery.isFetched ? <p>Die Dublettenprüfung wird nur auf Abruf geladen.</p> : null}
-        <div className="table-wrap">
+          {duplicateSuggestionsQuery.isError ? <p className="form-error">{duplicateSuggestionsQuery.error.message}</p> : null}
+          {mergeDuplicateMutation.isError ? <p className="form-error">{mergeDuplicateMutation.error.message}</p> : null}
+          {duplicateSuppressionsQuery.isError ? <p className="form-error">{duplicateSuppressionsQuery.error.message}</p> : null}
+          {suppressDuplicateMutation.isError ? <p className="form-error">{suppressDuplicateMutation.error.message}</p> : null}
+          {deleteDuplicateSuppressionMutation.isError ? (
+            <p className="form-error">{deleteDuplicateSuppressionMutation.error.message}</p>
+          ) : null}
+          {lastMergeResult && selectedParameterId === lastMergeResult.ziel_parameter_id ? (
+            <p>
+              Zusammengeführt zu <strong>{lastMergeResult.gemeinsamer_name}</strong>. Verschoben:{" "}
+              {lastMergeResult.verschobene_messwerte} Messwerte, {lastMergeResult.verschobene_zielbereiche} Zielbereiche,{" "}
+              {lastMergeResult.verschobene_planung_zyklisch + lastMergeResult.verschobene_planung_einmalig} Planungen.
+              Neue Aliase: {lastMergeResult.angelegte_aliase.join(", ") || "keine"}.
+            </p>
+          ) : null}
+          {!duplicateSuggestionsQuery.isFetched ? <p>Die Dublettenprüfung wird nur auf Abruf geladen.</p> : null}
+          <div className="table-wrap">
           <table className="data-table">
             <thead>
               <tr>
@@ -2044,15 +2379,11 @@ export function ParameterPage() {
                           className="inline-button"
                           disabled={mergeDuplicateMutation.isPending || suppressDuplicateMutation.isPending}
                           onClick={() => {
-                            const confirmed = window.confirm(
-                              `Soll '${suggestion.quell_parameter_anzeigename}' in '${suggestion.ziel_parameter_anzeigename}' überführt werden?`
-                            );
-                            if (!confirmed) {
-                              return;
-                            }
-                            mergeDuplicateMutation.mutate({
+                            requestMergeConfirmation({
                               ziel_parameter_id: suggestion.ziel_parameter_id,
                               quell_parameter_id: suggestion.quell_parameter_id,
+                              ziel_parameter_anzeigename: suggestion.ziel_parameter_anzeigename,
+                              quell_parameter_anzeigename: suggestion.quell_parameter_anzeigename,
                               gemeinsamer_name: mergeName
                             });
                           }}
@@ -2089,6 +2420,7 @@ export function ParameterPage() {
             </tbody>
           </table>
         </div>
+        </section>
       </article>
     );
   };
@@ -2580,6 +2912,7 @@ export function ParameterPage() {
                               <thead>
                                 <tr>
                                   <th>Zieltyp</th>
+                                  <th>Quelle</th>
                                   <th>Typ</th>
                                   <th>Bereich</th>
                                   <th>Einheit</th>
@@ -2591,6 +2924,7 @@ export function ParameterPage() {
                                 {zielbereicheQuery.data?.map((zielbereich) => (
                                   <tr key={zielbereich.id}>
                                     <td>{formatZielbereichTyp(zielbereich.zielbereich_typ)}</td>
+                                    <td>{formatZielbereichQuelle(zielbereichQuellenById.get(zielbereich.zielbereich_quelle_id ?? ""))}</td>
                                     <td>{formatWertTyp(zielbereich.wert_typ)}</td>
                                     <td>{formatZielbereichValue(zielbereich)}</td>
                                     <td>{zielbereich.einheit || "—"}</td>
@@ -2608,7 +2942,7 @@ export function ParameterPage() {
                                 ))}
                                 {!zielbereicheQuery.data?.length ? (
                                   <tr>
-                                    <td colSpan={6}>Noch keine Zielbereiche für diesen Parameter vorhanden.</td>
+                                    <td colSpan={7}>Noch keine Zielbereiche für diesen Parameter vorhanden.</td>
                                   </tr>
                                 ) : null}
                               </tbody>
@@ -2671,6 +3005,69 @@ export function ParameterPage() {
           </article>
         </div>
       </div>
+      {mergeConfirmation ? (
+        <div className="dialog-backdrop" role="presentation">
+          <section
+            className="dialog-panel parameter-confirm-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="parameter-merge-confirm-title"
+          >
+            <header className="dialog-panel__header">
+              <div>
+                <span className="section-eyebrow">Parameter zusammenführen</span>
+                <h3 id="parameter-merge-confirm-title">Überführung bestätigen</h3>
+              </div>
+              <button
+                type="button"
+                className="dialog-panel__close"
+                onClick={() => setMergeConfirmation(null)}
+                disabled={mergeDuplicateMutation.isPending}
+              >
+                Schließen
+              </button>
+            </header>
+            <div className="parameter-confirm-dialog__body">
+              <p>
+                Soll <strong>{mergeConfirmation.quell_parameter_anzeigename}</strong> in{" "}
+                <strong>{mergeConfirmation.ziel_parameter_anzeigename}</strong> überführt werden?
+              </p>
+              <dl className="detail-grid">
+                <div>
+                  <dt>Wird aufgelöst</dt>
+                  <dd>{mergeConfirmation.quell_parameter_anzeigename}</dd>
+                </div>
+                <div>
+                  <dt>Bleibt bestehen</dt>
+                  <dd>{mergeConfirmation.ziel_parameter_anzeigename}</dd>
+                </div>
+                <div>
+                  <dt>Beibehaltener Name</dt>
+                  <dd>{mergeConfirmation.gemeinsamer_name}</dd>
+                </div>
+              </dl>
+              <p className="form-hint">
+                Messwerte, Zielbereiche, Planungen und Gruppenzuordnungen werden auf den Zielparameter übertragen.
+                Der aufgelöste Name wird als Alias übernommen; nur bei Namens- oder Alias-Kollisionen wird er übersprungen.
+              </p>
+              {mergeDuplicateMutation.isError ? <p className="form-error">{mergeDuplicateMutation.error.message}</p> : null}
+            </div>
+            <footer className="dialog-panel__footer">
+              <button
+                type="button"
+                className="button--secondary"
+                onClick={() => setMergeConfirmation(null)}
+                disabled={mergeDuplicateMutation.isPending}
+              >
+                Abbrechen
+              </button>
+              <button type="button" onClick={confirmPendingMerge} disabled={mergeDuplicateMutation.isPending}>
+                {mergeDuplicateMutation.isPending ? "Führt zusammen..." : "Überführen"}
+              </button>
+            </footer>
+          </section>
+        </div>
+      ) : null}
     </section>
   );
 }

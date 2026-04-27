@@ -1,7 +1,7 @@
 {
   "metadata": {
-    "version": "2026-04-26",
-    "exportiert_am": "2026-04-26T20:20:04.017373+00:00",
+    "version": "2026-04-27",
+    "exportiert_am": "2026-04-27T06:15:09.737272+00:00",
     "quelle": "apps\\backend\\labordaten.db",
     "hinweis": "Stammdaten-Snapshot ohne Personen, Befunde, Messwerte, Dokumente, Planung und Importhistorie."
   },
@@ -924,6 +924,14 @@
       "alias_cache": null,
       "frontmatter_json": null,
       "letzter_scan_am": "2026-04-26T21:34:47.175098",
+      "aktiv": true
+    },
+    {
+      "pfad_relativ": "02 Parameter/Allgemein/EPA-AA-Quotient.md",
+      "titel_cache": "EPA/AA-Quotient",
+      "alias_cache": null,
+      "frontmatter_json": null,
+      "letzter_scan_am": "2026-04-27T00:09:58.212216",
       "aktiv": true
     },
     {
@@ -4401,6 +4409,17 @@
       "aktiv": true
     },
     {
+      "interner_schluessel": "epa_aa_quotient",
+      "anzeigename": "EPA/AA-Quotient",
+      "beschreibung": "Der EPA/AA-Quotient beschreibt das Verhältnis von Eicosapentaensäure (EPA) zu Arachidonsäure (AA).",
+      "standard_einheit": null,
+      "wert_typ_standard": "numerisch",
+      "primaere_klassifikation": "gesundmachwert",
+      "wissensseite_pfad": "02 Parameter/Allgemein/EPA-AA-Quotient.md",
+      "sortierschluessel": null,
+      "aktiv": true
+    },
+    {
       "interner_schluessel": "erythrozyten",
       "anzeigename": "Erythrozyten",
       "beschreibung": "Anzahl der roten Blutkörperchen; wichtig für die Sauerstoffversorgung und die Einordnung von Blutbildveränderungen.",
@@ -6875,6 +6894,12 @@
       "bemerkung": "Bei Import-Zuordnung übernommen"
     },
     {
+      "parameter_schluessel": "18_2w6_linolsaeure",
+      "alias_text": "18:2w6 Linolsäure i. S.",
+      "alias_normalisiert": "182w6linolsaeureis",
+      "bemerkung": "Bei Import-Zuordnung übernommen"
+    },
+    {
       "parameter_schluessel": "18_2w6_linolsaeure_i_erythrozyten",
       "alias_text": "Linol (LA) 18:2 ω6",
       "alias_normalisiert": "linolla1826",
@@ -6899,6 +6924,12 @@
       "bemerkung": "Bei Import-Zuordnung übernommen"
     },
     {
+      "parameter_schluessel": "18_3w3_alpha_linolensaeure",
+      "alias_text": "18:3w3 alpha-Linolensäure i. S.",
+      "alias_normalisiert": "183w3alphalinolensaeureis",
+      "bemerkung": "Bei Import-Zuordnung übernommen"
+    },
+    {
       "parameter_schluessel": "18_3w3_alpha_linolensaure_i_erythrozyten",
       "alias_text": "α-Linolen (ALA) 18:3 ω3",
       "alias_normalisiert": "linolenala1833",
@@ -6908,6 +6939,12 @@
       "parameter_schluessel": "18_3w3_alpha_linolensaure_i_erythrozyten",
       "alias_text": "α-Linolens. (18:3w3)",
       "alias_normalisiert": "linolens183w3",
+      "bemerkung": "Bei Import-Zuordnung übernommen"
+    },
+    {
+      "parameter_schluessel": "18_3w6_gamma_linolensaeure",
+      "alias_text": "18:3w6 gamma-Linolensäure i. S.",
+      "alias_normalisiert": "183w6gammalinolensaeureis",
       "bemerkung": "Bei Import-Zuordnung übernommen"
     },
     {
@@ -6959,6 +6996,12 @@
       "bemerkung": "Bei Import-Zuordnung übernommen"
     },
     {
+      "parameter_schluessel": "20_3w6_bishomo_linolensaeure",
+      "alias_text": "20:3w6 Bishomo-gamma-Linolensäure",
+      "alias_normalisiert": "203w6bishomogammalinolensaeure",
+      "bemerkung": "Bei Import-Zuordnung übernommen"
+    },
+    {
       "parameter_schluessel": "20_3w6_dihomo_linolensaeure_i_erythrozyten",
       "alias_text": "Dihomo-γ-linolen (DGLA) 20:3 ω6",
       "alias_normalisiert": "dihomolinolendgla2036",
@@ -6968,6 +7011,12 @@
       "parameter_schluessel": "20_3w6_dihomo_linolensaeure_i_erythrozyten",
       "alias_text": "Dihomo-γ-Linolens. (20:3w6)",
       "alias_normalisiert": "dihomolinolens203w6",
+      "bemerkung": "Bei Import-Zuordnung übernommen"
+    },
+    {
+      "parameter_schluessel": "20_4w6_arachidonsaeure_aa",
+      "alias_text": "20:4w6 Arachidonsäure i. S.",
+      "alias_normalisiert": "204w6arachidonsaeureis",
       "bemerkung": "Bei Import-Zuordnung übernommen"
     },
     {
@@ -7559,6 +7608,12 @@
       "bemerkung": "Bei Import-Zuordnung übernommen"
     },
     {
+      "parameter_schluessel": "harnsaure_im_serum",
+      "alias_text": "Harnsäure im Serum (Uricase-PAP)",
+      "alias_normalisiert": "harnsaeureimserumuricasepap",
+      "bemerkung": "Bei Import-Zuordnung übernommen"
+    },
+    {
       "parameter_schluessel": "hb_a1c_im_edta_blut",
       "alias_text": "HbA1c i. EDTA-Blut (NGSP)",
       "alias_normalisiert": "hba1ciedtablutngsp",
@@ -8126,7 +8181,7 @@
     },
     {
       "name": "Aminosäuren-Profil",
-      "beschreibung": null,
+      "beschreibung": "xxx",
       "wissensseite_pfad": null,
       "aktiv": true
     },
@@ -8471,11 +8526,6 @@
       "gruppe_name": "Aminosäuren-Profil",
       "parameter_schluessel": "valin",
       "sortierung": 25
-    },
-    {
-      "gruppe_name": "Aminosäuren-Profil",
-      "parameter_schluessel": "omega_3_index",
-      "sortierung": 26
     },
     {
       "gruppe_name": "Anaerobe Leitkeime",
@@ -10550,20 +10600,6 @@
     },
     {
       "parameter_schluessel": "25hydroxyvitamind",
-      "klassifikation": "krankwert",
-      "kontext_beschreibung": "ausgeprägter Mangel oder Intoxikation",
-      "begruendung": "Automatisch übernommen aus KSG-Klassifikationsvorschlag 2026-04-26.",
-      "aktiv": true
-    },
-    {
-      "parameter_schluessel": "25hydroxyvitamind",
-      "klassifikation": "schluesselwert",
-      "kontext_beschreibung": "Knochen-/Calciumstoffwechsel",
-      "begruendung": "Automatisch übernommen aus KSG-Klassifikationsvorschlag 2026-04-26.",
-      "aktiv": true
-    },
-    {
-      "parameter_schluessel": "25hydroxyvitamind",
       "klassifikation": "schluesselwert",
       "kontext_beschreibung": "Knochen-/Calciumstoffwechsel",
       "begruendung": "Automatisch übernommen aus KSG-Klassifikationsvorschlag 2026-04-26.",
@@ -10748,13 +10784,6 @@
       "parameter_schluessel": "bacteroidesspec",
       "klassifikation": "krankwert",
       "kontext_beschreibung": "Dysbiose-/Infektionskontext",
-      "begruendung": "Automatisch übernommen aus KSG-Klassifikationsvorschlag 2026-04-26.",
-      "aktiv": true
-    },
-    {
-      "parameter_schluessel": "basophile",
-      "klassifikation": "krankwert",
-      "kontext_beschreibung": "starke Abweichung, Anämie, Infektion oder hämatologische Abklärung",
       "begruendung": "Automatisch übernommen aus KSG-Klassifikationsvorschlag 2026-04-26.",
       "aktiv": true
     },
@@ -11382,13 +11411,6 @@
       "aktiv": true
     },
     {
-      "parameter_schluessel": "eosinophile",
-      "klassifikation": "krankwert",
-      "kontext_beschreibung": "starke Abweichung, Anämie, Infektion oder hämatologische Abklärung",
-      "begruendung": "Automatisch übernommen aus KSG-Klassifikationsvorschlag 2026-04-26.",
-      "aktiv": true
-    },
-    {
       "parameter_schluessel": "eosinophile_absolut",
       "klassifikation": "krankwert",
       "kontext_beschreibung": "starke Abweichung, Anämie, Infektion oder hämatologische Abklärung",
@@ -11481,20 +11503,6 @@
     },
     {
       "parameter_schluessel": "ft3",
-      "klassifikation": "gesundmachwert",
-      "kontext_beschreibung": "Therapie-/Substitutionsziel",
-      "begruendung": "Automatisch übernommen aus KSG-Klassifikationsvorschlag 2026-04-26.",
-      "aktiv": true
-    },
-    {
-      "parameter_schluessel": "ft3",
-      "klassifikation": "krankwert",
-      "kontext_beschreibung": "endokrine Störung",
-      "begruendung": "Automatisch übernommen aus KSG-Klassifikationsvorschlag 2026-04-26.",
-      "aktiv": true
-    },
-    {
-      "parameter_schluessel": "ft3",
       "klassifikation": "krankwert",
       "kontext_beschreibung": "endokrine Störung",
       "begruendung": "Automatisch übernommen aus KSG-Klassifikationsvorschlag 2026-04-26.",
@@ -11504,20 +11512,6 @@
       "parameter_schluessel": "ft4",
       "klassifikation": "gesundmachwert",
       "kontext_beschreibung": "Therapie-/Substitutionsziel",
-      "begruendung": "Automatisch übernommen aus KSG-Klassifikationsvorschlag 2026-04-26.",
-      "aktiv": true
-    },
-    {
-      "parameter_schluessel": "ft4",
-      "klassifikation": "gesundmachwert",
-      "kontext_beschreibung": "Therapie-/Substitutionsziel",
-      "begruendung": "Automatisch übernommen aus KSG-Klassifikationsvorschlag 2026-04-26.",
-      "aktiv": true
-    },
-    {
-      "parameter_schluessel": "ft4",
-      "klassifikation": "krankwert",
-      "kontext_beschreibung": "endokrine Störung",
       "begruendung": "Automatisch übernommen aus KSG-Klassifikationsvorschlag 2026-04-26.",
       "aktiv": true
     },
@@ -12691,13 +12685,6 @@
       "aktiv": true
     },
     {
-      "parameter_schluessel": "neutrophile",
-      "klassifikation": "krankwert",
-      "kontext_beschreibung": "starke Abweichung, Anämie, Infektion oder hämatologische Abklärung",
-      "begruendung": "Automatisch übernommen aus KSG-Klassifikationsvorschlag 2026-04-26.",
-      "aktiv": true
-    },
-    {
       "parameter_schluessel": "neutrophile_absolut",
       "klassifikation": "krankwert",
       "kontext_beschreibung": "starke Abweichung, Anämie, Infektion oder hämatologische Abklärung",
@@ -12939,27 +12926,6 @@
       "parameter_schluessel": "rantesis",
       "klassifikation": "schluesselwert",
       "kontext_beschreibung": "Verlaufskontrolle",
-      "begruendung": "Automatisch übernommen aus KSG-Klassifikationsvorschlag 2026-04-26.",
-      "aktiv": true
-    },
-    {
-      "parameter_schluessel": "rdwcv",
-      "klassifikation": "krankwert",
-      "kontext_beschreibung": "starke Abweichung, Anämie, Infektion oder hämatologische Abklärung",
-      "begruendung": "Automatisch übernommen aus KSG-Klassifikationsvorschlag 2026-04-26.",
-      "aktiv": true
-    },
-    {
-      "parameter_schluessel": "rdwcv",
-      "klassifikation": "krankwert",
-      "kontext_beschreibung": "starke Abweichung, Anämie, Infektion oder hämatologische Abklärung",
-      "begruendung": "Automatisch übernommen aus KSG-Klassifikationsvorschlag 2026-04-26.",
-      "aktiv": true
-    },
-    {
-      "parameter_schluessel": "rdwcv",
-      "klassifikation": "krankwert",
-      "kontext_beschreibung": "starke Abweichung, Anämie, Infektion oder hämatologische Abklärung",
       "begruendung": "Automatisch übernommen aus KSG-Klassifikationsvorschlag 2026-04-26.",
       "aktiv": true
     },
@@ -13959,6 +13925,17 @@
       "rundung_stellen": null,
       "quelle_beschreibung": "SI-Maßstabsumrechnung bei identischer Massenkonzentration. [seed_obvious_parameter_conversion_rules_2026_04_21]",
       "bemerkung": "1 mg/l entspricht 1 µg/ml.",
+      "aktiv": true
+    }
+  ],
+  "zielbereich_quellen": [
+    {
+      "name": "Dr. med. Helena Orfanos-Boeckel",
+      "quellen_typ": "experte",
+      "titel": "Nährstoff- und Hormontherapie",
+      "jahr": null,
+      "version": null,
+      "bemerkung": "Zielwertquelle für aus KSG-Tabellen abgeleitete Optimalbereiche.",
       "aktiv": true
     }
   ],

@@ -20,6 +20,7 @@ from labordaten_backend.models.planung_zyklisch import PlanungZyklisch
 from labordaten_backend.models.wissensseite import Wissensseite
 from labordaten_backend.models.zielbereich import Zielbereich
 from labordaten_backend.models.zielbereich_person_override import ZielbereichPersonOverride
+from labordaten_backend.models.zielbereich_quelle import ZielbereichQuelle
 
 __all__ = [
     "Befund",
@@ -44,4 +45,5 @@ __all__ = [
     "Wissensseite",
     "Zielbereich",
     "ZielbereichPersonOverride",
+    "ZielbereichQuelle",
 ]

@@ -11,7 +11,7 @@ from labordaten_backend.modules.messwerte.schemas import MesswertCreate
 from labordaten_backend.modules.parameter.schemas import ParameterCreate, ParameterKlassifikationCreate
 from labordaten_backend.modules.personen.schemas import PersonCreate
 from labordaten_backend.modules.referenzen.schemas import ReferenzCreate
-from labordaten_backend.modules.zielbereiche.schemas import ZielbereichCreate
+from labordaten_backend.modules.zielbereiche.schemas import ZielbereichCreate, ZielbereichQuelleCreate
 
 
 def test_person_create_accepts_fixed_gender_codes_and_empty_value() -> None:
@@ -127,6 +127,11 @@ def test_zielbereich_create_rejects_invalid_target_type() -> None:
             zielbereich_typ="wunschbereich",
             untere_grenze_num=1.0,
         )
+
+
+def test_zielbereich_quelle_create_rejects_invalid_source_type() -> None:
+    with pytest.raises(ValidationError):
+        ZielbereichQuelleCreate(name="Quelle", quellen_typ="blog")
 
 
 def test_befund_create_rejects_unknown_source_type() -> None:

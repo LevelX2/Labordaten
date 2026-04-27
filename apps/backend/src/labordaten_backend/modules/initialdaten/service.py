@@ -19,6 +19,7 @@ from labordaten_backend.models.parameter_klassifikation import ParameterKlassifi
 from labordaten_backend.models.parameter_umrechnungsregel import ParameterUmrechnungsregel
 from labordaten_backend.models.wissensseite import Wissensseite
 from labordaten_backend.models.zielbereich import Zielbereich
+from labordaten_backend.models.zielbereich_quelle import ZielbereichQuelle
 
 INITIALDATEN_SNAPSHOT_RESOURCE = "initialdaten_snapshot.json"
 
@@ -32,6 +33,7 @@ STAMMDATEN_TABELLEN = (
     "gruppen_parameter",
     "parameter_klassifikation",
     "parameter_umrechnungsregel",
+    "zielbereich_quelle",
     "zielbereich",
     "parameter_dublettenausschluss",
 )
@@ -98,7 +100,8 @@ def apply_initialdaten(
     _import_gruppen_parameter(db, seed, result, aktualisieren, gruppen_by_name, parameter_by_key)
     _import_parameter_klassifikationen(db, seed, result, aktualisieren, parameter_by_key)
     _import_parameter_umrechnungsregeln(db, seed, result, aktualisieren, parameter_by_key)
-    _import_zielbereiche(db, seed, result, aktualisieren, parameter_by_key)
+    zielbereich_quellen_by_key = _import_zielbereich_quellen(db, seed, result, aktualisieren)
+    _import_zielbereiche(db, seed, result, aktualisieren, parameter_by_key, zielbereich_quellen_by_key)
     _import_dublettenausschluesse(db, seed, result, aktualisieren, parameter_by_key)
 
     db.commit()
@@ -403,10 +406,12 @@ def _import_zielbereiche(
     result: dict[str, Any],
     aktualisieren: bool,
     parameter_by_key: dict[str, Laborparameter],
+    zielbereich_quellen_by_key: dict[tuple[str, str | None, int | None, str | None], ZielbereichQuelle],
 ) -> None:
     existing = {
         (
             row.laborparameter_id,
+            row.zielbereich_quelle_id,
             row.wert_typ,
             row.zielbereich_typ,
             row.geschlecht_code,
@@ -420,8 +425,17 @@ def _import_zielbereiche(
         if parameter is None:
             _bump(result, "uebersprungen", "zielbereiche")
             continue
+        quelle = zielbereich_quellen_by_key.get(
+            (
+                row.get("zielbereich_quelle_name"),
+                row.get("zielbereich_quelle_titel"),
+                row.get("zielbereich_quelle_jahr"),
+                row.get("zielbereich_quelle_version"),
+            )
+        ) if row.get("zielbereich_quelle_name") else None
         key = (
             parameter.id,
+            quelle.id if quelle else None,
             row.get("wert_typ", "numerisch"),
             row.get("zielbereich_typ", "allgemein"),
             row.get("geschlecht_code"),
@@ -430,6 +444,7 @@ def _import_zielbereiche(
         )
         values = {
             "laborparameter_id": parameter.id,
+            "zielbereich_quelle_id": quelle.id if quelle else None,
             "wert_typ": row.get("wert_typ", "numerisch"),
             "zielbereich_typ": row.get("zielbereich_typ", "allgemein"),
             "untere_grenze_num": row.get("untere_grenze_num"),
@@ -439,10 +454,43 @@ def _import_zielbereiche(
             "geschlecht_code": row.get("geschlecht_code"),
             "alter_min_tage": row.get("alter_min_tage"),
             "alter_max_tage": row.get("alter_max_tage"),
+            "quelle_original_text": row.get("quelle_original_text"),
+            "quelle_stelle": row.get("quelle_stelle"),
             "bemerkung": row.get("bemerkung"),
             "aktiv": bool(row.get("aktiv", True)),
         }
         _upsert_simple(db, existing, key, Zielbereich, values, result, "zielbereiche", aktualisieren)
+
+
+def _import_zielbereich_quellen(
+    db: Session,
+    snapshot: dict[str, Any],
+    result: dict[str, Any],
+    aktualisieren: bool,
+) -> dict[tuple[str, str | None, int | None, str | None], ZielbereichQuelle]:
+    existing = {
+        (row.name, row.titel, row.jahr, row.version): row
+        for row in db.scalars(select(ZielbereichQuelle)).all()
+    }
+    for row in snapshot.get("zielbereich_quellen", []):
+        key = (
+            row["name"],
+            row.get("titel"),
+            row.get("jahr"),
+            row.get("version"),
+        )
+        values = {
+            "name": row["name"],
+            "quellen_typ": row.get("quellen_typ", "experte"),
+            "titel": row.get("titel"),
+            "jahr": row.get("jahr"),
+            "version": row.get("version"),
+            "bemerkung": row.get("bemerkung"),
+            "aktiv": bool(row.get("aktiv", True)),
+        }
+        _upsert_simple(db, existing, key, ZielbereichQuelle, values, result, "zielbereich_quellen", aktualisieren)
+    db.flush()
+    return existing
 
 
 def _import_dublettenausschluesse(
