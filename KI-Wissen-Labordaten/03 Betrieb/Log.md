@@ -11,6 +11,24 @@
 
 ## 2026-04
 
+### [2026-04-27] feature | Ansichtsvorlagen für Auswertung und Berichte vorbereitet
+- Anlass oder Quelle: Lokaler Abschluss eines vorbereiteten Vorlagenblocks für wiederverwendbare Auswertungs- und Berichtskonfigurationen.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../../apps/backend/migrations/versions/20260427_0005_ansicht_vorlagen.py
+  - ../../../apps/backend/src/labordaten_backend/models/ansicht_vorlage.py
+  - ../../../apps/backend/src/labordaten_backend/modules/vorlagen/
+  - ../../../apps/backend/src/labordaten_backend/api/routes/vorlagen.py
+  - ../../../apps/frontend/src/shared/components/ViewTemplateBar.tsx
+  - ../../../apps/frontend/src/shared/types/api.ts
+  - ../../../apps/frontend/src/styles.css
+- Kern der inhaltlichen Anpassung:
+  - `AnsichtVorlage` speichert benannte Konfigurationen für Auswertungsverläufe, Arztberichte und Verlaufsberichte mit Bereich, Typ, JSON-Konfiguration, Sortierung und letzter Verwendung.
+  - Das Backend stellt CRUD-Endpunkte unter `/api/vorlagen` bereit und validiert die Konfiguration je Vorlagentyp.
+  - Frontend-Typen und eine wiederverwendbare Vorlagenleiste bereiten die spätere UI-Anbindung in Auswertung und Berichten vor.
+  - Verifiziert mit `npm run build`, `npm test` und vollständigem Backend-Testlauf `python -m pytest` mit 112 bestandenen Tests.
+
 ### [2026-04-27] feature | Zielrichtungen für Zielbereiche ergänzt
 - Anlass oder Quelle: Nutzerfrage, wie persönliche Zielwerte wie `je niedriger desto besser` oder `so niedrig wie möglich` bei AGEs, Aluminium im Vollblut und Arsen im Vollblut strukturiert abgebildet werden sollen.
 - Neu angelegte Seiten:
@@ -47,6 +65,7 @@
 - Kern der inhaltlichen Anpassung:
   - Laborreferenz- und Zielbereichslinien werden im Diagramm nicht mehr als eine gemeinsame globale Linie gezeichnet, sondern personbezogen aus den Messpunkten aufgebaut.
   - Die Diagrammlegende schaltet nun Wertlinien, Laborreferenzen und Zielbereiche als eigene Liniengruppen ein und aus.
+  - Personengebundene Laborreferenzen nutzen jetzt deutlich unterscheidbare Farbtöne statt eng benachbarter Orange-Nuancen.
   - Die Anzeige bleibt abhängig von den vorhandenen Referenz- und Zielbereichsdaten sowie den Darstellungsschaltern der Auswertung.
   - Für den lokalen Bestand wurde Sabines alter Freitext-Geschlechtscode `Weiblich` auf den festen Code `w` normalisiert; vorher wurde die Sicherung `apps/backend/labordaten.pre-geschlecht-normalisierung-20260427-101940.db` angelegt.
   - Verifiziert mit `npm run build` im Frontend und den Backend-Tests `tests/test_code_field_validation.py` sowie `tests/test_api_contract_fixed_codes.py`.

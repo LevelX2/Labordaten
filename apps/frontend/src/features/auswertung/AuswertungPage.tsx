@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -14,6 +14,7 @@ import {
 import { apiFetch } from "../../shared/api/client";
 import { DateRangeFilterFields, isInvalidDateRange } from "../../shared/components/DateRangeFilterFields";
 import { SelectionChecklist } from "../../shared/components/SelectionChecklist";
+import { ViewTemplateBar } from "../../shared/components/ViewTemplateBar";
 import {
   PARAMETER_KLASSIFIKATION_OPTIONS,
   formatParameterKlassifikation
@@ -26,6 +27,11 @@ import {
 import { applySharedFilterSearchParams, buildSharedFilterSearchParams } from "../../shared/utils/filterNavigation";
 import { formatReferenzAnzeige } from "../../shared/utils/laborFormatting";
 import type {
+  AnsichtVorlage,
+  AnsichtVorlageCreatePayload,
+  AnsichtVorlageDeleteResult,
+  AnsichtVorlageKonfiguration,
+  AnsichtVorlageUpdatePayload,
   AuswertungGesamtzahlen,
   AuswertungPunkt,
   AuswertungResponse,
@@ -148,6 +154,81 @@ function readStoredAuswertungFilter(): AuswertungFormState | null {
   } catch {
     return null;
   }
+}
+
+function readBoolean(value: unknown, fallback: boolean): boolean {
+  return typeof value === "boolean" ? value : fallback;
+}
+
+function buildAuswertungVorlageConfig(form: AuswertungFormState): AnsichtVorlageKonfiguration {
+  return {
+    filter: {
+      person_ids: form.person_ids,
+      laborparameter_ids: form.laborparameter_ids,
+      gruppen_ids: form.gruppen_ids,
+      klassifikationen: form.klassifikationen,
+      labor_ids: form.labor_ids,
+      datum_von: form.datum_von || null,
+      datum_bis: form.datum_bis || null
+    },
+    optionen: {
+      include_laborreferenz: form.include_laborreferenz,
+      include_zielbereich: form.include_zielbereich,
+      diagramm_darstellung: form.diagramm_darstellung,
+      zeitraum_darstellung: form.zeitraum_darstellung,
+      messwerttabelle_standard_offen: form.messwerttabelle_standard_offen
+    }
+  };
+}
+
+function applyAuswertungVorlageConfig(config: AnsichtVorlageKonfiguration): AuswertungFormState {
+  const filter = config.filter ?? initialForm;
+  const optionen = config.optionen ?? {};
+
+  return {
+    ...initialForm,
+    person_ids: readStringArray(filter.person_ids),
+    laborparameter_ids: readStringArray(filter.laborparameter_ids),
+    gruppen_ids: readStringArray(filter.gruppen_ids),
+    klassifikationen: readKlassifikationen(filter.klassifikationen),
+    labor_ids: readStringArray(filter.labor_ids),
+    datum_von: typeof filter.datum_von === "string" ? filter.datum_von : filter.datum_von === null ? "" : initialForm.datum_von,
+    datum_bis: typeof filter.datum_bis === "string" ? filter.datum_bis : filter.datum_bis === null ? "" : initialForm.datum_bis,
+    diagramm_darstellung: readDiagrammDarstellung(optionen.diagramm_darstellung),
+    zeitraum_darstellung:
+      optionen.zeitraum_darstellung === "selektionszeitraum" || optionen.zeitraum_darstellung === "wertezeitraum"
+        ? optionen.zeitraum_darstellung
+        : initialForm.zeitraum_darstellung,
+    include_laborreferenz: readBoolean(optionen.include_laborreferenz, initialForm.include_laborreferenz),
+    include_zielbereich: readBoolean(optionen.include_zielbereich, initialForm.include_zielbereich),
+    messwerttabelle_standard_offen: readBoolean(
+      optionen.messwerttabelle_standard_offen,
+      initialForm.messwerttabelle_standard_offen
+    )
+  };
+}
+
+function countMissingIds(ids: string[], knownIds: string[]): number {
+  const known = new Set(knownIds);
+  return ids.filter((id) => !known.has(id)).length;
+}
+
+function buildMissingTemplateWarning(
+  form: AuswertungFormState,
+  data: {
+    personen: Person[];
+    gruppen: Gruppe[];
+    parameter: Parameter[];
+    labore: Labor[];
+  }
+): string | null {
+  const missingCount =
+    countMissingIds(form.person_ids, data.personen.map((person) => person.id)) +
+    countMissingIds(form.gruppen_ids, data.gruppen.map((gruppe) => gruppe.id)) +
+    countMissingIds(form.laborparameter_ids, data.parameter.map((parameter) => parameter.id)) +
+    countMissingIds(form.labor_ids, data.labore.map((labor) => labor.id));
+
+  return missingCount ? `Diese Vorlage enthält ${missingCount} nicht mehr verfügbare Auswahlwerte.` : null;
 }
 
 function formatSelectedSummary(
@@ -724,6 +805,7 @@ function SeriesResultCard({
 }
 
 export function AuswertungPage() {
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const [form, setForm] = useState<AuswertungFormState>(() => {
     const baseFilter = hasSharedFilterSearchParams(searchParams)
@@ -732,8 +814,13 @@ export function AuswertungPage() {
     return applySharedFilterSearchParams(baseFilter, searchParams);
   });
   const autoLoadKeyRef = useRef<string | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [templateBaseline, setTemplateBaseline] = useState("");
+  const [templateWarning, setTemplateWarning] = useState<string | null>(null);
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(() => form.person_ids.length === 0);
   const previewQueryString = useMemo(() => buildSharedFilterSearchParams(form).toString(), [form]);
+  const currentTemplateConfig = useMemo(() => buildAuswertungVorlageConfig(form), [form]);
+  const currentTemplateSignature = useMemo(() => JSON.stringify(currentTemplateConfig), [currentTemplateConfig]);
   const isDateRangeInvalid = isInvalidDateRange(form.datum_von, form.datum_bis);
 
   const personenQuery = useQuery({
@@ -761,6 +848,10 @@ export function AuswertungPage() {
     queryKey: ["auswertung", "gesamtzahlen"],
     queryFn: () => apiFetch<AuswertungGesamtzahlen>("/api/auswertung/gesamtzahlen")
   });
+  const templatesQuery = useQuery({
+    queryKey: ["vorlagen", "auswertung_verlauf"],
+    queryFn: () => apiFetch<AnsichtVorlage[]>("/api/vorlagen?bereich=auswertung&vorlage_typ=auswertung_verlauf")
+  });
 
   const auswertungMutation = useMutation({
     mutationFn: () =>
@@ -778,6 +869,51 @@ export function AuswertungPage() {
           include_zielbereich: form.include_zielbereich
         })
       })
+  });
+  const createTemplateMutation = useMutation({
+    mutationFn: (payload: AnsichtVorlageCreatePayload) =>
+      apiFetch<AnsichtVorlage>("/api/vorlagen", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      }),
+    onSuccess: (template) => {
+      queryClient.invalidateQueries({ queryKey: ["vorlagen", "auswertung_verlauf"] });
+      setSelectedTemplateId(template.id);
+      setTemplateBaseline(JSON.stringify(template.konfiguration_json));
+      setTemplateWarning(null);
+    }
+  });
+  const updateTemplateMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: AnsichtVorlageUpdatePayload }) =>
+      apiFetch<AnsichtVorlage>(`/api/vorlagen/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload)
+      }),
+    onSuccess: (template) => {
+      queryClient.invalidateQueries({ queryKey: ["vorlagen", "auswertung_verlauf"] });
+      setSelectedTemplateId(template.id);
+      setTemplateBaseline(JSON.stringify(template.konfiguration_json));
+      setTemplateWarning(null);
+    }
+  });
+  const applyTemplateMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<AnsichtVorlage>(`/api/vorlagen/${id}/anwenden`, {
+        method: "POST"
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["vorlagen", "auswertung_verlauf"] })
+  });
+  const deleteTemplateMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<AnsichtVorlageDeleteResult>(`/api/vorlagen/${id}`, {
+        method: "DELETE"
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vorlagen", "auswertung_verlauf"] });
+      setSelectedTemplateId("");
+      setTemplateBaseline("");
+      setTemplateWarning(null);
+    }
   });
 
   useEffect(() => {
@@ -860,6 +996,19 @@ export function AuswertungPage() {
   ];
   const hasTooManyPreviewParameters = auswertungPreviewCounts.parameter > maxAuswertungParameter;
   const isLoadBlocked = auswertungMutation.isPending || !form.person_ids.length || isDateRangeInvalid;
+  const selectedTemplate = (templatesQuery.data ?? []).find((template) => template.id === selectedTemplateId) ?? null;
+  const templateActionPending =
+    createTemplateMutation.isPending ||
+    updateTemplateMutation.isPending ||
+    applyTemplateMutation.isPending ||
+    deleteTemplateMutation.isPending;
+  const templateError =
+    createTemplateMutation.error ??
+    updateTemplateMutation.error ??
+    applyTemplateMutation.error ??
+    deleteTemplateMutation.error ??
+    null;
+  const hasUnsavedTemplateChanges = Boolean(selectedTemplateId && templateBaseline !== currentTemplateSignature);
   const handleLoadAuswertung = () => {
     if (isLoadBlocked) {
       return;
@@ -873,6 +1022,75 @@ export function AuswertungPage() {
       return;
     }
     auswertungMutation.mutate();
+  };
+  const handleSelectTemplate = (templateId: string) => {
+    if (!templateId) {
+      setSelectedTemplateId("");
+      setTemplateBaseline("");
+      setTemplateWarning(null);
+      return;
+    }
+
+    const template = (templatesQuery.data ?? []).find((item) => item.id === templateId);
+    if (!template) {
+      return;
+    }
+
+    const nextForm = applyAuswertungVorlageConfig(template.konfiguration_json);
+    setForm(nextForm);
+    setSelectedTemplateId(template.id);
+    setTemplateBaseline(JSON.stringify(template.konfiguration_json));
+    setTemplateWarning(
+      buildMissingTemplateWarning(nextForm, {
+        personen: personenQuery.data ?? [],
+        gruppen: gruppenQuery.data ?? [],
+        parameter: parameterQuery.data ?? [],
+        labore: laboreQuery.data ?? []
+      })
+    );
+    applyTemplateMutation.mutate(template.id);
+  };
+  const handleSaveTemplate = () => {
+    if (!selectedTemplate) {
+      return;
+    }
+    updateTemplateMutation.mutate({
+      id: selectedTemplate.id,
+      payload: {
+        name: selectedTemplate.name,
+        beschreibung: selectedTemplate.beschreibung,
+        konfiguration_json: currentTemplateConfig,
+        sortierung: selectedTemplate.sortierung
+      }
+    });
+  };
+  const handleSaveTemplateAs = (name: string) => {
+    createTemplateMutation.mutate({
+      name,
+      bereich: "auswertung",
+      vorlage_typ: "auswertung_verlauf",
+      beschreibung: null,
+      konfiguration_json: currentTemplateConfig
+    });
+  };
+  const handleRenameTemplate = (name: string) => {
+    if (!selectedTemplate) {
+      return;
+    }
+    updateTemplateMutation.mutate({
+      id: selectedTemplate.id,
+      payload: {
+        name,
+        beschreibung: selectedTemplate.beschreibung,
+        konfiguration_json: currentTemplateConfig,
+        sortierung: selectedTemplate.sortierung
+      }
+    });
+  };
+  const handleDeleteTemplate = () => {
+    if (selectedTemplateId) {
+      deleteTemplateMutation.mutate(selectedTemplateId);
+    }
   };
 
   return (
@@ -911,7 +1129,16 @@ export function AuswertungPage() {
                 Filter öffnen
               </button>
             ) : null}
-            <button type="button" className="inline-button" onClick={() => setForm(initialForm)}>
+            <button
+              type="button"
+              className="inline-button"
+              onClick={() => {
+                setForm(initialForm);
+                setSelectedTemplateId("");
+                setTemplateBaseline("");
+                setTemplateWarning(null);
+              }}
+            >
               Filter zurücksetzen
             </button>
             {isFilterPanelOpen ? (
@@ -927,6 +1154,20 @@ export function AuswertungPage() {
             ) : null}
           </div>
         </div>
+
+        <ViewTemplateBar
+          templates={templatesQuery.data ?? []}
+          selectedTemplateId={selectedTemplateId}
+          hasUnsavedChanges={hasUnsavedTemplateChanges}
+          isPending={templateActionPending}
+          onSelect={handleSelectTemplate}
+          onSave={handleSaveTemplate}
+          onSaveAs={handleSaveTemplateAs}
+          onRename={handleRenameTemplate}
+          onDelete={handleDeleteTemplate}
+        />
+        {templateWarning ? <p className="form-hint">{templateWarning}</p> : null}
+        {templateError ? <p className="form-error">{templateError.message}</p> : null}
 
         {isFilterPanelOpen ? (
           <form

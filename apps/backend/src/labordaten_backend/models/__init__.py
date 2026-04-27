@@ -1,3 +1,4 @@
+from labordaten_backend.models.ansicht_vorlage import AnsichtVorlage
 from labordaten_backend.models.befund import Befund
 from labordaten_backend.models.dokument import Dokument
 from labordaten_backend.models.einheit import Einheit
@@ -24,6 +25,7 @@ from labordaten_backend.models.zielbereich_quelle import ZielbereichQuelle
 from labordaten_backend.models.zielwert_paket import ZielwertPaket
 
 __all__ = [
+    "AnsichtVorlage",
     "Befund",
     "Dokument",
     "Einheit",

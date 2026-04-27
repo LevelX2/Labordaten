@@ -800,6 +800,60 @@ export type VerlaufsberichtResponse = {
   punkte: VerlaufsberichtPunkt[];
 };
 
+export type AnsichtVorlageBereich = "auswertung" | "bericht";
+export type AnsichtVorlageTyp = "auswertung_verlauf" | "arztbericht_liste" | "verlaufsbericht_zeitachse";
+
+export type VorlageFilterConfig = {
+  person_ids: string[];
+  laborparameter_ids: string[];
+  gruppen_ids: string[];
+  klassifikationen: ParameterKlassifikationCode[];
+  labor_ids: string[];
+  datum_von?: string | null;
+  datum_bis?: string | null;
+};
+
+export type AnsichtVorlageKonfiguration = {
+  filter: VorlageFilterConfig;
+  optionen: Record<string, unknown>;
+};
+
+export type AnsichtVorlage = {
+  id: string;
+  name: string;
+  bereich: AnsichtVorlageBereich;
+  vorlage_typ: AnsichtVorlageTyp;
+  beschreibung?: string | null;
+  konfiguration_json: AnsichtVorlageKonfiguration;
+  schema_version: string;
+  aktiv: boolean;
+  sortierung?: number | null;
+  zuletzt_verwendet_am?: string | null;
+  erstellt_am: string;
+  geaendert_am: string;
+};
+
+export type AnsichtVorlageCreatePayload = {
+  name: string;
+  bereich: AnsichtVorlageBereich;
+  vorlage_typ: AnsichtVorlageTyp;
+  beschreibung?: string | null;
+  konfiguration_json: AnsichtVorlageKonfiguration;
+  sortierung?: number | null;
+};
+
+export type AnsichtVorlageUpdatePayload = {
+  name: string;
+  beschreibung?: string | null;
+  konfiguration_json: AnsichtVorlageKonfiguration;
+  sortierung?: number | null;
+};
+
+export type AnsichtVorlageDeleteResult = {
+  id: string;
+  geloescht: boolean;
+};
+
 export type AuswertungGesamtzahlen = {
   personen_anzahl: number;
   parameter_anzahl: number;
