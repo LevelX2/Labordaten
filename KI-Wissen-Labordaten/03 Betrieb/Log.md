@@ -11,6 +11,18 @@
 
 ## 2026-04
 
+### [2026-04-27] update | Auswertung bietet vertikale Achsenmodi für Referenzbereiche
+- Anlass oder Quelle: Nutzerhinweis, dass in der Leukozyten-Auswertung die oberen Enden der Laborreferenzmarker nicht sichtbar waren und die vertikale Achsenlogik erklärungsbedürftig ist.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../../apps/frontend/src/features/auswertung/AuswertungPage.tsx
+- Kern der inhaltlichen Anpassung:
+  - Die Auswertung berechnet die Y-Achsen-Domain nun selbst aus sichtbaren numerischen Messwerten sowie eingeblendeten Laborreferenz- und Zielbereichsgrenzen, statt die Recharts-Standarddomain nur aus Messwertlinien bestimmen zu lassen.
+  - Im Darstellungsbereich gibt es den neuen Modus `Vertikaler Achsenbereich` mit `0 einschließen` als bisher nahes Standardverhalten und `Werte und Bereiche optimieren` als gepolsterten Datenbereich um Werte, Laborreferenzen und Zielbereiche.
+  - Referenz- und Zielbereichsmarker erhalten dadurch oben und unten Abstand zur Plotkante und werden nicht mehr abgeschnitten, wenn ihre Grenzen außerhalb der reinen Messwertspanne liegen.
+  - Verifiziert mit `npm run build` im Frontend.
+
 ### [2026-04-27] refactor | Hotspot-First-Refactoring für Backend und Import-Frontend
 - Anlass oder Quelle: Nutzerauftrag, die Codebase wie ein neu eingestiegener Senior Engineer zu verstehen, Hotspots zu refactoren und die Funktionalität unverändert zu lassen.
 - Neu angelegte Seiten:

@@ -50,6 +50,7 @@ const maxAuswertungParameter = 20;
 const auswertungFilterStorageKey = "labordaten.auswertung.filter";
 
 type DiagrammDarstellung = "verlauf" | "punkte" | "punkte_bereiche";
+type VertikalachsenModus = "nullbasis" | "datenbereich";
 
 type AuswertungFormState = {
   person_ids: string[];
@@ -61,6 +62,7 @@ type AuswertungFormState = {
   datum_bis: string;
   diagramm_darstellung: DiagrammDarstellung;
   zeitraum_darstellung: "wertezeitraum" | "selektionszeitraum";
+  vertikalachsen_modus: VertikalachsenModus;
   include_laborreferenz: boolean;
   include_zielbereich: boolean;
   messwerttabelle_standard_offen: boolean;
@@ -76,6 +78,7 @@ const initialForm: AuswertungFormState = {
   datum_bis: defaultDateRange.datum_bis,
   diagramm_darstellung: "verlauf",
   zeitraum_darstellung: "wertezeitraum",
+  vertikalachsen_modus: "nullbasis",
   include_laborreferenz: true,
   include_zielbereich: true,
   messwerttabelle_standard_offen: false
@@ -88,6 +91,10 @@ const diagrammDarstellungOptions: Array<{ value: DiagrammDarstellung; label: str
   { value: "verlauf", label: "Verlauf" },
   { value: "punkte", label: "Punkte" },
   { value: "punkte_bereiche", label: "Punkte + Bereiche" }
+];
+const vertikalachsenModusOptions: Array<{ value: VertikalachsenModus; label: string }> = [
+  { value: "nullbasis", label: "0 einschließen" },
+  { value: "datenbereich", label: "Werte und Bereiche optimieren" }
 ];
 const sharedFilterSearchParamKeys = [
   "person_ids",
@@ -119,6 +126,13 @@ function readDiagrammDarstellung(value: unknown): DiagrammDarstellung {
   return initialForm.diagramm_darstellung;
 }
 
+function readVertikalachsenModus(value: unknown): VertikalachsenModus {
+  if (value === "datenbereich" || value === "nullbasis") {
+    return value;
+  }
+  return initialForm.vertikalachsen_modus;
+}
+
 function readStoredAuswertungFilter(): AuswertungFormState | null {
   try {
     const rawValue = window.localStorage.getItem(auswertungFilterStorageKey);
@@ -141,6 +155,7 @@ function readStoredAuswertungFilter(): AuswertungFormState | null {
         parsed.zeitraum_darstellung === "selektionszeitraum" || parsed.zeitraum_darstellung === "wertezeitraum"
           ? parsed.zeitraum_darstellung
           : initialForm.zeitraum_darstellung,
+      vertikalachsen_modus: readVertikalachsenModus(parsed.vertikalachsen_modus),
       include_laborreferenz:
         typeof parsed.include_laborreferenz === "boolean"
           ? parsed.include_laborreferenz
@@ -177,6 +192,7 @@ function buildAuswertungVorlageConfig(form: AuswertungFormState): AnsichtVorlage
       include_zielbereich: form.include_zielbereich,
       diagramm_darstellung: form.diagramm_darstellung,
       zeitraum_darstellung: form.zeitraum_darstellung,
+      vertikalachsen_modus: form.vertikalachsen_modus,
       messwerttabelle_standard_offen: form.messwerttabelle_standard_offen
     }
   };
@@ -200,6 +216,7 @@ function applyAuswertungVorlageConfig(config: AnsichtVorlageKonfiguration): Ausw
       optionen.zeitraum_darstellung === "selektionszeitraum" || optionen.zeitraum_darstellung === "wertezeitraum"
         ? optionen.zeitraum_darstellung
         : initialForm.zeitraum_darstellung,
+    vertikalachsen_modus: readVertikalachsenModus(optionen.vertikalachsen_modus),
     include_laborreferenz: readBoolean(optionen.include_laborreferenz, initialForm.include_laborreferenz),
     include_zielbereich: readBoolean(optionen.include_zielbereich, initialForm.include_zielbereich),
     messwerttabelle_standard_offen: readBoolean(
@@ -521,6 +538,72 @@ function buildRangeMarkers(points: AuswertungPunkt[], people: ChartPerson[]): Ra
   return markers;
 }
 
+function addFiniteNumber(values: number[], value: number | null | undefined) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    values.push(value);
+  }
+}
+
+function collectYAxisDomainValues(
+  points: AuswertungPunkt[],
+  includeLaborreferenz: boolean,
+  includeZielbereich: boolean
+): number[] {
+  const values: number[] = [];
+
+  for (const point of points) {
+    if (point.wert_num === null || point.wert_num === undefined || parseDateToTimestamp(point.datum) === null) {
+      continue;
+    }
+
+    addFiniteNumber(values, point.wert_num);
+    if (includeLaborreferenz) {
+      addFiniteNumber(values, point.laborreferenz_untere_num);
+      addFiniteNumber(values, point.laborreferenz_obere_num);
+    }
+    if (includeZielbereich) {
+      addFiniteNumber(values, point.zielbereich_untere_num);
+      addFiniteNumber(values, point.zielbereich_obere_num);
+    }
+  }
+
+  return values;
+}
+
+function padYAxisDomain(minValue: number, maxValue: number, keepZeroBaseline: boolean): [number, number] {
+  const span = maxValue - minValue;
+  const padding = span > 0 ? span * 0.08 : Math.max(Math.abs(maxValue || minValue) * 0.1, 1);
+
+  if (keepZeroBaseline && minValue >= 0) {
+    return [0, maxValue + padding];
+  }
+  if (keepZeroBaseline && maxValue <= 0) {
+    return [minValue - padding, 0];
+  }
+
+  return [minValue - padding, maxValue + padding];
+}
+
+function buildYAxisDomain(
+  points: AuswertungPunkt[],
+  modus: VertikalachsenModus,
+  includeLaborreferenz: boolean,
+  includeZielbereich: boolean
+): [number, number] | undefined {
+  const values = collectYAxisDomainValues(points, includeLaborreferenz, includeZielbereich);
+  if (!values.length) {
+    return undefined;
+  }
+
+  const minValue = Math.min(...values);
+  const maxValue = Math.max(...values);
+  if (modus === "nullbasis") {
+    return padYAxisDomain(Math.min(0, minValue), Math.max(0, maxValue), true);
+  }
+
+  return padYAxisDomain(minValue, maxValue, false);
+}
+
 function RangeMarkersOverlay({
   chartProps,
   markers,
@@ -701,6 +784,7 @@ function SeriesChart({
   serie,
   diagrammDarstellung,
   zeitraumDarstellung,
+  vertikalachsenModus,
   datumVon,
   datumBis,
   includeLaborreferenz,
@@ -709,6 +793,7 @@ function SeriesChart({
   serie: AuswertungsSerie;
   diagrammDarstellung: DiagrammDarstellung;
   zeitraumDarstellung: "wertezeitraum" | "selektionszeitraum";
+  vertikalachsenModus: VertikalachsenModus;
   datumVon: string;
   datumBis: string;
   includeLaborreferenz: boolean;
@@ -720,6 +805,16 @@ function SeriesChart({
   const [hiddenLineGroups, setHiddenLineGroups] = useState<Set<string>>(() => new Set());
   const connectPersonPoints = diagrammDarstellung === "verlauf";
   const showReferenceAreas = diagrammDarstellung !== "punkte";
+  const yAxisDomain = useMemo(
+    () =>
+      buildYAxisDomain(
+        serie.punkte,
+        vertikalachsenModus,
+        includeLaborreferenz && showReferenceAreas,
+        includeZielbereich && showReferenceAreas
+      ),
+    [includeLaborreferenz, includeZielbereich, serie.punkte, showReferenceAreas, vertikalachsenModus]
+  );
   const lineGroups = useMemo(
     () => buildChartLineGroups(people, includeLaborreferenz, includeZielbereich, showReferenceAreas),
     [includeLaborreferenz, includeZielbereich, people, showReferenceAreas]
@@ -755,7 +850,7 @@ function SeriesChart({
             tick={{ fontSize: 12 }}
             tickFormatter={(value) => (typeof value === "number" ? formatTimestamp(value) : "")}
           />
-          <YAxis tick={{ fontSize: 12 }} />
+          <YAxis tick={{ fontSize: 12 }} domain={yAxisDomain} />
           <Tooltip
             labelFormatter={(label) => (typeof label === "number" ? formatTimestamp(label) : String(label))}
             formatter={(value, name, item) => {
@@ -854,6 +949,7 @@ function SeriesResultCard({
   serie,
   diagrammDarstellung,
   zeitraumDarstellung,
+  vertikalachsenModus,
   datumVon,
   datumBis,
   includeLaborreferenz,
@@ -863,6 +959,7 @@ function SeriesResultCard({
   serie: AuswertungsSerie;
   diagrammDarstellung: DiagrammDarstellung;
   zeitraumDarstellung: "wertezeitraum" | "selektionszeitraum";
+  vertikalachsenModus: VertikalachsenModus;
   datumVon: string;
   datumBis: string;
   includeLaborreferenz: boolean;
@@ -927,6 +1024,7 @@ function SeriesResultCard({
         serie={serie}
         diagrammDarstellung={diagrammDarstellung}
         zeitraumDarstellung={zeitraumDarstellung}
+        vertikalachsenModus={vertikalachsenModus}
         datumVon={datumVon}
         datumBis={datumBis}
         includeLaborreferenz={includeLaborreferenz}
@@ -1538,6 +1636,25 @@ export function AuswertungPage() {
           </label>
 
           <label className="field">
+            <span>Vertikaler Achsenbereich</span>
+            <select
+              value={form.vertikalachsen_modus}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  vertikalachsen_modus: event.target.value as VertikalachsenModus
+                }))
+              }
+            >
+              {vertikalachsenModusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="field">
             <span>Laborreferenzen anzeigen</span>
             <input
               type="checkbox"
@@ -1603,6 +1720,7 @@ export function AuswertungPage() {
               serie={serie}
               diagrammDarstellung={form.diagramm_darstellung}
               zeitraumDarstellung={form.zeitraum_darstellung}
+              vertikalachsenModus={form.vertikalachsen_modus}
               datumVon={form.datum_von}
               datumBis={form.datum_bis}
               includeLaborreferenz={form.include_laborreferenz}
