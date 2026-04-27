@@ -11,6 +11,100 @@
 
 ## 2026-04
 
+### [2026-04-27] feature | Eingeklappte Filterauswahl zeigt gewählte Werte
+- Anlass oder Quelle: Nutzerhinweis, dass im Bereich `Auswertung` bei eingeklappten Filterblöcken sichtbar bleiben soll, welche Personen, Parametergruppen, Parameter oder sonstigen Filter tatsächlich gewählt sind.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../03 Betrieb/Generische Entwicklungsvorgaben.md
+  - ../../../apps/frontend/src/shared/components/SelectionChecklist.tsx
+- Kern der inhaltlichen Anpassung:
+  - Die gemeinsame Mehrfachauswahl-Komponente zeigt im eingeklappten Zustand ausgewählte Werte bis zu einer Grenze von 20 Einträgen namentlich an.
+  - Bei vollständig ausgewählten Listen oder mehr als 20 ausgewählten Einträgen bleibt die Anzeige kompakt als Anzahl, damit große Parameterlisten den Filterbereich nicht überladen.
+  - Dadurch ist die aktive Filterauswahl in `Auswertung` und in weiteren Nutzungen der gemeinsamen Komponente kontrollierbar, ohne den jeweiligen Auswahlblock öffnen zu müssen.
+
+### [2026-04-27] analyse | KSG-Zielbereichsvorschlag Orfanos-Boeckel erstellt
+- Anlass oder Quelle: Nutzerauftrag, die aus den KSG-Informationen hervorgehenden Zielwerte für `optimalbereich`-Zielbereiche genau zu analysieren und einen Anlagevorschlag für fehlende Parameter sowie Zielwerte mit passenden Bemerkungen zu erstellen.
+- Neu angelegte Seiten:
+  - ../03 Betrieb/KSG-Zielbereichsvorschlag Orfanos-Boeckel 2026-04-27.md
+- Geänderte Seiten:
+  - ../02 Wissen/00 Uebersichten/Index.md
+- Kern der inhaltlichen Anpassung:
+  - Die Tabellen S01 bis S15 wurden als Grundlage für einen Entwurf quellengebundener Zielbereiche nach `Dr. med. Helena Orfanos-Boeckel / Nährstoff- und Hormontherapie` ausgewertet.
+  - Der Vorschlag unterscheidet vorhandene Parameter, empfohlene Neuanlagen, direkt numerisch anlegbare Optimalbereiche, Textziele und vorab zu prüfende Kontext- oder Einheitenthemen.
+  - Unsichere Fälle wie Materialwechsel, widersprüchliche Einheiten, Zielpunkte, `negativ`-Ziele oder stark kontextabhängige Hormon- und Risikowerte bleiben bewusst als Prüfhinweise dokumentiert und werden nicht still in harte Zielbereiche umgedeutet.
+
+### [2026-04-27] feature | Zielbereiche mit Zielwertquellen erweitert
+- Anlass oder Quelle: Nutzerentscheidung, mehrere parallele Zielwertempfehlungen pro Parameter pflegen zu können, z. B. Optimalbereiche nach Dr. med. Helena Orfanos-Boeckel getrennt von anderen Experten, Leitlinien, Laboren oder eigenen Vorgaben.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../02 Wissen/Begriffe und Konzepte/V1 Ziel-Datenmodell.md
+  - ../02 Wissen/Begriffe und Konzepte/V1 Technisches Schema.md
+  - ../02 Wissen/Begriffe und Konzepte/KSG Klassifizierung von Laborparametern.md
+  - ../../../apps/backend/src/labordaten_backend/models/zielbereich_quelle.py
+  - ../../../apps/backend/src/labordaten_backend/models/zielbereich.py
+  - ../../../apps/backend/src/labordaten_backend/modules/zielbereiche/
+  - ../../../apps/backend/migrations/versions/20260427_0002_zielbereich_quellen.py
+  - ../../../apps/frontend/src/features/parameter/ParameterPage.tsx
+- Kern der inhaltlichen Anpassung:
+  - Zielwertquellen sind jetzt eigene Stammdaten mit Name, Typ, Titel, Jahr, Version und Bemerkung.
+  - Zielbereiche können optional auf eine Zielwertquelle verweisen und zusätzlich Originaltext sowie Fundstelle aus der Quelle speichern.
+  - Die Orfanos-Boeckel-KSG-Werte werden fachlich als `optimalbereich`-Zielbereiche mit eigener Quelle eingeordnet; der Name wird im System mit `Boeckel` geschrieben.
+  - Die lokale SQLite-Datenbank wurde nach Bereinigung einer veralteten Alembic-Revision auf `20260427_0002` migriert und die Quelle `Dr. med. Helena Orfanos-Boeckel / Nährstoff- und Hormontherapie` lokal angelegt.
+
+### [2026-04-27] update | Manuelle Parameter-Überführung im Dubletten-Panel ergänzt
+- Anlass oder Quelle: Nutzerhinweis, dass ein fachlich identischer Parameter nicht intuitiv in einen anderen Parameter überführbar war, wenn die automatische Dublettenprüfung kein Paar vorschlägt.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../02 Wissen/Begriffe und Konzepte/Ist-Stand Parameter-Dubletten und Zusammenfuehrung.md
+  - ../../../apps/frontend/src/features/parameter/ParameterPage.tsx
+- Kern der inhaltlichen Anpassung:
+  - Das Dubletten-Panel bietet jetzt eine direkte Aktion, um den aktuell ausgewählten Parameter in einen gewählten Zielparameter zu überführen.
+  - Die Zielliste zeigt nur aktive Parameter mit gleichem Werttyp und gleicher Standardeinheit, damit die manuelle Zusammenführung auf kompatible Stammdatensätze begrenzt bleibt.
+  - Die Oberfläche trennt manuelle Einzelauswahl und automatische Dublettensuche in zwei sichtbare Abschnitte, damit die manuelle Überführung nicht zwischen Suchsteuerung und Suchergebnis steht.
+  - Der Zielparameter bleibt bestehen, der ausgewählte Quellparameter wird über die vorhandene Merge-API überführt und sein Name wird als Alias am Zielparameter gesichert, sofern keine Namens- oder Alias-Kollision entsteht.
+
+### [2026-04-27] fix | KSG-Zusatzrollen bei Parameter-Merge dedupliziert
+- Anlass oder Quelle: Nutzerhinweis, dass `RDW-CV` viermal dieselbe KSG-Zusatzrolle zeigte.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../02 Wissen/Begriffe und Konzepte/KSG Klassifizierung von Laborparametern.md
+  - ../../../apps/backend/src/labordaten_backend/modules/parameter/service.py
+  - ../../../apps/backend/tests/test_parameter_duplicate_merge.py
+  - ../../../apps/backend/src/labordaten_backend/modules/initialdaten/initialdaten_snapshot.json
+  - ../../../apps/backend/labordaten.db
+- Kern der inhaltlichen Anpassung:
+  - Die vier identischen aktiven Zusatzrollen bei `RDW-CV` waren kein fachliches KSG-Konzept, sondern ein technischer Folgeeffekt früherer Parameter-Zusammenführungen.
+  - Die Merge-Logik konsolidiert `parameter_klassifikation` nun nach gleicher Klassifikation und gleichem Kontext, statt Zusatzrollen blind vom Quellparameter auf den Zielparameter umzuhängen.
+  - In `apps/backend/labordaten.db` wurden 12 exakt identische `parameter_klassifikation`-Dubletten entfernt; der Initialdaten-Snapshot enthält danach keine aktiven KSG-Zusatzrollen-Dubletten mehr.
+
+### [2026-04-27] rohquelle | KSG-Tabellen nach Duplikat bereinigt
+- Anlass oder Quelle: Nutzerhinweis, dass die frühere Seite `S09` nur ein Duplikat von `S08` war und keine fehlende Seite markiert.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../01 Rohquellen/externe-quellen/KSG-Klassifikation Tab S09.pdf bis ../01 Rohquellen/externe-quellen/KSG-Klassifikation Tab S15.pdf
+  - ../01 Rohquellen/externe-quellen/KSG-Klassifikation Tab S09 Transkription.md bis ../01 Rohquellen/externe-quellen/KSG-Klassifikation Tab S15 Transkription.md
+  - ../01 Rohquellen/externe-quellen/KSG-Klassifikation PDFs Zusammenfassung.md
+  - ../02 Wissen/Begriffe und Konzepte/KSG Klassifizierung von Laborparametern.md
+- Kern der inhaltlichen Anpassung:
+  - Die doppelte frühere `S09` ist aus der fortlaufenden Benennung entfernt; die früheren Seiten `S10` bis `S16` wurden lokal in `S09` bis `S15` umbenannt.
+  - Die internen Titel und Quellenzeilen der Transkriptionen wurden an die neuen Dateinamen angepasst.
+  - Die KSG-Zusammenfassung und die KSG-Wissensseite referenzieren die Tabellenfolge jetzt als `S01` bis `S15`; die fachlichen Klassifikationsaussagen bleiben unverändert.
+
+### [2026-04-27] rohquelle | KSG-PDFs lokal zusammengefasst
+- Anlass oder Quelle: Nutzerauftrag, die im Ordner `KI-Wissen-Labordaten/01 Rohquellen/externe-quellen/` liegenden KSG-PDFs zu einer Markdown-Datei im gleichen Ordner zusammenzufassen.
+- Neu angelegte Seiten:
+  - ../01 Rohquellen/externe-quellen/KSG-Klassifikation PDFs Zusammenfassung.md
+- Geänderte Seiten:
+  - keine fachlichen Wissensseiten
+- Kern der inhaltlichen Anpassung:
+  - Die lokale Rohquellen-Zusammenfassung verdichtet die Überblicks-PDF und die Tabellen S01 bis S15 auf KSG-Grundlogik, Knochen-/Gefäßüberblick, Parametergruppen, Mehrfachrollen und auffällige Quellhinweise.
+  - Die Original-PDFs und Einzeltranskriptionen bleiben als Rohquellen-Arbeitsgrundlage erhalten; der externe Rohquellenordner bleibt lokal und ist weiterhin aus dem Git-Tracking ausgeschlossen.
+
 ### [2026-04-27] git | Git-Historie externer Rohquellen bereinigt
 - Anlass oder Quelle: Nutzerauftrag, die bereits nach GitHub übertragenen externen Rohquellen nicht nur künftig auszuschließen, sondern auch aus der Git-Historie zu entfernen.
 - Neu angelegte Seiten:

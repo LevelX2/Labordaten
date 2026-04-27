@@ -1,7 +1,7 @@
 ---
 typ: architektur
 status: aktiv
-letzte_aktualisierung: 2026-04-24
+letzte_aktualisierung: 2026-04-27
 quellen:
   - ../../01 Rohquellen/fachkonzepte/2026-04-21 Rueckmeldung Parameter-Dubletten und Zusammenfuehrung.md
   - ../../../apps/backend/src/labordaten_backend/modules/parameter/normalization.py
@@ -21,7 +21,7 @@ tags:
 # Ist-Stand Parameter-Dubletten und Zusammenführung
 
 ## Kurzfassung
-Seit dem 2026-04-21 kann die Parameteroberfläche wahrscheinliche Dubletten vorhandener Parameter vorschlagen und nach Bestätigung zusammenführen. Die Zusammenführung hängt bestehende Verwendungen auf einen Zielparameter um und übernimmt nicht mehr verwendete Namen nach Möglichkeit als Alias. Seit dem 2026-04-24 lässt sich die Prüfschärfe der Dublettenvorschläge in der Oberfläche zusätzlich zwischen `Sicher`, `Ausgewogen` und `Großzügig` umschalten.
+Seit dem 2026-04-21 kann die Parameteroberfläche wahrscheinliche Dubletten vorhandener Parameter vorschlagen und nach Bestätigung zusammenführen. Die Zusammenführung hängt bestehende Verwendungen auf einen Zielparameter um und übernimmt nicht mehr verwendete Namen als Alias, sofern keine Namens- oder Alias-Kollision mit einem anderen Parameter entsteht. Seit dem 2026-04-24 lässt sich die Prüfschärfe der Dublettenvorschläge in der Oberfläche zusätzlich zwischen `Sicher`, `Ausgewogen` und `Großzügig` umschalten. Seit dem 2026-04-27 kann ein ausgewählter Parameter zusätzlich manuell in einen kompatiblen Zielparameter überführt werden, auch wenn die automatische Dublettenprüfung kein Paar vorgeschlagen hat.
 
 ## Vorschlagslogik
 - Die Dublettenprüfung arbeitet auf vorhandenen aktiven Parametern, nicht auf Importentwürfen.
@@ -45,6 +45,10 @@ Seit dem 2026-04-21 kann die Parameteroberfläche wahrscheinliche Dubletten vorh
 
 ## Zusammenführung
 - Der Anwender bestätigt einen Vorschlag in der Oberfläche und legt den gemeinsamen Namen fest.
+- Alternativ kann der Anwender im Dubletten-Panel den aktuell ausgewählten Parameter direkt in einen kompatiblen Zielparameter überführen.
+  - Diese manuelle Zielliste zeigt nur aktive Parameter mit gleichem Standard-Werttyp und gleicher Standardeinheit.
+  - Der ausgewählte Parameter ist dabei die Quelle, der gewählte andere Parameter bleibt als Ziel bestehen.
+  - Die Oberfläche trennt diese manuelle Einzelauswahl sichtbar von der automatischen Dublettensuche, damit Suchsteuerung, Suchergebnis und direkte Überführung nicht vermischt werden.
 - Technisch bleibt genau ein Zielparameter bestehen.
 - Der Quellparameter wird danach entfernt.
 - Vor dem Entfernen werden Verwendungen des Quellparameters auf den Zielparameter umgehängt:
@@ -54,9 +58,10 @@ Seit dem 2026-04-21 kann die Parameteroberfläche wahrscheinliche Dubletten vorh
   - `PlanungEinmalig`
   - `GruppenParameter`
 - Doppelte Gruppenzuordnungen werden dabei bereinigt, statt doppelt erhalten zu bleiben.
+- Doppelte KSG-Zusatzrollen mit gleicher Klassifikation und gleichem Kontext werden ebenfalls konsolidiert, statt mehrfach am Zielparameter sichtbar zu bleiben.
 
 ## Alias-Rückfall
-- Nicht mehr verwendete Anzeigenamen werden nach Möglichkeit als Alias auf den Zielparameter übernommen.
+- Nicht mehr verwendete Anzeigenamen werden als Alias auf den Zielparameter übernommen, sofern sie nicht dem Zielnamen entsprechen und nicht mit Namen, internen Schlüsseln oder Aliasen anderer Parameter kollidieren.
 - Bereits vorhandene Aliase des Quellparameters werden ebenfalls auf den Zielparameter überführt, sofern sie nicht mit anderen Parametern kollidieren.
 - Wenn der neue gemeinsame Name nach Normalisierung ohnehin denselben Import-Match liefert wie ein alter Name, ist kein zusätzlicher Alias nötig.
 - Dadurch bleiben spätere Importe robust: Frühere Labor-Schreibweisen können weiterhin auf den nun zusammengeführten Zielparameter gemappt werden.
@@ -75,3 +80,4 @@ Seit dem 2026-04-21 kann die Parameteroberfläche wahrscheinliche Dubletten vorh
 - Die Zusammenführung ergänzt die bereits vorhandene Alias-Verwaltung sinnvoll: Erst wird der Stammdatensatz vereinheitlicht, danach werden alte Namen als Import-Rückfall abgesichert.
 - Die sichtbare Messwert-Anzahl im Parameter-Detail hilft zusätzlich bei der Entscheidung, wie relevant ein Parameter bereits im Bestand verankert ist.
 - Die wählbare Prüfschärfe hilft dabei, je nach Aufräumphase zwischen konservativer Sichtung und bewusst breiterem Dubletten-Screening zu wechseln, ohne dass dafür die Zusammenführungslogik selbst umgebaut werden muss.
+- Die manuelle Überführung deckt Fälle ab, die fachlich klar identisch sind, aber von der automatischen Dublettensuche nicht erkannt werden. Der typische Ablauf ist: Quellparameter auswählen, `Dubletten` öffnen, Zielparameter wählen, Namen bestätigen und überführen.

@@ -10,6 +10,7 @@ quellen:
   - ../../../apps/backend/src/labordaten_backend/modules/messwerte/schemas.py
   - ../../../apps/backend/src/labordaten_backend/modules/referenzen/schemas.py
   - ../../../apps/backend/src/labordaten_backend/modules/zielbereiche/schemas.py
+  - ../../../apps/backend/src/labordaten_backend/models/zielbereich_quelle.py
   - ../../../apps/backend/src/labordaten_backend/modules/befunde/schemas.py
 tags:
   - schema
@@ -54,6 +55,7 @@ Das technische V1-Schema setzt das fachliche Ziel-Datenmodell in eine relational
 - `befund`
 - `messwert`
 - `messwert_referenz`
+- `zielbereich_quelle`
 - `zielbereich`
 - `zielbereich_person_override`
 - `planung_zyklisch`
@@ -392,9 +394,28 @@ Checks:
 Hinweis:
 - V1 nutzt für konkrete Messungen vor allem `referenz_typ = labor`; die zusätzlichen Werte erlauben aber einheitlichere Auswertung.
 
+### zielbereich_quelle
+- `id` PK
+- `name` NOT NULL
+- `quellen_typ` NOT NULL DEFAULT `experte`
+- `titel`
+- `jahr`
+- `version`
+- `bemerkung`
+- `aktiv` NOT NULL DEFAULT 1
+- `erstellt_am` NOT NULL
+- `geaendert_am` NOT NULL
+
+Indizes:
+- Index auf `name`
+
+Checks:
+- `quellen_typ` in `experte`, `buch`, `leitlinie`, `labor`, `eigene_vorgabe`
+
 ### zielbereich
 - `id` PK
 - `laborparameter_id` NOT NULL FK -> `laborparameter.id`
+- `zielbereich_quelle_id` FK -> `zielbereich_quelle.id`
 - `wert_typ` NOT NULL
 - `zielbereich_typ` NOT NULL DEFAULT `allgemein`
 - `untere_grenze_num`
@@ -404,6 +425,8 @@ Hinweis:
 - `geschlecht_code`
 - `alter_min_tage`
 - `alter_max_tage`
+- `quelle_original_text`
+- `quelle_stelle`
 - `bemerkung`
 - `aktiv` NOT NULL DEFAULT 1
 - `erstellt_am` NOT NULL
@@ -411,6 +434,7 @@ Hinweis:
 
 Indizes:
 - Index auf `laborparameter_id, aktiv`
+- Index auf `zielbereich_quelle_id`
 - Index auf `zielbereich_typ`
 - Index auf `geschlecht_code, alter_min_tage, alter_max_tage`
 

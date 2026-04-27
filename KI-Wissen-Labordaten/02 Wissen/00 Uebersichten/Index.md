@@ -49,6 +49,7 @@
 - [[../../03 Betrieb/Qualitaetspruefung]]
 - [[../../03 Betrieb/Generische Entwicklungsvorgaben]]: wiederverwendbare Entwicklungsregeln und generische Leitplanken für neue Funktionen und ähnliche Bereiche im Projekt.
 - [[../../03 Betrieb/KSG-Klassifikationsvorschlag vorhandene Parameter 2026-04-26]]: datierter Vorschlag zur primären KSG-Einordnung der aktuell vorhandenen Laborparameter inklusive Begründungen, Sicherheit und Zusatzrollen-Hinweisen.
+- [[../../03 Betrieb/KSG-Zielbereichsvorschlag Orfanos-Boeckel 2026-04-27]]: Entwurf für quellengebundene Orfanos-Boeckel-Optimalbereiche aus den KSG-Tabellen inklusive Parameter-Neuanlagen, Zielwertvorschlägen und Importprüfpunkten.
 
 ## Workspace-Quellen
 - [[../../01 Rohquellen/repo-root/2026-04-20 V1 Scaffold Workspace-Stand]]: Referenz auf den aktuellen technischen Scaffold-Stand im Repository inklusive Durchstich für Referenzen, Zielbereiche, Zielbereichs-Overrides, Planung, Importprüfung, Berichte, Auswertung und echte Gruppenlogik.

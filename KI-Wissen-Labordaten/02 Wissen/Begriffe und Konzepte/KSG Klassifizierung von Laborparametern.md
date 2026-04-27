@@ -1,7 +1,7 @@
 ---
 typ: fachkonzept
 status: aktiv
-letzte_aktualisierung: 2026-04-26
+letzte_aktualisierung: 2026-04-27
 quellen:
   - ../../01 Rohquellen/externe-quellen/Laborwerte_Systematik_KSG.md
   - ../../01 Rohquellen/externe-quellen/KSG-Klassifikation.pdf
@@ -36,8 +36,6 @@ quellen:
   - ../../01 Rohquellen/externe-quellen/KSG-Klassifikation Tab S14 Transkription.md
   - ../../01 Rohquellen/externe-quellen/KSG-Klassifikation Tab S15.pdf
   - ../../01 Rohquellen/externe-quellen/KSG-Klassifikation Tab S15 Transkription.md
-  - ../../01 Rohquellen/externe-quellen/KSG-Klassifikation Tab S16.pdf
-  - ../../01 Rohquellen/externe-quellen/KSG-Klassifikation Tab S16 Transkription.md
   - ../../../apps/backend/src/labordaten_backend/models/laborparameter.py
   - ../../../apps/backend/src/labordaten_backend/models/parameter_klassifikation.py
   - ../../../apps/backend/src/labordaten_backend/models/zielbereich.py
@@ -62,11 +60,14 @@ Die KSG-Systematik ergänzt die Laboranwendung um eine interpretative Schicht au
 ## Modellierungsentscheidung
 - Jeder `Laborparameter` kann optional eine `primaere_klassifikation` tragen.
 - Kontextabhängige Mehrfachrollen werden nicht als zusätzliche Parameter oder Gruppen modelliert, sondern in `parameter_klassifikation` mit `klassifikation`, `kontext_beschreibung` und `begruendung`.
+- Eine identische Zusatzrolle darf pro Parameter fachlich nur einmal aktiv vorkommen. Bei Parameter-Zusammenführungen sind gleiche Kombinationen aus `klassifikation` und `kontext_beschreibung` zu konsolidieren, damit Alias- oder Dublettenbereinigungen keine mehrfach sichtbaren KSG-Zusatzrollen erzeugen.
 - Die drei KSG-Codes sind feste Werte und keine freien Texte.
 - Gruppen bleiben fachliche Sammlungen für Filter, Berichte, Planung und Erfassung; sie ersetzen die KSG-Klassifikation nicht.
 
 ## Zielbereiche
 Zielbereiche erhalten zusätzlich einen `zielbereich_typ`. Dadurch lassen sich allgemeine Zielbereiche von `optimalbereich`, `therapieziel`, `mangelbereich` und `risikobereich` unterscheiden. Diese Typisierung ist besonders relevant für Schlüsselwerte und Gesundmachwerte, weil dort Referenzbereich, Optimum, Mangelbereich und therapeutisches Ziel nicht zwingend identisch sind.
+
+KSG-Tabellenwerte, die als empfohlene Zielwerte aus den Quellen von Dr. med. Helena Orfanos-Boeckel abgeleitet werden, sollen als `optimalbereich` mit eigener `ZielbereichQuelle` gepflegt werden. Dadurch stehen diese Empfehlungen parallel zu anderen Experten-, Leitlinien-, Labor- oder Eigenvorgaben und müssen nicht redundant in Zielbereichsbemerkungen beschrieben werden.
 
 ## Abgleich Knochen und Gefäße
 Die PDF-Quelle `KSG-Klassifikation.pdf` konkretisiert die Systematik für Knochen und Gefäße. Daraus ergeben sich projektintern wichtige Leitplanken für die Parameter-Einordnung:
@@ -82,9 +83,9 @@ Die PDF-Quelle `KSG-Klassifikation.pdf` konkretisiert die Systematik für Knoche
 - Für Selen im Vollblut wird `G/S` genannt; im Projekt bleibt Selen primär `gesundmachwert` mit möglicher Zusatzrolle `schluesselwert`.
 - Für AP gibt es einen Quellenkonflikt: Die Überblicksquelle nennt AP unter Extra-Krankwerten, S04 führt die alkalische Phosphatase in der Detailtabelle als `schluesselwert`. Für das Projekt ist AP primär `schluesselwert`, während ein Organ-/Gefäß- oder Pathologiekontext als Zusatzrolle `krankwert` dokumentiert werden sollte.
 - S01 beschreibt die Tabellenlogik selbst: KSG-Klassen sind nicht als Diagnose-Ampel zu verstehen, sondern als fachliche Orientierung zu krankmachenden, schützenden oder steuernden Parameterfunktionen. Die Quelle betont außerdem, dass Laborreferenzen, Methoden und Einheiten zwischen Laboren abweichen können.
-- Die Tabellen S06-S16 bestätigen viele bisherige Zuordnungen und präzisieren Mehrfachrollen: fT3 wird als `S/G`, fT4 und TSH als `S/K`, HDL-C als `G/S`, Homocystein als `K/S`, Testosteron geschlechtsabhängig als `G Mann / S Frau` und Prolaktin als `K` im nicht-schwangeren Kontext geführt.
+- Die Tabellen S06-S15 bestätigen viele bisherige Zuordnungen und präzisieren Mehrfachrollen: fT3 wird als `S/G`, fT4 und TSH als `S/K`, HDL-C als `G/S`, Homocystein als `K/S`, Testosteron geschlechtsabhängig als `G Mann / S Frau` und Prolaktin als `K` im nicht-schwangeren Kontext geführt.
 - Die Detailtabellen führen eGFR ausdrücklich als `schluesselwert`, obwohl Nierenfunktionsmarker im allgemeinen Vorschlag oft als Krankheitsabklärung eingeordnet wurden. Projektintern soll eGFR deshalb primär `schluesselwert` sein; die pathologische Nierenfunktionsabklärung bleibt Zusatzrolle `krankwert`.
-- Weitere bestätigte Beispiele aus S06-S16: DHEA-S, Folsäure, Holo-TC, Jod, Magnesium, Melatonin, Nikotinamid/Vitamin B3, Pregnenolon, Progesteron, Q10, Vitamin A, B12, C, D-25-OH und E sind `gesundmachwert`; DHT, Estradiol, Ferritin, FSH, Gesamteiweiß, Leukozyten, LH, Lipoprint/LDL-Subfraktionen, Natrium, Östron, Parathormon, Phosphat, Quick, RBP, Serotonin, SHBG, Transferrinsättigung und Thrombozyten sind `schluesselwert`; HbA1c, HOMA, gGT, GOT, GPT, Harnsäure, Harnstoff, IgE, Kreatinin, LDL-C, Lipase, Lp(a), Mikroalbuminurie, NT-proBNP, oxidiertes LDL, TAK, TG, TPO-AK, TRAK, TRAP5b und Vitamin-D-Ratio sind `krankwert`.
+- Weitere bestätigte Beispiele aus S06-S15: DHEA-S, Folsäure, Holo-TC, Jod, Magnesium, Melatonin, Nikotinamid/Vitamin B3, Pregnenolon, Progesteron, Q10, Vitamin A, B12, C, D-25-OH und E sind `gesundmachwert`; DHT, Estradiol, Ferritin, FSH, Gesamteiweiß, Leukozyten, LH, Lipoprint/LDL-Subfraktionen, Natrium, Östron, Parathormon, Phosphat, Quick, RBP, Serotonin, SHBG, Transferrinsättigung und Thrombozyten sind `schluesselwert`; HbA1c, HOMA, gGT, GOT, GPT, Harnsäure, Harnstoff, IgE, Kreatinin, LDL-C, Lipase, Lp(a), Mikroalbuminurie, NT-proBNP, oxidiertes LDL, TAK, TG, TPO-AK, TRAK, TRAP5b und Vitamin-D-Ratio sind `krankwert`.
 
 ## Grenzen
 - Die Klassifikation bewertet die typische Funktion eines Parameters, nicht den konkreten Messwert.

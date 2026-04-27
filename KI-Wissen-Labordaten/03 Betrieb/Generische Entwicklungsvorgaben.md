@@ -122,6 +122,7 @@ Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitp
 - Die Suche darf nur die sichtbare Liste filtern, nicht still die bereits ausgewaehlten Werte loeschen oder die fachliche Filterauswahl zuruecksetzen.
 - Fuer lange Listen ist zusaetzlich eine Ansicht `nur ausgewaehlte` sinnvoll, damit bereits getroffene Auswahlen schnell kontrolliert und angepasst werden koennen.
 - Bereichsaktionen wie `Alle auswaehlen` und `Alle abwaehlen` sollen sich bei aktiver lokaler Suche oder `nur ausgewaehlte` auf die aktuell sichtbare Teilmenge beziehen, nicht blind auf die Gesamtliste.
+- Eingeklappte Mehrfachauswahllisten sollen ausgewählte Einträge sichtbar zusammenfassen. Bis zu 20 ausgewählte Einzelwerte werden namentlich angezeigt; bei vollständig ausgewählten Listen oder mehr als 20 ausgewählten Einträgen bleibt die Anzeige kompakt bei der Anzahl, damit große Parameterlisten nicht den Filterbereich überladen.
 - Solche Such- und Sichtfilter gehoeren in gemeinsame Auswahlkomponenten, damit das Verhalten ueber vergleichbare Filterseiten hinweg gleich bleibt.
 
 ## Datumsbereiche in Filtern

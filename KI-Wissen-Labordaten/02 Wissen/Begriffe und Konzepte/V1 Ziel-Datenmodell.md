@@ -13,6 +13,7 @@ quellen:
   - ../../../apps/backend/src/labordaten_backend/modules/messwerte/schemas.py
   - ../../../apps/backend/src/labordaten_backend/modules/referenzen/schemas.py
   - ../../../apps/backend/src/labordaten_backend/modules/zielbereiche/schemas.py
+  - ../../../apps/backend/src/labordaten_backend/models/zielbereich_quelle.py
   - ../../../apps/backend/src/labordaten_backend/modules/befunde/schemas.py
 tags:
   - datenmodell
@@ -38,7 +39,7 @@ Das V1-Datenmodell trennt Stammdaten, Messdaten, Referenzlogik, Zielbereiche, Pl
 ## Domänenübersicht
 - Stammdaten: Person, BasisdatenTyp, Person-Basisdaten-Verlauf, Labor, Laborparameter, Synonyme, Gruppen, Wissensseite
 - Messdaten: Befund, Dokument, Messwert, Messwert-Referenz
-- Ziel- und Planungslogik: Zielbereich allgemein, Zielbereich Person-Überschreibung, Planung zyklisch, Planung einmalig
+- Ziel- und Planungslogik: Zielwertquelle, Zielbereich allgemein, Zielbereich Person-Überschreibung, Planung zyklisch, Planung einmalig
 - Import: Importvorgang, Import-Prüfpunkt, optionale Import-Artefakte
 - Ausgabe und System: Berichtsvorlage, Einstellung, Datenbasis-Sperre
 
@@ -68,6 +69,7 @@ Das V1-Datenmodell trennt Stammdaten, Messdaten, Referenzlogik, Zielbereiche, Pl
 - `dokument_typ`: `laborbericht_pdf`, `import_rohquelle`, `wissensdatei_link`, `sonstiges`
 - `parameter_klassifikation`: `krankwert`, `schluesselwert`, `gesundmachwert`
 - `zielbereich_typ`: `allgemein`, `optimalbereich`, `therapieziel`, `mangelbereich`, `risikobereich`
+- `zielbereich_quelle_typ`: `experte`, `buch`, `leitlinie`, `labor`, `eigene_vorgabe`
 
 ## Entitäten und Felder
 
@@ -318,9 +320,27 @@ Regeln:
 - Strukturierte Unter- und Obergrenzen sind Zusatzinformation, kein Ersatz für den Originaltext.
 - Auch alters- oder geschlechtsabhängige Referenzvarianten sollen modellierbar sein.
 
+### ZielbereichQuelle
+- `id`
+- `name`: Name der Quelle oder empfehlenden Person, z. B. `Dr. med. Helena Orfanos-Boeckel`
+- `quellen_typ`: feste Ausprägung wie `experte`, `buch`, `leitlinie`, `labor` oder `eigene_vorgabe`
+- `titel`: optionaler Werktitel oder Quellenname
+- `jahr`: optionales Jahr, falls eine Empfehlung versioniert oder zeitlich eingeordnet werden soll
+- `version`: optionale Auflage, Version oder interne Fassung
+- `bemerkung`
+- `aktiv`
+- `erstellt_am`
+- `geaendert_am`
+
+Regel:
+- Fachliche Empfehlungen zu Zielwerten sollen nicht wiederholt in `Zielbereich.bemerkung` geschrieben werden, wenn sie einer wiederverwendbaren Quelle zugeordnet werden können.
+- Mehrere Experten, Bücher, Leitlinien, Laborvorgaben oder eigene Vorgaben dürfen parallel Zielbereiche für denselben Parameter liefern.
+- Die KSG-Tabellenwerte von Dr. med. Helena Orfanos-Boeckel werden als `optimalbereich`-Zielbereiche mit eigener Zielwertquelle modelliert, nicht als allgemeingültige Laborreferenzen.
+
 ### Zielbereich
 - `id`
 - `laborparameter_id`
+- `zielbereich_quelle_id`: optionaler Verweis auf die wiederverwendbare Zielwertquelle
 - `wert_typ`
 - `zielbereich_typ`: `allgemein`, `optimalbereich`, `therapieziel`, `mangelbereich` oder `risikobereich`
 - `untere_grenze_num`
@@ -330,6 +350,8 @@ Regeln:
 - `geschlecht_code`: optional
 - `alter_min_tage`: optional
 - `alter_max_tage`: optional
+- `quelle_original_text`: optionaler Originalwortlaut des Zielwerts aus der Quelle
+- `quelle_stelle`: optionaler Fundstellenhinweis, z. B. Tabelle, Seite oder Abschnitt
 - `bemerkung`
 - `aktiv`
 - `erstellt_am`
@@ -337,6 +359,7 @@ Regeln:
 
 Regel:
 - Zielbereiche sind allgemeine Vorgaben für einen Parameter.
+- Zielbereiche sind quellenfähig, damit mehrere parallele Empfehlungen nebeneinander gepflegt, angezeigt und später für Berichte selektiert werden können.
 - Für qualitative Parameter kann statt Zahlenbereich ein `soll_text` verwendet werden, falls fachlich sinnvoll.
 - Der `zielbereich_typ` unterscheidet neutrale Vorgaben von funktionellen Optimalbereichen, Therapiezielen, Mangelbereichen und Risikobereichen.
 
@@ -466,6 +489,7 @@ Regel:
 - Ein `Laborparameter` hat null bis viele zusätzliche `ParameterKlassifikation`.
 - Ein `Laborparameter` ist über `GruppenParameter` mit vielen `ParameterGruppe` verbunden.
 - Ein `Laborparameter` hat null bis viele allgemeine `Zielbereich`.
+- Eine `ZielbereichQuelle` hat null bis viele `Zielbereich`.
 - Ein `Zielbereich` hat null bis viele `ZielbereichUeberschreibungPerson`.
 - Eine `Person` hat viele `PlanungZyklisch` und `PlanungEinmalig`.
 - Ein `Importvorgang` hat viele `ImportPruefpunkt` und kann zu `Befund` und `Messwert` zurückverfolgbar bleiben.
