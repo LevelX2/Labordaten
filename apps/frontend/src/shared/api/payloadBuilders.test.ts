@@ -144,6 +144,7 @@ describe("payloadBuilders", () => {
         {
           wert_typ: "text",
           zielbereich_typ: "therapieziel",
+          zielrichtung: "zielwert_nahe",
           zielbereich_quelle_id: "",
           zielwert_paket_id: "",
           untere_grenze_num: "1",
@@ -160,6 +161,7 @@ describe("payloadBuilders", () => {
     ).toEqual({
       wert_typ: "text",
       zielbereich_typ: "therapieziel",
+      zielrichtung: "zielwert_nahe",
       zielbereich_quelle_id: null,
       zielwert_paket_id: null,
       untere_grenze_num: null,

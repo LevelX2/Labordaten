@@ -11,6 +11,7 @@ BEFUND_QUELLE_TYPEN = ("manuell", "import", "ki_import")
 UMRECHNUNGSREGEL_TYPEN = ("faktor", "faktor_plus_offset", "formel")
 PARAMETER_KLASSIFIKATIONEN = ("krankwert", "schluesselwert", "gesundmachwert")
 ZIELBEREICH_TYPEN = ("allgemein", "optimalbereich", "therapieziel", "mangelbereich", "risikobereich")
+ZIELRICHTUNGEN = ("innerhalb_bereich", "je_niedriger_desto_besser", "je_hoeher_desto_besser", "zielwert_nahe")
 ZIELBEREICH_QUELLE_TYPEN = ("experte", "buch", "leitlinie", "labor", "eigene_vorgabe")
 
 

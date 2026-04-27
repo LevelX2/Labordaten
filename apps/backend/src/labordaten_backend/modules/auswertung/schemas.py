@@ -67,6 +67,7 @@ class AuswertungPunkt(BaseModel):
     zielbereich_obere_num: float | None = None
     zielbereich_einheit: str | None = None
     zielbereich_text: str | None = None
+    zielbereich_zielrichtung: str | None = None
 
 
 class AuswertungsSerie(BaseModel):

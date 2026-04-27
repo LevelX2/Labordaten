@@ -1,7 +1,7 @@
 ---
 typ: datenmodell
 status: entwurf
-letzte_aktualisierung: 2026-04-21
+letzte_aktualisierung: 2026-04-27
 quellen:
   - ../../01 Rohquellen/fachkonzepte/2026-04-20 Erste Konzeptvorgabe Laboranwendung.md
   - ../../01 Rohquellen/fachkonzepte/2026-04-20 Konzeptklaerungen V1 aus Rueckfragen.md
@@ -363,6 +363,7 @@ Regel:
 - `zielwert_paket_id`: optionaler Verweis auf ein installierbares Zielwertpaket
 - `wert_typ`
 - `zielbereich_typ`: `allgemein`, `optimalbereich`, `therapieziel`, `mangelbereich` oder `risikobereich`
+- `zielrichtung`: `innerhalb_bereich`, `je_niedriger_desto_besser`, `je_hoeher_desto_besser` oder `zielwert_nahe`
 - `untere_grenze_num`
 - `obere_grenze_num`
 - `einheit`
@@ -383,11 +384,13 @@ Regel:
 - Zielbereiche können zusätzlich paketfähig sein, damit Empfehlungen nach Quelle, Version oder Anwenderentscheidung als Sammlung ein- und ausgeblendet beziehungsweise deaktiviert werden können.
 - Für qualitative Parameter kann statt Zahlenbereich ein `soll_text` verwendet werden, falls fachlich sinnvoll.
 - Der `zielbereich_typ` unterscheidet neutrale Vorgaben von funktionellen Optimalbereichen, Therapiezielen, Mangelbereichen und Risikobereichen.
+- Die `zielrichtung` beschreibt, wie Werte innerhalb oder an der Grenze fachlich gelesen werden sollen. Einseitige Schadstoff- oder Belastungsziele wie Aluminium im Vollblut oder Arsen im Vollblut werden nicht künstlich mit einer Untergrenze `0` modelliert, sondern mit Obergrenze und `je_niedriger_desto_besser`.
 
 ### ZielbereichUeberschreibungPerson
 - `id`
 - `person_id`
 - `zielbereich_id`
+- `zielrichtung`
 - `untere_grenze_num`
 - `obere_grenze_num`
 - `einheit`
@@ -398,6 +401,7 @@ Regel:
 
 Regel:
 - Person-Überschreibungen verweisen bewusst auf einen allgemeinen Zielbereich und ersetzen ihn nur für diese Person.
+- Wenn keine abweichende persönliche Zielrichtung gesetzt wird, übernimmt die Person-Überschreibung die Zielrichtung des allgemeinen Zielbereichs.
 
 ### PlanungZyklisch
 - `id`

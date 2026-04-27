@@ -90,6 +90,7 @@ def build_auswertung(db: Session, payload: AuswertungRequest) -> AuswertungRespo
                     zielbereich_obere_num=zielbereich["obere_grenze_num"] if payload.include_zielbereich and zielbereich is not None else None,
                     zielbereich_einheit=zielbereich["einheit"] if payload.include_zielbereich and zielbereich is not None else None,
                     zielbereich_text=zielbereich["text"] if payload.include_zielbereich and zielbereich is not None else None,
+                    zielbereich_zielrichtung=zielbereich["zielrichtung"] if payload.include_zielbereich and zielbereich is not None else None,
                 )
             )
 
@@ -178,6 +179,7 @@ def _load_target_override_map(db: Session, person_ids: list[str]) -> dict[tuple[
                 "obere_grenze_num": override.obere_grenze_num,
                 "einheit": override.einheit or zielbereich.einheit,
                 "text": override.soll_text or zielbereich.soll_text,
+                "zielrichtung": override.zielrichtung,
                 "geschlecht_code": zielbereich.geschlecht_code,
                 "alter_min_tage": zielbereich.alter_min_tage,
                 "alter_max_tage": zielbereich.alter_max_tage,
@@ -235,6 +237,7 @@ def _select_applicable_target(
                 "obere_grenze_num": zielbereich.obere_grenze_num,
                 "einheit": zielbereich.einheit,
                 "text": zielbereich.soll_text,
+                "zielrichtung": zielbereich.zielrichtung,
             }
     return None
 

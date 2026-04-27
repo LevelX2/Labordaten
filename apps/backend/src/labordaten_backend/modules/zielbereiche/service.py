@@ -152,6 +152,7 @@ def update_zielbereich(db: Session, zielbereich_id: str, payload: ZielbereichUpd
     zielbereich_quelle_id = _resolve_target_source_id(payload.zielbereich_quelle_id, paket)
     _require_existing_zielbereich_quelle(db, zielbereich_quelle_id)
     zielbereich.zielbereich_typ = payload.zielbereich_typ
+    zielbereich.zielrichtung = payload.zielrichtung
     zielbereich.zielbereich_quelle_id = zielbereich_quelle_id
     zielbereich.zielwert_paket_id = payload.zielwert_paket_id
     zielbereich.untere_grenze_num = payload.untere_grenze_num if zielbereich.wert_typ == "numerisch" else None

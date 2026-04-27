@@ -89,6 +89,52 @@ def test_target_ranges_require_known_units(tmp_path: Path) -> None:
             )
 
 
+def test_target_direction_is_stored_and_inherited_by_person_override(tmp_path: Path) -> None:
+    with _make_session(tmp_path) as db:
+        einheiten_service.create_einheit(db, einheiten_schemas.EinheitCreate(kuerzel="µg/l"))
+
+        parameter = parameter_service.create_parameter(
+            db,
+            parameter_schemas.ParameterCreate(
+                anzeigename="Aluminium im Vollblut",
+                standard_einheit="µg/l",
+                wert_typ_standard="numerisch",
+            ),
+        )
+        zielbereich = zielbereiche_service.create_zielbereich(
+            db,
+            parameter.id,
+            zielbereiche_schemas.ZielbereichCreate(
+                wert_typ="numerisch",
+                zielbereich_typ="optimalbereich",
+                zielrichtung="je_niedriger_desto_besser",
+                obere_grenze_num=11.4,
+                einheit="µg/l",
+            ),
+        )
+
+        person = personen_service.create_person(
+            db,
+            personen_schemas.PersonCreate(
+                anzeigename="Ludwig",
+                geburtsdatum=date(1964, 1, 12),
+            ),
+        )
+        override = personen_service.create_zielbereich_override(
+            db,
+            person.id,
+            personen_schemas.ZielbereichOverrideCreate(
+                zielbereich_id=zielbereich.id,
+                obere_grenze_num=8.0,
+                einheit="µg/l",
+            ),
+        )
+
+        assert zielbereich.zielrichtung == "je_niedriger_desto_besser"
+        assert override.basis_zielrichtung == "je_niedriger_desto_besser"
+        assert override.zielrichtung == "je_niedriger_desto_besser"
+
+
 def test_import_takeover_adds_missing_units_to_master_data(tmp_path: Path) -> None:
     with _make_session(tmp_path) as db:
         person = Person(

@@ -8,7 +8,8 @@ import type {
   WertOperator,
   WertTyp,
   ZielbereichQuelleTyp,
-  ZielbereichTyp
+  ZielbereichTyp,
+  Zielrichtung
 } from "../types/api";
 
 export const GESCHLECHT_CODE_OPTIONS = [
@@ -73,6 +74,13 @@ export const ZIELBEREICH_TYP_OPTIONS = [
   { value: "risikobereich", label: "Risikobereich" }
 ] as const satisfies ReadonlyArray<{ value: ZielbereichTyp; label: string }>;
 
+export const ZIELRICHTUNG_OPTIONS = [
+  { value: "innerhalb_bereich", label: "Innerhalb des Bereichs" },
+  { value: "je_niedriger_desto_besser", label: "Je niedriger desto besser" },
+  { value: "je_hoeher_desto_besser", label: "Je höher desto besser" },
+  { value: "zielwert_nahe", label: "Nahe am Zielwert" }
+] as const satisfies ReadonlyArray<{ value: Zielrichtung; label: string }>;
+
 export const ZIELBEREICH_QUELLE_TYP_OPTIONS = [
   { value: "experte", label: "Experte" },
   { value: "buch", label: "Buch" },
@@ -114,6 +122,13 @@ const ZIELBEREICH_TYP_LABELS: Record<ZielbereichTyp, string> = {
   therapieziel: "Therapieziel",
   mangelbereich: "Mangelbereich",
   risikobereich: "Risikobereich"
+};
+
+const ZIELRICHTUNG_LABELS: Record<Zielrichtung, string> = {
+  innerhalb_bereich: "Innerhalb des Bereichs",
+  je_niedriger_desto_besser: "Je niedriger desto besser",
+  je_hoeher_desto_besser: "Je höher desto besser",
+  zielwert_nahe: "Nahe am Zielwert"
 };
 
 const ZIELBEREICH_QUELLE_TYP_LABELS: Record<ZielbereichQuelleTyp, string> = {
@@ -199,6 +214,13 @@ export function formatZielbereichTyp(value?: string | null): string {
     return "Allgemein";
   }
   return ZIELBEREICH_TYP_LABELS[value as ZielbereichTyp] ?? value;
+}
+
+export function formatZielrichtung(value?: string | null): string {
+  if (!value) {
+    return "Innerhalb des Bereichs";
+  }
+  return ZIELRICHTUNG_LABELS[value as Zielrichtung] ?? value;
 }
 
 export function formatZielbereichQuelleTyp(value?: string | null): string {

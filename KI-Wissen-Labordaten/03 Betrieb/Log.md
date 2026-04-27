@@ -11,16 +11,45 @@
 
 ## 2026-04
 
-### [2026-04-27] update | Auswertungslinien für Referenz- und Zielbereiche je Person getrennt
-- Anlass oder Quelle: Fortsetzung der Auswertungsverbesserungen für lesbarere Verlaufsdiagramme bei mehreren Personen und parallelen Referenz- oder Zielbereichsanzeigen.
+### [2026-04-27] feature | Zielrichtungen für Zielbereiche ergänzt
+- Anlass oder Quelle: Nutzerfrage, wie persönliche Zielwerte wie `je niedriger desto besser` oder `so niedrig wie möglich` bei AGEs, Aluminium im Vollblut und Arsen im Vollblut strukturiert abgebildet werden sollen.
 - Neu angelegte Seiten:
   - keine
 - Geänderte Seiten:
+  - ../02 Wissen/Begriffe und Konzepte/V1 Ziel-Datenmodell.md
+  - ../02 Wissen/Begriffe und Konzepte/V1 Technisches Schema.md
+  - ../../../apps/backend/src/labordaten_backend/core/field_options.py
+  - ../../../apps/backend/src/labordaten_backend/models/zielbereich.py
+  - ../../../apps/backend/src/labordaten_backend/models/zielbereich_person_override.py
+  - ../../../apps/backend/src/labordaten_backend/modules/zielbereiche/
+  - ../../../apps/backend/src/labordaten_backend/modules/personen/
+  - ../../../apps/backend/src/labordaten_backend/modules/auswertung/
+  - ../../../apps/backend/migrations/versions/20260427_0004_zielrichtung.py
+  - ../../../apps/frontend/src/shared/
+  - ../../../apps/frontend/src/features/parameter/ParameterPage.tsx
+  - ../../../apps/frontend/src/features/personen/PersonenPage.tsx
+- Kern der inhaltlichen Anpassung:
+  - Zielbereiche führen nun eine feste `zielrichtung` mit `innerhalb_bereich`, `je_niedriger_desto_besser`, `je_hoeher_desto_besser` und `zielwert_nahe`.
+  - Personenspezifische Zielbereichs-Overrides speichern ebenfalls eine Zielrichtung und übernehmen ohne abweichende Angabe die Zielrichtung des allgemeinen Zielbereichs.
+  - Einseitige Zielwerte wie Schadstoff-Obergrenzen können damit als Obergrenze plus `je_niedriger_desto_besser` geführt werden, statt eine künstliche Untergrenze zu erzwingen.
+  - Die Parameter- und Personenoberflächen können Zielrichtungen pflegen und anzeigen; die Auswertung liefert die effektive Zielrichtung mit.
+  - Verifiziert mit Alembic-Migration auf die lokale SQLite-Datenbank, `python -m pytest` im Backend, `npm test -- --run src/shared/api/payloadBuilders.test.ts` und `npm run build` im Frontend.
+
+### [2026-04-27] update | Auswertungslinien für Referenz- und Zielbereiche je Person getrennt
+- Anlass oder Quelle: Nutzerhinweis, dass im kleinen Blutbild geschlechtsabhängige Referenzbereiche bei gemeinsamer Auswahl von Ludwig und Sabine im Diagramm hoch und runter springen und deshalb nicht als eine gemeinsame Referenzlinie pro Parameter dargestellt werden dürfen.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../02 Wissen/Begriffe und Konzepte/V1 Screenplan und Kernworkflows.md
   - ../../../apps/frontend/src/features/auswertung/AuswertungPage.tsx
+  - ../../../apps/frontend/src/styles.css
+  - ../../../apps/backend/labordaten.db
 - Kern der inhaltlichen Anpassung:
   - Laborreferenz- und Zielbereichslinien werden im Diagramm nicht mehr als eine gemeinsame globale Linie gezeichnet, sondern personbezogen aus den Messpunkten aufgebaut.
   - Die Diagrammlegende schaltet nun Wertlinien, Laborreferenzen und Zielbereiche als eigene Liniengruppen ein und aus.
   - Die Anzeige bleibt abhängig von den vorhandenen Referenz- und Zielbereichsdaten sowie den Darstellungsschaltern der Auswertung.
+  - Für den lokalen Bestand wurde Sabines alter Freitext-Geschlechtscode `Weiblich` auf den festen Code `w` normalisiert; vorher wurde die Sicherung `apps/backend/labordaten.pre-geschlecht-normalisierung-20260427-101940.db` angelegt.
+  - Verifiziert mit `npm run build` im Frontend und den Backend-Tests `tests/test_code_field_validation.py` sowie `tests/test_api_contract_fixed_codes.py`.
 
 ### [2026-04-27] feature | Optionale Zielwertpakete ergänzt
 - Anlass oder Quelle: Nutzerentscheidung, quellengebundene Zielwertsammlungen wie Orfanos-Boeckel-Optimalbereiche nicht fest als Systemstandard einzubauen, sondern als optionale Pakete einspielbar und deaktivierbar zu machen.

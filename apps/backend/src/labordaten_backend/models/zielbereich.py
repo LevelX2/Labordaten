@@ -17,6 +17,7 @@ class Zielbereich(Base, TimestampMixin):
     zielwert_paket_id: Mapped[str | None] = mapped_column(ForeignKey("zielwert_paket.id"))
     wert_typ: Mapped[str] = mapped_column(String(20), nullable=False, default="numerisch")
     zielbereich_typ: Mapped[str] = mapped_column(String(40), nullable=False, default="allgemein")
+    zielrichtung: Mapped[str] = mapped_column(String(40), nullable=False, default="innerhalb_bereich")
     untere_grenze_num: Mapped[float | None] = mapped_column(Float)
     obere_grenze_num: Mapped[float | None] = mapped_column(Float)
     einheit: Mapped[str | None] = mapped_column(String(50))

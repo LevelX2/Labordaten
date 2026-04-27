@@ -75,8 +75,8 @@ const initialForm: AuswertungFormState = {
 };
 
 const palette = ["#1f5a92", "#1f6a53", "#d77a2f", "#8d4aa5", "#a34848", "#4d6b1f"];
-const laborreferenzPalette = ["#d77a2f", "#b66f00", "#c44f8d", "#7a6f1c", "#c14f42", "#6d6f8f"];
-const zielbereichPalette = ["#1f6a53", "#4d7f2a", "#008097", "#7357a8", "#2b6f92", "#887638"];
+const laborreferenzPalette = ["#d97706", "#dc2626", "#c026d3", "#7c3aed", "#2563eb", "#0891b2"];
+const zielbereichPalette = ["#1f6a53", "#4d7f2a", "#008097", "#2b6f92", "#5f7f1f", "#6f6f1f"];
 const diagrammDarstellungOptions: Array<{ value: DiagrammDarstellung; label: string }> = [
   { value: "verlauf", label: "Verlauf" },
   { value: "punkte", label: "Punkte" },

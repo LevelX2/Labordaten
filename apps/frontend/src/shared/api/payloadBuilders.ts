@@ -12,6 +12,7 @@ import type {
   ZielbereichCreatePayload,
   ZielbereichUpdatePayload,
   ZielbereichTyp,
+  Zielrichtung,
 } from "../types/api";
 
 type PersonPayloadInput = {
@@ -54,6 +55,7 @@ type ReferenzPayloadInput = {
 type ZielbereichPayloadInput = {
   wert_typ: WertTyp;
   zielbereich_typ: ZielbereichTyp;
+  zielrichtung: Zielrichtung;
   zielbereich_quelle_id: string;
   zielwert_paket_id: string;
   untere_grenze_num: string;
@@ -150,6 +152,7 @@ export function buildZielbereichCreatePayload(
   return {
     wert_typ: input.wert_typ,
     zielbereich_typ: input.zielbereich_typ,
+    zielrichtung: input.zielrichtung,
     zielbereich_quelle_id: emptyToNull(input.zielbereich_quelle_id),
     zielwert_paket_id: emptyToNull(input.zielwert_paket_id),
     untere_grenze_num: input.wert_typ === "numerisch" ? stringNumberToNull(input.untere_grenze_num) : null,
@@ -170,6 +173,7 @@ export function buildZielbereichUpdatePayload(
   const payload = buildZielbereichCreatePayload(input, fallbackEinheit);
   return {
     zielbereich_typ: payload.zielbereich_typ,
+    zielrichtung: payload.zielrichtung,
     zielbereich_quelle_id: payload.zielbereich_quelle_id,
     zielwert_paket_id: payload.zielwert_paket_id,
     untere_grenze_num: payload.untere_grenze_num,

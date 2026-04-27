@@ -6,7 +6,9 @@ from labordaten_backend.core.field_options import (
     BLUTGRUPPEN,
     GESCHLECHT_CODES,
     RHESUSFAKTOREN,
+    ZIELRICHTUNGEN,
     validate_optional_code,
+    validate_required_code,
 )
 
 
@@ -87,11 +89,19 @@ class PersonRead(BaseModel):
 
 class ZielbereichOverrideCreate(BaseModel):
     zielbereich_id: str
+    zielrichtung: str | None = None
     untere_grenze_num: float | None = None
     obere_grenze_num: float | None = None
     einheit: str | None = None
     soll_text: str | None = None
     bemerkung: str | None = None
+
+    @field_validator("zielrichtung")
+    @classmethod
+    def validate_zielrichtung(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return validate_required_code(value, valid_values=ZIELRICHTUNGEN, field_label="Zielrichtung")
 
 
 class ZielbereichOverrideRead(BaseModel):
@@ -101,10 +111,12 @@ class ZielbereichOverrideRead(BaseModel):
     laborparameter_id: str
     parameter_anzeigename: str
     wert_typ: str
+    basis_zielrichtung: str
     basis_untere_grenze_num: float | None = None
     basis_obere_grenze_num: float | None = None
     basis_einheit: str | None = None
     basis_soll_text: str | None = None
+    zielrichtung: str
     untere_grenze_num: float | None = None
     obere_grenze_num: float | None = None
     einheit: str | None = None

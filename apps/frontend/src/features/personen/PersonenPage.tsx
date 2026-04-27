@@ -9,10 +9,12 @@ import {
   PERSON_RHESUSFAKTOR_OPTIONS,
   formatBlutgruppe,
   formatGeschlechtCode,
-  formatRhesusfaktor
+  formatRhesusfaktor,
+  formatZielrichtung,
+  ZIELRICHTUNG_OPTIONS
 } from "../../shared/constants/fieldOptions";
 import { LoeschAktionPanel } from "../../shared/components/LoeschAktionPanel";
-import type { Parameter, Person, WertTyp, Zielbereich, ZielbereichOverride } from "../../shared/types/api";
+import type { Parameter, Person, WertTyp, Zielbereich, ZielbereichOverride, Zielrichtung } from "../../shared/types/api";
 
 type PersonFormState = {
   anzeigename: string;
@@ -29,6 +31,7 @@ type OverrideFormState = {
   parameter_id: string;
   zielbereich_id: string;
   wert_typ: WertTyp;
+  zielrichtung: Zielrichtung;
   untere_grenze_num: string;
   obere_grenze_num: string;
   einheit: string;
@@ -53,6 +56,7 @@ const initialOverrideForm: OverrideFormState = {
   parameter_id: "",
   zielbereich_id: "",
   wert_typ: "numerisch",
+  zielrichtung: "innerhalb_bereich",
   untere_grenze_num: "",
   obere_grenze_num: "",
   einheit: "",
@@ -245,6 +249,7 @@ export function PersonenPage() {
         method: "POST",
         body: JSON.stringify({
           zielbereich_id: overrideForm.zielbereich_id,
+          zielrichtung: overrideForm.zielrichtung,
           untere_grenze_num:
             overrideForm.wert_typ === "numerisch" && overrideForm.untere_grenze_num
               ? Number(overrideForm.untere_grenze_num)
@@ -481,6 +486,7 @@ export function PersonenPage() {
                     parameter_id: event.target.value,
                     zielbereich_id: "",
                     wert_typ: "numerisch",
+                    zielrichtung: "innerhalb_bereich",
                     untere_grenze_num: "",
                     obere_grenze_num: "",
                     einheit: nextParameter?.standard_einheit ?? "",
@@ -509,6 +515,7 @@ export function PersonenPage() {
                   ...current,
                   zielbereich_id: event.target.value,
                   wert_typ: selected?.wert_typ ?? current.wert_typ,
+                  zielrichtung: selected?.zielrichtung ?? current.zielrichtung,
                   einheit: selected?.einheit ?? selectedOverrideParameter?.standard_einheit ?? "",
                   soll_text: selected?.soll_text ?? ""
                 }));
@@ -518,7 +525,7 @@ export function PersonenPage() {
               {zielbereicheQuery.data?.map((zielbereich) => (
                 <option key={zielbereich.id} value={zielbereich.id}>
                   {zielbereich.wert_typ === "numerisch"
-                    ? `${zielbereich.untere_grenze_num ?? "—"} bis ${zielbereich.obere_grenze_num ?? "—"}`
+                    ? `${zielbereich.untere_grenze_num ?? "—"} bis ${zielbereich.obere_grenze_num ?? "—"} · ${formatZielrichtung(zielbereich.zielrichtung)}`
                     : zielbereich.soll_text || "Text-Zielbereich"}
                 </option>
                 ))}
@@ -537,6 +544,22 @@ export function PersonenPage() {
 
           {overrideForm.wert_typ === "numerisch" ? (
             <>
+              <label className="field field--full">
+                <span>Zielrichtung</span>
+                <select
+                  value={overrideForm.zielrichtung}
+                  onChange={(event) =>
+                    setOverrideForm((current) => ({ ...current, zielrichtung: event.target.value as Zielrichtung }))
+                  }
+                >
+                  {ZIELRICHTUNG_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
               <label className="field">
                 <span>Eigene untere Grenze</span>
                 <input
@@ -827,6 +850,7 @@ export function PersonenPage() {
                                 <tr>
                                   <th>Parameter</th>
                                   <th>Allgemein</th>
+                                  <th>Zielrichtung</th>
                                   <th>Personenspezifisch</th>
                                   <th>Bemerkung</th>
                                 </tr>
@@ -836,13 +860,14 @@ export function PersonenPage() {
                                   <tr key={override.id}>
                                     <td>{override.parameter_anzeigename}</td>
                                     <td>{formatOverrideValue(override, true)}</td>
+                                    <td>{formatZielrichtung(override.zielrichtung)}</td>
                                     <td>{formatOverrideValue(override)}</td>
                                     <td>{override.bemerkung || "—"}</td>
                                   </tr>
                                 ))}
                                 {!overridesQuery.data?.length ? (
                                   <tr>
-                                    <td colSpan={4}>Noch keine eigenen Zielbereiche für diese Person vorhanden.</td>
+                                    <td colSpan={5}>Noch keine eigenen Zielbereiche für diese Person vorhanden.</td>
                                   </tr>
                                 ) : null}
                               </tbody>

@@ -12,10 +12,12 @@ import {
   WERT_TYP_OPTIONS,
   ZIELBEREICH_QUELLE_TYP_OPTIONS,
   ZIELBEREICH_TYP_OPTIONS,
+  ZIELRICHTUNG_OPTIONS,
   formatGeschlechtCode,
   formatParameterKlassifikation,
   formatZielbereichQuelleTyp,
   formatZielbereichTyp,
+  formatZielrichtung,
   formatWertTyp
 } from "../../shared/constants/fieldOptions";
 import type {
@@ -47,6 +49,7 @@ import type {
   ZielbereichQuelle,
   ZielbereichQuelleCreatePayload,
   ZielbereichQuelleTyp,
+  Zielrichtung,
   ZielbereichTyp,
   ZielbereichUpdatePayload,
   ZielwertPaket,
@@ -97,6 +100,7 @@ type ZielbereichFormState = {
   parameter_id: string;
   wert_typ: WertTyp;
   zielbereich_typ: ZielbereichTyp;
+  zielrichtung: Zielrichtung;
   zielbereich_quelle_id: string;
   zielwert_paket_id: string;
   untere_grenze_num: string;
@@ -212,6 +216,7 @@ const initialZielbereichForm: ZielbereichFormState = {
   parameter_id: "",
   wert_typ: "numerisch",
   zielbereich_typ: "optimalbereich",
+  zielrichtung: "innerhalb_bereich",
   zielbereich_quelle_id: "",
   zielwert_paket_id: "",
   untere_grenze_num: "",
@@ -1149,6 +1154,7 @@ export function ParameterPage() {
       parameter_id: zielbereich.laborparameter_id,
       wert_typ: zielbereich.wert_typ,
       zielbereich_typ: zielbereich.zielbereich_typ,
+      zielrichtung: zielbereich.zielrichtung,
       zielbereich_quelle_id: zielbereich.zielbereich_quelle_id ?? "",
       zielwert_paket_id: zielbereich.zielwert_paket_id ?? "",
       untere_grenze_num: zielbereich.untere_grenze_num?.toString() ?? "",
@@ -1940,6 +1946,25 @@ export function ParameterPage() {
                 }
               >
                 {ZIELBEREICH_TYP_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field">
+              <span>Zielrichtung</span>
+              <select
+                value={zielbereichForm.zielrichtung}
+                onChange={(event) =>
+                  setZielbereichForm((current) => ({
+                    ...current,
+                    zielrichtung: event.target.value as Zielrichtung
+                  }))
+                }
+              >
+                {ZIELRICHTUNG_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
@@ -3118,6 +3143,7 @@ export function ParameterPage() {
                                   <th>Paket</th>
                                   <th>Quelle</th>
                                   <th>Typ</th>
+                                  <th>Zielrichtung</th>
                                   <th>Bereich</th>
                                   <th>Einheit</th>
                                   <th>Geschlecht</th>
@@ -3131,6 +3157,7 @@ export function ParameterPage() {
                                     <td>{formatZielwertPaket(zielwertPaketeById.get(zielbereich.zielwert_paket_id ?? ""))}</td>
                                     <td>{formatZielbereichQuelle(zielbereichQuellenById.get(zielbereich.zielbereich_quelle_id ?? ""))}</td>
                                     <td>{formatWertTyp(zielbereich.wert_typ)}</td>
+                                    <td>{formatZielrichtung(zielbereich.zielrichtung)}</td>
                                     <td>{formatZielbereichValue(zielbereich)}</td>
                                     <td>{zielbereich.einheit || "—"}</td>
                                     <td>{formatGeschlechtCode(zielbereich.geschlecht_code, "Alle Geschlechter")}</td>
@@ -3147,7 +3174,7 @@ export function ParameterPage() {
                                 ))}
                                 {!zielbereicheQuery.data?.length ? (
                                   <tr>
-                                    <td colSpan={8}>Noch keine Zielbereiche für diesen Parameter vorhanden.</td>
+                                    <td colSpan={9}>Noch keine Zielbereiche für diesen Parameter vorhanden.</td>
                                   </tr>
                                 ) : null}
                               </tbody>

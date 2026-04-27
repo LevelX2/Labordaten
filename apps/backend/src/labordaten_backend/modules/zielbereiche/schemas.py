@@ -7,6 +7,7 @@ from labordaten_backend.core.field_options import (
     WERT_TYPEN,
     ZIELBEREICH_QUELLE_TYPEN,
     ZIELBEREICH_TYPEN,
+    ZIELRICHTUNGEN,
     validate_optional_code,
     validate_required_code,
 )
@@ -104,6 +105,7 @@ class ZielwertPaketRead(BaseModel):
 class ZielbereichCreate(BaseModel):
     wert_typ: str = "numerisch"
     zielbereich_typ: str = "allgemein"
+    zielrichtung: str = "innerhalb_bereich"
     zielbereich_quelle_id: str | None = None
     zielwert_paket_id: str | None = None
     untere_grenze_num: float | None = None
@@ -127,6 +129,11 @@ class ZielbereichCreate(BaseModel):
     def validate_zielbereich_typ(cls, value: str) -> str:
         return validate_required_code(value, valid_values=ZIELBEREICH_TYPEN, field_label="Zielbereichstyp")
 
+    @field_validator("zielrichtung")
+    @classmethod
+    def validate_zielrichtung(cls, value: str) -> str:
+        return validate_required_code(value, valid_values=ZIELRICHTUNGEN, field_label="Zielrichtung")
+
     @field_validator("geschlecht_code")
     @classmethod
     def validate_geschlecht_code(cls, value: str | None) -> str | None:
@@ -143,6 +150,7 @@ class ZielbereichCreate(BaseModel):
 
 class ZielbereichUpdate(BaseModel):
     zielbereich_typ: str = "allgemein"
+    zielrichtung: str = "innerhalb_bereich"
     zielbereich_quelle_id: str | None = None
     zielwert_paket_id: str | None = None
     untere_grenze_num: float | None = None
@@ -161,6 +169,11 @@ class ZielbereichUpdate(BaseModel):
     def validate_zielbereich_typ(cls, value: str) -> str:
         return validate_required_code(value, valid_values=ZIELBEREICH_TYPEN, field_label="Zielbereichstyp")
 
+    @field_validator("zielrichtung")
+    @classmethod
+    def validate_zielrichtung(cls, value: str) -> str:
+        return validate_required_code(value, valid_values=ZIELRICHTUNGEN, field_label="Zielrichtung")
+
     @field_validator("geschlecht_code")
     @classmethod
     def validate_geschlecht_code(cls, value: str | None) -> str | None:
@@ -176,6 +189,7 @@ class ZielbereichRead(BaseModel):
     zielwert_paket_id: str | None = None
     wert_typ: str
     zielbereich_typ: str
+    zielrichtung: str
     untere_grenze_num: float | None = None
     obere_grenze_num: float | None = None
     einheit: str | None = None

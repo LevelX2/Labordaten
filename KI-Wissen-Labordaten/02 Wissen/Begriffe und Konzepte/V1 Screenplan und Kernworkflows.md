@@ -1,7 +1,7 @@
 ---
 typ: screenplan
 status: entwurf
-letzte_aktualisierung: 2026-04-26
+letzte_aktualisierung: 2026-04-27
 quellen:
   - V1 Ziel-Datenmodell.md
   - V1 Technisches Schema.md
@@ -20,6 +20,7 @@ quellen:
   - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Planung Filter nach Planungstyp.md
   - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckfrage Gruppen Bearbeitung.md
   - ../../../apps/frontend/src/app/layout/AppLayout.tsx
+  - ../../../apps/frontend/src/features/auswertung/AuswertungPage.tsx
 tags:
   - screenplan
   - ui
@@ -258,6 +259,8 @@ Auf breiten Bildschirmen erscheinen diese Gruppen als Abschnitte in der linken N
 - Mehrparameter-Verlauf
 - Tabellenübersicht mit Kennzahlen
 - Qualitative Ereignisliste unter oder neben dem Diagramm
+- In Mehrpersonen-Diagrammen müssen Messwerte, Laborreferenzen und effektive Zielbereiche personengebunden dargestellt werden. Eine gemeinsame Referenz- oder Zielbereichslinie pro Parameter ist fachlich irreführend, wenn Referenzen nach Person, Geschlecht, Alter, Labor oder konkretem Befund abweichen.
+- Die Legende soll nicht nur Messwertlinien, sondern auch personengebundene Laborreferenz- und Zielbereichslinien separat ein- und ausschaltbar machen.
 
 ### Kennzahlen
 - letzte Messung

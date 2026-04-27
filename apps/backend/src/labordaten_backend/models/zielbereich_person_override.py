@@ -14,6 +14,7 @@ class ZielbereichPersonOverride(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     person_id: Mapped[str] = mapped_column(ForeignKey("person.id"), nullable=False)
     zielbereich_id: Mapped[str] = mapped_column(ForeignKey("zielbereich.id"), nullable=False)
+    zielrichtung: Mapped[str] = mapped_column(String(40), nullable=False, default="innerhalb_bereich")
     untere_grenze_num: Mapped[float | None] = mapped_column(Float)
     obere_grenze_num: Mapped[float | None] = mapped_column(Float)
     einheit: Mapped[str | None] = mapped_column(String(50))
@@ -21,4 +22,3 @@ class ZielbereichPersonOverride(Base):
     bemerkung: Mapped[str | None] = mapped_column(Text)
     aktiv: Mapped[bool] = mapped_column(Boolean, default=True)
     erstellt_am: Mapped[str | None] = mapped_column(String(40))
-

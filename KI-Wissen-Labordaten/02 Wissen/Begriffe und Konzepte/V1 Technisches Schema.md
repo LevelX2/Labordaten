@@ -1,7 +1,7 @@
 ---
 typ: technisches-schema
 status: entwurf
-letzte_aktualisierung: 2026-04-21
+letzte_aktualisierung: 2026-04-27
 quellen:
   - V1 Ziel-Datenmodell.md
   - Planung Erstarchitektur und Umsetzungsphasen.md
@@ -442,6 +442,7 @@ Hinweis:
 - `zielwert_paket_id` FK -> `zielwert_paket.id`
 - `wert_typ` NOT NULL
 - `zielbereich_typ` NOT NULL DEFAULT `allgemein`
+- `zielrichtung` NOT NULL DEFAULT `innerhalb_bereich`
 - `untere_grenze_num`
 - `obere_grenze_num`
 - `einheit`
@@ -461,15 +462,18 @@ Indizes:
 - Index auf `zielbereich_quelle_id`
 - Index auf `zielwert_paket_id`
 - Index auf `zielbereich_typ`
+- Index auf `zielrichtung`
 - Index auf `geschlecht_code, alter_min_tage, alter_max_tage`
 
 Checks:
 - `zielbereich_typ` in `allgemein`, `optimalbereich`, `therapieziel`, `mangelbereich`, `risikobereich`
+- `zielrichtung` in `innerhalb_bereich`, `je_niedriger_desto_besser`, `je_hoeher_desto_besser`, `zielwert_nahe`
 
 ### zielbereich_person_override
 - `id` PK
 - `person_id` NOT NULL FK -> `person.id`
 - `zielbereich_id` NOT NULL FK -> `zielbereich.id`
+- `zielrichtung` NOT NULL DEFAULT `innerhalb_bereich`
 - `untere_grenze_num`
 - `obere_grenze_num`
 - `einheit`

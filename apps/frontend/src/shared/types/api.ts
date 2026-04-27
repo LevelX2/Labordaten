@@ -19,6 +19,7 @@ export type BefundQuelleTyp = "manuell" | "import" | "ki_import";
 export type UmrechnungsregelTyp = "faktor" | "faktor_plus_offset" | "formel";
 export type ParameterKlassifikationCode = "krankwert" | "schluesselwert" | "gesundmachwert";
 export type ZielbereichTyp = "allgemein" | "optimalbereich" | "therapieziel" | "mangelbereich" | "risikobereich";
+export type Zielrichtung = "innerhalb_bereich" | "je_niedriger_desto_besser" | "je_hoeher_desto_besser" | "zielwert_nahe";
 export type ZielbereichQuelleTyp = "experte" | "buch" | "leitlinie" | "labor" | "eigene_vorgabe";
 
 export type PersonCreatePayload = {
@@ -134,6 +135,7 @@ export type MesswertReferenzCreatePayload = {
 export type ZielbereichCreatePayload = {
   wert_typ: WertTyp;
   zielbereich_typ: ZielbereichTyp;
+  zielrichtung: Zielrichtung;
   zielbereich_quelle_id?: string | null;
   zielwert_paket_id?: string | null;
   untere_grenze_num?: number | null;
@@ -466,6 +468,7 @@ export type Zielbereich = {
   zielwert_paket_id?: string | null;
   wert_typ: WertTyp;
   zielbereich_typ: ZielbereichTyp;
+  zielrichtung: Zielrichtung;
   untere_grenze_num?: number | null;
   obere_grenze_num?: number | null;
   einheit?: string | null;
@@ -517,10 +520,12 @@ export type ZielbereichOverride = {
   laborparameter_id: string;
   parameter_anzeigename: string;
   wert_typ: WertTyp;
+  basis_zielrichtung: Zielrichtung;
   basis_untere_grenze_num?: number | null;
   basis_obere_grenze_num?: number | null;
   basis_einheit?: string | null;
   basis_soll_text?: string | null;
+  zielrichtung: Zielrichtung;
   untere_grenze_num?: number | null;
   obere_grenze_num?: number | null;
   einheit?: string | null;
@@ -837,6 +842,7 @@ export type AuswertungPunkt = {
   zielbereich_obere_num?: number | null;
   zielbereich_einheit?: string | null;
   zielbereich_text?: string | null;
+  zielbereich_zielrichtung?: Zielrichtung | null;
 };
 
 export type AuswertungsSerie = {
