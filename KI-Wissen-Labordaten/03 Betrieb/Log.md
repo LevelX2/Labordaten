@@ -11,6 +11,99 @@
 
 ## 2026-04
 
+### [2026-04-27] update | Auswertung zeigt Referenz- und Zielbereiche als vertikale Marker
+- Anlass oder Quelle: Nutzerwunsch, Referenz- und Zielwerte am jeweiligen Messpunkt als vertikale Spanne statt als verbundene Linie zu sehen, ähnlich einer Maßlinie.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../02 Wissen/Begriffe und Konzepte/Ist-Stand Einheiten, Normeinheiten und Umrechnung.md
+  - ../../../apps/frontend/src/features/auswertung/AuswertungPage.tsx
+  - ../../../apps/frontend/src/styles.css
+- Kern der inhaltlichen Anpassung:
+  - Laborreferenzen und Zielbereiche werden im Diagramm pro Messpunkt als schmale vertikale Bereichsmarker mit dezent gefüllter Spanne zwischen unterer und oberer Grenze gerendert.
+  - Die Messwertlinie und die Messpunkte bleiben oberhalb dieser Marker sichtbar; dadurch ist direkt erkennbar, ob ein Messwert unterhalb, innerhalb oder oberhalb des Bereichs liegt.
+  - Die bisherigen verbundenen Referenz- und Zielbereichslinien entfallen, damit unterschiedliche Laborreferenzen nicht mehr als kontinuierlicher zeitlicher Verlauf erscheinen.
+  - Einseitig offene Referenz- und Zielbereiche werden am offenen Diagrammrand mit einer Pfeilspitze markiert, damit `>=`- oder `<=`-Bereiche nicht wie abgeschnittene endliche Bereiche wirken.
+  - Die Legende schaltet die Markergruppen weiterhin getrennt ein und aus, gruppiert die Einträge nach Person und zeigt die schaltbaren Elemente als kompakte Link-Buttons. Der Personenname wird nicht mehr in jedem Referenz- oder Zielbereichseintrag wiederholt; Zähler werden nur bei Messwert-Serien angezeigt.
+  - Verifiziert mit `npm run build` im Frontend und Browser-Sichtprüfung der Vitamin-D-Auswertung.
+
+### [2026-04-27] fix | Auswertung normiert Laborreferenzlinien mit Messwerten
+- Anlass oder Quelle: Nutzerhinweis, dass Referenzlinien bei umgerechneten Messwerten seltsam verlaufen, konkret verdächtig bei Ludwigs Vitamin-D-Verlauf.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../02 Wissen/Begriffe und Konzepte/Ist-Stand Einheiten, Normeinheiten und Umrechnung.md
+  - ../../../apps/backend/src/labordaten_backend/modules/auswertung/service.py
+  - ../../../apps/backend/tests/test_reference_boundary_operators.py
+- Kern der inhaltlichen Anpassung:
+  - Die Auswertungs-API wählt pro numerischer Parameter-Serie eine gemeinsame Anzeigeeinheit, bevorzugt die führende Normeinheit, wenn alle Messpunkte sie unterstützen.
+  - Messwerte werden für Diagramm und Statistik in dieser Anzeigeeinheit ausgegeben; Laborreferenzgrenzen werden mit einer eindeutigen aktiven parameterbezogenen Umrechnungsregel in dieselbe Einheit überführt.
+  - Nicht belastbar konvertierbare Laborreferenzen bleiben als `Originalreferenz` textlich sichtbar, werden aber nicht mehr als numerische Referenzlinie in falscher Einheit geliefert.
+  - Die lokale Datenbankprüfung bestätigte bei `25-Hydroxy-Vitamin D` für Ludwig gemischte Originaleinheiten beziehungsweise Referenzeinheiten; nach der Änderung liefert die Auswertung konsistente Werte und Laborreferenzen in der gemeinsamen Einheit.
+  - Ergänzend werden breite Vitamin-D-Interpretationsbereiche `30 - 150 µg/l` beziehungsweise `30 - 150 ng/ml` im Verlauf als ausreichender Versorgungsbereich `30 - 60` angezeigt, damit die Intoxikationsobergrenze nicht als normale Laborreferenzlinie geplottet wird; der Originalbereich bleibt im Text erhalten.
+  - Verifiziert mit `pytest` im Backend: 117 Tests bestanden.
+
+### [2026-04-27] update | Native Browserdialoge aus Vorlagenleiste entfernt
+- Anlass oder Quelle: Nutzer-Screenshot des nativen Browser-Prompts beim Speichern einer neuen Vorlage.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../../apps/frontend/src/shared/components/ViewTemplateBar.tsx
+  - ../../../apps/frontend/src/styles.css
+- Kern der inhaltlichen Anpassung:
+  - `Speichern unter` und `Umbenennen` öffnen nun ein eingebettetes Formular in der Vorlagenleiste statt `window.prompt`.
+  - `Löschen` nutzt eine eingebettete Bestätigung statt `window.confirm`.
+  - Die Eingabe- und Bestätigungsflächen sind im App-Stil gestaltet und bleiben Teil des normalen Oberflächenflusses.
+  - Verifiziert mit `npm run build` im Frontend.
+
+### [2026-04-27] update | Auswertungsvorlagen als einklappbarer Oberbereich
+- Anlass oder Quelle: Nutzerhinweis, dass Auswertungsvorlagen Filter und Darstellungsoptionen gemeinsam laden und deshalb nicht im Bereich `Auswertungsfilter` stehen sollen; außerdem soll Komplexität in der Oberfläche standardmäßig eingeklappt bleiben.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../../apps/frontend/src/features/auswertung/AuswertungPage.tsx
+  - ../../../apps/frontend/src/styles.css
+- Kern der inhaltlichen Anpassung:
+  - Die Auswertungsvorlagen stehen nun als eigener einklappbarer Block oberhalb von Auswertungsfilter und Darstellung.
+  - Im eingeklappten Zustand bleibt nur eine kompakte Statuszeile mit gewählter Vorlage und Änderungsstatus sichtbar.
+  - Nach Änderungen an Filter- oder Darstellungsoptionen zeigt die Auswertung an, wenn die aktuell sichtbaren Ergebnisse noch zur zuletzt geladenen Konfiguration gehören; die Ladeaktion heißt dann `Auswertung aktualisieren`.
+  - Verifiziert mit `npm run build` im Frontend.
+
+### [2026-04-27] feature | Installierbare Zielwertpakete für Orfanos-Boeckel-KSG ergänzt
+- Anlass oder Quelle: Nutzerfreigabe, Zielbereiche aus KSG-Informationen nicht fest einzubauen, sondern als optional auswählbares Zielwertpaket mit Vorschau, Einspielen und Deaktivieren anzubieten.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../02 Wissen/Begriffe und Konzepte/V1 Ziel-Datenmodell.md
+  - ../02 Wissen/Begriffe und Konzepte/V1 Technisches Schema.md
+  - ../02 Wissen/Begriffe und Konzepte/KSG Klassifizierung von Laborparametern.md
+  - ../../../apps/backend/src/labordaten_backend/modules/zielwertpakete/
+  - ../../../apps/backend/src/labordaten_backend/modules/zielbereiche/schemas.py
+  - ../../../apps/backend/src/labordaten_backend/api/routes/zielbereiche.py
+  - ../../../apps/backend/tests/test_zielwertpakete_api.py
+  - ../../../apps/frontend/src/features/zielwertpakete/ZielwertpaketePage.tsx
+  - ../../../apps/frontend/src/app/router.tsx
+  - ../../../apps/frontend/src/app/layout/AppLayout.tsx
+  - ../../../apps/frontend/src/shared/types/api.ts
+  - ../../../apps/frontend/src/styles.css
+- Kern der inhaltlichen Anpassung:
+  - Das Backend führt einen versionierten Zielwertpaket-Katalog mit dem Paket `orfanos_boeckel_ksg_2026`; der Paketinhalt wurde auf 71 numerisch modellierbare KSG-Optimalbereiche erweitert.
+  - Neue API-Endpunkte listen Katalogpakete, erzeugen eine Vorschau und installieren ein Paket idempotent; deaktivierte Zielbereiche werden bei erneuter Installation reaktiviert.
+  - Die UI erhält die Seite `Zielwertpakete` mit Paketliste, Status, Vorschau, Optionen für fehlende Parameter und Einheiten sowie Aktionen zum Einspielen und Deaktivieren. Der Zugang liegt nicht in der Hauptnavigation, sondern als Verweis im Zielbereich-Kontext der Parameterpflege.
+  - Verifiziert mit `pytest apps/backend/tests/test_zielwertpakete_api.py apps/backend/tests/test_masterdata_editing_api.py` und `npm run build`.
+
+### [2026-04-27] update | Berichtsvorlagenleiste über Berichtskonfiguration gesetzt
+- Anlass oder Quelle: Nutzerhinweis, dass gespeicherte Berichtsvorlagen Filter und Darstellungsoptionen gemeinsam betreffen und deshalb nicht im Filterpanel hängen sollen; außerdem wirkte das Vorlagen-Dropdown durch Browser-Standarddarstellung uneinheitlich.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../../apps/frontend/src/features/berichte/BerichtePage.tsx
+  - ../../../apps/frontend/src/styles.css
+- Kern der inhaltlichen Anpassung:
+  - Die Berichtsvorlagenleiste steht nun als eigener Block oberhalb des Bericht-Arbeitsbereichs und nicht mehr innerhalb der einzelnen Berichtskarte beziehungsweise des Filterkontexts.
+  - Das Vorlagen-Select erhält ein eigenes App-Styling inklusive Rahmen, Hintergrund, Fokuszustand und eigener Pfeildarstellung.
+  - Verifiziert mit `npm run build` im Frontend.
+
 ### [2026-04-27] feature | Ansichtsvorlagen für Auswertung und Berichte umgesetzt
 - Anlass oder Quelle: Nutzerauftrag, wiederverwendbare Auswertungsfilterungen und Berichtskonfigurationen speicherbar und wiederladbar zu machen.
 - Neu angelegte Seiten:

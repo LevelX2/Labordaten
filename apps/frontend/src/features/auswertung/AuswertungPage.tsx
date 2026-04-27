@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   CartesianGrid,
+  Customized,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -318,10 +319,40 @@ type ChartPerson = {
 
 type ChartLineGroup = {
   id: string;
+  personId: string;
   label: string;
   color: string;
   kind: "wert" | "laborreferenz" | "zielbereich";
   count: number;
+};
+
+type ChartRangeKind = "laborreferenz" | "zielbereich";
+
+type RangeMarker = {
+  id: string;
+  timestamp: number;
+  personId: string;
+  kind: ChartRangeKind;
+  lower: number | null;
+  upper: number | null;
+  color: string;
+};
+
+type ChartScale = (value: number) => number;
+
+type CustomizedChartAxis = {
+  scale?: ChartScale;
+};
+
+type CustomizedChartProps = {
+  xAxisMap?: Record<string, CustomizedChartAxis>;
+  yAxisMap?: Record<string, CustomizedChartAxis>;
+  offset?: {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  };
 };
 
 function buildPersonChartData(points: AuswertungPunkt[]): ChartPerson[] {
@@ -367,6 +398,7 @@ function buildChartLineGroups(
     const groups: ChartLineGroup[] = [
       {
         id: `wert__${person.id}`,
+        personId: person.id,
         label: person.name,
         color: palette[person.index % palette.length],
         kind: "wert",
@@ -377,6 +409,7 @@ function buildChartLineGroups(
     if (showReferenceAreas && includeLaborreferenz && person.laborreferenzCount > 0) {
       groups.push({
         id: `laborreferenz__${person.id}`,
+        personId: person.id,
         label: `Laborreferenz ${person.name}`,
         color: laborreferenzPalette[person.index % laborreferenzPalette.length],
         kind: "laborreferenz",
@@ -387,6 +420,7 @@ function buildChartLineGroups(
     if (showReferenceAreas && includeZielbereich && person.zielbereichCount > 0) {
       groups.push({
         id: `zielbereich__${person.id}`,
+        personId: person.id,
         label: `Zielbereich ${person.name}`,
         color: zielbereichPalette[person.index % zielbereichPalette.length],
         kind: "zielbereich",
@@ -396,6 +430,16 @@ function buildChartLineGroups(
 
     return groups;
   });
+}
+
+function formatLegendItemLabel(group: ChartLineGroup): string {
+  if (group.kind === "wert") {
+    return `Werte (${group.count})`;
+  }
+  if (group.kind === "laborreferenz") {
+    return "Laborreferenz";
+  }
+  return "Zielbereich";
 }
 
 function buildChartData(points: AuswertungPunkt[]) {
@@ -428,6 +472,162 @@ function buildChartData(points: AuswertungPunkt[]) {
   return Array.from(byDate.entries())
     .sort(([left], [right]) => left - right)
     .map(([, value]) => value);
+}
+
+function buildRangeMarkers(points: AuswertungPunkt[], people: ChartPerson[]): RangeMarker[] {
+  const personIndexById = new Map(people.map((person) => [person.id, person.index]));
+  const markers: RangeMarker[] = [];
+
+  for (const point of points) {
+    if (point.wert_num === null || point.wert_num === undefined) {
+      continue;
+    }
+
+    const timestamp = parseDateToTimestamp(point.datum);
+    if (timestamp === null) {
+      continue;
+    }
+
+    const personIndex = personIndexById.get(point.person_id) ?? 0;
+    const laborLower = point.laborreferenz_untere_num ?? null;
+    const laborUpper = point.laborreferenz_obere_num ?? null;
+    if (laborLower !== null || laborUpper !== null) {
+      markers.push({
+        id: `laborreferenz__${point.person_id}__${point.messwert_id}`,
+        timestamp,
+        personId: point.person_id,
+        kind: "laborreferenz",
+        lower: laborLower,
+        upper: laborUpper,
+        color: laborreferenzPalette[personIndex % laborreferenzPalette.length]
+      });
+    }
+
+    const targetLower = point.zielbereich_untere_num ?? null;
+    const targetUpper = point.zielbereich_obere_num ?? null;
+    if (targetLower !== null || targetUpper !== null) {
+      markers.push({
+        id: `zielbereich__${point.person_id}__${point.messwert_id}`,
+        timestamp,
+        personId: point.person_id,
+        kind: "zielbereich",
+        lower: targetLower,
+        upper: targetUpper,
+        color: zielbereichPalette[personIndex % zielbereichPalette.length]
+      });
+    }
+  }
+
+  return markers;
+}
+
+function RangeMarkersOverlay({
+  chartProps,
+  markers,
+  hiddenGroupIds
+}: {
+  chartProps: CustomizedChartProps;
+  markers: RangeMarker[];
+  hiddenGroupIds: Set<string>;
+}) {
+  const xAxis = Object.values(chartProps.xAxisMap ?? {})[0];
+  const yAxis = Object.values(chartProps.yAxisMap ?? {})[0];
+  const xScale = xAxis?.scale;
+  const yScale = yAxis?.scale;
+  const offset = chartProps.offset;
+
+  if (!xScale || !yScale || !offset) {
+    return null;
+  }
+
+  return (
+    <g className="trend-range-markers" aria-hidden="true">
+      {markers.map((marker) => {
+        const groupId = `${marker.kind}__${marker.personId}`;
+        if (hiddenGroupIds.has(groupId)) {
+          return null;
+        }
+
+        const x = xScale(marker.timestamp);
+        const lowerY = marker.lower !== null ? yScale(marker.lower) : offset.top + offset.height;
+        const upperY = marker.upper !== null ? yScale(marker.upper) : offset.top;
+        const top = Math.min(lowerY, upperY);
+        const bottom = Math.max(lowerY, upperY);
+        const markerWidth = marker.kind === "laborreferenz" ? 14 : 8;
+        const halfWidth = markerWidth / 2;
+        const strokeDasharray = marker.kind === "laborreferenz" ? undefined : "2 3";
+        const isOpenToTop = marker.lower !== null && marker.upper === null;
+        const isOpenToBottom = marker.lower === null && marker.upper !== null;
+        const arrowHalfWidth = marker.kind === "laborreferenz" ? 5 : 4;
+
+        return (
+          <g key={marker.id} className={`trend-range-marker trend-range-marker--${marker.kind}`}>
+            {marker.lower !== null && marker.upper !== null ? (
+              <rect
+                x={x - halfWidth}
+                y={top}
+                width={markerWidth}
+                height={Math.max(bottom - top, 1)}
+                fill={marker.color}
+                opacity={marker.kind === "laborreferenz" ? 0.13 : 0.09}
+                rx={2}
+              />
+            ) : null}
+            <line
+              x1={x}
+              x2={x}
+              y1={top}
+              y2={bottom}
+              stroke={marker.color}
+              strokeWidth={marker.kind === "laborreferenz" ? 1.6 : 1.2}
+              strokeDasharray={strokeDasharray}
+              opacity={0.9}
+            />
+            {marker.lower !== null ? (
+              <line
+                x1={x - halfWidth}
+                x2={x + halfWidth}
+                y1={lowerY}
+                y2={lowerY}
+                stroke={marker.color}
+                strokeWidth={marker.kind === "laborreferenz" ? 1.8 : 1.4}
+                strokeDasharray={strokeDasharray}
+              />
+            ) : null}
+            {marker.upper !== null ? (
+              <line
+                x1={x - halfWidth}
+                x2={x + halfWidth}
+                y1={upperY}
+                y2={upperY}
+                stroke={marker.color}
+                strokeWidth={marker.kind === "laborreferenz" ? 1.8 : 1.4}
+                strokeDasharray={strokeDasharray}
+              />
+            ) : null}
+            {isOpenToTop ? (
+              <path
+                d={`M ${x} ${offset.top} L ${x - arrowHalfWidth} ${offset.top + 9} L ${x + arrowHalfWidth} ${
+                  offset.top + 9
+                } Z`}
+                fill={marker.color}
+                opacity={0.9}
+              />
+            ) : null}
+            {isOpenToBottom ? (
+              <path
+                d={`M ${x} ${offset.top + offset.height} L ${x - arrowHalfWidth} ${
+                  offset.top + offset.height - 9
+                } L ${x + arrowHalfWidth} ${offset.top + offset.height - 9} Z`}
+                fill={marker.color}
+                opacity={0.9}
+              />
+            ) : null}
+          </g>
+        );
+      })}
+    </g>
+  );
 }
 
 function buildFilterSummary(
@@ -516,6 +716,7 @@ function SeriesChart({
 }) {
   const chartData = useMemo(() => buildChartData(serie.punkte), [serie.punkte]);
   const people = useMemo(() => buildPersonChartData(serie.punkte), [serie.punkte]);
+  const rangeMarkers = useMemo(() => buildRangeMarkers(serie.punkte, people), [people, serie.punkte]);
   const [hiddenLineGroups, setHiddenLineGroups] = useState<Set<string>>(() => new Set());
   const connectPersonPoints = diagrammDarstellung === "verlauf";
   const showReferenceAreas = diagrammDarstellung !== "punkte";
@@ -568,57 +769,20 @@ function SeriesChart({
               return [formatTooltipValue(value), String(name)];
             }}
           />
+          {showReferenceAreas ? (
+            <Customized
+              component={(props: CustomizedChartProps) => (
+                <RangeMarkersOverlay
+                  chartProps={props}
+                  markers={rangeMarkers}
+                  hiddenGroupIds={hiddenLineGroups}
+                />
+              )}
+            />
+          ) : null}
           {visibleLineGroups.map((group) => {
-            if (group.kind === "laborreferenz") {
-              const personId = group.id.replace("laborreferenz__", "");
-              return (
-                <Fragment key={group.id}>
-                  <Line
-                    type="monotone"
-                    dataKey={`laborreferenz_unten__${personId}`}
-                    name={`${group.label} unten`}
-                    stroke={group.color}
-                    dot={false}
-                    strokeDasharray="4 4"
-                    connectNulls
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey={`laborreferenz_oben__${personId}`}
-                    name={`${group.label} oben`}
-                    stroke={group.color}
-                    dot={false}
-                    strokeDasharray="4 4"
-                    connectNulls
-                  />
-                </Fragment>
-              );
-            }
-
-            if (group.kind === "zielbereich") {
-              const personId = group.id.replace("zielbereich__", "");
-              return (
-                <Fragment key={group.id}>
-                  <Line
-                    type="monotone"
-                    dataKey={`zielbereich_unten__${personId}`}
-                    name={`${group.label} unten`}
-                    stroke={group.color}
-                    dot={false}
-                    strokeDasharray="2 4"
-                    connectNulls
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey={`zielbereich_oben__${personId}`}
-                    name={`${group.label} oben`}
-                    stroke={group.color}
-                    dot={false}
-                    strokeDasharray="2 4"
-                    connectNulls
-                  />
-                </Fragment>
-              );
+            if (group.kind !== "wert") {
+              return null;
             }
 
             const personId = group.id.replace("wert__", "");
@@ -638,33 +802,47 @@ function SeriesChart({
         </LineChart>
       </ResponsiveContainer>
       <div className="trend-legend" aria-label="Diagrammlinien ein- und ausblenden">
-        {lineGroups.map((group) => {
-          const isHidden = hiddenLineGroups.has(group.id);
+        {people.map((person) => {
+          const personGroups = lineGroups.filter((group) => group.personId === person.id);
+          if (!personGroups.length) {
+            return null;
+          }
+
           return (
-            <button
-              type="button"
-              key={group.id}
-              className={`trend-legend__item ${isHidden ? "trend-legend__item--muted" : ""}`}
-              onClick={() =>
-                setHiddenLineGroups((current) => {
-                  const next = new Set(current);
-                  if (next.has(group.id)) {
-                    next.delete(group.id);
-                  } else {
-                    next.add(group.id);
-                  }
-                  return next;
-                })
-              }
-              aria-pressed={!isHidden}
-            >
-              <span
-                className={`trend-legend__swatch trend-legend__swatch--${group.kind}`}
-                style={{ backgroundColor: group.color }}
-                aria-hidden="true"
-              />
-              {group.label} ({group.count})
-            </button>
+            <div className="trend-legend__group" key={person.id}>
+              <span className="trend-legend__group-label">{person.name}</span>
+              <div className="trend-legend__group-items">
+                {personGroups.map((group) => {
+                  const isHidden = hiddenLineGroups.has(group.id);
+                  return (
+                    <button
+                      type="button"
+                      key={group.id}
+                      className={`trend-legend__item ${isHidden ? "trend-legend__item--muted" : ""}`}
+                      onClick={() =>
+                        setHiddenLineGroups((current) => {
+                          const next = new Set(current);
+                          if (next.has(group.id)) {
+                            next.delete(group.id);
+                          } else {
+                            next.add(group.id);
+                          }
+                          return next;
+                        })
+                      }
+                      aria-pressed={!isHidden}
+                    >
+                      <span
+                        className={`trend-legend__swatch trend-legend__swatch--${group.kind}`}
+                        style={{ backgroundColor: group.color }}
+                        aria-hidden="true"
+                      />
+                      {formatLegendItemLabel(group)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           );
         })}
       </div>
@@ -817,7 +995,9 @@ export function AuswertungPage() {
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [templateBaseline, setTemplateBaseline] = useState("");
   const [templateWarning, setTemplateWarning] = useState<string | null>(null);
+  const [isTemplatePanelOpen, setIsTemplatePanelOpen] = useState(false);
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(() => form.person_ids.length === 0);
+  const [loadedAuswertungSignature, setLoadedAuswertungSignature] = useState<string | null>(null);
   const previewQueryString = useMemo(() => buildSharedFilterSearchParams(form).toString(), [form]);
   const currentTemplateConfig = useMemo(() => buildAuswertungVorlageConfig(form), [form]);
   const currentTemplateSignature = useMemo(() => JSON.stringify(currentTemplateConfig), [currentTemplateConfig]);
@@ -868,7 +1048,8 @@ export function AuswertungPage() {
           include_laborreferenz: form.include_laborreferenz,
           include_zielbereich: form.include_zielbereich
         })
-      })
+      }),
+    onSuccess: () => setLoadedAuswertungSignature(currentTemplateSignature)
   });
   const createTemplateMutation = useMutation({
     mutationFn: (payload: AnsichtVorlageCreatePayload) =>
@@ -1009,6 +1190,10 @@ export function AuswertungPage() {
     deleteTemplateMutation.error ??
     null;
   const hasUnsavedTemplateChanges = Boolean(selectedTemplateId && templateBaseline !== currentTemplateSignature);
+  const selectedTemplateName = selectedTemplate?.name ?? "Keine Vorlage gewählt";
+  const isLoadedAuswertungOutdated = Boolean(
+    auswertungMutation.data && loadedAuswertungSignature && loadedAuswertungSignature !== currentTemplateSignature
+  );
   const handleLoadAuswertung = () => {
     if (isLoadBlocked) {
       return;
@@ -1117,6 +1302,44 @@ export function AuswertungPage() {
         Vergleich.
       </p>
 
+      <article className="card card--soft view-template-card view-template-card--collapsed">
+        <div className="parameter-panel__header">
+          <div>
+            <h3>Auswertungsvorlagen</h3>
+            <p>
+              {selectedTemplateName}
+              {hasUnsavedTemplateChanges ? " • geändert" : ""}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="inline-button"
+            onClick={() => setIsTemplatePanelOpen((current) => !current)}
+            aria-expanded={isTemplatePanelOpen}
+          >
+            {isTemplatePanelOpen ? "Vorlagen ausblenden" : "Vorlagen öffnen"}
+          </button>
+        </div>
+
+        {isTemplatePanelOpen ? (
+          <>
+            <ViewTemplateBar
+              templates={templatesQuery.data ?? []}
+              selectedTemplateId={selectedTemplateId}
+              hasUnsavedChanges={hasUnsavedTemplateChanges}
+              isPending={templateActionPending}
+              onSelect={handleSelectTemplate}
+              onSave={handleSaveTemplate}
+              onSaveAs={handleSaveTemplateAs}
+              onRename={handleRenameTemplate}
+              onDelete={handleDeleteTemplate}
+            />
+            {templateWarning ? <p className="form-hint">{templateWarning}</p> : null}
+            {templateError ? <p className="form-error">{templateError.message}</p> : null}
+          </>
+        ) : null}
+      </article>
+
       <article className="card card--soft parameter-action-panel">
         <div className="parameter-panel__header">
           <div>
@@ -1154,20 +1377,6 @@ export function AuswertungPage() {
             ) : null}
           </div>
         </div>
-
-        <ViewTemplateBar
-          templates={templatesQuery.data ?? []}
-          selectedTemplateId={selectedTemplateId}
-          hasUnsavedChanges={hasUnsavedTemplateChanges}
-          isPending={templateActionPending}
-          onSelect={handleSelectTemplate}
-          onSave={handleSaveTemplate}
-          onSaveAs={handleSaveTemplateAs}
-          onRename={handleRenameTemplate}
-          onDelete={handleDeleteTemplate}
-        />
-        {templateWarning ? <p className="form-hint">{templateWarning}</p> : null}
-        {templateError ? <p className="form-error">{templateError.message}</p> : null}
 
         {isFilterPanelOpen ? (
           <form
@@ -1364,10 +1573,20 @@ export function AuswertungPage() {
 
       <div className="form-actions auswertung-filter-load">
         <button type="button" onClick={handleLoadAuswertung} disabled={isLoadBlocked}>
-          {auswertungMutation.isPending ? "Lädt..." : "Auswertung laden"}
+          {auswertungMutation.isPending
+            ? "Lädt..."
+            : isLoadedAuswertungOutdated
+              ? "Auswertung aktualisieren"
+              : "Auswertung laden"}
         </button>
         {auswertungMutation.isError ? <p className="form-error">{auswertungMutation.error.message}</p> : null}
       </div>
+      {isLoadedAuswertungOutdated ? (
+        <p className="form-hint auswertung-update-hint">
+          Die angezeigte Auswertung passt noch zur zuletzt geladenen Auswahl. Lade sie erneut, um die aktuellen Filter
+          und Darstellungsoptionen zu übernehmen.
+        </p>
+      ) : null}
 
       {auswertungMutation.data && !auswertungMutation.data.serien.length && !qualitativeEvents.length ? (
         <article className="card">

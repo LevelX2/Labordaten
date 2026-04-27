@@ -71,6 +71,10 @@ KSG-Tabellenwerte, die als empfohlene Zielwerte aus den Quellen von Dr. med. Hel
 
 Die konkrete Sammlung solcher Orfanos-Boeckel-Zielbereiche soll als optionales `ZielwertPaket` modelliert werden. Neutrale Parameter, Einheiten, Aliase und KSG-Klassifikationen können Teil des normalen Stammdatenbestands sein; quellengebundene Optimalbereiche bleiben dagegen paketierbar, damit Anwender sie bewusst einspielen, parallel zu anderen Empfehlungen nutzen oder als Sammlung deaktivieren können.
 
+Die technische Umsetzung führt dafür den Katalogschlüssel `orfanos_boeckel_ksg_2026`. Dieser Katalogeintrag ist noch kein installierter Datenbestand, sondern eine kuratierte Paketdefinition im Backend. Über die Paketvorschau wird sichtbar, welche Parameter und Einheiten fehlen und welche Zielbereiche angelegt, reaktiviert oder übersprungen würden. Beim Einspielen entstehen die Zielwertquelle `Dr. med. Helena Orfanos-Boeckel`, der installierte Paketdatensatz und die zugehörigen `optimalbereich`-Zielbereiche mit `zielrichtung`, Originaltext, Fundstelle und Bemerkung.
+
+Der Paketinhalt ist bewusst auf numerisch modellierbare Zielwerte begrenzt und umfasst derzeit 71 Einträge aus den KSG-Tabellen S01 bis S15. Enthalten sind beispielsweise AGEs `< 50 µg/ml` mit `je_niedriger_desto_besser`, intrazelluläres ATP `> 3,5 µM`, BDNF `30-40 ng/ml`, Lp-PLA2 `< 500 U/l`, Selen im Vollblut `140-160 µg/l`, Vitamin-D- und Vitamin-B-Zielbereiche sowie weitere eindeutig numerisch angegebene Optimalbereiche. Rein textliche Angaben wie `negativ`, stark kontextabhängige Ziele oder fachlich unsichere Einheit-/Materialkonstellationen bleiben zunächst außerhalb des installierbaren Pakets.
+
 ## Abgleich Knochen und Gefäße
 Die PDF-Quelle `KSG-Klassifikation.pdf` konkretisiert die Systematik für Knochen und Gefäße. Daraus ergeben sich projektintern wichtige Leitplanken für die Parameter-Einordnung:
 

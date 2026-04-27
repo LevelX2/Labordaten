@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import date
+import re
 
 from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
@@ -16,6 +18,7 @@ from labordaten_backend.models.labor import Labor
 from labordaten_backend.models.laborparameter import Laborparameter
 from labordaten_backend.models.messwert import Messwert
 from labordaten_backend.models.messwert_referenz import MesswertReferenz
+from labordaten_backend.models.parameter_umrechnungsregel import ParameterUmrechnungsregel
 from labordaten_backend.models.person import Person
 from labordaten_backend.models.zielbereich import Zielbereich
 from labordaten_backend.models.zielbereich_person_override import ZielbereichPersonOverride
@@ -27,6 +30,22 @@ from labordaten_backend.modules.auswertung.schemas import (
     AuswertungsStatistik,
     GesamtzahlenResponse,
 )
+from labordaten_backend.modules.parameter import conversions as parameter_conversions
+
+
+@dataclass(frozen=True)
+class _MeasurementDisplay:
+    wert_anzeige: str
+    wert_num: float | None
+    einheit: str | None
+
+
+@dataclass(frozen=True)
+class _ReferenceDisplay:
+    untere_grenze_num: float | None
+    obere_grenze_num: float | None
+    einheit: str | None
+    text: str | None
 
 
 def get_gesamtzahlen(db: Session) -> GesamtzahlenResponse:
@@ -52,6 +71,7 @@ def build_auswertung(db: Session, payload: AuswertungRequest) -> AuswertungRespo
     serien: list[AuswertungsSerie] = []
     for parameter_id, parameter_rows in sorted(grouped.items(), key=lambda item: item[1][0][2].anzeigename.lower()):
         parameter = parameter_rows[0][2]
+        display_unit = _select_parameter_display_unit(parameter, parameter_rows)
         punkte: list[AuswertungPunkt] = []
 
         for messwert, befund, _, labor, person in sorted(
@@ -66,6 +86,15 @@ def build_auswertung(db: Session, payload: AuswertungRequest) -> AuswertungRespo
                 override=overrides_by_person_parameter.get((person.id, parameter_id)),
                 candidates=targets_by_parameter.get(parameter_id, []),
             )
+            display_value = _resolve_measurement_display(messwert, display_unit)
+            display_reference = _resolve_reference_display(
+                db,
+                parameter_id=parameter_id,
+                parameter=parameter,
+                referenz=referenz if payload.include_laborreferenz else None,
+                display_unit=display_value.einheit,
+                messwert=messwert,
+            )
             punkte.append(
                 AuswertungPunkt(
                     messwert_id=messwert.id,
@@ -75,17 +104,17 @@ def build_auswertung(db: Session, payload: AuswertungRequest) -> AuswertungRespo
                     datum=current_date,
                     wert_typ=messwert.wert_typ,
                     wert_operator=messwert.wert_operator,
-                    wert_anzeige=_format_measurement_value(messwert),
-                    wert_num=messwert.wert_num,
+                    wert_anzeige=display_value.wert_anzeige,
+                    wert_num=display_value.wert_num,
                     wert_text=messwert.wert_text,
-                    einheit=messwert.einheit_original,
+                    einheit=display_value.einheit,
                     labor_name=labor.name if labor is not None else None,
                     befundbemerkung=befund.bemerkung,
                     messwertbemerkung=messwert.bemerkung_kurz,
-                    laborreferenz_untere_num=referenz.untere_grenze_num if payload.include_laborreferenz and referenz is not None else None,
-                    laborreferenz_obere_num=referenz.obere_grenze_num if payload.include_laborreferenz and referenz is not None else None,
-                    laborreferenz_einheit=referenz.einheit if payload.include_laborreferenz and referenz is not None else None,
-                    laborreferenz_text=_format_reference_text(referenz) if payload.include_laborreferenz and referenz is not None else None,
+                    laborreferenz_untere_num=display_reference.untere_grenze_num if display_reference is not None else None,
+                    laborreferenz_obere_num=display_reference.obere_grenze_num if display_reference is not None else None,
+                    laborreferenz_einheit=display_reference.einheit if display_reference is not None else None,
+                    laborreferenz_text=display_reference.text if display_reference is not None else None,
                     zielbereich_untere_num=zielbereich["untere_grenze_num"] if payload.include_zielbereich and zielbereich is not None else None,
                     zielbereich_obere_num=zielbereich["obere_grenze_num"] if payload.include_zielbereich and zielbereich is not None else None,
                     zielbereich_einheit=zielbereich["einheit"] if payload.include_zielbereich and zielbereich is not None else None,
@@ -298,20 +327,310 @@ def _format_measurement_value(messwert: Messwert) -> str:
     return format_numeric_measurement_value(messwert.wert_num, messwert.wert_operator, messwert.wert_roh_text)
 
 
-def _format_reference_text(referenz: MesswertReferenz) -> str:
+def _select_parameter_display_unit(
+    parameter: Laborparameter,
+    rows: list[tuple[Messwert, Befund, Laborparameter, Labor | None, Person]],
+) -> str | None:
+    numeric_measurements = [
+        messwert
+        for messwert, _, _, _, _ in rows
+        if messwert.wert_typ == "numerisch" and messwert.wert_num is not None
+    ]
+    if not numeric_measurements:
+        return None
+
+    available_units = [_available_display_units(messwert) for messwert in numeric_measurements]
+    if not available_units or any(not unit_set for unit_set in available_units):
+        return None
+
+    common_units = set(available_units[0])
+    for unit_set in available_units[1:]:
+        common_units &= unit_set
+
+    if parameter.standard_einheit and parameter.standard_einheit in common_units:
+        return parameter.standard_einheit
+
+    original_units = {
+        messwert.einheit_original
+        for messwert in numeric_measurements
+        if messwert.einheit_original
+    }
+    if len(original_units) == 1:
+        return next(iter(original_units))
+
+    if len(common_units) == 1:
+        return next(iter(common_units))
+    return None
+
+
+def _available_display_units(messwert: Messwert) -> set[str]:
+    available_units: set[str] = set()
+    if messwert.wert_num is not None and messwert.einheit_original:
+        available_units.add(messwert.einheit_original)
+    if messwert.wert_normiert_num is not None and messwert.einheit_normiert:
+        available_units.add(messwert.einheit_normiert)
+    return available_units
+
+
+def _resolve_measurement_display(messwert: Messwert, target_unit: str | None) -> _MeasurementDisplay:
+    if messwert.wert_typ == "text":
+        return _MeasurementDisplay(
+            wert_anzeige=messwert.wert_text or messwert.wert_roh_text,
+            wert_num=None,
+            einheit=messwert.einheit_original,
+        )
+
+    if target_unit:
+        if messwert.einheit_original == target_unit and messwert.wert_num is not None:
+            return _MeasurementDisplay(
+                wert_anzeige=format_numeric_measurement_value(messwert.wert_num, messwert.wert_operator, messwert.wert_roh_text),
+                wert_num=messwert.wert_num,
+                einheit=messwert.einheit_original,
+            )
+        if messwert.einheit_normiert == target_unit and messwert.wert_normiert_num is not None:
+            return _MeasurementDisplay(
+                wert_anzeige=format_numeric_measurement_value(
+                    messwert.wert_normiert_num,
+                    messwert.wert_operator,
+                    messwert.wert_roh_text,
+                ),
+                wert_num=messwert.wert_normiert_num,
+                einheit=messwert.einheit_normiert,
+            )
+
+    return _MeasurementDisplay(
+        wert_anzeige=_format_measurement_value(messwert),
+        wert_num=messwert.wert_num,
+        einheit=messwert.einheit_original,
+    )
+
+
+def _resolve_reference_display(
+    db: Session,
+    *,
+    parameter_id: str,
+    parameter: Laborparameter,
+    referenz: MesswertReferenz | None,
+    display_unit: str | None,
+    messwert: Messwert,
+) -> _ReferenceDisplay | None:
+    if referenz is None:
+        return None
+    if referenz.wert_typ == "text":
+        return _ReferenceDisplay(
+            untere_grenze_num=None,
+            obere_grenze_num=None,
+            einheit=referenz.einheit,
+            text=referenz.soll_text or referenz.referenz_text_original,
+        )
+
+    if not display_unit or not referenz.einheit or referenz.einheit == display_unit:
+        preferred_range = _select_preferred_reference_range(parameter, referenz, referenz.einheit)
+        if preferred_range is not None:
+            lower_value, upper_value, note = preferred_range
+            return _ReferenceDisplay(
+                untere_grenze_num=lower_value,
+                obere_grenze_num=upper_value,
+                einheit=referenz.einheit,
+                text=_format_reference_text(
+                    referenz,
+                    lower_value=lower_value,
+                    upper_value=upper_value,
+                    unit=referenz.einheit,
+                    original_note=note,
+                ),
+            )
+        return _ReferenceDisplay(
+            untere_grenze_num=referenz.untere_grenze_num,
+            obere_grenze_num=referenz.obere_grenze_num,
+            einheit=referenz.einheit,
+            text=_format_reference_text(referenz),
+        )
+
+    conversion_rule = _select_reference_conversion_rule(
+        db,
+        parameter_id=parameter_id,
+        source_unit=referenz.einheit,
+        target_unit=display_unit,
+        messwert=messwert,
+    )
+    if conversion_rule is None:
+        return _ReferenceDisplay(
+            untere_grenze_num=None,
+            obere_grenze_num=None,
+            einheit=referenz.einheit,
+            text=_format_reference_text(referenz, original_reference=True),
+        )
+
+    lower_value = _convert_reference_bound(referenz.untere_grenze_num, conversion_rule)
+    upper_value = _convert_reference_bound(referenz.obere_grenze_num, conversion_rule)
+    if (referenz.untere_grenze_num is not None and lower_value is None) or (
+        referenz.obere_grenze_num is not None and upper_value is None
+    ):
+        return _ReferenceDisplay(
+            untere_grenze_num=None,
+            obere_grenze_num=None,
+            einheit=referenz.einheit,
+            text=_format_reference_text(referenz, original_reference=True),
+        )
+
+    preferred_range = _select_preferred_reference_range(parameter, referenz, conversion_rule.nach_einheit)
+    if preferred_range is not None:
+        lower_value, upper_value, note = preferred_range
+
+    return _ReferenceDisplay(
+        untere_grenze_num=lower_value,
+        obere_grenze_num=upper_value,
+        einheit=conversion_rule.nach_einheit,
+        text=_format_reference_text(
+            referenz,
+            lower_value=lower_value,
+            upper_value=upper_value,
+            unit=conversion_rule.nach_einheit,
+            converted_reference=True,
+            original_note=note if preferred_range is not None else None,
+        ),
+    )
+
+
+def _select_reference_conversion_rule(
+    db: Session,
+    *,
+    parameter_id: str,
+    source_unit: str,
+    target_unit: str,
+    messwert: Messwert,
+) -> ParameterUmrechnungsregel | None:
+    if messwert.umrechnungsregel_id:
+        used_rule = db.get(ParameterUmrechnungsregel, messwert.umrechnungsregel_id)
+        if (
+            used_rule is not None
+            and used_rule.aktiv
+            and used_rule.laborparameter_id == parameter_id
+            and used_rule.von_einheit == source_unit
+            and used_rule.nach_einheit == target_unit
+        ):
+            return used_rule
+
+    matching_rules = [
+        rule
+        for rule in parameter_conversions.list_active_conversion_rules(db, parameter_id)
+        if rule.von_einheit == source_unit and rule.nach_einheit == target_unit
+    ]
+    if len(matching_rules) == 1:
+        return matching_rules[0]
+    return None
+
+
+def _convert_reference_bound(value: float | None, rule: ParameterUmrechnungsregel) -> float | None:
+    if value is None:
+        return None
+    converted_value = parameter_conversions.convert_numeric_value(value, rule)
+    if converted_value is None:
+        return None
+    if rule.rundung_stellen is not None:
+        converted_value = round(converted_value, rule.rundung_stellen)
+    return converted_value
+
+
+def _select_preferred_reference_range(
+    parameter: Laborparameter,
+    referenz: MesswertReferenz,
+    unit: str | None,
+) -> tuple[float, float, str] | None:
+    if referenz.untere_grenze_num is None or referenz.obere_grenze_num is None:
+        return None
+
+    parsed_range = _parse_sufficient_supply_range(referenz.bemerkung)
+    if parsed_range is not None:
+        lower_value, upper_value = parsed_range
+        if _range_is_inside_reference(lower_value, upper_value, referenz):
+            return lower_value, upper_value, "ausreichende Versorgung"
+
+    if (
+        _is_25_hydroxy_vitamin_d(parameter)
+        and _is_mass_concentration_unit(unit)
+        and abs(referenz.untere_grenze_num - 30.0) < 0.0001
+        and abs(referenz.obere_grenze_num - 150.0) < 0.0001
+    ):
+        return 30.0, 60.0, "ausreichende Versorgung"
+
+    return None
+
+
+def _parse_sufficient_supply_range(text: str | None) -> tuple[float, float] | None:
+    if not text:
+        return None
+
+    for match in re.finditer(
+        r"(?P<lower>\d+(?:[,.]\d+)?)\s*-\s*(?P<upper>\d+(?:[,.]\d+)?)(?:\s*[^\d=;]+)?\s*=\s*(?P<label>[^;]+)",
+        text,
+        flags=re.IGNORECASE,
+    ):
+        label = match.group("label").casefold()
+        if "ausreich" not in label or "ungen" in label:
+            continue
+        return _parse_float(match.group("lower")), _parse_float(match.group("upper"))
+    return None
+
+
+def _parse_float(value: str) -> float:
+    return float(value.replace(",", "."))
+
+
+def _range_is_inside_reference(lower_value: float, upper_value: float, referenz: MesswertReferenz) -> bool:
+    return (
+        referenz.untere_grenze_num is not None
+        and referenz.obere_grenze_num is not None
+        and referenz.untere_grenze_num <= lower_value <= upper_value <= referenz.obere_grenze_num
+    )
+
+
+def _is_25_hydroxy_vitamin_d(parameter: Laborparameter) -> bool:
+    normalized_name = parameter.anzeigename.casefold()
+    return "25-hydroxy-vitamin d" in normalized_name or "25 hydroxy vitamin d" in normalized_name
+
+
+def _is_mass_concentration_unit(unit: str | None) -> bool:
+    if not unit:
+        return False
+    normalized_unit = unit.casefold().replace("μ", "µ")
+    return normalized_unit in {"µg/l", "ug/l", "ng/ml"}
+
+
+def _format_reference_text(
+    referenz: MesswertReferenz,
+    *,
+    lower_value: float | None = None,
+    upper_value: float | None = None,
+    unit: str | None = None,
+    original_reference: bool = False,
+    converted_reference: bool = False,
+    original_note: str | None = None,
+) -> str:
     if referenz.wert_typ == "text":
         return referenz.soll_text or referenz.referenz_text_original or "-"
-    return (
+    lower = referenz.untere_grenze_num if lower_value is None else lower_value
+    upper = referenz.obere_grenze_num if upper_value is None else upper_value
+    reference_unit = referenz.einheit if unit is None else unit
+    range_text = (
         format_numeric_reference_range(
-            lower_value=referenz.untere_grenze_num,
-            upper_value=referenz.obere_grenze_num,
+            lower_value=lower,
+            upper_value=upper,
             lower_operator=referenz.untere_grenze_operator,
             upper_operator=referenz.obere_grenze_operator,
-            unit=referenz.einheit,
+            unit=reference_unit,
         )
         or referenz.referenz_text_original
         or "-"
     )
+    if original_reference:
+        return f"Originalreferenz: {range_text}"
+    if original_note and referenz.referenz_text_original:
+        return f"{range_text} ({original_note}; Original: {referenz.referenz_text_original})"
+    if converted_reference and referenz.referenz_text_original:
+        return f"{range_text} (Original: {referenz.referenz_text_original})"
+    return range_text
 
 
 def _effective_date(befund: Befund, messwert: Messwert):

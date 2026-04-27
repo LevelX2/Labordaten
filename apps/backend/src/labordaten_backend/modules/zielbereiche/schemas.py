@@ -203,3 +203,77 @@ class ZielbereichRead(BaseModel):
     aktiv: bool
     erstellt_am: datetime
     geaendert_am: datetime
+
+
+class ZielwertPaketKatalogQuelleRead(BaseModel):
+    name: str
+    quellen_typ: str
+    titel: str | None = None
+    jahr: int | None = None
+    version: str | None = None
+    bemerkung: str | None = None
+
+
+class ZielwertPaketKatalogRead(BaseModel):
+    paket_schluessel: str
+    name: str
+    version: str | None = None
+    jahr: int | None = None
+    beschreibung: str | None = None
+    bemerkung: str | None = None
+    quelle: ZielwertPaketKatalogQuelleRead
+    eintraege_anzahl: int
+    prueffaelle_anzahl: int
+    installiert: bool
+    installiert_paket_id: str | None = None
+    installiert_aktiv: bool | None = None
+    aktive_zielbereiche_anzahl: int = 0
+
+
+class ZielwertPaketInstallationRequest(BaseModel):
+    fehlende_parameter_anlegen: bool = False
+    fehlende_einheiten_anlegen: bool = True
+    prueffaelle_anlegen: bool = False
+
+
+class ZielwertPaketVorschauEintragRead(BaseModel):
+    eintrag_schluessel: str
+    parameter_schluessel: str
+    parameter_name: str
+    parameter_id: str | None = None
+    parameter_existiert: bool
+    einheit: str | None = None
+    einheit_existiert: bool
+    zielbereich_typ: str
+    zielrichtung: str
+    untere_grenze_num: float | None = None
+    obere_grenze_num: float | None = None
+    soll_text: str | None = None
+    quelle_original_text: str | None = None
+    quelle_stelle: str | None = None
+    bemerkung: str | None = None
+    pruefstatus: str
+    aktion: str
+    zielbereich_id: str | None = None
+    hinweise: list[str] = []
+
+
+class ZielwertPaketVorschauRead(BaseModel):
+    paket: ZielwertPaketKatalogRead
+    eintraege: list[ZielwertPaketVorschauEintragRead]
+    anzulegen_anzahl: int
+    bestehend_anzahl: int
+    parameter_fehlen_anzahl: int
+    einheiten_fehlen_anzahl: int
+    pruefung_erforderlich_anzahl: int
+
+
+class ZielwertPaketInstallationResult(BaseModel):
+    paket_id: str
+    zielbereich_quelle_id: str
+    angelegte_parameter_anzahl: int = 0
+    angelegte_einheiten_anzahl: int = 0
+    angelegte_zielbereiche_anzahl: int = 0
+    reaktivierte_zielbereiche_anzahl: int = 0
+    uebersprungene_zielbereiche_anzahl: int = 0
+    vorschau: ZielwertPaketVorschauRead

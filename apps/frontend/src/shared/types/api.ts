@@ -513,6 +513,80 @@ export type ZielwertPaket = {
   geaendert_am: string;
 };
 
+export type ZielwertPaketKatalogQuelle = {
+  name: string;
+  quellen_typ: ZielbereichQuelleTyp;
+  titel?: string | null;
+  jahr?: number | null;
+  version?: string | null;
+  bemerkung?: string | null;
+};
+
+export type ZielwertPaketKatalogEintrag = {
+  paket_schluessel: string;
+  name: string;
+  version?: string | null;
+  jahr?: number | null;
+  beschreibung?: string | null;
+  bemerkung?: string | null;
+  quelle: ZielwertPaketKatalogQuelle;
+  eintraege_anzahl: number;
+  prueffaelle_anzahl: number;
+  installiert: boolean;
+  installiert_paket_id?: string | null;
+  installiert_aktiv?: boolean | null;
+  aktive_zielbereiche_anzahl: number;
+};
+
+export type ZielwertPaketInstallationPayload = {
+  fehlende_parameter_anlegen: boolean;
+  fehlende_einheiten_anlegen: boolean;
+  prueffaelle_anlegen: boolean;
+};
+
+export type ZielwertPaketVorschauEintrag = {
+  eintrag_schluessel: string;
+  parameter_schluessel: string;
+  parameter_name: string;
+  parameter_id?: string | null;
+  parameter_existiert: boolean;
+  einheit?: string | null;
+  einheit_existiert: boolean;
+  zielbereich_typ: ZielbereichTyp;
+  zielrichtung: Zielrichtung;
+  untere_grenze_num?: number | null;
+  obere_grenze_num?: number | null;
+  soll_text?: string | null;
+  quelle_original_text?: string | null;
+  quelle_stelle?: string | null;
+  bemerkung?: string | null;
+  pruefstatus: string;
+  aktion: string;
+  zielbereich_id?: string | null;
+  hinweise: string[];
+};
+
+export type ZielwertPaketVorschau = {
+  paket: ZielwertPaketKatalogEintrag;
+  eintraege: ZielwertPaketVorschauEintrag[];
+  anzulegen_anzahl: number;
+  bestehend_anzahl: number;
+  parameter_fehlen_anzahl: number;
+  einheiten_fehlen_anzahl: number;
+  pruefung_erforderlich_anzahl: number;
+};
+
+export type ZielwertPaketInstallationResult = {
+  paket_id: string;
+  zielbereich_quelle_id: string;
+  angelegte_parameter_anzahl: number;
+  angelegte_einheiten_anzahl: number;
+  angelegte_zielbereiche_anzahl: number;
+  reaktivierte_zielbereiche_anzahl: number;
+  uebersprungene_zielbereiche_anzahl: number;
+  vorschau: ZielwertPaketVorschau;
+};
+
 export type ZielbereichOverride = {
   id: string;
   person_id: string;

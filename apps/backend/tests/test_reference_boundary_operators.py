@@ -15,6 +15,12 @@ from labordaten_backend.models.messwert_referenz import MesswertReferenz
 from labordaten_backend.models.person import Person
 from labordaten_backend.modules.auswertung import schemas as auswertung_schemas
 from labordaten_backend.modules.auswertung import service as auswertung_service
+from labordaten_backend.modules.einheiten import schemas as einheiten_schemas
+from labordaten_backend.modules.einheiten import service as einheiten_service
+from labordaten_backend.modules.messwerte import schemas as messwert_schemas
+from labordaten_backend.modules.messwerte import service as messwert_service
+from labordaten_backend.modules.parameter import schemas as parameter_schemas
+from labordaten_backend.modules.parameter import service as parameter_service
 from labordaten_backend.modules.berichte import schemas as bericht_schemas
 from labordaten_backend.modules.berichte import service as bericht_service
 
@@ -137,3 +143,204 @@ def test_auswertung_keeps_measurement_operator_and_formats_one_sided_reference(t
         assert punkt.wert_anzeige.startswith("< 0.5")
         assert punkt.laborreferenz_text is not None
         assert punkt.laborreferenz_text.startswith("< 8")
+
+
+def test_auswertung_converts_reference_lines_to_common_display_unit(tmp_path: Path) -> None:
+    with _make_session(tmp_path) as db:
+        person = Person(anzeigename="Ludwig", geburtsdatum=date(1964, 1, 12), geschlecht_code="m")
+        db.add(person)
+        db.commit()
+        db.refresh(person)
+
+        einheiten_service.create_einheit(db, einheiten_schemas.EinheitCreate(kuerzel="nmol/l"))
+        einheiten_service.create_einheit(db, einheiten_schemas.EinheitCreate(kuerzel="µg/l"))
+
+        parameter = parameter_service.create_parameter(
+            db,
+            parameter_schemas.ParameterCreate(
+                interner_schluessel="25hydroxyvitamind",
+                anzeigename="25-Hydroxy-Vitamin D",
+                standard_einheit="µg/l",
+                wert_typ_standard="numerisch",
+            ),
+        )
+
+        first_befund = Befund(person_id=person.id, entnahmedatum=date(2025, 1, 10), quelle_typ="manuell")
+        second_befund = Befund(person_id=person.id, entnahmedatum=date(2025, 2, 10), quelle_typ="manuell")
+        db.add_all([first_befund, second_befund])
+        db.commit()
+        db.refresh(first_befund)
+        db.refresh(second_befund)
+
+        first_messwert = messwert_service.create_messwert(
+            db,
+            messwert_schemas.MesswertCreate(
+                person_id=person.id,
+                befund_id=first_befund.id,
+                laborparameter_id=parameter.id,
+                original_parametername="25-Hydroxy-Vitamin D",
+                wert_typ="numerisch",
+                wert_roh_text="100",
+                wert_num=100.0,
+                einheit_original="nmol/l",
+            ),
+        )
+        second_messwert = messwert_service.create_messwert(
+            db,
+            messwert_schemas.MesswertCreate(
+                person_id=person.id,
+                befund_id=second_befund.id,
+                laborparameter_id=parameter.id,
+                original_parametername="25-Hydroxy-Vitamin D",
+                wert_typ="numerisch",
+                wert_roh_text="42",
+                wert_num=42.0,
+                einheit_original="µg/l",
+            ),
+        )
+
+        parameter_service.create_parameter_umrechnungsregel(
+            db,
+            parameter.id,
+            parameter_schemas.ParameterUmrechnungsregelCreate(
+                von_einheit="nmol/l",
+                nach_einheit="µg/l",
+                regel_typ="faktor",
+                faktor=0.4,
+                rundung_stellen=1,
+            ),
+        )
+
+        db.add_all(
+            [
+                MesswertReferenz(
+                    messwert_id=first_messwert.id,
+                    referenz_typ="labor",
+                    wert_typ="numerisch",
+                    untere_grenze_num=75.0,
+                    obere_grenze_num=250.0,
+                    einheit="nmol/l",
+                    referenz_text_original="75 bis 250 nmol/l",
+                ),
+                MesswertReferenz(
+                    messwert_id=second_messwert.id,
+                    referenz_typ="labor",
+                    wert_typ="numerisch",
+                    untere_grenze_num=30.0,
+                    obere_grenze_num=100.0,
+                    einheit="µg/l",
+                    referenz_text_original="30 bis 100 µg/l",
+                ),
+            ]
+        )
+        db.commit()
+
+        response = auswertung_service.build_auswertung(
+            db,
+            auswertung_schemas.AuswertungRequest(person_ids=[person.id]),
+        )
+
+        assert len(response.serien) == 1
+        first_point, second_point = response.serien[0].punkte
+        assert first_point.einheit == "µg/l"
+        assert first_point.wert_num == 40.0
+        assert first_point.laborreferenz_einheit == "µg/l"
+        assert first_point.laborreferenz_untere_num == 30.0
+        assert first_point.laborreferenz_obere_num == 100.0
+        assert first_point.laborreferenz_text == "30.0 bis 100.0 µg/l (Original: 75 bis 250 nmol/l)"
+        assert second_point.einheit == "µg/l"
+        assert second_point.wert_num == 42.0
+        assert second_point.laborreferenz_untere_num == 30.0
+        assert second_point.laborreferenz_obere_num == 100.0
+
+
+def test_auswertung_uses_sufficient_vitamin_d_range_instead_of_intoxication_boundary(tmp_path: Path) -> None:
+    with _make_session(tmp_path) as db:
+        person = Person(anzeigename="Ludwig", geburtsdatum=date(1964, 1, 12), geschlecht_code="m")
+        db.add(person)
+        db.commit()
+        db.refresh(person)
+
+        einheiten_service.create_einheit(db, einheiten_schemas.EinheitCreate(kuerzel="µg/l"))
+        parameter = parameter_service.create_parameter(
+            db,
+            parameter_schemas.ParameterCreate(
+                interner_schluessel="25hydroxyvitamind",
+                anzeigename="25-Hydroxy-Vitamin D",
+                standard_einheit="µg/l",
+                wert_typ_standard="numerisch",
+            ),
+        )
+
+        first_befund = Befund(person_id=person.id, entnahmedatum=date(2024, 5, 6), quelle_typ="manuell")
+        second_befund = Befund(person_id=person.id, entnahmedatum=date(2025, 1, 14), quelle_typ="manuell")
+        db.add_all([first_befund, second_befund])
+        db.commit()
+        db.refresh(first_befund)
+        db.refresh(second_befund)
+
+        first_messwert = messwert_service.create_messwert(
+            db,
+            messwert_schemas.MesswertCreate(
+                person_id=person.id,
+                befund_id=first_befund.id,
+                laborparameter_id=parameter.id,
+                original_parametername="25-Hydroxy-Vitamin-D i. S.",
+                wert_typ="numerisch",
+                wert_roh_text="55,8",
+                wert_num=55.8,
+                einheit_original="µg/l",
+            ),
+        )
+        second_messwert = messwert_service.create_messwert(
+            db,
+            messwert_schemas.MesswertCreate(
+                person_id=person.id,
+                befund_id=second_befund.id,
+                laborparameter_id=parameter.id,
+                original_parametername="25-Hydroxy-Vitamin-D",
+                wert_typ="numerisch",
+                wert_roh_text="66,6",
+                wert_num=66.6,
+                einheit_original="µg/l",
+            ),
+        )
+
+        db.add_all(
+            [
+                MesswertReferenz(
+                    messwert_id=first_messwert.id,
+                    referenz_typ="labor",
+                    wert_typ="numerisch",
+                    untere_grenze_num=30.0,
+                    obere_grenze_num=150.0,
+                    einheit="µg/l",
+                    referenz_text_original="30 - 150",
+                    bemerkung="< 20 µg/l = Mangel; 20 - 29 µg/l = ungenügende Versorgung; 30 - 60 µg/l = ausreichende Versorgung; 61 - 150 µg/l = überdosiert, jedoch nicht toxisch; > 150 µg/l = Vitamin-D-Intoxikation",
+                ),
+                MesswertReferenz(
+                    messwert_id=second_messwert.id,
+                    referenz_typ="labor",
+                    wert_typ="numerisch",
+                    untere_grenze_num=30.0,
+                    obere_grenze_num=150.0,
+                    einheit="µg/l",
+                    referenz_text_original="30 - 150",
+                ),
+            ]
+        )
+        db.commit()
+
+        response = auswertung_service.build_auswertung(
+            db,
+            auswertung_schemas.AuswertungRequest(person_ids=[person.id]),
+        )
+
+        assert len(response.serien) == 1
+        first_point, second_point = response.serien[0].punkte
+        assert first_point.laborreferenz_untere_num == 30.0
+        assert first_point.laborreferenz_obere_num == 60.0
+        assert first_point.laborreferenz_text == "30.0 bis 60.0 µg/l (ausreichende Versorgung; Original: 30 - 150)"
+        assert second_point.laborreferenz_untere_num == 30.0
+        assert second_point.laborreferenz_obere_num == 60.0
+        assert second_point.laborreferenz_text == "30.0 bis 60.0 µg/l (ausreichende Versorgung; Original: 30 - 150)"

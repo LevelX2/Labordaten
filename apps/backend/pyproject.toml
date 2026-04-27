@@ -29,6 +29,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "labordaten_backend.modules.initialdaten" = ["*.json"]
+"labordaten_backend.modules.zielwertpakete" = ["*.json"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

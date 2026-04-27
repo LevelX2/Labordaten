@@ -1,11 +1,12 @@
 ---
 typ: architektur
 status: aktiv
-letzte_aktualisierung: 2026-04-26
+letzte_aktualisierung: 2026-04-27
 quellen:
   - ../../../apps/backend/src/labordaten_backend/models/einheit.py
   - ../../../apps/backend/src/labordaten_backend/models/einheit_alias.py
   - ../../../apps/backend/src/labordaten_backend/models/parameter_umrechnungsregel.py
+  - ../../../apps/backend/src/labordaten_backend/modules/auswertung/service.py
   - ../../../apps/backend/src/labordaten_backend/modules/einheiten/service.py
   - ../../../apps/backend/src/labordaten_backend/modules/parameter/conversions.py
   - ../../../apps/backend/src/labordaten_backend/modules/parameter/service.py
@@ -16,6 +17,7 @@ quellen:
   - ../../../apps/backend/tests/test_units.py
   - ../../../apps/backend/tests/test_parameter_conversion_rules.py
   - ../../../apps/backend/tests/test_parameter_standard_unit.py
+  - ../../../apps/backend/tests/test_reference_boundary_operators.py
 tags:
   - einheiten
   - alias
@@ -77,6 +79,14 @@ Zusätzlich kann pro numerischem Laborparameter eine führende Normeinheit festg
 - Zusätzlich kann ein normierter Vergleichswert in `wert_normiert_num` mit `einheit_normiert` gespeichert werden.
 - Die verwendete Regel wird über `umrechnungsregel_id` referenziert.
 
+### Normierung in der Auswertung
+- Die Verlaufsauswertung wählt pro numerischer Parameter-Serie eine gemeinsame darstellbare Einheit, bevorzugt die führende Normeinheit, wenn alle Punkte sie unterstützen.
+- Messwerte werden für Diagramm und Statistik in dieser gemeinsamen Anzeigeeinheit ausgegeben, ohne die Originalwerte zu überschreiben.
+- Laborreferenzgrenzen werden für die Auswertung in dieselbe Anzeigeeinheit umgerechnet, wenn dafür eine eindeutige aktive parameterbezogene Umrechnungsregel existiert.
+- Wenn eine Laborreferenz nicht belastbar in die Anzeigeeinheit umgerechnet werden kann, bleibt sie als Originalreferenz textlich sichtbar, wird aber nicht als numerische Referenzlinie in die Diagrammdaten übernommen.
+- Breite interpretierende Laborbereiche, die mehrere Bewertungszonen umfassen, dürfen die Verlaufslinie nicht als scheinbarer Normalbereich verzerren. Für `25-Hydroxy-Vitamin D` wird ein gespeicherter Bereich `30 - 150 µg/l` beziehungsweise `30 - 150 ng/ml` in der Auswertung als ausreichender Versorgungsbereich `30 - 60` dargestellt, wenn der Befundtext diese Zone ausweist oder der typische 25-OH-Vitamin-D-Interpretationsbereich erkannt wird; der Originalbereich bleibt im Text sichtbar.
+- Laborreferenzen und Zielbereiche werden im Diagramm nicht als verbundene Verlaufslinien gezeichnet, sondern pro Messpunkt als vertikale Bereichsmarker mit dezenter Füllung zwischen unterer und oberer Grenze. Dadurch bleibt sichtbar, ob der Messpunkt unterhalb, innerhalb oder oberhalb des jeweiligen Bereichs liegt, ohne unterschiedliche Laborreferenzen über die Zeit zu einer scheinbaren kontinuierlichen Kurve zu verbinden. Einseitig offene Bereiche, zum Beispiel `>= 20`, werden am offenen Diagrammrand mit einer Pfeilspitze gekennzeichnet, damit der Marker nicht als endlicher Bereich missverstanden wird. Die Legende gruppiert Diagrammeinträge nach Person; der Personenname wird nur als Gruppenkopf gezeigt, während die schaltbaren Einträge kompakt als Link-Buttons `Werte`, `Laborreferenz` und `Zielbereich` erscheinen. Nur Messwert-Serien erhalten dort eine Anzahl.
+
 ### Führende Normeinheit in der UI
 - Auf der Parameterseite gibt es eine eigene Aktion `Normeinheit`.
 - Dort kann die führende Normeinheit eines Parameters ausdrücklich gesetzt oder geleert werden.
@@ -87,6 +97,7 @@ Zusätzlich kann pro numerischem Laborparameter eine führende Normeinheit festg
 - Originalwerte bleiben immer erhalten.
 - Normierte Werte dienen Vergleich, Berichtsdarstellung und Verlaufsauswertung.
 - Berichte und gemeinsame Darstellungen sollen Werte nur dann zusammenführen, wenn für die betroffenen Daten eine saubere gemeinsame Zielausprägung verfügbar ist.
+- Referenz- und Messwertlinien dürfen innerhalb einer Auswertungsserie nicht aus unterschiedlichen Einheiten gemischt werden.
 
 ## Verhalten bei Änderung der führenden Normeinheit
 - Wenn die führende Normeinheit eines Parameters geändert wird, werden die normierten Vergleichswerte dieses Parameters neu berechnet.

@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from labordaten_backend.api.deps import get_db
 from labordaten_backend.modules.zielbereiche import schemas, service
+from labordaten_backend.modules.zielwertpakete import service as zielwertpakete_service
 
 router = APIRouter()
 
@@ -67,6 +68,39 @@ def update_zielwert_paket(
 ) -> schemas.ZielwertPaketRead:
     try:
         return service.update_zielwert_paket(db, zielwert_paket_id, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@router.get("/zielwert-paket-katalog", response_model=list[schemas.ZielwertPaketKatalogRead])
+def list_zielwert_paket_katalog(db: Session = Depends(get_db)) -> list[schemas.ZielwertPaketKatalogRead]:
+    return zielwertpakete_service.list_katalog(db)
+
+
+@router.post("/zielwert-paket-katalog/{paket_schluessel}/vorschau", response_model=schemas.ZielwertPaketVorschauRead)
+def preview_zielwert_paket(
+    paket_schluessel: str,
+    payload: schemas.ZielwertPaketInstallationRequest | None = None,
+    db: Session = Depends(get_db),
+) -> schemas.ZielwertPaketVorschauRead:
+    try:
+        return zielwertpakete_service.preview_paket(db, paket_schluessel, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@router.post(
+    "/zielwert-paket-katalog/{paket_schluessel}/installieren",
+    response_model=schemas.ZielwertPaketInstallationResult,
+    status_code=status.HTTP_201_CREATED,
+)
+def install_zielwert_paket(
+    paket_schluessel: str,
+    payload: schemas.ZielwertPaketInstallationRequest,
+    db: Session = Depends(get_db),
+) -> schemas.ZielwertPaketInstallationResult:
+    try:
+        return zielwertpakete_service.install_paket(db, paket_schluessel, payload)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 

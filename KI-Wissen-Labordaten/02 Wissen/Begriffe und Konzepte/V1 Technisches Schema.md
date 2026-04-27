@@ -10,6 +10,8 @@ quellen:
   - ../../../apps/backend/src/labordaten_backend/modules/messwerte/schemas.py
   - ../../../apps/backend/src/labordaten_backend/modules/referenzen/schemas.py
   - ../../../apps/backend/src/labordaten_backend/modules/zielbereiche/schemas.py
+  - ../../../apps/backend/src/labordaten_backend/modules/zielwertpakete/paket_katalog.json
+  - ../../../apps/backend/src/labordaten_backend/modules/zielwertpakete/service.py
   - ../../../apps/backend/src/labordaten_backend/models/zielbereich_quelle.py
   - ../../../apps/backend/src/labordaten_backend/models/zielwert_paket.py
   - ../../../apps/backend/src/labordaten_backend/modules/befunde/schemas.py
@@ -434,6 +436,7 @@ Indizes:
 
 Hinweis:
 - `zielwert_paket` ist das technische Verwaltungsobjekt für optionale Zielbereichssammlungen. Eine Deaktivierung des Pakets deaktiviert die zugehörigen aktiven `zielbereich`-Datensätze, entfernt aber keine neutralen Parameterstammdaten.
+- Der installierbare Katalog selbst ist aktuell keine Datenbanktabelle, sondern eine versionierte Paketdefinition im Backend. Die API stellt Katalogliste, Vorschau und Installation bereit. Dadurch bleibt die Datenbank frei von nicht gewählten Zielwertsätzen, während installierte Pakete vollständig nachvollziehbar in `zielwert_paket`, `zielbereich_quelle` und `zielbereich` landen.
 
 ### zielbereich
 - `id` PK

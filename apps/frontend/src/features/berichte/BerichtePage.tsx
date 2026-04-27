@@ -762,6 +762,27 @@ export function BerichtePage() {
         </div>
       </header>
 
+      <article className="card card--soft view-template-card">
+        <div className="parameter-panel__header">
+          <div>
+            <h3>Berichtsvorlagen</h3>
+          </div>
+        </div>
+        <ViewTemplateBar
+          templates={templatesForSelectedType}
+          selectedTemplateId={selectedTemplateId}
+          hasUnsavedChanges={hasUnsavedTemplateChanges}
+          isPending={templateActionPending}
+          onSelect={handleSelectTemplate}
+          onSave={handleSaveTemplate}
+          onSaveAs={handleSaveTemplateAs}
+          onRename={handleRenameTemplate}
+          onDelete={handleDeleteTemplate}
+        />
+        {templateWarning ? <p className="form-hint">{templateWarning}</p> : null}
+        {templateError ? <p className="form-error">{templateError.message}</p> : null}
+      </article>
+
       <div className="parameter-workspace">
         <aside className="card parameter-sidebar">
           <div className="parameter-sidebar__header">
@@ -847,20 +868,6 @@ export function BerichtePage() {
                     : "Verlaufsbericht als PDF"}
               </button>
             </div>
-
-            <ViewTemplateBar
-              templates={templatesForSelectedType}
-              selectedTemplateId={selectedTemplateId}
-              hasUnsavedChanges={hasUnsavedTemplateChanges}
-              isPending={templateActionPending}
-              onSelect={handleSelectTemplate}
-              onSave={handleSaveTemplate}
-              onSaveAs={handleSaveTemplateAs}
-              onRename={handleRenameTemplate}
-              onDelete={handleDeleteTemplate}
-            />
-            {templateWarning ? <p className="form-hint">{templateWarning}</p> : null}
-            {templateError ? <p className="form-error">{templateError.message}</p> : null}
 
             {activePanel === "filters" ? (
               <article className="card card--soft parameter-action-panel">

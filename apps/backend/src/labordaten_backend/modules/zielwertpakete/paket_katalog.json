@@ -1,0 +1,1582 @@
+[
+  {
+    "paket_schluessel": "orfanos_boeckel_ksg_2026",
+    "name": "KSG-Optimalbereiche nach Dr. med. Helena Orfanos-Boeckel",
+    "version": "KSG 2026-04",
+    "jahr": 2026,
+    "beschreibung": "Quellengebundene Optimalbereiche aus der KSG-Klassifikation nach Dr. med. Helena Orfanos-Boeckel. Enthalten sind numerisch modellierbare Zielwerte aus den KSG-Tabellen; Laborreferenzen und stark kontextabhängige Angaben sind nicht als allgemeine Optimalbereiche enthalten.",
+    "bemerkung": "Die Zielwerte sind quellengebundene Orientierungswerte und keine Laborreferenzen oder Diagnoseautomatik.",
+    "quelle": {
+      "name": "Dr. med. Helena Orfanos-Boeckel",
+      "quellen_typ": "experte",
+      "titel": "Nährstoff- und Hormontherapie / KSG-Klassifikation",
+      "jahr": 2026,
+      "version": "KSG 2026-04",
+      "bemerkung": "Quellengebundene Zielwerte aus den KSG-Tabellen."
+    },
+    "eintraege": [
+      {
+        "eintrag_schluessel": "ages_advanced_glycation_endproducts_optimal_unter_50",
+        "parameter": {
+          "interner_schluessel": "ages_advanced_glycation_endproducts",
+          "anzeigename": "AGEs (Advanced Glycation Endproducts)",
+          "standard_einheit": "µg/ml",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "krankwert",
+          "beschreibung": "Advanced Glycation Endproducts nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_niedriger_desto_besser",
+          "untere_grenze_num": null,
+          "obere_grenze_num": 50,
+          "einheit": "µg/ml",
+          "quelle_original_text": "besser < 50 µg/ml, je niedriger desto besser",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S01",
+          "bemerkung": "Optimalbereich aus der KSG-Angabe; zusätzlich ist < 67 µg/ml als oberer Orientierungswert dokumentiert."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "aluminium_vollblut_unter_11_4",
+        "parameter": {
+          "interner_schluessel": "aluminium_im_vollblut",
+          "anzeigename": "Aluminium im Vollblut",
+          "standard_einheit": "µg/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "krankwert",
+          "beschreibung": "Aluminium im Vollblut nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_niedriger_desto_besser",
+          "untere_grenze_num": null,
+          "obere_grenze_num": 11.4,
+          "einheit": "µg/l",
+          "quelle_original_text": "< 11,4 µg/l; so niedrig wie möglich",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S01",
+          "bemerkung": "Einseitiger Optimalbereich; die Zielrichtung bildet die Angabe 'so niedrig wie möglich' ab."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "arsen_vollblut_unter_1_2",
+        "parameter": {
+          "interner_schluessel": "arsen_im_vollblut",
+          "anzeigename": "Arsen im Vollblut",
+          "standard_einheit": "µg/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "krankwert",
+          "beschreibung": "Arsen im Vollblut nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_niedriger_desto_besser",
+          "untere_grenze_num": null,
+          "obere_grenze_num": 1.2,
+          "einheit": "µg/l",
+          "quelle_original_text": "< 1,2 µg/l; so niedrig wie möglich",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S01",
+          "bemerkung": "Einseitiger Optimalbereich; die Zielrichtung bildet die Angabe 'so niedrig wie möglich' ab."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "atp_intrazellulaer_ab_3_5",
+        "parameter": {
+          "interner_schluessel": "intrazellulaeres_atp",
+          "anzeigename": "ATP intrazellulär",
+          "standard_einheit": "µM",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "Intrazelluläres ATP nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_hoeher_desto_besser",
+          "untere_grenze_num": 3.5,
+          "obere_grenze_num": null,
+          "einheit": "µM",
+          "quelle_original_text": "> 3,5 µM",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S01",
+          "bemerkung": "Einseitiger Optimalbereich; höhere Werte sind innerhalb dieses Kontexts günstiger."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "blei_vollblut_unter_10",
+        "parameter": {
+          "interner_schluessel": "blei_im_vollblut",
+          "anzeigename": "Blei im Vollblut",
+          "standard_einheit": "µg/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "krankwert",
+          "beschreibung": "Blei im Vollblut nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_niedriger_desto_besser",
+          "untere_grenze_num": null,
+          "obere_grenze_num": 10,
+          "einheit": "µg/l",
+          "quelle_original_text": "< 10 µg/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S02",
+          "bemerkung": "Einseitiger Optimalbereich für einen Krankwert."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "bor_serum_140_150",
+        "parameter": {
+          "interner_schluessel": "borserum",
+          "anzeigename": "Bor im Serum",
+          "standard_einheit": "µg/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "Bor im Serum nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "innerhalb_bereich",
+          "untere_grenze_num": 140,
+          "obere_grenze_num": 150,
+          "einheit": "µg/l",
+          "quelle_original_text": "140-150 µg/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S02",
+          "bemerkung": "Enger Optimalbereich aus der KSG-Angabe."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "calcium_vollblut_60_61",
+        "parameter": {
+          "interner_schluessel": "calcium_im_vollblut",
+          "anzeigename": "Calcium im Vollblut",
+          "standard_einheit": "mg/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "Calcium im Vollblut nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "zielwert_nahe",
+          "untere_grenze_num": 60,
+          "obere_grenze_num": 61,
+          "einheit": "mg/l",
+          "quelle_original_text": "60-61 mg/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S02",
+          "bemerkung": "Sehr enger Zielkorridor; als zielwertnahe Interpretation angelegt."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "chrom_vollblut_0_4_0_5",
+        "parameter": {
+          "interner_schluessel": "chrom_im_vollblut",
+          "anzeigename": "Chrom im Vollblut",
+          "standard_einheit": "µg/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "Chrom im Vollblut nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "innerhalb_bereich",
+          "untere_grenze_num": 0.4,
+          "obere_grenze_num": 0.5,
+          "einheit": "µg/l",
+          "quelle_original_text": "0,40-0,50 µg/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S02",
+          "bemerkung": "Optimalbereich aus der KSG-Angabe."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "folsaeure_bioaktiv_edta_ab_160",
+        "parameter": {
+          "interner_schluessel": "vitaminb9folsaeurebioaktiviedta",
+          "anzeigename": "Vitamin B9/Folsäure bioaktiv (EDTA)",
+          "standard_einheit": "µg/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "Bioaktive Folsäure im EDTA-Kontext nach KSG-Klassifikation."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_hoeher_desto_besser",
+          "untere_grenze_num": 160,
+          "obere_grenze_num": null,
+          "einheit": "µg/l",
+          "quelle_original_text": "> 160 µg/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S02",
+          "bemerkung": "Einseitiger Optimalbereich aus der KSG-Angabe."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "bdnf_30_40",
+        "parameter": {
+          "interner_schluessel": "bdnf",
+          "anzeigename": "BDNF",
+          "standard_einheit": "ng/ml",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "schluesselwert",
+          "beschreibung": "Brain-derived neurotrophic factor nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "innerhalb_bereich",
+          "untere_grenze_num": 30,
+          "obere_grenze_num": 40,
+          "einheit": "ng/ml",
+          "quelle_original_text": "30-40 ng/ml",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S02",
+          "bemerkung": "Werte unter 20 ng/ml werden in der Quelle als ungünstig beschrieben."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "diaminooxidase_serum_ab_15",
+        "parameter": {
+          "interner_schluessel": "diaminooxidase_dao_im_serum",
+          "anzeigename": "Diaminooxidase im Serum",
+          "standard_einheit": "IU/ml",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "Diaminooxidase im Serum nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_hoeher_desto_besser",
+          "untere_grenze_num": 15,
+          "obere_grenze_num": null,
+          "einheit": "IU/ml",
+          "quelle_original_text": "> 15 IU/ml",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S02",
+          "bemerkung": "Kupfer- und Vitamin-B6-Kontext beachten."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "histamin_gesamt_30_60",
+        "parameter": {
+          "interner_schluessel": "histamin_gesamt_im_heparin_blut",
+          "anzeigename": "Histamin gesamt im Heparin-Blut",
+          "standard_einheit": "ng/ml",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "schluesselwert",
+          "beschreibung": "Histamin gesamt im Heparin-Blut nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "innerhalb_bereich",
+          "untere_grenze_num": 30,
+          "obere_grenze_num": 60,
+          "einheit": "ng/ml",
+          "quelle_original_text": "30-60 ng/ml",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S02",
+          "bemerkung": "Quelle beschreibt Werte über 150 ng/ml meist als unangenehm und unter 30 ng/ml als auffällig."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "i_fabp_serum_unter_1500",
+        "parameter": {
+          "interner_schluessel": "i_fabp_im_serum",
+          "anzeigename": "I-FABP im Serum",
+          "standard_einheit": "pg/ml",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "krankwert",
+          "beschreibung": "Intestinal fatty acid-binding protein im Serum nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_niedriger_desto_besser",
+          "untere_grenze_num": null,
+          "obere_grenze_num": 1500,
+          "einheit": "pg/ml",
+          "quelle_original_text": "< 1500 pg/ml, gern auch < 1000 pg/ml",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S02",
+          "bemerkung": "Strengerer Orientierungswert unter 1000 pg/ml in der Quelle genannt."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "kalium_vollblut_1600_1700",
+        "parameter": {
+          "interner_schluessel": "kalium_im_vollblut",
+          "anzeigename": "Kalium im Vollblut",
+          "standard_einheit": "mg/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "schluesselwert",
+          "beschreibung": "Kalium im Vollblut nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "innerhalb_bereich",
+          "untere_grenze_num": 1600,
+          "obere_grenze_num": 1700,
+          "einheit": "mg/l",
+          "quelle_original_text": "1600-1700 mg/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S02",
+          "bemerkung": "Direkter Bereich aus der KSG-Angabe."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "kupfer_vollblut_1_0_1_1",
+        "parameter": {
+          "interner_schluessel": "kupfer_im_vollblut",
+          "anzeigename": "Kupfer im Vollblut",
+          "standard_einheit": "mg/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "schluesselwert",
+          "beschreibung": "Kupfer im Vollblut nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "innerhalb_bereich",
+          "untere_grenze_num": 1.0,
+          "obere_grenze_num": 1.1,
+          "einheit": "mg/l",
+          "quelle_original_text": "1,0-1,1 mg/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S02",
+          "bemerkung": "Pille und DAO-Kontext beachten."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "lp_pla2_unter_500",
+        "parameter": {
+          "interner_schluessel": "lp_pla2",
+          "anzeigename": "Lp-PLA2",
+          "standard_einheit": "U/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "krankwert",
+          "beschreibung": "Lipoprotein-assoziierte Phospholipase A2 nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_niedriger_desto_besser",
+          "untere_grenze_num": null,
+          "obere_grenze_num": 500,
+          "einheit": "U/l",
+          "quelle_original_text": "< 500 U/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S03",
+          "bemerkung": "Strengere Ziele bei Risikokonstellationen werden in der Quelle genannt und bleiben Kontextinformation."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "magnesium_vollblut_ab_35",
+        "parameter": {
+          "interner_schluessel": "magnesium_im_vollblut",
+          "anzeigename": "Magnesium im Vollblut",
+          "standard_einheit": "mg/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "Magnesium im Vollblut nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_hoeher_desto_besser",
+          "untere_grenze_num": 35,
+          "obere_grenze_num": null,
+          "einheit": "mg/l",
+          "quelle_original_text": "> 35 mg/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S03",
+          "bemerkung": "Quelle nennt bis 38 mg/l als ebenfalls passend."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "molybdan_vollblut_ziel_1",
+        "parameter": {
+          "interner_schluessel": "molybdan_im_vollblut",
+          "anzeigename": "Molybdän im Vollblut",
+          "standard_einheit": "µg/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "Molybdän im Vollblut nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "zielwert_nahe",
+          "untere_grenze_num": 1,
+          "obere_grenze_num": 1,
+          "einheit": "µg/l",
+          "quelle_original_text": "1,0 µg/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S03",
+          "bemerkung": "Weicher Zielpunkt aus der KSG-Angabe."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "omega_3_index_ab_10",
+        "parameter": {
+          "interner_schluessel": "omega_3_index",
+          "anzeigename": "Omega-3-Index",
+          "standard_einheit": "%",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "Omega-3-Index nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_hoeher_desto_besser",
+          "untere_grenze_num": 10,
+          "obere_grenze_num": null,
+          "einheit": "%",
+          "quelle_original_text": "> 10 %",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S03",
+          "bemerkung": "Quelle nennt 12 % ebenfalls als günstigen Orientierungswert."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "reverse_t3_unter_200",
+        "parameter": {
+          "interner_schluessel": "reverse_t3_im_serum",
+          "anzeigename": "reverse T3 im Serum",
+          "standard_einheit": "pg/ml",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "krankwert",
+          "beschreibung": "Reverse T3 im Serum nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_niedriger_desto_besser",
+          "untere_grenze_num": null,
+          "obere_grenze_num": 200,
+          "einheit": "pg/ml",
+          "quelle_original_text": "< 180-200 pg/ml",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S04",
+          "bemerkung": "Optional strengerer Orientierungswert unter 180 pg/ml in der Quelle genannt."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "selen_vollblut_140_160",
+        "parameter": {
+          "interner_schluessel": "selen_im_vollblut",
+          "anzeigename": "Selen im Vollblut",
+          "standard_einheit": "µg/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "Selen im Vollblut nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "innerhalb_bereich",
+          "untere_grenze_num": 140,
+          "obere_grenze_num": 160,
+          "einheit": "µg/l",
+          "quelle_original_text": "140-160 µg/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S04",
+          "bemerkung": "Direkter Bereich aus der KSG-Angabe."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "ucoc_unter_2",
+        "parameter": {
+          "interner_schluessel": "ucosteocalcinucocis",
+          "anzeigename": "ucOC im Serum",
+          "standard_einheit": "ng/ml",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "krankwert",
+          "beschreibung": "Undercarboxyliertes Osteocalcin im Serum nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_niedriger_desto_besser",
+          "untere_grenze_num": null,
+          "obere_grenze_num": 2,
+          "einheit": "ng/ml",
+          "quelle_original_text": "< 2,0 ng/ml",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S04",
+          "bemerkung": "Bei Osteoporose oder Arteriosklerose nennt die Quelle gern unter 1,0 ng/ml."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "vitamin_b1_bioaktiv_ab_60",
+        "parameter": {
+          "interner_schluessel": "vitaminb1bioaktiviedtablut",
+          "anzeigename": "Vitamin B1 bioaktiv im EDTA-Blut",
+          "standard_einheit": "µg/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "Bioaktives Vitamin B1 im EDTA-Blut nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_hoeher_desto_besser",
+          "untere_grenze_num": 60,
+          "obere_grenze_num": null,
+          "einheit": "µg/l",
+          "quelle_original_text": "> 60 µg/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S04",
+          "bemerkung": "Quelle nennt erhöhten AGE-Kontext als zusätzlichen Hinweis."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "vitamin_b2_bioaktiv_250_300",
+        "parameter": {
+          "interner_schluessel": "vitaminb2bioaktivis",
+          "anzeigename": "Vitamin B2 bioaktiv im Serum",
+          "standard_einheit": "µg/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "Bioaktives Vitamin B2 im Serum nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "innerhalb_bereich",
+          "untere_grenze_num": 250,
+          "obere_grenze_num": 300,
+          "einheit": "µg/l",
+          "quelle_original_text": "250-300 µg/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S04",
+          "bemerkung": "Direkter Bereich aus der KSG-Angabe."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "vitamin_b6_bioaktiv_30_36",
+        "parameter": {
+          "interner_schluessel": "vitaminb6bioaktivis",
+          "anzeigename": "Vitamin B6 bioaktiv im Serum",
+          "standard_einheit": "µg/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "Bioaktives Vitamin B6 im Serum nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "innerhalb_bereich",
+          "untere_grenze_num": 30,
+          "obere_grenze_num": 36,
+          "einheit": "µg/l",
+          "quelle_original_text": "30-36 µg/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S04",
+          "bemerkung": "Direkter Bereich aus der KSG-Angabe."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "freies_25_oh_vitamin_d_19_25",
+        "parameter": {
+          "interner_schluessel": "freies_25_oh_vitamin_d_im_serum",
+          "anzeigename": "freies 25-OH-Vitamin-D im Serum",
+          "standard_einheit": "pg/ml",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "Freies 25-OH-Vitamin-D im Serum nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "innerhalb_bereich",
+          "untere_grenze_num": 19,
+          "obere_grenze_num": 25,
+          "einheit": "pg/ml",
+          "quelle_original_text": "19-25 pg/ml",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S04",
+          "bemerkung": "Nicht auf Gesamt-25-OH-Vitamin-D übertragen."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "zink_vollblut_ziel_6",
+        "parameter": {
+          "interner_schluessel": "zink_im_vollblut",
+          "anzeigename": "Zink im Vollblut",
+          "standard_einheit": "mg/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "Zink im Vollblut nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "zielwert_nahe",
+          "untere_grenze_num": 6,
+          "obere_grenze_num": 6,
+          "einheit": "mg/l",
+          "quelle_original_text": "6,0 mg/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S04",
+          "bemerkung": "Quelle nennt 7,0 mg/l ebenfalls als passend; weicher Zielpunkt."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "zonulin_serum_unter_30",
+        "parameter": {
+          "interner_schluessel": "zonulin_im_serum",
+          "anzeigename": "Zonulin im Serum",
+          "standard_einheit": "ng/ml",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "krankwert",
+          "beschreibung": "Zonulin im Serum nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_niedriger_desto_besser",
+          "untere_grenze_num": null,
+          "obere_grenze_num": 30,
+          "einheit": "ng/ml",
+          "quelle_original_text": "< 30 ng/ml",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S04",
+          "bemerkung": "Quelle beschreibt Werte über 70 ng/ml als hoch."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "apo_b_unter_50",
+        "parameter": {
+          "interner_schluessel": "apolipoprotein_b",
+          "anzeigename": "Apolipoprotein B",
+          "standard_einheit": "mg/dl",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "krankwert",
+          "beschreibung": "Apolipoprotein B nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_niedriger_desto_besser",
+          "untere_grenze_num": null,
+          "obere_grenze_num": 50,
+          "einheit": "mg/dl",
+          "quelle_original_text": "< 50 mg/dl",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S04",
+          "bemerkung": "Quelle nennt gern auch unter 30 mg/dl; risikoadaptierte Laborziele nicht vermischen."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "beta_crosslaps_unter_0_5",
+        "parameter": {
+          "interner_schluessel": "beta_crosslaps",
+          "anzeigename": "Beta-CrossLaps",
+          "standard_einheit": "ng/ml",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "krankwert",
+          "beschreibung": "Beta-CrossLaps nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_niedriger_desto_besser",
+          "untere_grenze_num": null,
+          "obere_grenze_num": 0.5,
+          "einheit": "ng/ml",
+          "quelle_original_text": "< 0,5 ng/ml",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S05",
+          "bemerkung": "Postmenopausal nicht über 0,7 ng/ml; bei über 1,0 ng/ml nennt die Quelle Knochendichtemessung."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "biotin_ab_1000",
+        "parameter": {
+          "interner_schluessel": "biotin",
+          "anzeigename": "Biotin",
+          "standard_einheit": "ng/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "Biotin nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_hoeher_desto_besser",
+          "untere_grenze_num": 1000,
+          "obere_grenze_num": null,
+          "einheit": "ng/l",
+          "quelle_original_text": "> 1000 ng/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S05",
+          "bemerkung": "Quelle: gern über 1000 ng/l halten."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "calcium_serum_ziel_2_45",
+        "parameter": {
+          "interner_schluessel": "calciumimserum",
+          "anzeigename": "Calcium im Serum",
+          "standard_einheit": "mmol/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "schluesselwert",
+          "beschreibung": "Calcium im Serum nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "zielwert_nahe",
+          "untere_grenze_num": 2.45,
+          "obere_grenze_num": 2.45,
+          "einheit": "mmol/l",
+          "quelle_original_text": "2,45 mmol/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S05",
+          "bemerkung": "Weicher Zielpunkt im oberen Referenzbereich."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "crp_hs_unter_0_6",
+        "parameter": {
+          "interner_schluessel": "crp_hochsensitiv",
+          "anzeigename": "CRP / hs-CRP",
+          "standard_einheit": "mg/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "krankwert",
+          "beschreibung": "Hochsensitives CRP nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_niedriger_desto_besser",
+          "untere_grenze_num": null,
+          "obere_grenze_num": 0.6,
+          "einheit": "mg/l",
+          "quelle_original_text": "< 0,6 mg/l; auf jeden Fall < 1,0 mg/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S05",
+          "bemerkung": "Vorhandene allgemeinere Zielbereiche können weniger streng sein."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "cystatin_c_unter_1",
+        "parameter": {
+          "interner_schluessel": "cystatin_c",
+          "anzeigename": "Cystatin C",
+          "standard_einheit": "mg/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "krankwert",
+          "beschreibung": "Cystatin C nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_niedriger_desto_besser",
+          "untere_grenze_num": null,
+          "obere_grenze_num": 1,
+          "einheit": "mg/l",
+          "quelle_original_text": "< 1,0 mg/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S05",
+          "bemerkung": "Quelle nennt GFR über 70 ml/min als Kontext."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "folsaeure_serum_ab_16",
+        "parameter": {
+          "interner_schluessel": "folsaure",
+          "anzeigename": "Folsäure im Serum",
+          "standard_einheit": "ng/ml",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "Folsäure im Serum nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_hoeher_desto_besser",
+          "untere_grenze_num": 16,
+          "obere_grenze_num": null,
+          "einheit": "ng/ml",
+          "quelle_original_text": "> 16 ng/ml",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S06",
+          "bemerkung": "Quelle: anheben und darüber halten."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "ft3_ab_3",
+        "parameter": {
+          "interner_schluessel": "ft3",
+          "anzeigename": "fT3",
+          "standard_einheit": "pg/ml",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "schluesselwert",
+          "beschreibung": "Freies T3 nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_hoeher_desto_besser",
+          "untere_grenze_num": 3,
+          "obere_grenze_num": null,
+          "einheit": "pg/ml",
+          "quelle_original_text": "> 3,0 pg/ml",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S06",
+          "bemerkung": "Quelle nennt gern über 3,5 pg/ml; Therapiekontext beachten."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "ft4_ziel_1_4",
+        "parameter": {
+          "interner_schluessel": "ft4",
+          "anzeigename": "fT4",
+          "standard_einheit": "ng/dl",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "schluesselwert",
+          "beschreibung": "Freies T4 nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "zielwert_nahe",
+          "untere_grenze_num": 1.4,
+          "obere_grenze_num": 1.4,
+          "einheit": "ng/dl",
+          "quelle_original_text": "1,4 ng/dl",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S07",
+          "bemerkung": "Nicht höher bevorzugt wegen rT3-Kontext laut Quelle."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "gesamteiweiss_7_0_7_5",
+        "parameter": {
+          "interner_schluessel": "gesamteiwei",
+          "anzeigename": "Gesamteiweiß",
+          "standard_einheit": "g/dl",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "schluesselwert",
+          "beschreibung": "Gesamteiweiß nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "innerhalb_bereich",
+          "untere_grenze_num": 7.0,
+          "obere_grenze_num": 7.5,
+          "einheit": "g/dl",
+          "quelle_original_text": "7,0-7,5 g/dl",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S07",
+          "bemerkung": "Bei Auffälligkeiten nennt die Quelle Elektrophorese und Immunfixation als Kontext."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "egfr_ab_70",
+        "parameter": {
+          "interner_schluessel": "gfr_ckd_epi_formel",
+          "anzeigename": "eGFR nach CKD-EPI",
+          "standard_einheit": "ml/min/1,73 m²",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "schluesselwert",
+          "beschreibung": "eGFR nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_hoeher_desto_besser",
+          "untere_grenze_num": 70,
+          "obere_grenze_num": null,
+          "einheit": "ml/min/1,73 m²",
+          "quelle_original_text": "> 70 ml/min/1,73 m²",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S07",
+          "bemerkung": "Abgeleitet aus Cystatin-C-Kontext; Quelle nennt Abklärung bei unter 60."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "hdl_cholesterin_ab_60",
+        "parameter": {
+          "interner_schluessel": "hdl_cholesterin",
+          "anzeigename": "HDL-Cholesterin",
+          "standard_einheit": "mg/dl",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "HDL-Cholesterin nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_hoeher_desto_besser",
+          "untere_grenze_num": 60,
+          "obere_grenze_num": null,
+          "einheit": "mg/dl",
+          "quelle_original_text": "> 60 mg/dl",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S08",
+          "bemerkung": "Quelle: über 60 mg/dl ist besser."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "holotranscobalamin_ab_100",
+        "parameter": {
+          "interner_schluessel": "holotranscobalamin",
+          "anzeigename": "Holo-Transcobalamin",
+          "standard_einheit": "pmol/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "Holo-Transcobalamin nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_hoeher_desto_besser",
+          "untere_grenze_num": 100,
+          "obere_grenze_num": null,
+          "einheit": "pmol/l",
+          "quelle_original_text": "> 100 pmol/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S08",
+          "bemerkung": "Direkter Mindestwert aus der KSG-Angabe."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "homa_index_unter_2",
+        "parameter": {
+          "interner_schluessel": "homa_score",
+          "anzeigename": "HOMA-Index",
+          "standard_einheit": null,
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "krankwert",
+          "beschreibung": "HOMA-Index nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_niedriger_desto_besser",
+          "untere_grenze_num": null,
+          "obere_grenze_num": 2,
+          "einheit": null,
+          "quelle_original_text": "< 2,0",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S08",
+          "bemerkung": "Nüchtern-Insulin unter 5 µU/ml als Kontext in der Quelle genannt."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "homocystein_unter_10",
+        "parameter": {
+          "interner_schluessel": "homocystein_im_plasma",
+          "anzeigename": "Homocystein im Plasma",
+          "standard_einheit": "µmol/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "schluesselwert",
+          "beschreibung": "Homocystein im Plasma nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "zielwert_nahe",
+          "untere_grenze_num": null,
+          "obere_grenze_num": 10,
+          "einheit": "µmol/l",
+          "quelle_original_text": "um 7 µmol/l, alternativ < 10 µmol/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S08",
+          "bemerkung": "Zielpunkt 7 µmol/l und maximale Grenze unter 10 µmol/l in der Quelle genannt."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "iga_ab_1",
+        "parameter": {
+          "interner_schluessel": "immunglobulin_a_iga",
+          "anzeigename": "Immunglobulin A (IgA)",
+          "standard_einheit": "g/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "Immunglobulin A nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_hoeher_desto_besser",
+          "untere_grenze_num": 1,
+          "obere_grenze_num": null,
+          "einheit": "g/l",
+          "quelle_original_text": "> 1,0 g/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S08",
+          "bemerkung": "Direkter Mindestwert aus der KSG-Angabe."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "igg_ab_9",
+        "parameter": {
+          "interner_schluessel": "immunglobulin_g_igg",
+          "anzeigename": "Immunglobulin G (IgG)",
+          "standard_einheit": "g/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "schluesselwert",
+          "beschreibung": "Immunglobulin G nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_hoeher_desto_besser",
+          "untere_grenze_num": 9,
+          "obere_grenze_num": null,
+          "einheit": "g/l",
+          "quelle_original_text": "> 9 g/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S09",
+          "bemerkung": "Bei über 16 g/l nennt die Quelle MGUS- und Immunfixationskontext."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "igm_ab_1",
+        "parameter": {
+          "interner_schluessel": "immunglobulin_m_igm",
+          "anzeigename": "Immunglobulin M (IgM)",
+          "standard_einheit": "g/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "schluesselwert",
+          "beschreibung": "Immunglobulin M nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_hoeher_desto_besser",
+          "untere_grenze_num": 1,
+          "obere_grenze_num": null,
+          "einheit": "g/l",
+          "quelle_original_text": "> 1,0 g/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S09",
+          "bemerkung": "Direkter Mindestwert aus der KSG-Angabe."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "jod_serum_70_100",
+        "parameter": {
+          "interner_schluessel": "jod_im_serum",
+          "anzeigename": "Jod im Serum",
+          "standard_einheit": "µg/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "Jod im Serum nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "innerhalb_bereich",
+          "untere_grenze_num": 70,
+          "obere_grenze_num": 100,
+          "einheit": "µg/l",
+          "quelle_original_text": "70-100 µg/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S09",
+          "bemerkung": "Kontext TSH, fT4 und rT3 beachten."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "kalium_serum_ziel_4_5",
+        "parameter": {
+          "interner_schluessel": "kaliumimserum",
+          "anzeigename": "Kalium im Serum",
+          "standard_einheit": "mmol/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "schluesselwert",
+          "beschreibung": "Kalium im Serum nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "zielwert_nahe",
+          "untere_grenze_num": 4.5,
+          "obere_grenze_num": 4.5,
+          "einheit": "mmol/l",
+          "quelle_original_text": "4,5 mmol/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S09",
+          "bemerkung": "Weicher Zielpunkt; Vollblut-Kalium darf laut Quelle nicht niedrig sein."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "ldl_cholesterin_unter_120",
+        "parameter": {
+          "interner_schluessel": "ldl_cholesterin",
+          "anzeigename": "LDL-Cholesterin",
+          "standard_einheit": "mg/dl",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "krankwert",
+          "beschreibung": "LDL-Cholesterin nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_niedriger_desto_besser",
+          "untere_grenze_num": null,
+          "obere_grenze_num": 120,
+          "einheit": "mg/dl",
+          "quelle_original_text": "< 120 mg/dl",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S09",
+          "bemerkung": "Strengere Ziele bei vaskulärem Risiko oder Ereignissen bleiben Kontextinformation."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "leukozyten_5_6",
+        "parameter": {
+          "interner_schluessel": "leukozyten",
+          "anzeigename": "Leukozyten",
+          "standard_einheit": "Tsd./µl",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "schluesselwert",
+          "beschreibung": "Leukozyten nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "innerhalb_bereich",
+          "untere_grenze_num": 5,
+          "obere_grenze_num": 6,
+          "einheit": "Tsd./µl",
+          "quelle_original_text": "5-6 Tsd./µl",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S10",
+          "bemerkung": "Weicher unauffälliger Bereich aus der KSG-Angabe."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "lp_a_unter_30",
+        "parameter": {
+          "interner_schluessel": "lipoprotein_a_lpa",
+          "anzeigename": "Lipoprotein(a)",
+          "standard_einheit": "nmol/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "krankwert",
+          "beschreibung": "Lipoprotein(a) nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_niedriger_desto_besser",
+          "untere_grenze_num": null,
+          "obere_grenze_num": 30,
+          "einheit": "nmol/l",
+          "quelle_original_text": "< 30 nmol/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S10",
+          "bemerkung": "Einheit mg/dl und nmol/l nicht vermischen."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "magnesium_serum_ab_0_85",
+        "parameter": {
+          "interner_schluessel": "magnesiumimserum",
+          "anzeigename": "Magnesium im Serum",
+          "standard_einheit": "mmol/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "Magnesium im Serum nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_hoeher_desto_besser",
+          "untere_grenze_num": 0.85,
+          "obere_grenze_num": null,
+          "einheit": "mmol/l",
+          "quelle_original_text": "> 0,85-1,0 mmol/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S11",
+          "bemerkung": "Vollblut-Magnesium darf laut Quelle nicht niedrig sein."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "melatonin_serum_ab_15",
+        "parameter": {
+          "interner_schluessel": "melatonin_im_serum",
+          "anzeigename": "Melatonin im Serum",
+          "standard_einheit": "µg/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "Melatonin im Serum nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_hoeher_desto_besser",
+          "untere_grenze_num": 15,
+          "obere_grenze_num": null,
+          "einheit": "µg/l",
+          "quelle_original_text": "> 15 µg/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S11",
+          "bemerkung": "Quelle nennt morgens nüchtern mindestens über 10 und besser über 15; Einheit in der Quelle prüfen."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "natrium_serum_ziel_140",
+        "parameter": {
+          "interner_schluessel": "natriumimserum",
+          "anzeigename": "Natrium im Serum",
+          "standard_einheit": "mmol/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "schluesselwert",
+          "beschreibung": "Natrium im Serum nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "zielwert_nahe",
+          "untere_grenze_num": 140,
+          "obere_grenze_num": 140,
+          "einheit": "mmol/l",
+          "quelle_original_text": "140 mmol/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S11",
+          "bemerkung": "Weicher Zielpunkt aus der KSG-Angabe."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "vitamin_b3_nikotinamid_ab_40",
+        "parameter": {
+          "interner_schluessel": "vitaminb3nicotinamidbioaktiv",
+          "anzeigename": "Nikotinamid / Vitamin B3 bioaktiv",
+          "standard_einheit": "µg/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "Nikotinamid / Vitamin B3 bioaktiv nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_hoeher_desto_besser",
+          "untere_grenze_num": 40,
+          "obere_grenze_num": null,
+          "einheit": "µg/l",
+          "quelle_original_text": "> 40 µg/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S11",
+          "bemerkung": "Direkter Mindestwert aus der KSG-Angabe."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "oxidiertes_ldl_unter_170",
+        "parameter": {
+          "interner_schluessel": "oxidiertes_ldl",
+          "anzeigename": "oxidiertes LDL",
+          "standard_einheit": "ng/ml",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "krankwert",
+          "beschreibung": "Oxidiertes LDL nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_niedriger_desto_besser",
+          "untere_grenze_num": null,
+          "obere_grenze_num": 170,
+          "einheit": "ng/ml",
+          "quelle_original_text": "< 170 ng/ml; je niedriger desto besser",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S11",
+          "bemerkung": "Ziel entspricht laut Vorschlag der oberen Referenz."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "parathormon_20_30",
+        "parameter": {
+          "interner_schluessel": "parathormonbiointakt184",
+          "anzeigename": "Parathormon intakt",
+          "standard_einheit": "ng/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "schluesselwert",
+          "beschreibung": "Parathormon intakt nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "innerhalb_bereich",
+          "untere_grenze_num": 20,
+          "obere_grenze_num": 30,
+          "einheit": "ng/l",
+          "quelle_original_text": "20-30 ng/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S12",
+          "bemerkung": "Über 45 ng/l als Hinweis auf Calcium-/Vitamin-D-Thema in der Quelle genannt."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "prolaktin_unter_20",
+        "parameter": {
+          "interner_schluessel": "prolaktin",
+          "anzeigename": "Prolaktin",
+          "standard_einheit": "ng/ml",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "krankwert",
+          "beschreibung": "Prolaktin nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_niedriger_desto_besser",
+          "untere_grenze_num": null,
+          "obere_grenze_num": 20,
+          "einheit": "ng/ml",
+          "quelle_original_text": "< 20 ng/ml",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S12",
+          "bemerkung": "Gilt im nicht-schwangeren Kontext laut Quelle."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "quick_ab_80",
+        "parameter": {
+          "interner_schluessel": "quick",
+          "anzeigename": "Quick",
+          "standard_einheit": "%",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "schluesselwert",
+          "beschreibung": "Quick nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_hoeher_desto_besser",
+          "untere_grenze_num": 80,
+          "obere_grenze_num": null,
+          "einheit": "%",
+          "quelle_original_text": "> 80 %",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S12",
+          "bemerkung": "Untergrenze kann laut Quelle K1-Mangelhinweis sein."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "serotonin_serum_ab_150",
+        "parameter": {
+          "interner_schluessel": "serotonin_im_serum",
+          "anzeigename": "Serotonin im Serum",
+          "standard_einheit": "µg/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "schluesselwert",
+          "beschreibung": "Serotonin im Serum nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_hoeher_desto_besser",
+          "untere_grenze_num": 150,
+          "obere_grenze_num": null,
+          "einheit": "µg/l",
+          "quelle_original_text": "> 150 µg/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S12",
+          "bemerkung": "Quelle nennt mindestens über 120 und besser über 150 µg/l; morgens nüchtern."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "triglyceride_unter_120",
+        "parameter": {
+          "interner_schluessel": "triglyceride",
+          "anzeigename": "Triglyceride",
+          "standard_einheit": "mg/dl",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "krankwert",
+          "beschreibung": "Triglyceride nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_niedriger_desto_besser",
+          "untere_grenze_num": null,
+          "obere_grenze_num": 120,
+          "einheit": "mg/dl",
+          "quelle_original_text": "< 120 mg/dl",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S13",
+          "bemerkung": "Nüchternwert laut Quelle."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "trap5b_unter_3_5",
+        "parameter": {
+          "interner_schluessel": "trap_5b",
+          "anzeigename": "TRAP5b",
+          "standard_einheit": "U/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "krankwert",
+          "beschreibung": "TRAP5b nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_niedriger_desto_besser",
+          "untere_grenze_num": null,
+          "obere_grenze_num": 3.5,
+          "einheit": "U/l",
+          "quelle_original_text": "< 3,5 U/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S13",
+          "bemerkung": "Über 5,0 U/l als starker Knochenabbau-Kontext in der Quelle genannt."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "thrombozyten_ziel_200",
+        "parameter": {
+          "interner_schluessel": "thrombozyten",
+          "anzeigename": "Thrombozyten",
+          "standard_einheit": "Tsd./µl",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "schluesselwert",
+          "beschreibung": "Thrombozyten nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "zielwert_nahe",
+          "untere_grenze_num": 200,
+          "obere_grenze_num": 200,
+          "einheit": "Tsd./µl",
+          "quelle_original_text": "200 Tsd./µl",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S13",
+          "bemerkung": "Weicher unauffälliger Zielpunkt; deutliche oder dauerhafte Abweichungen abklären."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "tsh_basal_unter_2",
+        "parameter": {
+          "interner_schluessel": "tsh_basal",
+          "anzeigename": "TSH basal",
+          "standard_einheit": "µIU/ml",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "schluesselwert",
+          "beschreibung": "TSH basal nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "je_niedriger_desto_besser",
+          "untere_grenze_num": null,
+          "obere_grenze_num": 2,
+          "einheit": "µIU/ml",
+          "quelle_original_text": "< 2,0 µIU/ml",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S14",
+          "bemerkung": "Gilt laut Quelle ohne T4/T3-Therapie; Kinderwunsch-, Therapie-, Knoten- und Autoimmunthyreoiditis-Kontext abweichend."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "vitamin_a_700_900",
+        "parameter": {
+          "interner_schluessel": "vitamin_a",
+          "anzeigename": "Vitamin A / Retinol",
+          "standard_einheit": "µg/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "Vitamin A / Retinol nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "innerhalb_bereich",
+          "untere_grenze_num": 700,
+          "obere_grenze_num": 900,
+          "einheit": "µg/l",
+          "quelle_original_text": "700-900 µg/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S14",
+          "bemerkung": "Vorhandene Standardeinheit kann ng/ml sein; 1 ng/ml entspricht 1 µg/l."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "vitamin_b12_ziel_1000",
+        "parameter": {
+          "interner_schluessel": "vitamin_b12",
+          "anzeigename": "Vitamin B12",
+          "standard_einheit": "pg/ml",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "Vitamin B12 nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "zielwert_nahe",
+          "untere_grenze_num": 1000,
+          "obere_grenze_num": 1000,
+          "einheit": "pg/ml",
+          "quelle_original_text": "1000 pg/ml",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S14",
+          "bemerkung": "Quelle beschreibt Werte unter 600 pg/ml für Gesundheitsgestaltung als zu wenig."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "vitamin_c_serum_10_20",
+        "parameter": {
+          "interner_schluessel": "vitamin_c_im_serum",
+          "anzeigename": "Vitamin C im Serum",
+          "standard_einheit": "mg/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "Vitamin C im Serum nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "innerhalb_bereich",
+          "untere_grenze_num": 10,
+          "obere_grenze_num": 20,
+          "einheit": "mg/l",
+          "quelle_original_text": "> 10-20 mg/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S14",
+          "bemerkung": "Quelle: bei über 10-20 mg/l halten."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "calcitriol_30_40",
+        "parameter": {
+          "interner_schluessel": "125dihydroxyvitamindcalcitriol",
+          "anzeigename": "1,25-OH-Vitamin-D / Calcitriol",
+          "standard_einheit": "pg/ml",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "schluesselwert",
+          "beschreibung": "1,25-OH-Vitamin-D / Calcitriol nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "innerhalb_bereich",
+          "untere_grenze_num": 30,
+          "obere_grenze_num": 40,
+          "einheit": "pg/ml",
+          "quelle_original_text": "30-40 pg/ml",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S14",
+          "bemerkung": "D-Ratio zusätzlich beachten."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "25_oh_vitamin_d_50_70",
+        "parameter": {
+          "interner_schluessel": "25hydroxyvitamind",
+          "anzeigename": "25-OH-Vitamin-D / Calcidiol",
+          "standard_einheit": "ng/ml",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "25-OH-Vitamin-D / Calcidiol nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "innerhalb_bereich",
+          "untere_grenze_num": 50,
+          "obere_grenze_num": 70,
+          "einheit": "ng/ml",
+          "quelle_original_text": "50-70 ng/ml",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S14",
+          "bemerkung": "Höhere Werte laut Quelle nur bei D-Ratio unter 1,0 und normalem Serum-Calcium einordnen."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "vitamin_d_ratio_ziel_0_5",
+        "parameter": {
+          "interner_schluessel": "vitamin_d_ratio",
+          "anzeigename": "Vitamin-D-Ratio",
+          "standard_einheit": null,
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "krankwert",
+          "beschreibung": "Vitamin-D-Ratio nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "zielwert_nahe",
+          "untere_grenze_num": 0.5,
+          "obere_grenze_num": 1.0,
+          "einheit": null,
+          "quelle_original_text": "Ziel 0,5; maximal < 1,0",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S15",
+          "bemerkung": "Zielpunkt 0,5 mit oberer Grenze unter 1,0 aus der Quelle."
+        },
+        "pruefstatus": "freigegeben"
+      },
+      {
+        "eintrag_schluessel": "vitamin_e_16_25",
+        "parameter": {
+          "interner_schluessel": "vitamin_e",
+          "anzeigename": "Vitamin E",
+          "standard_einheit": "mg/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "Vitamin E nach KSG-Kontext."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "innerhalb_bereich",
+          "untere_grenze_num": 16,
+          "obere_grenze_num": 25,
+          "einheit": "mg/l",
+          "quelle_original_text": "16-25 mg/l",
+          "quelle_stelle": "KSG-Klassifikation, Tabelle S15",
+          "bemerkung": "Quelle nennt guten Vitamin-C-Kontext; vorhandene Einheit µg/ml entspricht mg/l."
+        },
+        "pruefstatus": "freigegeben"
+      }
+    ]
+  }
+]

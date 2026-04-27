@@ -13,6 +13,8 @@ quellen:
   - ../../../apps/backend/src/labordaten_backend/modules/messwerte/schemas.py
   - ../../../apps/backend/src/labordaten_backend/modules/referenzen/schemas.py
   - ../../../apps/backend/src/labordaten_backend/modules/zielbereiche/schemas.py
+  - ../../../apps/backend/src/labordaten_backend/modules/zielwertpakete/paket_katalog.json
+  - ../../../apps/backend/src/labordaten_backend/modules/zielwertpakete/service.py
   - ../../../apps/backend/src/labordaten_backend/models/zielbereich_quelle.py
   - ../../../apps/backend/src/labordaten_backend/models/zielwert_paket.py
   - ../../../apps/backend/src/labordaten_backend/modules/befunde/schemas.py
@@ -354,6 +356,8 @@ Regel:
 Regel:
 - Zielwertpakete bündeln optionale Zielbereichssammlungen, die ein Anwender einspielen oder deaktivieren kann, ohne neutrale Parameterstammdaten entfernen zu müssen.
 - Eine Zielwertquelle beschreibt, wer oder welche Quelle empfiehlt; ein Zielwertpaket beschreibt die konkrete installierbare Sammlung dieser Empfehlungen.
+- Technisch wird zwischen dem statischen Zielwertpaket-Katalog und einem installierten `ZielwertPaket` unterschieden. Der Katalog enthält die kuratierte Definition; erst die Installation erzeugt Zielwertquelle, Paketdatensatz, fehlende Einheiten, optional fehlende Parameter und die eigentlichen `Zielbereich`-Datensätze.
+- Vor der Installation liefert eine Vorschau, welche Einträge neu angelegt, reaktiviert, übersprungen oder wegen fehlender Parameter, fehlender Einheiten oder fachlicher Prüffälle blockiert würden.
 - Wird ein Paket deaktiviert, sollen die zugehörigen Zielbereiche deaktiviert werden. Neutral angelegte Parameter, Einheiten oder Aliase bleiben bestehen, wenn sie unabhängig vom Paket nutzbar sind oder bereits Messwerte tragen.
 
 ### Zielbereich

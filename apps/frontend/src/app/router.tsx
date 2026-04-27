@@ -8,6 +8,9 @@ const PersonenPage = lazy(() => import("../features/personen/PersonenPage").then
 const BefundePage = lazy(() => import("../features/befunde/BefundePage").then((module) => ({ default: module.BefundePage })));
 const MesswertePage = lazy(() => import("../features/messwerte/MesswertePage").then((module) => ({ default: module.MesswertePage })));
 const ParameterPage = lazy(() => import("../features/parameter/ParameterPage").then((module) => ({ default: module.ParameterPage })));
+const ZielwertpaketePage = lazy(() =>
+  import("../features/zielwertpakete/ZielwertpaketePage").then((module) => ({ default: module.ZielwertpaketePage }))
+);
 const GruppenPage = lazy(() => import("../features/gruppen/GruppenPage").then((module) => ({ default: module.GruppenPage })));
 const PlanungPage = lazy(() => import("../features/planung/PlanungPage").then((module) => ({ default: module.PlanungPage })));
 const AuswertungPage = lazy(() => import("../features/auswertung/AuswertungPage").then((module) => ({ default: module.AuswertungPage })));
@@ -34,6 +37,7 @@ export const router = createBrowserRouter([
       { path: "befunde", element: routeElement(<BefundePage />) },
       { path: "messwerte", element: routeElement(<MesswertePage />) },
       { path: "parameter", element: routeElement(<ParameterPage />) },
+      { path: "zielwertpakete", element: routeElement(<ZielwertpaketePage />) },
       { path: "gruppen", element: routeElement(<GruppenPage />) },
       { path: "planung", element: routeElement(<PlanungPage />) },
       { path: "auswertung", element: routeElement(<AuswertungPage />) },
