@@ -11,6 +11,19 @@
 
 ## 2026-04
 
+### [2026-04-27] update | Laborwissen-Link im Parameterdetail sichtbar gemacht
+- Anlass oder Quelle: Nutzerhinweis, dass der Aufruf der Wissensseite nicht nur über `Wissen` beziehungsweise `Pflege Wissen` erreichbar sein soll.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../apps/frontend/src/features/parameter/ParameterPage.tsx
+  - ../../apps/frontend/src/styles.css
+- Kern der inhaltlichen Anpassung:
+  - Im normalen Detailkopf eines Parameters erscheint jetzt ein direkter Link `Laborwissen öffnen`, wenn eine Wissensseite verknüpft ist.
+  - Ohne Verknüpfung erscheint an derselben Stelle `Laborwissen suchen` mit Suche nach dem Parameternamen.
+  - Die bestehende Verknüpfungspflege im Werkzeugbereich `Wissen` bleibt erhalten.
+  - Verifiziert mit `npm run build` im Frontend.
+
 ### [2026-04-27] fix | Sichere Import-Umrechnungen und Beschreibungspflicht im Prompt ergänzt
 - Anlass oder Quelle: Nutzerfrage zu Importwarnungen wegen fehlender sauberer Umrechnung für Cortisol, Folsäure, Zink, Kupfer, Lp(a) und Insulin sowie erneuter Hinweis, dass Parameter-Vorschläge aus dem externen KI-Chat ohne Beschreibung ankamen.
 - Neu angelegte Seiten:
@@ -40,12 +53,14 @@
   - ../../Labordaten-Wissen/02 Parameter/Allgemein/Lithium-Blut.md
   - ../../Labordaten-Wissen/02 Parameter/Allgemein/Lithium-Serum-Plasma.md
   - ../../Labordaten-Wissen/90 Quellen und Belege/Quellenuebersicht.md
+  - ../../apps/backend/src/labordaten_backend/modules/initialdaten/initialdaten_snapshot.json
   - ../../apps/backend/src/labordaten_backend/modules/zielwertpakete/paket_katalog.json
   - ../../apps/backend/tests/test_zielwertpakete_api.py
 - Kern der inhaltlichen Anpassung:
   - Die lokale PDF-Quelle wurde als Rohquelle aufgenommen und wegen fehlender Textextraktion über gerenderte Seitenbilder vollständig ausgewertet.
   - Der präventivmedizinische Lithium-Zielbereich wird als optionales Paket `lithium_praevention_biovis_2026` für `Lithium (Blut)` modelliert: `25-350 µg/l`, Material Vollblut, Zielrichtung `innerhalb_bereich`.
   - Die Laborwissenseiten trennen jetzt Vollblut-Status/Prävention von Serum-/Plasma-Therapiespiegelkontrolle und nennen die relevanten Quellenangaben.
+  - Die Parameterbeschreibungen im Initialdaten-Snapshot unterscheiden jetzt ebenfalls Vollblut-Prävention und Serum-/Plasma-Therapiespiegelkontrolle.
   - Serum-Lithium wird bewusst nicht in das Präventionspaket aufgenommen, weil die Quelle es der medikamentösen Therapiekontrolle zuordnet.
   - Verifiziert mit vollständigem Backend-Testlauf: 125 Tests bestanden.
 

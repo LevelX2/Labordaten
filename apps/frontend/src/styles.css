@@ -1823,6 +1823,13 @@ a {
   overflow-wrap: anywhere;
 }
 
+.parameter-detail__knowledge-link {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
 .parameter-detail__title {
   margin: 0 0 6px;
   font-size: 1.15rem;

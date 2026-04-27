@@ -2773,6 +2773,23 @@ export function ParameterPage() {
                   <div>
                     <h3 className="parameter-detail__title">{selectedParameter.anzeigename}</h3>
                     <p>{selectedParameter.beschreibung?.trim() || "Zu diesem Parameter ist noch keine Erläuterung hinterlegt."}</p>
+                    <div className="parameter-detail__knowledge-link">
+                      {selectedParameter.wissensseite_pfad_relativ ? (
+                        <Link
+                          className="inline-button inline-button--compact"
+                          to={`/wissensbasis?seite=${encodeURIComponent(selectedParameter.wissensseite_pfad_relativ)}`}
+                        >
+                          Laborwissen öffnen
+                        </Link>
+                      ) : (
+                        <Link
+                          className="inline-button inline-button--compact"
+                          to={`/wissensbasis?suche=${encodeURIComponent(selectedParameter.anzeigename)}`}
+                        >
+                          Laborwissen suchen
+                        </Link>
+                      )}
+                    </div>
                   </div>
                   <div className="parameter-header-controls">
                     <button

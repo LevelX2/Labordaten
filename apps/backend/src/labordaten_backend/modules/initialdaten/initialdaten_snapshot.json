@@ -5462,7 +5462,7 @@
     {
       "interner_schluessel": "lithium_blut",
       "anzeigename": "Lithium (Blut)",
-      "beschreibung": "Misst Lithium im Blut; der Wert dient je nach Kontext der Expositions-, Status- oder Therapiespiegel-Einordnung.",
+      "beschreibung": "Misst Lithium im Vollblut beziehungsweise Blut. Der Wert eignet sich vor allem für Status- und Präventionsbetrachtungen außerhalb einer medikamentösen Lithiumtherapie. Wichtig ist die klare Trennung von Serum-/Plasma-Lithium: Für präventivmedizinische Fragen wird Vollblut herangezogen, während Serum oder Plasma zur Therapiespiegelkontrolle gehört. Als physiologischer Vollblut-Referenzbereich sind 0,5-3 µg/l dokumentiert; der optionale präventivmedizinische Zielbereich liegt bei 25-350 µg/l.",
       "standard_einheit": "µg/l",
       "wert_typ_standard": "numerisch",
       "primaere_klassifikation": "gesundmachwert",
@@ -5473,7 +5473,7 @@
     {
       "interner_schluessel": "lithium_serum_plasma",
       "anzeigename": "Lithium (Serum/Plasma)",
-      "beschreibung": "Misst Lithium in Serum oder Plasma; der Wert dient je nach Kontext der Expositions-, Status- oder Therapiespiegel-Einordnung.",
+      "beschreibung": "Misst Lithium in Serum oder Plasma zur Kontrolle medikamentöser Lithiumtherapien. Der Parameter ist nicht mit Lithium im Vollblut für präventivmedizinische Statusfragen gleichzusetzen. Der therapeutische Serum-Zielbereich ist mit 0,5-1,2 mmol/l beziehungsweise ca. 3.500-8.500 µg/l dokumentiert. Wegen der geringen therapeutischen Breite von Lithium gehören Verlauf, Nierenfunktion, Schilddrüsenkontext und ärztliche Überwachung zur Interpretation.",
       "standard_einheit": "µg/l",
       "wert_typ_standard": "numerisch",
       "primaere_klassifikation": "gesundmachwert",

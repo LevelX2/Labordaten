@@ -74,7 +74,7 @@ Diese Tabellen beschreiben konkrete Nutzer-, Verlaufs- oder Arbeitsdaten und dü
 - Wenn der Initialimport empfohlen wird, erscheint ein Dialog `Leere Stammdaten erkannt` mit kurzer Beschreibung des enthaltenen und ausgeschlossenen Datenumfangs.
 - Der Dialog kann die mitgelieferten Messstammdaten direkt laden oder für den laufenden Start geschlossen werden.
 - In `Einstellungen > Initialdaten` gibt es dieselbe Ladefunktion dauerhaft. Wenn bereits Stammdaten vorhanden sind, kann dort zusätzlich eine Aktualisierung anhand des Snapshots gestartet werden.
-- In `Einstellungen > Optionale Datenpakete` werden nachladbare fachliche Pakete wie Zielwertpakete verwaltet. Dort liegt die Paketliste mit Vorschau, Optionen zum Anlegen fehlender Parameter oder Einheiten sowie Aktionen zum Einspielen und Deaktivieren.
+- In `Einstellungen > Optionale Datenpakete` werden nachladbare fachliche Pakete wie Zielwertpakete verwaltet. Dort liegt die Paketliste mit Vorschau, Optionen zum Anlegen fehlender Parameter oder Einheiten sowie Aktionen zum Einspielen und Deaktivieren. Beispiele sind quellengebundene Orfanos-Boeckel-KSG-Optimalbereiche und der präventivmedizinische Lithium-Vollblutbereich aus der biovis-/OM-&-Ernährung-Quelle.
 - Die Parameterpflege darf aus dem Zielbereich-Kontext auf `Einstellungen > Optionale Datenpakete` verweisen, bleibt aber nicht der Hauptort für Paketinstallation.
 
 ## Aktualisierung des Snapshots

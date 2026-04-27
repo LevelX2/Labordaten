@@ -1578,5 +1578,45 @@
         "pruefstatus": "freigegeben"
       }
     ]
+  },
+  {
+    "paket_schluessel": "lithium_praevention_biovis_2026",
+    "name": "Präventionswerte Lithium",
+    "version": "OM & Ernährung 2026 Nr. 194",
+    "jahr": 2026,
+    "beschreibung": "Optionales Zielwertpaket mit dem präventivmedizinischen Vollblut-Zielbereich für Lithium aus dem biovis-Fachtext Lithium - Das unterschätzte Spurenelement. Das Paket betrifft bewusst Lithium im Vollblut und nicht Lithium im Serum zur medikamentösen Therapiespiegelkontrolle.",
+    "bemerkung": "Quellengebundener Orientierungswert aus einem Labor-/Fachartikel; keine Diagnoseautomatik und keine Dosierungsempfehlung.",
+    "quelle": {
+      "name": "biovis Lithium - Das unterschätzte Spurenelement",
+      "quellen_typ": "labor",
+      "titel": "OM & Ernährung 2026 Nr. 194; Fachinformation 06/2025",
+      "jahr": 2026,
+      "version": "Stand 2026-04-22",
+      "bemerkung": "Prof. Dr. med. Burkhard Schütz und Meike Schumacher, M. Sc.; lokaler PDF-Snapshot in KI-Wissen-Labordaten/01 Rohquellen/externe-quellen/Lithium das unterschätzte Spurenelement.pdf; öffentliche englische biovis-Fassung: https://www.biovis.eu/wp-content/uploads/biovis_Lithium-EN.pdf."
+    },
+    "eintraege": [
+      {
+        "eintrag_schluessel": "lithium_vollblut_praevention_25_350",
+        "parameter": {
+          "interner_schluessel": "lithium_blut",
+          "anzeigename": "Lithium (Blut)",
+          "standard_einheit": "µg/l",
+          "wert_typ_standard": "numerisch",
+          "primaere_klassifikation": "gesundmachwert",
+          "beschreibung": "Misst Lithium im Vollblut beziehungsweise Blut. Der Wert eignet sich vor allem für Status- und Präventionsbetrachtungen außerhalb einer medikamentösen Lithiumtherapie. Wichtig ist die klare Trennung von Serum-/Plasma-Lithium: Für präventivmedizinische Fragen wird Vollblut herangezogen, während Serum oder Plasma zur Therapiespiegelkontrolle gehört. Als physiologischer Vollblut-Referenzbereich sind 0,5-3 µg/l dokumentiert; der optionale präventivmedizinische Zielbereich liegt bei 25-350 µg/l."
+        },
+        "zielbereich": {
+          "zielbereich_typ": "optimalbereich",
+          "zielrichtung": "innerhalb_bereich",
+          "untere_grenze_num": 25,
+          "obere_grenze_num": 350,
+          "einheit": "µg/l",
+          "quelle_original_text": "Präventivmedizinischer Optimalbereich 25-350 µg/l",
+          "quelle_stelle": "OM & Ernährung 2026 Nr. 194, Abb. 1 und Abschnitt Diagnostik",
+          "bemerkung": "Die Quelle trennt den präventivmedizinischen Vollblutbereich vom physiologischen Vollblut-Referenzbereich 0,5-3 µg/l und von Serum-Therapiespiegeln."
+        },
+        "pruefstatus": "freigegeben"
+      }
+    ]
   }
 ]

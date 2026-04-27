@@ -60,6 +60,47 @@ def test_catalog_lists_orfanos_boeckel_package(monkeypatch, tmp_path: Path) -> N
     assert packages[0]["installiert"] is False
 
 
+def test_lithium_prevention_package_preview_and_install(monkeypatch, tmp_path: Path) -> None:
+    client = _make_client(monkeypatch, tmp_path)
+    with client:
+        preview_response = client.post(
+            "/api/zielwert-paket-katalog/lithium_praevention_biovis_2026/vorschau",
+            json={
+                "fehlende_parameter_anlegen": True,
+                "fehlende_einheiten_anlegen": True,
+                "prueffaelle_anlegen": False,
+            },
+        )
+
+        assert preview_response.status_code == 200
+        preview = preview_response.json()
+        assert preview["paket"]["name"] == "Präventionswerte Lithium"
+        assert preview["paket"]["quelle"]["quellen_typ"] == "labor"
+        assert preview["paket"]["eintraege_anzahl"] == 1
+        lithium_entry = preview["eintraege"][0]
+        assert lithium_entry["parameter_schluessel"] == "lithium_blut"
+        assert lithium_entry["untere_grenze_num"] == 25
+        assert lithium_entry["obere_grenze_num"] == 350
+        assert lithium_entry["einheit"] == "µg/l"
+
+        install_response = client.post(
+            "/api/zielwert-paket-katalog/lithium_praevention_biovis_2026/installieren",
+            json={
+                "fehlende_parameter_anlegen": True,
+                "fehlende_einheiten_anlegen": True,
+                "prueffaelle_anlegen": False,
+            },
+        )
+
+        assert install_response.status_code == 201
+        install_result = install_response.json()
+        assert install_result["angelegte_parameter_anzahl"] == 1
+        assert install_result["angelegte_zielbereiche_anzahl"] == 1
+        installed_entry = install_result["vorschau"]["eintraege"][0]
+        assert installed_entry["aktion"] == "bestehend"
+        assert installed_entry["bemerkung"].startswith("Die Quelle trennt den präventivmedizinischen Vollblutbereich")
+
+
 def test_package_preview_reports_missing_parameters_and_target_direction(monkeypatch, tmp_path: Path) -> None:
     client = _make_client(monkeypatch, tmp_path)
     with client:
