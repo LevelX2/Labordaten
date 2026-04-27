@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from calendar import monthrange
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
@@ -38,32 +39,15 @@ class LetzteMessungInfo:
     datum: date
 
 
+PruefHandler = Callable[[Session, str], schemas.LoeschPruefungRead]
+DeleteHandler = Callable[[Session, str, schemas.LoeschAusfuehrenRequest], schemas.LoeschAusfuehrungRead]
+
+
 def get_loeschpruefung(db: Session, entitaet_typ: str, entitaet_id: str) -> schemas.LoeschPruefungRead:
     normalized = _normalize_entity_type(entitaet_typ)
-    if normalized == "person":
-        return _pruefe_person(db, entitaet_id)
-    if normalized == "befund":
-        return _pruefe_befund(db, entitaet_id)
-    if normalized == "messwert":
-        return _pruefe_messwert(db, entitaet_id)
-    if normalized == "importvorgang":
-        return _pruefe_importvorgang(db, entitaet_id)
-    if normalized == "einheit":
-        return _pruefe_einheit(db, entitaet_id)
-    if normalized == "labor":
-        return _pruefe_labor(db, entitaet_id)
-    if normalized == "laborparameter":
-        return _pruefe_laborparameter(db, entitaet_id)
-    if normalized == "parameter_gruppe":
-        return _pruefe_parameter_gruppe(db, entitaet_id)
-    if normalized == "zielbereich":
-        return _pruefe_zielbereich(db, entitaet_id)
-    if normalized == "parameter_umrechnungsregel":
-        return _pruefe_parameter_umrechnungsregel(db, entitaet_id)
-    if normalized == "planung_zyklisch":
-        return _pruefe_planung_zyklisch(db, entitaet_id)
-    if normalized == "planung_einmalig":
-        return _pruefe_planung_einmalig(db, entitaet_id)
+    handler = _PRUEF_HANDLERS.get(normalized)
+    if handler is not None:
+        return handler(db, entitaet_id)
     raise ValueError(f"Die Entitaet '{entitaet_typ}' wird fuer die Loeschpruefung noch nicht unterstuetzt.")
 
 
@@ -84,38 +68,9 @@ def execute_loeschaktion(
     if pruefung.modus == "blockiert":
         raise ValueError("Diese Entitaet darf in der aktuellen Nutzungslage nicht geloescht werden.")
 
-    if normalized == "person":
-        return _execute_delete_person(db, entitaet_id)
-    if normalized == "befund":
-        return _execute_delete_befund(db, entitaet_id)
-    if normalized == "messwert":
-        return _execute_delete_messwert(
-            db,
-            entitaet_id,
-            leeren_befund_mitloeschen=payload.leeren_befund_mitloeschen,
-        )
-    if normalized == "importvorgang":
-        return _execute_delete_importvorgang(
-            db,
-            entitaet_id,
-            dokument_entfernen=payload.dokument_entfernen,
-        )
-    if normalized == "einheit":
-        return _execute_delete_einheit(db, entitaet_id)
-    if normalized == "labor":
-        return _execute_delete_labor(db, entitaet_id)
-    if normalized == "laborparameter":
-        return _execute_delete_laborparameter(db, entitaet_id)
-    if normalized == "parameter_gruppe":
-        return _execute_delete_parameter_gruppe(db, entitaet_id)
-    if normalized == "zielbereich":
-        return _execute_delete_zielbereich(db, entitaet_id)
-    if normalized == "parameter_umrechnungsregel":
-        return _execute_delete_parameter_umrechnungsregel(db, entitaet_id)
-    if normalized == "planung_zyklisch":
-        return _execute_delete_planung_zyklisch(db, entitaet_id)
-    if normalized == "planung_einmalig":
-        return _execute_delete_planung_einmalig(db, entitaet_id)
+    handler = _DELETE_HANDLERS.get(normalized)
+    if handler is not None:
+        return handler(db, entitaet_id, payload)
 
     raise ValueError(f"Die Entitaet '{entitaet_typ}' wird fuer die Loeschaktion noch nicht unterstuetzt.")
 
@@ -1410,3 +1365,43 @@ def _befund_label(befund: Befund) -> str:
     if befund.befunddatum:
         return f"Befund vom {befund.befunddatum.isoformat()}"
     return f"Befund {befund.id}"
+
+
+_PRUEF_HANDLERS: dict[str, PruefHandler] = {
+    "person": _pruefe_person,
+    "befund": _pruefe_befund,
+    "messwert": _pruefe_messwert,
+    "importvorgang": _pruefe_importvorgang,
+    "einheit": _pruefe_einheit,
+    "labor": _pruefe_labor,
+    "laborparameter": _pruefe_laborparameter,
+    "parameter_gruppe": _pruefe_parameter_gruppe,
+    "zielbereich": _pruefe_zielbereich,
+    "parameter_umrechnungsregel": _pruefe_parameter_umrechnungsregel,
+    "planung_zyklisch": _pruefe_planung_zyklisch,
+    "planung_einmalig": _pruefe_planung_einmalig,
+}
+
+
+_DELETE_HANDLERS: dict[str, DeleteHandler] = {
+    "person": lambda db, entitaet_id, payload: _execute_delete_person(db, entitaet_id),
+    "befund": lambda db, entitaet_id, payload: _execute_delete_befund(db, entitaet_id),
+    "messwert": lambda db, entitaet_id, payload: _execute_delete_messwert(
+        db,
+        entitaet_id,
+        leeren_befund_mitloeschen=payload.leeren_befund_mitloeschen,
+    ),
+    "importvorgang": lambda db, entitaet_id, payload: _execute_delete_importvorgang(
+        db,
+        entitaet_id,
+        dokument_entfernen=payload.dokument_entfernen,
+    ),
+    "einheit": lambda db, entitaet_id, payload: _execute_delete_einheit(db, entitaet_id),
+    "labor": lambda db, entitaet_id, payload: _execute_delete_labor(db, entitaet_id),
+    "laborparameter": lambda db, entitaet_id, payload: _execute_delete_laborparameter(db, entitaet_id),
+    "parameter_gruppe": lambda db, entitaet_id, payload: _execute_delete_parameter_gruppe(db, entitaet_id),
+    "zielbereich": lambda db, entitaet_id, payload: _execute_delete_zielbereich(db, entitaet_id),
+    "parameter_umrechnungsregel": lambda db, entitaet_id, payload: _execute_delete_parameter_umrechnungsregel(db, entitaet_id),
+    "planung_zyklisch": lambda db, entitaet_id, payload: _execute_delete_planung_zyklisch(db, entitaet_id),
+    "planung_einmalig": lambda db, entitaet_id, payload: _execute_delete_planung_einmalig(db, entitaet_id),
+}

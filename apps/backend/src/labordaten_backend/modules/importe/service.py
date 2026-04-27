@@ -247,7 +247,20 @@ class ParameterResolver:
 
 def list_importe(db: Session) -> list[ImportvorgangListRead]:
     stmt = select(Importvorgang).order_by(Importvorgang.erstellt_am.desc())
-    return [_build_list_item(db, importvorgang) for importvorgang in db.scalars(stmt)]
+    importvorgaenge = list(db.scalars(stmt))
+    counts_by_import = _count_checks_by_import(db, [item.id for item in importvorgaenge])
+    documents_by_id = _load_documents_by_id(
+        db,
+        [item.dokument_id for item in importvorgaenge if item.dokument_id],
+    )
+    return [
+        _build_list_item(
+            importvorgang,
+            counts=counts_by_import.get(importvorgang.id, {"fehler": 0, "warnung": 0}),
+            dokument=documents_by_id.get(importvorgang.dokument_id) if importvorgang.dokument_id else None,
+        )
+        for importvorgang in importvorgaenge
+    ]
 
 
 def get_import_detail(db: Session, import_id: str) -> ImportvorgangDetailRead | None:
@@ -843,10 +856,13 @@ def _create_import_entwurf_record(
     return _build_detail(db, importvorgang)
 
 
-def _build_list_item(db: Session, importvorgang: Importvorgang) -> ImportvorgangListRead:
-    counts = _count_checks(db, importvorgang.id)
+def _build_list_item(
+    importvorgang: Importvorgang,
+    *,
+    counts: dict[str, int],
+    dokument: Dokument | None,
+) -> ImportvorgangListRead:
     payload = _parse_payload(importvorgang.roh_payload_text or "")
-    dokument = db.get(Dokument, importvorgang.dokument_id) if importvorgang.dokument_id else None
     return ImportvorgangListRead(
         id=importvorgang.id,
         quelle_typ=importvorgang.quelle_typ,
@@ -1500,6 +1516,11 @@ def _generate_checks(
             )
         )
 
+    existing_duplicate_parameter_ids = _load_existing_measurement_parameter_ids(
+        db,
+        person_id=person_id,
+        entnahmedatum=payload.befund.entnahmedatum,
+    )
     for index, item in enumerate(payload.messwerte):
         mapping_request = mapping_lookup.get(index)
         if _is_ignored_parameter_mapping(mapping_request) or item.uebernahme_status == "ignoriert":
@@ -1606,7 +1627,7 @@ def _generate_checks(
                 )
             )
 
-        if person_id and parameter_id and _has_duplicate_measurement(db, person_id, payload.befund.entnahmedatum, parameter_id):
+        if person_id and parameter_id and parameter_id in existing_duplicate_parameter_ids:
             checks.append(
                 Pruefregel(
                     "messwert",
@@ -1618,6 +1639,24 @@ def _generate_checks(
             )
 
     return checks
+
+
+def _load_existing_measurement_parameter_ids(
+    db: Session,
+    *,
+    person_id: str | None,
+    entnahmedatum: date | None,
+) -> set[str]:
+    if not person_id:
+        return set()
+    stmt = (
+        select(Messwert.laborparameter_id)
+        .join(Befund, Messwert.befund_id == Befund.id)
+        .where(Messwert.person_id == person_id)
+        .where(Befund.entnahmedatum == entnahmedatum)
+        .distinct()
+    )
+    return set(db.scalars(stmt))
 
 
 def _person_hint_matches_context(person_hinweis: str, anzeigename: str) -> bool:
@@ -1636,18 +1675,6 @@ def _normalize_person_hint(value: str) -> str:
     decomposed = unicodedata.normalize("NFKD", value)
     ascii_value = "".join(char for char in decomposed if not unicodedata.combining(char))
     return re.sub(r"[^a-z0-9]+", " ", ascii_value.casefold()).strip()
-
-
-def _has_duplicate_measurement(db: Session, person_id: str, entnahmedatum, parameter_id: str) -> bool:
-    stmt = (
-        select(func.count(Messwert.id))
-        .join(Befund, Messwert.befund_id == Befund.id)
-        .where(Messwert.person_id == person_id)
-        .where(Messwert.laborparameter_id == parameter_id)
-        .where(Befund.entnahmedatum == entnahmedatum)
-    )
-    count = db.scalar(stmt) or 0
-    return count > 0
 
 
 def _build_missing_normalization_warning(
@@ -1960,6 +1987,31 @@ def _count_checks(db: Session, import_id: str) -> dict[str, int]:
         elif status == "warnung":
             result["warnung"] = count
     return result
+
+
+def _count_checks_by_import(db: Session, import_ids: list[str]) -> dict[str, dict[str, int]]:
+    if not import_ids:
+        return {}
+
+    result = {import_id: {"fehler": 0, "warnung": 0} for import_id in import_ids}
+    stmt = (
+        select(ImportPruefpunkt.importvorgang_id, ImportPruefpunkt.status, func.count(ImportPruefpunkt.id))
+        .where(ImportPruefpunkt.importvorgang_id.in_(import_ids))
+        .group_by(ImportPruefpunkt.importvorgang_id, ImportPruefpunkt.status)
+    )
+    for import_id, status, count in db.execute(stmt):
+        if status in {"fehler", "warnung"}:
+            result[import_id][status] = count
+    return result
+
+
+def _load_documents_by_id(db: Session, document_ids: list[str]) -> dict[str, Dokument]:
+    if not document_ids:
+        return {}
+    return {
+        dokument.id: dokument
+        for dokument in db.scalars(select(Dokument).where(Dokument.id.in_(set(document_ids))))
+    }
 
 
 def _parse_payload(payload_json: str, person_id_override: str | None = None) -> ImportPayload:

@@ -22,3 +22,13 @@ export function formatShortDisplayDate(value?: string | null): string {
     year: "2-digit"
   }).format(new Date(value));
 }
+
+export function formatDisplayDateTime(value?: string | null): string {
+  if (!value) {
+    return "—";
+  }
+  return new Intl.DateTimeFormat("de-DE", {
+    dateStyle: "short",
+    timeStyle: "short"
+  }).format(new Date(value));
+}

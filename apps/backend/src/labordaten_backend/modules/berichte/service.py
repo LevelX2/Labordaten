@@ -14,7 +14,7 @@ from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
 from reportlab.platypus import CondPageBreak, KeepTogether, LongTable, Paragraph, SimpleDocTemplate, Spacer, TableStyle
-from sqlalchemy import Select, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from labordaten_backend.core.pdf_branding import (
@@ -25,7 +25,6 @@ from labordaten_backend.core.pdf_branding import (
     draw_labordaten_pdf_page,
 )
 from labordaten_backend.core.labor_value_formatting import (
-    format_numeric_measurement_value,
     format_numeric_reference_range,
     is_numeric_value_outside_reference,
 )
@@ -45,6 +44,7 @@ from labordaten_backend.modules.berichte.schemas import (
     VerlaufsberichtRequest,
     VerlaufsberichtResponse,
 )
+from labordaten_backend.modules.messwerte import common as measurement_common
 
 
 def build_arztbericht(db: Session, payload: ArztberichtRequest) -> ArztberichtResponse:
@@ -294,35 +294,7 @@ def render_verlaufsbericht_pdf(db: Session, payload: VerlaufsberichtRequest) -> 
 
 
 def _execute_measurement_query(db: Session, payload: ArztberichtRequest | VerlaufsberichtRequest):
-    stmt: Select = (
-        select(Messwert, Befund, Laborparameter, Labor, Person)
-        .join(Befund, Messwert.befund_id == Befund.id)
-        .join(Laborparameter, Messwert.laborparameter_id == Laborparameter.id)
-        .join(Person, Messwert.person_id == Person.id)
-        .outerjoin(Labor, Befund.labor_id == Labor.id)
-        .where(Messwert.person_id.in_(payload.person_ids))
-    )
-
-    if payload.laborparameter_ids:
-        stmt = stmt.where(Messwert.laborparameter_id.in_(payload.laborparameter_ids))
-    if payload.labor_ids:
-        stmt = stmt.where(Befund.labor_id.in_(payload.labor_ids))
-    if payload.gruppen_ids:
-        parameter_subquery = (
-            select(GruppenParameter.laborparameter_id)
-            .where(GruppenParameter.parameter_gruppe_id.in_(payload.gruppen_ids))
-            .distinct()
-        )
-        stmt = stmt.where(Messwert.laborparameter_id.in_(parameter_subquery))
-    if payload.klassifikationen:
-        stmt = stmt.where(Laborparameter.primaere_klassifikation.in_(payload.klassifikationen))
-    if payload.datum_von:
-        stmt = stmt.where(Befund.entnahmedatum >= payload.datum_von)
-    if payload.datum_bis:
-        stmt = stmt.where(Befund.entnahmedatum <= payload.datum_bis)
-
-    stmt = stmt.order_by(Person.anzeigename.asc(), Laborparameter.anzeigename.asc(), Befund.entnahmedatum.desc(), Messwert.erstellt_am.desc())
-    return db.execute(stmt)
+    return measurement_common.execute_measurement_query(db, payload, newest_first=True)
 
 
 def _load_reference_map(db: Session, messwert_ids: list[str]) -> dict[str, MesswertReferenz]:
@@ -358,49 +330,15 @@ def _load_group_names(db: Session, laborparameter_ids: list[str]) -> dict[str, l
 
 
 def _format_measurement_value(messwert: Messwert) -> str:
-    if messwert.wert_typ == "text":
-        return messwert.wert_text or messwert.wert_roh_text
-    return _format_numeric_measurement_value(messwert.wert_num, messwert.wert_operator, messwert.wert_roh_text)
-
-
-def _format_numeric_measurement_value(
-    value: float | None,
-    operator: str,
-    raw_value: str | None,
-) -> str:
-    return format_numeric_measurement_value(value, operator, raw_value)
+    return measurement_common.format_measurement_value(messwert)
 
 
 def _resolve_measurement_display(messwert: Messwert, target_unit: str | None) -> dict[str, str | float | None]:
-    if messwert.wert_typ == "text":
-        return {
-            "wert_anzeige": messwert.wert_text or messwert.wert_roh_text,
-            "wert_num": None,
-            "einheit": messwert.einheit_original,
-        }
-
-    if target_unit and target_unit != "original":
-        if messwert.einheit_original == target_unit and messwert.wert_num is not None:
-            return {
-                "wert_anzeige": _format_numeric_measurement_value(messwert.wert_num, messwert.wert_operator, messwert.wert_roh_text),
-                "wert_num": messwert.wert_num,
-                "einheit": messwert.einheit_original,
-            }
-        if messwert.einheit_normiert == target_unit and messwert.wert_normiert_num is not None:
-            return {
-                "wert_anzeige": _format_numeric_measurement_value(
-                    messwert.wert_normiert_num,
-                    messwert.wert_operator,
-                    messwert.wert_roh_text,
-                ),
-                "wert_num": messwert.wert_normiert_num,
-                "einheit": messwert.einheit_normiert,
-            }
-
+    display = measurement_common.resolve_measurement_display(messwert, target_unit)
     return {
-        "wert_anzeige": _format_measurement_value(messwert),
-        "wert_num": messwert.wert_num,
-        "einheit": messwert.einheit_original,
+        "wert_anzeige": display.wert_anzeige,
+        "wert_num": display.wert_num,
+        "einheit": display.einheit,
     }
 
 
@@ -437,16 +375,11 @@ def _is_outside_reference(messwert: Messwert, referenz: MesswertReferenz | None)
 
 
 def _effective_date(befund: Befund, messwert: Messwert):
-    return befund.entnahmedatum or befund.befunddatum or messwert.erstellt_am.date()
+    return measurement_common.effective_date(befund, messwert)
 
 
 def _load_persons_or_raise(db: Session, person_ids: list[str]) -> list[Person]:
-    if not person_ids:
-        raise ValueError("Bitte mindestens eine Person auswählen.")
-    persons = list(db.scalars(select(Person).where(Person.id.in_(person_ids)).order_by(Person.anzeigename.asc())))
-    if len(persons) != len(set(person_ids)):
-        raise ValueError("Mindestens eine ausgewählte Person existiert nicht.")
-    return persons
+    return measurement_common.load_persons_or_raise(db, person_ids)
 
 
 def _collect_supported_display_units(
@@ -476,12 +409,7 @@ def _collect_supported_display_units(
 
 
 def _available_display_units(messwert: Messwert) -> set[str]:
-    available_units: set[str] = set()
-    if messwert.wert_num is not None and messwert.einheit_original:
-        available_units.add(messwert.einheit_original)
-    if messwert.wert_normiert_num is not None and messwert.einheit_normiert:
-        available_units.add(messwert.einheit_normiert)
-    return available_units
+    return measurement_common.available_display_units(messwert)
 
 
 def _validate_requested_display_units(
