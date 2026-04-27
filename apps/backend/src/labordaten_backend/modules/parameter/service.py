@@ -375,7 +375,6 @@ def list_parameter_alias_suggestions(db: Session) -> list[ParameterAliasSuggesti
         return []
 
     parameter_by_id = {parameter.id: parameter for parameter in parameters}
-    existing_aliases = set(db.scalars(select(LaborparameterAlias.alias_normalisiert)))
     suggestion_map: dict[tuple[str, str], dict[str, object]] = {}
 
     stmt = (
@@ -411,7 +410,7 @@ def list_parameter_alias_suggestions(db: Session) -> list[ParameterAliasSuggesti
         }:
             continue
 
-        if alias_normalisiert in existing_aliases:
+        if _find_blocking_existing_alias(db, parameter, alias_normalisiert) is not None:
             continue
 
         key = (parameter.id, alias_normalisiert)
@@ -910,11 +909,15 @@ def _assert_alias_is_unique_and_meaningful(
     }:
         raise ValueError("Der Alias entspricht bereits dem Anzeigenamen oder internen Schlüssel dieses Parameters.")
 
-    existing_alias = db.scalar(
-        select(LaborparameterAlias).where(LaborparameterAlias.alias_normalisiert == alias_normalisiert)
-    )
+    existing_alias = _find_blocking_existing_alias(db, parameter, alias_normalisiert)
     if existing_alias is not None:
-        raise ValueError(f"Der Alias '{alias_text}' ist bereits einem anderen Parameter zugeordnet.")
+        if existing_alias.laborparameter_id == parameter.id:
+            raise ValueError(f"Der Alias '{alias_text}' ist für diesen Parameter bereits vorhanden.")
+        other_parameter = db.get(Laborparameter, existing_alias.laborparameter_id)
+        other_name = other_parameter.anzeigename if other_parameter is not None else "einem anderen Parameter"
+        raise ValueError(
+            f"Der Alias '{alias_text}' ist bereits dem Parameter '{other_name}' mit gleicher oder unklarer Einheit zugeordnet."
+        )
 
     for other_parameter in db.scalars(select(Laborparameter)):
         if other_parameter.id == parameter.id:
@@ -927,6 +930,43 @@ def _assert_alias_is_unique_and_meaningful(
             raise ValueError(
                 f"Der Alias '{alias_text}' kollidiert mit dem internen Schlüssel '{other_parameter.interner_schluessel}'."
             )
+
+
+def _find_blocking_existing_alias(
+    db: Session,
+    parameter: Laborparameter,
+    alias_normalisiert: str,
+) -> LaborparameterAlias | None:
+    existing_aliases = list(
+        db.scalars(select(LaborparameterAlias).where(LaborparameterAlias.alias_normalisiert == alias_normalisiert))
+    )
+    for existing_alias in existing_aliases:
+        if existing_alias.laborparameter_id == parameter.id:
+            return existing_alias
+        other_parameter = db.get(Laborparameter, existing_alias.laborparameter_id)
+        if not _parameter_units_are_distinct(db, parameter, other_parameter):
+            return existing_alias
+    return None
+
+
+def _parameter_units_are_distinct(
+    db: Session,
+    first: Laborparameter,
+    second: Laborparameter | None,
+) -> bool:
+    if second is None or not first.standard_einheit or not second.standard_einheit:
+        return False
+    return _canonical_parameter_unit(db, first.standard_einheit) != _canonical_parameter_unit(db, second.standard_einheit)
+
+
+def _canonical_parameter_unit(db: Session, unit: str) -> str:
+    cleaned = einheiten_service.normalize_einheit(unit)
+    if cleaned is None:
+        return unit
+    try:
+        return einheiten_service.require_existing_einheit(db, cleaned)
+    except ValueError:
+        return cleaned
 
 
 def _build_unique_parameter_key(db: Session, source_value: str | None) -> str:
@@ -1457,11 +1497,14 @@ def _assert_alias_is_unique_and_meaningful_for_merge(
     if alias_normalized == normalize_parameter_name(target.anzeigename):
         raise ValueError("Der Alias entspricht bereits dem Anzeigenamen des Zielparameters.")
 
-    existing_alias = db.scalar(
+    for existing_alias in db.scalars(
         select(LaborparameterAlias).where(LaborparameterAlias.alias_normalisiert == alias_normalized)
-    )
-    if existing_alias is not None and existing_alias.laborparameter_id not in {target.id, source.id}:
-        raise ValueError(f"Der Alias '{alias_text}' ist bereits einem anderen Parameter zugeordnet.")
+    ):
+        if existing_alias.laborparameter_id in {target.id, source.id}:
+            continue
+        other_parameter = db.get(Laborparameter, existing_alias.laborparameter_id)
+        if not _parameter_units_are_distinct(db, target, other_parameter):
+            raise ValueError(f"Der Alias '{alias_text}' ist bereits einem anderen Parameter zugeordnet.")
 
     for other_parameter in db.scalars(select(Laborparameter)):
         if other_parameter.id in {target.id, source.id}:
@@ -1502,9 +1545,7 @@ def _assert_alias_is_unique_and_meaningful_for_rename(
     if alias_normalized == new_name_normalized:
         raise ValueError("Der Alias entspricht bereits dem neuen Anzeigenamen.")
 
-    existing_alias = db.scalar(
-        select(LaborparameterAlias).where(LaborparameterAlias.alias_normalisiert == alias_normalized)
-    )
+    existing_alias = _find_blocking_existing_alias(db, parameter, alias_normalized)
     if existing_alias is not None and existing_alias.laborparameter_id != parameter.id:
         raise ValueError(f"Der Alias '{alias_text}' ist bereits einem anderen Parameter zugeordnet.")
 

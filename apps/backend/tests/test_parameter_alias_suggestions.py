@@ -4,6 +4,7 @@ from datetime import date
 from pathlib import Path
 
 import labordaten_backend.models  # noqa: F401
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
@@ -97,3 +98,75 @@ def test_parameter_alias_suggestions_are_derived_from_confirmed_measurements(tmp
         )
 
         assert parameter_service.list_parameter_alias_suggestions(db) == []
+
+
+def test_same_parameter_alias_text_is_allowed_for_distinct_standard_units(tmp_path: Path) -> None:
+    with _make_session(tmp_path) as db:
+        einheiten_service.create_einheit(db, einheiten_schemas.EinheitCreate(kuerzel="mg/l"))
+        einheiten_service.create_einheit(db, einheiten_schemas.EinheitCreate(kuerzel="%"))
+
+        serum_parameter = parameter_service.create_parameter(
+            db,
+            parameter_schemas.ParameterCreate(
+                anzeigename="20:5w3 Eicosapentaensäure (EPA)",
+                standard_einheit="mg/l",
+                wert_typ_standard="numerisch",
+            ),
+        )
+        erythrozyten_parameter = parameter_service.create_parameter(
+            db,
+            parameter_schemas.ParameterCreate(
+                anzeigename="20:5w3 Eicosapentaensäure (EPA) i. Erythrozyten",
+                standard_einheit="%",
+                wert_typ_standard="numerisch",
+            ),
+        )
+
+        parameter_service.create_parameter_alias(
+            db,
+            erythrozyten_parameter.id,
+            parameter_schemas.ParameterAliasCreate(alias_text="Eicosapentaensäure (EPA) 20:5"),
+        )
+        parameter_service.create_parameter_alias(
+            db,
+            serum_parameter.id,
+            parameter_schemas.ParameterAliasCreate(alias_text="Eicosapentaensäure (EPA) 20:5"),
+        )
+
+        assert len(parameter_service.list_parameter_aliase(db, serum_parameter.id)) == 1
+        assert len(parameter_service.list_parameter_aliase(db, erythrozyten_parameter.id)) == 1
+
+
+def test_same_parameter_alias_text_is_rejected_for_same_standard_unit(tmp_path: Path) -> None:
+    with _make_session(tmp_path) as db:
+        einheiten_service.create_einheit(db, einheiten_schemas.EinheitCreate(kuerzel="mg/l"))
+
+        first_parameter = parameter_service.create_parameter(
+            db,
+            parameter_schemas.ParameterCreate(
+                anzeigename="EPA alt",
+                standard_einheit="mg/l",
+                wert_typ_standard="numerisch",
+            ),
+        )
+        second_parameter = parameter_service.create_parameter(
+            db,
+            parameter_schemas.ParameterCreate(
+                anzeigename="EPA neu",
+                standard_einheit="mg/l",
+                wert_typ_standard="numerisch",
+            ),
+        )
+
+        parameter_service.create_parameter_alias(
+            db,
+            first_parameter.id,
+            parameter_schemas.ParameterAliasCreate(alias_text="Eicosapentaensäure (EPA) 20:5"),
+        )
+
+        with pytest.raises(ValueError, match="gleicher oder unklarer Einheit"):
+            parameter_service.create_parameter_alias(
+                db,
+                second_parameter.id,
+                parameter_schemas.ParameterAliasCreate(alias_text="Eicosapentaensäure (EPA) 20:5"),
+            )

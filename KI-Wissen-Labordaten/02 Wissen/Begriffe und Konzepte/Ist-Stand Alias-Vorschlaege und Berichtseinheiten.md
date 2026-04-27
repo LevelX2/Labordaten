@@ -1,7 +1,7 @@
 ---
 typ: architektur
 status: aktiv
-letzte_aktualisierung: 2026-04-21
+letzte_aktualisierung: 2026-04-27
 quellen:
   - ../../01 Rohquellen/fachkonzepte/2026-04-21 Rueckmeldung Alias-Vorschlaege und Berichtseinheiten.md
   - ../../../apps/backend/src/labordaten_backend/modules/parameter/service.py
@@ -11,6 +11,7 @@ quellen:
   - ../../../apps/frontend/src/features/parameter/ParameterPage.tsx
   - ../../../apps/frontend/src/features/berichte/BerichtePage.tsx
   - ../../../apps/backend/tests/test_parameter_alias_suggestions.py
+  - ../../../apps/backend/tests/test_parameter_alias_import_mapping.py
   - ../../../apps/backend/tests/test_report_display_units.py
 tags:
   - alias
@@ -30,6 +31,9 @@ Seit dem 2026-04-21 enthält der Workspace eine UI-gestützte Vorschlagsliste f�
 - Ein Vorschlag wird nur gezeigt, wenn der normalisierte Originalname noch weder Anzeigename noch interner Schlüssel noch bereits gepflegter Alias dieses Parameters ist.
 - Die Bestätigung erfolgt direkt in der Oberfläche und legt denselben Alias-Datensatz an, den auch die manuelle Aliaspflege verwendet.
 - Dadurch wird vor allem der bereits bestätigte Importpfad nachträglich verfestigt, statt ungesicherte neue Zuordnungen zu erzeugen.
+- Seit dem 2026-04-27 sind Parameter-Aliase nicht mehr global allein durch den Aliasnamen eindeutig. Derselbe normalisierte Aliasname darf bei unterschiedlichen Parametern vorkommen, wenn deren führende Einheiten unterschiedlich sind, zum Beispiel ein Fettsäurewert in `mg/l` und ein Erythrozytenmembranwert in `%`.
+- Innerhalb desselben Parameters bleibt derselbe Alias weiterhin eindeutig. Bei gleichem Aliasnamen und gleicher oder unklarer Einheit wird eine zusätzliche Alias-Anlage blockiert, damit das automatische Matching nicht mehrdeutig wird.
+- Das Import-Matching nutzt bei Alias-Treffern die Einheit des importierten Messwerts zur Disambiguierung. Wenn mehrere Parameter denselben Aliasnamen tragen, wird nur dann automatisch gemappt, wenn genau ein Treffer zur Import-Einheit passt; sonst bleibt die Zuordnung prüfbedürftig.
 
 ## Berichtseinheiten
 - Arztbericht und Verlaufsbericht akzeptieren jetzt zusätzlich eine parameterbezogene Einheitenauswahl.

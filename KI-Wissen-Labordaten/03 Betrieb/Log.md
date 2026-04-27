@@ -48,19 +48,26 @@
 - Neu angelegte Seiten:
   - keine
 - Geänderte Seiten:
+  - ../02 Wissen/Begriffe und Konzepte/Ist-Stand Alias-Vorschlaege und Berichtseinheiten.md
   - ../02 Wissen/Begriffe und Konzepte/Ist-Stand Importstrecke und PDF-Grenzen.md
   - ../02 Wissen/Begriffe und Konzepte/Zielbild Dreiwege-Import und KI-Extraktion.md
+  - ../../../apps/backend/migrations/versions/20260427_0006_parameter_alias_unit_scope.py
+  - ../../../apps/backend/src/labordaten_backend/models/laborparameter_alias.py
   - ../../../apps/backend/src/labordaten_backend/modules/importe/service.py
+  - ../../../apps/backend/src/labordaten_backend/modules/initialdaten/service.py
+  - ../../../apps/backend/src/labordaten_backend/modules/parameter/service.py
   - ../../../apps/backend/tests/test_import_prompt.py
   - ../../../apps/backend/tests/test_parameter_alias_import_mapping.py
+  - ../../../apps/backend/tests/test_parameter_alias_suggestions.py
 - Kern der inhaltlichen Anpassung:
   - Der generierte KI-Prompt erwartet bei jedem neuen `parameterVorschlag` eine kurze allgemeine `beschreibungKurz` zur fachlichen Bedeutung des Parameters und fordert dafür kurze Recherche beziehungsweise allgemeines Laborwissen an.
   - Der Prompt stellt klar, dass bereits bekannte Parameter-Aliasse als Match auf den vorhandenen Parameter zu nutzen sind und dann keine erneute Alias-Anlage vorgeschlagen werden soll.
-  - Bereits an anderen Parametern vorhandene Aliasse blockieren die Messwertübernahme nicht mehr als harter Fehler; die Alias-Neuanlage wird übersprungen und als Warnung sichtbar gemacht.
+  - Parameter-Aliasse sind nicht mehr global allein durch den Namen eindeutig. Derselbe Aliasname darf für unterschiedliche Parameter vorkommen, wenn deren führende Einheiten unterschiedlich sind; bei gleicher oder unklarer Einheit bleibt die doppelte Alias-Anlage blockiert.
+  - Das Import-Matching nutzt bei mehreren gleichen Aliasnamen die Import-Einheit zur Disambiguierung und mappt nur automatisch, wenn genau ein Alias-Treffer zur Einheit passt.
   - Die Messwertklärung kann jetzt nach `Mit offenen Prüfpunkten` filtern und zeigt die betroffenen Prüfmeldungen direkt an der Messwertzeile.
   - Berichtsspezifische Kommentare, Empfehlungen und Begründungen bleiben weiterhin von der Parameterbeschreibung getrennt und gehören in Messwertbemerkung, `kiHinweis` oder `begruendungAusDokument`.
-  - Die Übernahme von `bemerkungKurz` und `bemerkungLang` aus dem Import-JSON in den gespeicherten `Messwert` ist nun in einem Backend-Regressionstest abgesichert.
-  - Verifiziert mit `pytest tests/test_import_prompt.py tests/test_parameter_alias_import_mapping.py`: 15 Tests bestanden.
+  - Die lokale SQLite-Datenbank wurde nach Sicherung `labordaten.pre-alias-unit-scope-20260427-213059.db` per Alembic auf die neue Alias-Eindeutigkeit migriert.
+  - Verifiziert mit vollständigem Backend-Testlauf: 123 Tests bestanden; zusätzlich `npm test -- --run src/features/importe/importMapping.test.ts` und `npm run build` im Frontend erfolgreich.
 
 ### [2026-04-27] refactor | Hotspot-First-Refactoring für Backend und Import-Frontend
 - Anlass oder Quelle: Nutzerauftrag, die Codebase wie ein neu eingestiegener Senior Engineer zu verstehen, Hotspots zu refactoren und die Funktionalität unverändert zu lassen.

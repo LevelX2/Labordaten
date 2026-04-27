@@ -308,17 +308,20 @@ def _import_parameter_aliase(
     aktualisieren: bool,
     parameter_by_key: dict[str, Laborparameter],
 ) -> None:
-    existing = {row.alias_normalisiert: row for row in db.scalars(select(LaborparameterAlias)).all()}
+    existing = {
+        (row.laborparameter_id, row.alias_normalisiert): row
+        for row in db.scalars(select(LaborparameterAlias)).all()
+    }
     for row in snapshot.get("laborparameter_aliase", []):
         parameter = parameter_by_key.get(row["parameter_schluessel"])
         if parameter is None:
             _bump(result, "uebersprungen", "laborparameter_aliase")
             continue
-        key = row["alias_normalisiert"]
+        key = (parameter.id, row["alias_normalisiert"])
         values = {
             "laborparameter_id": parameter.id,
             "alias_text": row["alias_text"],
-            "alias_normalisiert": key,
+            "alias_normalisiert": row["alias_normalisiert"],
             "bemerkung": row.get("bemerkung"),
         }
         _upsert_simple(db, existing, key, LaborparameterAlias, values, result, "laborparameter_aliase", aktualisieren)

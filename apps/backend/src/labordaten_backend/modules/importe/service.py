@@ -144,6 +144,7 @@ class ExistingGroupContext:
 
 class ParameterResolver:
     def __init__(self, db: Session) -> None:
+        self.db = db
         self.by_id: dict[str, Laborparameter] = {}
         self._schluessel_lookup: dict[str, list[tuple[str, str]]] = {}
         self._anzeigename_lookup: dict[str, list[tuple[str, str]]] = {}
@@ -178,6 +179,7 @@ class ParameterResolver:
         original_name: str,
         explicit_parameter_id: str | None,
         manual_parameter_id: str | None,
+        import_unit: str | None = None,
     ) -> ParameterResolution:
         if manual_parameter_id:
             return ParameterResolution(parameter_id=manual_parameter_id, herkunft="manuell")
@@ -193,7 +195,7 @@ class ParameterResolver:
             ("anzeigename", self._anzeigename_lookup),
             ("alias", self._alias_lookup),
         ):
-            resolution = self._match_lookup(lookup, normalized_name, herkunft)
+            resolution = self._match_lookup(lookup, normalized_name, herkunft, import_unit=import_unit)
             if resolution is not None:
                 return resolution
 
@@ -210,11 +212,18 @@ class ParameterResolver:
         lookup: dict[str, list[tuple[str, str]]],
         normalized_name: str,
         herkunft: str,
+        import_unit: str | None,
     ) -> ParameterResolution | None:
         candidates = lookup.get(normalized_name, [])
         unique_ids = {parameter_id for parameter_id, _ in candidates}
         if not unique_ids:
             return None
+        if herkunft == "alias" and import_unit:
+            unit_filtered_ids = self._filter_parameter_ids_by_unit(unique_ids, import_unit)
+            if unit_filtered_ids:
+                unique_ids = unit_filtered_ids
+            elif len(unique_ids) == 1:
+                return None
         if len(unique_ids) > 1:
             namen = ", ".join(
                 sorted({self.by_id[parameter_id].anzeigename for parameter_id in unique_ids if parameter_id in self.by_id})
@@ -233,6 +242,25 @@ class ParameterResolver:
             herkunft=herkunft,
             hinweis=matched_texts[0] if matched_texts else self.get_parameter_name(parameter_id),
         )
+
+    def _filter_parameter_ids_by_unit(self, parameter_ids: set[str], import_unit: str | None) -> set[str]:
+        if not import_unit:
+            return set()
+        normalized_import_unit = _resolve_import_check_unit(self.db, import_unit)
+        if not normalized_import_unit:
+            return set()
+        matching_ids = {
+            parameter_id
+            for parameter_id in parameter_ids
+            if self._parameter_unit(parameter_id) == normalized_import_unit
+        }
+        return matching_ids if len(matching_ids) == 1 else set()
+
+    def _parameter_unit(self, parameter_id: str) -> str | None:
+        parameter = self.by_id.get(parameter_id)
+        if parameter is None or not parameter.standard_einheit:
+            return None
+        return _resolve_import_check_unit(self.db, parameter.standard_einheit)
 
     @staticmethod
     def _add_candidate(
@@ -503,6 +531,7 @@ def uebernehmen_import(
                 original_name=item.original_parametername,
                 explicit_parameter_id=item.parameter_id,
                 manual_parameter_id=mapping_request.laborparameter_id if mapping_request is not None else None,
+                import_unit=item.einheit_original,
             )
             parameter_id = resolution.parameter_id
             if parameter_id is None:
@@ -1221,6 +1250,7 @@ def _build_measurement_preview(
         original_name=item.original_parametername,
         explicit_parameter_id=item.parameter_id,
         manual_parameter_id=None,
+        import_unit=item.einheit_original,
     )
 
     if item.uebernahme_status == "ignoriert":
@@ -1379,6 +1409,7 @@ def _resolve_group_suggestion_parameters(
                 original_name=payload_item.original_parametername,
                 explicit_parameter_id=payload_item.parameter_id,
                 manual_parameter_id=None,
+                import_unit=payload_item.einheit_original,
             )
             parameter_id = resolution.parameter_id
 
@@ -1534,6 +1565,7 @@ def _generate_checks(
                 original_name=item.original_parametername,
                 explicit_parameter_id=item.parameter_id,
                 manual_parameter_id=mapping_request.laborparameter_id if mapping_request is not None else None,
+                import_unit=item.einheit_original,
             )
         )
         parameter_id = resolution.parameter_id
@@ -1543,6 +1575,7 @@ def _generate_checks(
                 original_name=item.original_parametername,
                 explicit_parameter_id=item.parameter_id,
                 manual_parameter_id=None,
+                import_unit=item.einheit_original,
             )
             if existing_resolution.parameter_id is not None:
                 checks.append(
@@ -1751,13 +1784,15 @@ def _resolve_alias_request(
     }:
         return AliasResolution(requested=True, alias_text=alias_text, already_present=True)
 
-    existing_alias = db.scalar(
-        select(LaborparameterAlias).where(LaborparameterAlias.alias_normalisiert == alias_normalized)
+    existing_aliases = list(
+        db.scalars(select(LaborparameterAlias).where(LaborparameterAlias.alias_normalisiert == alias_normalized))
     )
-    if existing_alias is not None:
+    for existing_alias in existing_aliases:
         if existing_alias.laborparameter_id == parameter.id:
             return AliasResolution(requested=True, alias_text=alias_text, already_present=True)
         other_parameter = db.get(Laborparameter, existing_alias.laborparameter_id)
+        if _parameter_units_are_distinct(db, parameter, other_parameter):
+            continue
         other_name = other_parameter.anzeigename if other_parameter is not None else "einem anderen Parameter"
         return AliasResolution(
             requested=True,
@@ -1792,6 +1827,16 @@ def _resolve_alias_request(
             )
 
     return AliasResolution(requested=True, alias_text=alias_text)
+
+
+def _parameter_units_are_distinct(
+    db: Session,
+    first: Laborparameter,
+    second: Laborparameter | None,
+) -> bool:
+    if second is None or not first.standard_einheit or not second.standard_einheit:
+        return False
+    return _resolve_import_check_unit(db, first.standard_einheit) != _resolve_import_check_unit(db, second.standard_einheit)
 
 
 def _is_new_parameter_mapping(mapping_request: ImportParameterMapping | None) -> bool:
