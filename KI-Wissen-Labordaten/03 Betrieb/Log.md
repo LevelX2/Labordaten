@@ -11,6 +11,18 @@
 
 ## 2026-04
 
+### [2026-04-27] fix | GitHub-Actions-Warnungen zu Node.js 20 beseitigt
+- Anlass oder Quelle: GitHub-Anmerkungen in den CI-Jobs `Frontend` und `Backend`, dass verwendete Actions intern noch Node.js 20 targeten und auf Node.js 24 erzwungen werden.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../.github/workflows/ci.yml
+- Kern der inhaltlichen Anpassung:
+  - `actions/checkout` wurde von `v4` auf `v5` aktualisiert.
+  - `actions/setup-node` wurde von `v4` auf `v5` aktualisiert.
+  - `actions/setup-python` wurde von `v5` auf `v6` aktualisiert.
+  - Die bisherige Umgebungsvariable `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` wurde entfernt, weil die verwendeten Action-Versionen selbst Node.js 24 nutzen.
+
 ### [2026-04-27] update | Datumsbranches und Abschlusslogik in Projektregeln ergänzt
 - Anlass oder Quelle: Nutzerentscheidung, dass die Arbeitsweise in `Labordaten` besser mit datumsbasierten Arbeitsbranches und automatischer Einordnung offener Änderungen bei Abschlusskommandos zusammenpasst.
 - Neu angelegte Seiten:
