@@ -11,6 +11,19 @@
 
 ## 2026-04
 
+### [2026-04-27] git | Git-Historie externer Rohquellen bereinigt
+- Anlass oder Quelle: Nutzerauftrag, die bereits nach GitHub übertragenen externen Rohquellen nicht nur künftig auszuschließen, sondern auch aus der Git-Historie zu entfernen.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - keine fachlichen Wissensseiten; Git-Historie und Remote-Refs wurden technisch bereinigt.
+- Kern der inhaltlichen Anpassung:
+  - Die Git-Historie wurde mit `git-filter-repo` um den Pfad `KI-Wissen-Labordaten/01 Rohquellen/externe-quellen/` bereinigt.
+  - `main` wurde auf die bereinigte Historie gesetzt und per `--force-with-lease` nach GitHub gepusht.
+  - Der Remote-Branch `codex/auswertung-filter-summary` wurde auf Nutzerfreigabe gelöscht, damit er keine alte Historie mehr referenziert.
+  - Nach dem Push zeigt `origin` nur noch `main`; `git rev-list --objects origin/main` und `git log origin/main -- <Pfad>` finden den externen Quellenpfad nicht mehr.
+  - Lokal bleiben die Dateien im Arbeitsverzeichnis erhalten und werden weiter durch `.gitignore` ausgeschlossen.
+
 ### [2026-04-27] config | Externe Rohquellen aus Git-Tracking entfernt
 - Anlass oder Quelle: Nutzerwunsch, `KI-Wissen-Labordaten/01 Rohquellen/externe-quellen/` vorerst komplett von Git und GitHub auszuschließen, nachdem der Ordner bereits einmal nach GitHub übertragen wurde.
 - Neu angelegte Seiten:
