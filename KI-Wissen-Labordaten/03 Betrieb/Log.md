@@ -43,6 +43,25 @@
   - Referenz- und Zielbereichsmarker erhalten dadurch oben und unten Abstand zur Plotkante und werden nicht mehr abgeschnitten, wenn ihre Grenzen außerhalb der reinen Messwertspanne liegen.
   - Verifiziert mit `npm run build` im Frontend.
 
+### [2026-04-27] fix | KI-Prompt erwartet Kurzbeschreibungen für neue Parameter
+- Anlass oder Quelle: Nutzerhinweis, dass beim letzten Import aus dem externen KI-Prompt für neue Parameter keine Beschreibungen der fachlichen Bedeutung mitgeliefert wurden, plus Prüfung der Messwertkommentar-Übernahme.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../02 Wissen/Begriffe und Konzepte/Ist-Stand Importstrecke und PDF-Grenzen.md
+  - ../02 Wissen/Begriffe und Konzepte/Zielbild Dreiwege-Import und KI-Extraktion.md
+  - ../../../apps/backend/src/labordaten_backend/modules/importe/service.py
+  - ../../../apps/backend/tests/test_import_prompt.py
+  - ../../../apps/backend/tests/test_parameter_alias_import_mapping.py
+- Kern der inhaltlichen Anpassung:
+  - Der generierte KI-Prompt erwartet bei jedem neuen `parameterVorschlag` eine kurze allgemeine `beschreibungKurz` zur fachlichen Bedeutung des Parameters und fordert dafür kurze Recherche beziehungsweise allgemeines Laborwissen an.
+  - Der Prompt stellt klar, dass bereits bekannte Parameter-Aliasse als Match auf den vorhandenen Parameter zu nutzen sind und dann keine erneute Alias-Anlage vorgeschlagen werden soll.
+  - Bereits an anderen Parametern vorhandene Aliasse blockieren die Messwertübernahme nicht mehr als harter Fehler; die Alias-Neuanlage wird übersprungen und als Warnung sichtbar gemacht.
+  - Die Messwertklärung kann jetzt nach `Mit offenen Prüfpunkten` filtern und zeigt die betroffenen Prüfmeldungen direkt an der Messwertzeile.
+  - Berichtsspezifische Kommentare, Empfehlungen und Begründungen bleiben weiterhin von der Parameterbeschreibung getrennt und gehören in Messwertbemerkung, `kiHinweis` oder `begruendungAusDokument`.
+  - Die Übernahme von `bemerkungKurz` und `bemerkungLang` aus dem Import-JSON in den gespeicherten `Messwert` ist nun in einem Backend-Regressionstest abgesichert.
+  - Verifiziert mit `pytest tests/test_import_prompt.py tests/test_parameter_alias_import_mapping.py`: 15 Tests bestanden.
+
 ### [2026-04-27] refactor | Hotspot-First-Refactoring für Backend und Import-Frontend
 - Anlass oder Quelle: Nutzerauftrag, die Codebase wie ein neu eingestiegener Senior Engineer zu verstehen, Hotspots zu refactoren und die Funktionalität unverändert zu lassen.
 - Neu angelegte Seiten:

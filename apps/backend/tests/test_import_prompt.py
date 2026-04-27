@@ -112,6 +112,9 @@ def test_import_prompt_contains_file_json_and_context_instructions(tmp_path: Pat
         assert '"name": "Bioscientia"' in text
         assert '"anzeigename": "Ferritin"' in text
         assert '"Ferritin i.S."' in text
+        assert "bereits in den bekannten \"aliase\" eines Parameters steht" in text
+        assert 'setze "aliasUebernehmen" nicht oder auf false' in text
+        assert "bereits als Alias eines vorhandenen Parameters enthalten" in text
         assert '"kuerzel": "ng/ml"' in text
         assert '"ng/mL"' in text
         assert '"name": "Eisenstoffwechsel"' in text
@@ -123,7 +126,10 @@ def test_import_prompt_contains_file_json_and_context_instructions(tmp_path: Pat
         assert 'Eigene KI-Anmerkungen, Extraktionszweifel, Mapping-Hinweise' in text
         assert "vom konkreten Bericht und Import unabhängige Fachbeschreibung" in text
         assert "Empfehlungen, Zusatzuntersuchungen, Einsendehinweise" in text
-        assert 'lasse "beschreibungKurz" weg oder null' in text
+        assert 'Bei jedem neuen Parameter-Vorschlag wird eine kurze allgemeine "beschreibungKurz" erwartet' in text
+        assert "Recherchiere beziehungsweise nutze allgemeines Laborwissen" in text
+        assert 'Lasse "beschreibungKurz" nur dann weg oder null' in text
+        assert 'markiere den Vorschlag dann mit "unsicherFlag": true' in text
         assert "ausschließlich in \"begruendungAusDokument\"" in text
         assert prompt.schema_version == "1.0"
         assert "Labore: 1" in prompt.kontext_zusammenfassung

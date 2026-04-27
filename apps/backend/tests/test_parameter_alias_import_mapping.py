@@ -476,6 +476,8 @@ def test_import_takeover_uses_parameter_suggestion_for_new_parameter(tmp_path: P
                                 "wertRohText": "42",
                                 "wertNum": 42,
                                 "einheitOriginal": "mg/dl",
+                                "bemerkungKurz": "Hinweis: Messung im Rahmen des Lipidprofils.",
+                                "bemerkungLang": "Laborbericht-Kommentar: genetisch beeinflusster Risikoparameter.",
                             }
                         ],
                         "parameterVorschlaege": [
@@ -519,6 +521,96 @@ def test_import_takeover_uses_parameter_suggestion_for_new_parameter(tmp_path: P
         assert parameter.standard_einheit == "mg/dl"
         assert parameter.wert_typ_standard == "numerisch"
         assert parameter.beschreibung == "Lipoprotein a ist ein lipoproteinbezogener Laborparameter."
+
+        messwert = db.scalar(select(Messwert).where(Messwert.importvorgang_id == detail.id))
+        assert messwert is not None
+        assert messwert.bemerkung_kurz == "Hinweis: Messung im Rahmen des Lipidprofils."
+        assert messwert.bemerkung_lang == "Laborbericht-Kommentar: genetisch beeinflusster Risikoparameter."
+
+
+def test_import_alias_request_for_existing_alias_on_other_parameter_is_only_warning(tmp_path: Path) -> None:
+    with _make_session(tmp_path) as db:
+        einheiten_service.create_einheit(db, einheiten_schemas.EinheitCreate(kuerzel="mg/l"))
+        einheiten_service.create_einheit(db, einheiten_schemas.EinheitCreate(kuerzel="%"))
+
+        person = Person(
+            anzeigename="Ludwig",
+            vollname="Ludwig Hirth",
+            geburtsdatum=date(1964, 1, 12),
+            geschlecht_code="Männlich",
+        )
+        db.add(person)
+        db.commit()
+        db.refresh(person)
+
+        serum_parameter = parameter_service.create_parameter(
+            db,
+            parameter_schemas.ParameterCreate(
+                anzeigename="20:5w3 Eicosapentaensäure (EPA)",
+                standard_einheit="mg/l",
+                wert_typ_standard="numerisch",
+            ),
+        )
+        erythrozyten_parameter = parameter_service.create_parameter(
+            db,
+            parameter_schemas.ParameterCreate(
+                anzeigename="20:5w3 Eicosapentaensäure (EPA) i. Erythrozyten",
+                standard_einheit="%",
+                wert_typ_standard="numerisch",
+            ),
+        )
+        parameter_service.create_parameter_alias(
+            db,
+            erythrozyten_parameter.id,
+            parameter_schemas.ParameterAliasCreate(alias_text="Eicosapentaensäure (EPA) 20:5"),
+        )
+
+        detail = import_service.create_import_entwurf(
+            db,
+            import_schemas.ImportEntwurfCreate(
+                payload_json=json.dumps(
+                    {
+                        "schemaVersion": "1.0",
+                        "quelleTyp": "ki_json",
+                        "befund": {
+                            "personId": person.id,
+                            "entnahmedatum": "2026-04-24",
+                        },
+                        "messwerte": [
+                            {
+                                "parameterId": serum_parameter.id,
+                                "originalParametername": "Eicosapentaensäure (EPA) 20:5",
+                                "wertTyp": "numerisch",
+                                "wertRohText": "61,0",
+                                "wertNum": 61.0,
+                                "einheitOriginal": "mg/l",
+                                "aliasUebernehmen": True,
+                            }
+                        ],
+                    }
+                )
+            ),
+        )
+
+        assert detail.fehler_anzahl == 0
+        assert detail.warnung_anzahl == 1
+        assert "nicht erneut angelegt" in detail.pruefpunkte[0].meldung
+
+        uebernommen = import_service.uebernehmen_import(
+            db,
+            detail.id,
+            import_schemas.ImportUebernehmenRequest(bestaetige_warnungen=True),
+        )
+
+        assert uebernommen.status == "uebernommen"
+
+        messwert = db.scalar(select(Messwert).where(Messwert.importvorgang_id == detail.id))
+        assert messwert is not None
+        assert messwert.laborparameter_id == serum_parameter.id
+
+        aliases = list(db.scalars(select(LaborparameterAlias).where(LaborparameterAlias.alias_text == "Eicosapentaensäure (EPA) 20:5")))
+        assert len(aliases) == 1
+        assert aliases[0].laborparameter_id == erythrozyten_parameter.id
 
 
 def test_import_alias_creation_conflict_blocks_takeover(tmp_path: Path) -> None:

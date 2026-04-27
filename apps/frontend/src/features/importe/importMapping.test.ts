@@ -9,6 +9,7 @@ import {
   getMappingFilterMode,
   getOpenMappingCount,
   getParameterCandidates,
+  getVisibleImportChecksByMesswertIndex,
   getVisibleImportChecks,
 } from "./importMapping";
 
@@ -112,6 +113,31 @@ describe("importMapping", () => {
 
     expect(getOpenMappingCount(detail, {})).toBe(1);
     expect(getVisibleImportChecks(detail, { 0: "p1" })).toHaveLength(0);
+  });
+
+  it("groups visible measurement checks by measurement index", () => {
+    const detail = {
+      status: "in_pruefung",
+      messwerte: [messwert({ messwert_index: 0 }), messwert({ messwert_index: 1, parameter_id: "p2" })],
+      pruefpunkte: [
+        {
+          id: "check-1",
+          importvorgang_id: "import-1",
+          objekt_typ: "messwert",
+          objekt_schluessel_temp: "messwert:1",
+          pruefart: "alias_anlage",
+          status: "fehler",
+          meldung: "Alias bereits vergeben",
+          bestaetigt_vom_nutzer: false,
+          bestaetigt_am: null,
+        },
+      ],
+    } as ImportVorgangDetail;
+
+    const checksByIndex = getVisibleImportChecksByMesswertIndex(detail, {});
+
+    expect(checksByIndex.get(1)?.[0].meldung).toBe("Alias bereits vergeben");
+    expect(checksByIndex.has(0)).toBe(false);
   });
 
   it("recommends aliases only for real alternate spellings", () => {

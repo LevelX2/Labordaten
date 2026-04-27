@@ -3,7 +3,15 @@ import { formatReferenzAnzeige } from "../../shared/utils/laborFormatting";
 import type { Gruppe, ImportMesswertPreview, ImportPruefpunkt, ImportVorgangDetail, Parameter } from "../../shared/types/api";
 
 export type GruppenVorschlagAktion = "neu" | "vorhanden" | "ignorieren";
-export type MappingFilterMode = "alle" | "offen" | "neu" | "ignoriert" | "manuell" | "automatisch" | "explizit";
+export type MappingFilterMode =
+  | "alle"
+  | "offen"
+  | "neu"
+  | "ignoriert"
+  | "manuell"
+  | "automatisch"
+  | "explizit"
+  | "pruefhinweise";
 export type ParameterDialogFilterMode = "streng" | "locker" | "alle";
 
 export type GruppenVorschlagState = {
@@ -312,6 +320,25 @@ export function getVisibleImportChecks(
     }
     return !isResolvedMissingParameterCheck(item, mappingState);
   });
+}
+
+export function getVisibleImportChecksByMesswertIndex(
+  importDetail: ImportVorgangDetail | undefined | null,
+  mappingState: Record<number, string>,
+  reviewPersonId?: string
+): Map<number, ImportPruefpunkt[]> {
+  const byIndex = new Map<number, ImportPruefpunkt[]>();
+  for (const item of getVisibleImportChecks(importDetail, mappingState, reviewPersonId)) {
+    if (item.objekt_typ !== "messwert") {
+      continue;
+    }
+    const messwertIndex = getMesswertIndexFromCheck(item);
+    if (messwertIndex === null) {
+      continue;
+    }
+    byIndex.set(messwertIndex, [...(byIndex.get(messwertIndex) ?? []), item]);
+  }
+  return byIndex;
 }
 
 export function getImportChecksBySeverity(items: ImportPruefpunkt[]): {

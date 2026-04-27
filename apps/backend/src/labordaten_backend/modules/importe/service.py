@@ -130,6 +130,7 @@ class AliasResolution:
     requested: bool
     alias_text: str | None
     conflict_message: str | None = None
+    conflict_status: str = "fehler"
     already_present: bool = False
 
 
@@ -513,7 +514,7 @@ def uebernehmen_import(
                 original_name=item.original_parametername,
                 alias_requested=item.alias_uebernehmen or bool(mapping_request and mapping_request.alias_uebernehmen),
             )
-            if alias_resolution.conflict_message:
+            if alias_resolution.conflict_message and alias_resolution.conflict_status == "fehler":
                 raise ValueError(alias_resolution.conflict_message)
             if alias_resolution.requested and alias_resolution.alias_text and not alias_resolution.already_present:
                 _create_import_alias(
@@ -1024,29 +1025,30 @@ Labor:
 
 Parameter und Werte:
 - Setze "parameterId" nur bei eindeutigem Match auf einen bekannten Parameter, Anzeigenamen, internen Schlüssel oder Alias.
+- Wenn "originalParametername" bereits in den bekannten "aliase" eines Parameters steht, ist das ein starker Match: Setze die "parameterId" dieses vorhandenen Parameters und setze "aliasUebernehmen" nicht oder auf false.
 - Wenn der Match unsicher oder mehrdeutig ist, lasse "parameterId" weg, übernimm "originalParametername" exakt aus dem Dokument und setze "pruefbedarfFlag": true.
 - "wertRohText" bleibt in der Originalschreibweise aus dem Dokument.
 - Bei "<5" setze "wertOperator": "kleiner_als", "wertRohText": "<5" und "wertNum": 5.
 - Bei ">200" setze "wertOperator": "groesser_als", "wertRohText": ">200" und "wertNum": 200.
 - Bei qualitativen Werten wie "positiv", "negativ", "++", "nicht nachweisbar" nutze "wertTyp": "text" und fülle "wertText".
 - Markiere unleserliche, widersprüchliche oder geschätzte Werte mit "unsicherFlag": true oder "pruefbedarfFlag": true und erkläre den Grund in "kiHinweis".
-- Wenn ein Originalname offensichtlich nur eine alternative Schreibweise eines sicher gematchten Parameters ist, darf "aliasUebernehmen": true vorgeschlagen werden. Die Anwendung fragt später noch einmal nach.
+- Wenn ein Originalname offensichtlich nur eine neue alternative Schreibweise eines sicher gematchten Parameters ist, darf "aliasUebernehmen": true vorgeschlagen werden. Das gilt nicht für Namen, die im Stammdatenkontext bereits als Alias eines vorhandenen Parameters enthalten sind.
 
 Parameter-Vorschläge:
 - Wenn ein Messwert nicht eindeutig zu einem bekannten Parameter passt, darfst Du ergänzend "parameterVorschlaege" anlegen.
 - Ein Parameter-Vorschlag ist nur ein Vorschlag für die spätere Prüfung. Er ersetzt keinen sicheren Match und legt nichts automatisch an.
 - Setze "anzeigename" als gut lesbaren Parameternamen, nicht nur als Abkürzung aus dem Dokument.
 - Setze "messwertIndizes" mit allen Messwertpositionen, auf die sich der Vorschlag bezieht.
-- Setze "wertTypStandard", "standardEinheit", "primaereKlassifikation", "beschreibungKurz", "moeglicheAliase" und "begruendungAusDokument" nur, wenn dies aus Dokument, üblicher Laborbezeichnung oder klarer Fachkenntnis belastbar ableitbar ist.
-- Versuche bei neuen Parameter-Vorschlägen eine kurze allgemeine "beschreibungKurz" zu liefern, wenn Du sicher sagen kannst, was der Parameter fachlich misst oder typischerweise abbildet.
+- Setze "wertTypStandard", "standardEinheit", "primaereKlassifikation", "moeglicheAliase" und "begruendungAusDokument", wenn dies aus Dokument, üblicher Laborbezeichnung oder klarer Fachkenntnis belastbar ableitbar ist.
+- Bei jedem neuen Parameter-Vorschlag wird eine kurze allgemeine "beschreibungKurz" erwartet. Recherchiere beziehungsweise nutze allgemeines Laborwissen, um in 1-2 Sätzen zu beschreiben, was der Parameter fachlich misst oder typischerweise abbildet.
 - Erlaubte "primaereKlassifikation"-Werte sind "krankwert", "schluesselwert" und "gesundmachwert". Diese Klassifikation beschreibt die typische Funktion des Parameters, nicht den konkreten Messwert.
 - Orientierungsbeispiele: LDL-C, Small-LDLs, Triglyceride, HbA1c, HOMA-Index, Harnsäure, CRP/hsCRP, RANTES, oxidiertes LDL, TPO-AK, TAK, TRAK, ANA-AK, CCP-AK, Kreatinin, Cystatin C, GPT, GOT, gGT, CK, Beta-CrossLaps, TRAP 5b, ucOC, D-Ratio/Vitamin-D-Ratio, reverse T3, Bilirubin gesamt, Apo-B, Blei, Cadmium, DAO-Genetik, HNMT, I-FABP, IgE, Lipase, Lp(a), Lp-PLA2, MDA-LDL, Mikroalbuminurie, Nickel, Nitrotyrosin, NT-proBNP, Prolaktin im nicht-schwangeren Kontext und Zonulin sind typischerweise "krankwert"; eGFR, HDL-C, Homocystein, Ferritin, Transferrinsättigung, PTH, 1,25-OH-Vitamin-D, Calcium, AP/alkalische Phosphatase, BDNF, DHT, Estradiol/Östradiol, FSH, Gesamteiweiß, Histamin gesamt, Kalium, Kupfer, Leukozyten, LH, Natrium, Östron, Phosphat, Quick, Serotonin, SHBG, fT3, fT4, TSH, Thrombozyten und Ostase sind typischerweise "schluesselwert"; Magnesium, 25-OH-Vitamin-D, freies 25-OH-Vitamin-D, Bor, Mangan, B12/Holo-TC, Vitamin A, Vitamin B3/Nikotinamid, Vitamin C, Zink, Chrom, Selen, Jod, Eisen, DAO im Serum, SCFA, reduziertes Glutathion, Melatonin, Pregnenolon, Q10, Vitamin E, Alpha-Liponsäure, Lithium, Folsäure, Biotin, bioaktive B-Vitamine, Omega-3-Index, Molybdän, Aminosäureprofile, Progesteron und DHEA-S sind typischerweise "gesundmachwert". Bei Mehrfachangaben wie "S/G", "G/S", "K/S" oder "S/K" verwende eine plausible primäre Klassifikation und beschreibe die weitere Rolle in der Begründung.
 - "beschreibungKurz" ist ausschließlich eine allgemeine, vom konkreten Bericht und Import unabhängige Fachbeschreibung: Was misst der Parameter oder wofür steht er typischerweise als Laborparameter?
 - Schreibe in "beschreibungKurz" keine Sätze wie "Der Befund nennt...", "Im Bericht steht...", keine Methode aus diesem konkreten Dokument, keine Referenzbereiche, keine konkreten Werte, keine Diagnose und keine Bewertung des konkreten Messwerts. Empfehlungen, Zusatzuntersuchungen, Einsendehinweise oder patientenbezogene Risikohinweise aus dem Bericht gehören ebenfalls nicht in "beschreibungKurz".
-- Wenn der Bericht nur einen Kommentar, eine Empfehlung oder einen Einsendehinweis zum Messwert liefert und daraus keine allgemeine Parameterbeschreibung ableitbar ist, lasse "beschreibungKurz" weg oder null.
+- Lasse "beschreibungKurz" nur dann weg oder null, wenn auch nach kurzer Recherche beziehungsweise anhand allgemeiner Laborfachkenntnis keine belastbare Bedeutung ableitbar ist; markiere den Vorschlag dann mit "unsicherFlag": true und erkläre den Grund in "begruendungAusDokument".
 - Wenn Du eine Anmerkung loswerden willst, warum der Vorschlag aus diesem Bericht abgeleitet wurde, schreibe sie ausschließlich in "begruendungAusDokument".
 - "begruendungAusDokument" darf berichtsbezogen sein, z. B. Abschnitt, Methode, Einheit, Originalname oder warum mehrere Messwerte zu demselben Vorschlag gehören.
-- Recherchiere nicht frei ins Blaue und erfinde keine Bedeutung. Wenn Du unsicher bist, setze "unsicherFlag": true oder lasse den Vorschlag weg.
+- Erfinde keine Bedeutung. Wenn ein Parameter trotz kurzer Recherche oder allgemeiner Laborfachkenntnis unklar bleibt, setze "unsicherFlag": true oder lasse den Vorschlag weg.
 
 Referenzen und Kommentare:
 - Den originalen Referenztext immer in "referenzTextOriginal" erhalten, wenn vorhanden.
@@ -1611,7 +1613,7 @@ def _generate_checks(
                     "messwert",
                     key,
                     "alias_anlage",
-                    "fehler",
+                    alias_resolution.conflict_status,
                     alias_resolution.conflict_message,
                 )
             )
@@ -1760,7 +1762,12 @@ def _resolve_alias_request(
         return AliasResolution(
             requested=True,
             alias_text=alias_text,
-            conflict_message=f"Der Alias '{alias_text}' ist bereits dem Parameter '{other_name}' zugeordnet.",
+            conflict_message=(
+                f"Der Alias '{alias_text}' ist bereits dem Parameter '{other_name}' zugeordnet "
+                "und wird deshalb nicht erneut angelegt."
+            ),
+            conflict_status="warnung",
+            already_present=True,
         )
 
     for other_parameter in db.scalars(select(Laborparameter)):
