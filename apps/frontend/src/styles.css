@@ -1752,6 +1752,19 @@ a {
   font-size: 0.92rem;
 }
 
+.inline-info {
+  align-items: center;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 10px 12px;
+}
+
 .loesch-panel__summary,
 .loesch-panel__section {
   display: grid;
@@ -3405,6 +3418,12 @@ a {
   height: 10px;
   flex: 0 0 10px;
   border-radius: 50%;
+}
+
+.trend-legend__swatch--laborreferenz,
+.trend-legend__swatch--zielbereich {
+  height: 3px;
+  border-radius: 999px;
 }
 
 .trend-table-panel {

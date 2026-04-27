@@ -10,6 +10,8 @@ from labordaten_backend.models.gruppen_parameter import GruppenParameter
 from labordaten_backend.models.laborparameter import Laborparameter
 from labordaten_backend.models.laborparameter_alias import LaborparameterAlias
 from labordaten_backend.models.parameter_gruppe import ParameterGruppe
+from labordaten_backend.models.zielbereich import Zielbereich
+from labordaten_backend.models.zielwert_paket import ZielwertPaket
 from labordaten_backend.modules.initialdaten.service import apply_initialdaten, get_initialdaten_status
 
 
@@ -85,7 +87,35 @@ def test_initialdaten_apply_imports_masterdata_and_is_idempotent(tmp_path) -> No
         ],
         "parameter_klassifikationen": [],
         "parameter_umrechnungsregeln": [],
-        "zielbereiche": [],
+        "zielbereich_quellen": [
+            {
+                "name": "Quelle A",
+                "quellen_typ": "experte",
+                "titel": "Buch A",
+                "aktiv": True,
+            }
+        ],
+        "zielwert_pakete": [
+            {
+                "paket_schluessel": "quelle_a_optimal",
+                "name": "Quelle A Optimalwerte",
+                "zielbereich_quelle_name": "Quelle A",
+                "zielbereich_quelle_titel": "Buch A",
+                "aktiv": True,
+            }
+        ],
+        "zielbereiche": [
+            {
+                "parameter_schluessel": "ferritin",
+                "wert_typ": "numerisch",
+                "zielbereich_typ": "optimalbereich",
+                "zielwert_paket_schluessel": "quelle_a_optimal",
+                "untere_grenze_num": 70,
+                "obere_grenze_num": 200,
+                "einheit": "ng/ml",
+                "aktiv": True,
+            }
+        ],
         "parameter_dublettenausschluesse": [],
     }
 
@@ -102,6 +132,12 @@ def test_initialdaten_apply_imports_masterdata_and_is_idempotent(tmp_path) -> No
         assert db.scalar(select(Einheit).where(Einheit.kuerzel == "ng/ml")) is not None
         assert db.scalar(select(LaborparameterAlias).where(LaborparameterAlias.alias_normalisiert == "ferritinis")) is not None
         assert db.scalar(select(GruppenParameter)) is not None
+        paket = db.scalar(select(ZielwertPaket).where(ZielwertPaket.paket_schluessel == "quelle_a_optimal"))
+        zielbereich = db.scalar(select(Zielbereich))
+        assert paket is not None
+        assert zielbereich is not None
+        assert zielbereich.zielwert_paket_id == paket.id
+        assert zielbereich.zielbereich_quelle_id == paket.zielbereich_quelle_id
     finally:
         db.close()
 

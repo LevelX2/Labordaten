@@ -53,6 +53,7 @@ def build_snapshot(database_path: Path, version: str) -> dict[str, Any]:
             "parameter_klassifikationen": _parameter_klassifikationen(con),
             "parameter_umrechnungsregeln": _parameter_umrechnungsregeln(con),
             "zielbereich_quellen": _zielbereich_quellen(con),
+            "zielwert_pakete": _zielwert_pakete(con),
             "zielbereiche": _zielbereiche(con),
             "parameter_dublettenausschluesse": _parameter_dublettenausschluesse(con),
         }
@@ -237,6 +238,7 @@ def _zielbereiche(con: sqlite3.Connection) -> list[dict[str, Any]]:
                 zq.titel AS zielbereich_quelle_titel,
                 zq.jahr AS zielbereich_quelle_jahr,
                 zq.version AS zielbereich_quelle_version,
+                zp.paket_schluessel AS zielwert_paket_schluessel,
                 z.wert_typ,
                 z.zielbereich_typ,
                 z.untere_grenze_num,
@@ -253,7 +255,8 @@ def _zielbereiche(con: sqlite3.Connection) -> list[dict[str, Any]]:
             FROM zielbereich z
             JOIN laborparameter lp ON lp.id = z.laborparameter_id
             LEFT JOIN zielbereich_quelle zq ON zq.id = z.zielbereich_quelle_id
-            ORDER BY lp.interner_schluessel, zq.name, z.zielbereich_typ, z.geschlecht_code, z.alter_min_tage, z.alter_max_tage
+            LEFT JOIN zielwert_paket zp ON zp.id = z.zielwert_paket_id
+            ORDER BY lp.interner_schluessel, zp.paket_schluessel, zq.name, z.zielbereich_typ, z.geschlecht_code, z.alter_min_tage, z.alter_max_tage
             """,
         ),
         "aktiv",
@@ -268,6 +271,32 @@ def _zielbereich_quellen(con: sqlite3.Connection) -> list[dict[str, Any]]:
             SELECT name, quellen_typ, titel, jahr, version, bemerkung, aktiv
             FROM zielbereich_quelle
             ORDER BY name, jahr, titel, version
+            """,
+        ),
+        "aktiv",
+    )
+
+
+def _zielwert_pakete(con: sqlite3.Connection) -> list[dict[str, Any]]:
+    return _bools(
+        _rows(
+            con,
+            """
+            SELECT
+                zp.paket_schluessel,
+                zp.name,
+                zq.name AS zielbereich_quelle_name,
+                zq.titel AS zielbereich_quelle_titel,
+                zq.jahr AS zielbereich_quelle_jahr,
+                zq.version AS zielbereich_quelle_version,
+                zp.version,
+                zp.jahr,
+                zp.beschreibung,
+                zp.bemerkung,
+                zp.aktiv
+            FROM zielwert_paket zp
+            LEFT JOIN zielbereich_quelle zq ON zq.id = zp.zielbereich_quelle_id
+            ORDER BY zp.paket_schluessel
             """,
         ),
         "aktiv",

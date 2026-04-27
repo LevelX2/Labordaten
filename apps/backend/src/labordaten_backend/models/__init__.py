@@ -21,6 +21,7 @@ from labordaten_backend.models.wissensseite import Wissensseite
 from labordaten_backend.models.zielbereich import Zielbereich
 from labordaten_backend.models.zielbereich_person_override import ZielbereichPersonOverride
 from labordaten_backend.models.zielbereich_quelle import ZielbereichQuelle
+from labordaten_backend.models.zielwert_paket import ZielwertPaket
 
 __all__ = [
     "Befund",
@@ -46,4 +47,5 @@ __all__ = [
     "Zielbereich",
     "ZielbereichPersonOverride",
     "ZielbereichQuelle",
+    "ZielwertPaket",
 ]

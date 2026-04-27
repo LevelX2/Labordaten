@@ -11,6 +11,7 @@ quellen:
   - ../../../apps/backend/src/labordaten_backend/modules/referenzen/schemas.py
   - ../../../apps/backend/src/labordaten_backend/modules/zielbereiche/schemas.py
   - ../../../apps/backend/src/labordaten_backend/models/zielbereich_quelle.py
+  - ../../../apps/backend/src/labordaten_backend/models/zielwert_paket.py
   - ../../../apps/backend/src/labordaten_backend/modules/befunde/schemas.py
 tags:
   - schema
@@ -56,6 +57,7 @@ Das technische V1-Schema setzt das fachliche Ziel-Datenmodell in eine relational
 - `messwert`
 - `messwert_referenz`
 - `zielbereich_quelle`
+- `zielwert_paket`
 - `zielbereich`
 - `zielbereich_person_override`
 - `planung_zyklisch`
@@ -412,10 +414,32 @@ Indizes:
 Checks:
 - `quellen_typ` in `experte`, `buch`, `leitlinie`, `labor`, `eigene_vorgabe`
 
+### zielwert_paket
+- `id` PK
+- `paket_schluessel` NOT NULL UNIQUE
+- `name` NOT NULL
+- `zielbereich_quelle_id` FK -> `zielbereich_quelle.id`
+- `version`
+- `jahr`
+- `beschreibung`
+- `bemerkung`
+- `aktiv` NOT NULL DEFAULT 1
+- `erstellt_am` NOT NULL
+- `geaendert_am` NOT NULL
+
+Indizes:
+- Unique auf `paket_schluessel`
+- Index auf `name`
+- Index auf `zielbereich_quelle_id`
+
+Hinweis:
+- `zielwert_paket` ist das technische Verwaltungsobjekt für optionale Zielbereichssammlungen. Eine Deaktivierung des Pakets deaktiviert die zugehörigen aktiven `zielbereich`-Datensätze, entfernt aber keine neutralen Parameterstammdaten.
+
 ### zielbereich
 - `id` PK
 - `laborparameter_id` NOT NULL FK -> `laborparameter.id`
 - `zielbereich_quelle_id` FK -> `zielbereich_quelle.id`
+- `zielwert_paket_id` FK -> `zielwert_paket.id`
 - `wert_typ` NOT NULL
 - `zielbereich_typ` NOT NULL DEFAULT `allgemein`
 - `untere_grenze_num`
@@ -435,6 +459,7 @@ Checks:
 Indizes:
 - Index auf `laborparameter_id, aktiv`
 - Index auf `zielbereich_quelle_id`
+- Index auf `zielwert_paket_id`
 - Index auf `zielbereich_typ`
 - Index auf `geschlecht_code, alter_min_tage, alter_max_tage`
 

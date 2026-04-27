@@ -213,3 +213,85 @@ def test_target_range_can_reference_structured_source(monkeypatch, tmp_path: Pat
         list_response = client.get("/api/zielbereich-quellen")
         assert list_response.status_code == 200
         assert list_response.json()[0]["name"] == "Dr. med. Helena Orfanos-Boeckel"
+
+
+def test_target_value_package_groups_and_deactivates_target_ranges(monkeypatch, tmp_path: Path) -> None:
+    client = _make_client(monkeypatch, tmp_path)
+    with client:
+        assert client.post("/api/einheiten", json={"kuerzel": "ng/ml"}).status_code == 201
+        source_response = client.post(
+            "/api/zielbereich-quellen",
+            json={
+                "name": "Dr. med. Helena Orfanos-Boeckel",
+                "quellen_typ": "experte",
+                "titel": "Nährstoff- und Hormontherapie",
+            },
+        )
+        assert source_response.status_code == 201
+        source_id = source_response.json()["id"]
+
+        package_response = client.post(
+            "/api/zielwert-pakete",
+            json={
+                "paket_schluessel": "orfanos_boeckel_ksg_test",
+                "name": "Optimalbereiche nach Orfanos-Boeckel",
+                "zielbereich_quelle_id": source_id,
+                "version": "test",
+                "jahr": 2026,
+            },
+        )
+        assert package_response.status_code == 201
+        package = package_response.json()
+        package_id = package["id"]
+        assert package["zielbereich_quelle_id"] == source_id
+        assert package["aktive_zielbereiche_anzahl"] == 0
+
+        parameter_response = client.post(
+            "/api/parameter",
+            json={
+                "anzeigename": "Vitamin D 25-OH",
+                "wert_typ_standard": "numerisch",
+                "standard_einheit": "ng/ml",
+            },
+        )
+        assert parameter_response.status_code == 201
+        parameter_id = parameter_response.json()["id"]
+
+        target_response = client.post(
+            f"/api/parameter/{parameter_id}/zielbereiche",
+            json={
+                "wert_typ": "numerisch",
+                "zielbereich_typ": "optimalbereich",
+                "zielwert_paket_id": package_id,
+                "untere_grenze_num": 50,
+                "obere_grenze_num": 70,
+                "einheit": "ng/ml",
+            },
+        )
+        assert target_response.status_code == 201
+        target = target_response.json()
+        assert target["zielwert_paket_id"] == package_id
+        assert target["zielbereich_quelle_id"] == source_id
+
+        package_list = client.get("/api/zielwert-pakete")
+        assert package_list.status_code == 200
+        assert package_list.json()[0]["aktive_zielbereiche_anzahl"] == 1
+
+        deactivate_response = client.patch(
+            f"/api/zielwert-pakete/{package_id}",
+            json={
+                "paket_schluessel": "orfanos_boeckel_ksg_test",
+                "name": "Optimalbereiche nach Orfanos-Boeckel",
+                "zielbereich_quelle_id": source_id,
+                "version": "test",
+                "jahr": 2026,
+                "aktiv": False,
+            },
+        )
+        assert deactivate_response.status_code == 200
+        assert deactivate_response.json()["aktiv"] is False
+        assert deactivate_response.json()["aktive_zielbereiche_anzahl"] == 0
+
+        target_list = client.get(f"/api/parameter/{parameter_id}/zielbereiche")
+        assert target_list.status_code == 200
+        assert target_list.json() == []

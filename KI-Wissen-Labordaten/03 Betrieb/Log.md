@@ -11,6 +11,27 @@
 
 ## 2026-04
 
+### [2026-04-27] feature | Optionale Zielwertpakete ergänzt
+- Anlass oder Quelle: Nutzerentscheidung, quellengebundene Zielwertsammlungen wie Orfanos-Boeckel-Optimalbereiche nicht fest als Systemstandard einzubauen, sondern als optionale Pakete einspielbar und deaktivierbar zu machen.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../02 Wissen/Begriffe und Konzepte/V1 Ziel-Datenmodell.md
+  - ../02 Wissen/Begriffe und Konzepte/V1 Technisches Schema.md
+  - ../02 Wissen/Begriffe und Konzepte/KSG Klassifizierung von Laborparametern.md
+  - ../03 Betrieb/KSG-Zielbereichsvorschlag Orfanos-Boeckel 2026-04-27.md
+  - ../../../apps/backend/src/labordaten_backend/models/zielwert_paket.py
+  - ../../../apps/backend/src/labordaten_backend/models/zielbereich.py
+  - ../../../apps/backend/src/labordaten_backend/modules/zielbereiche/
+  - ../../../apps/backend/migrations/versions/20260427_0003_zielwert_pakete.py
+  - ../../../apps/frontend/src/features/parameter/ParameterPage.tsx
+- Kern der inhaltlichen Anpassung:
+  - `ZielwertPaket` bündelt optionale Zielbereichssammlungen mit Schlüssel, Name, Quelle, Version, Jahr, Beschreibung, Bemerkung und Aktivstatus.
+  - `Zielbereich` kann nun zusätzlich zur Zielwertquelle auf ein Zielwertpaket verweisen.
+  - Beim Deaktivieren eines Zielwertpakets werden die zugehörigen Zielbereiche deaktiviert; neutrale Parameterstammdaten bleiben erhalten.
+  - Die Parameterseite erlaubt Paket-Auswahl, Paket-Neuanlage und Paket-Deaktivierung im Zielbereichs-Panel.
+  - Die lokale SQLite-Datenbank wurde auf Alembic-Revision `20260427_0003` migriert.
+
 ### [2026-04-27] feature | Eingeklappte Filterauswahl zeigt gewählte Werte
 - Anlass oder Quelle: Nutzerhinweis, dass im Bereich `Auswertung` bei eingeklappten Filterblöcken sichtbar bleiben soll, welche Personen, Parametergruppen, Parameter oder sonstigen Filter tatsächlich gewählt sind.
 - Neu angelegte Seiten:

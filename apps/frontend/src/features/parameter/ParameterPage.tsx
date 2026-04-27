@@ -49,6 +49,9 @@ import type {
   ZielbereichQuelleTyp,
   ZielbereichTyp,
   ZielbereichUpdatePayload,
+  ZielwertPaket,
+  ZielwertPaketCreatePayload,
+  ZielwertPaketUpdatePayload,
   Zielbereich
 } from "../../shared/types/api";
 
@@ -95,6 +98,7 @@ type ZielbereichFormState = {
   wert_typ: WertTyp;
   zielbereich_typ: ZielbereichTyp;
   zielbereich_quelle_id: string;
+  zielwert_paket_id: string;
   untere_grenze_num: string;
   obere_grenze_num: string;
   einheit: string;
@@ -111,6 +115,15 @@ type ZielbereichQuelleFormState = {
   titel: string;
   jahr: string;
   version: string;
+  bemerkung: string;
+};
+
+type ZielwertPaketFormState = {
+  paket_schluessel: string;
+  name: string;
+  version: string;
+  jahr: string;
+  beschreibung: string;
   bemerkung: string;
 };
 
@@ -200,6 +213,7 @@ const initialZielbereichForm: ZielbereichFormState = {
   wert_typ: "numerisch",
   zielbereich_typ: "optimalbereich",
   zielbereich_quelle_id: "",
+  zielwert_paket_id: "",
   untere_grenze_num: "",
   obere_grenze_num: "",
   einheit: "",
@@ -216,6 +230,15 @@ const initialZielbereichQuelleForm: ZielbereichQuelleFormState = {
   titel: "",
   jahr: "",
   version: "",
+  bemerkung: ""
+};
+
+const initialZielwertPaketForm: ZielwertPaketFormState = {
+  paket_schluessel: "",
+  name: "",
+  version: "",
+  jahr: "",
+  beschreibung: "",
   bemerkung: ""
 };
 
@@ -316,6 +339,15 @@ function formatZielbereichQuelle(quelle?: ZielbereichQuelle | null): string {
   return details.length ? `${quelle.name} · ${details.join(" · ")}` : quelle.name;
 }
 
+function formatZielwertPaket(paket?: ZielwertPaket | null): string {
+  if (!paket) {
+    return "Kein Paket";
+  }
+
+  const details = [paket.version, paket.jahr?.toString()].filter(Boolean);
+  return details.length ? `${paket.name} · ${details.join(" · ")}` : paket.name;
+}
+
 function formatUmrechnungsregel(regel: ParameterUmrechnungsregel): string {
   if (regel.regel_typ === "faktor") {
     return `x * ${regel.faktor ?? "?"}`;
@@ -352,6 +384,7 @@ export function ParameterPage() {
   const [zielbereichForm, setZielbereichForm] = useState<ZielbereichFormState>(initialZielbereichForm);
   const [zielbereichQuelleForm, setZielbereichQuelleForm] =
     useState<ZielbereichQuelleFormState>(initialZielbereichQuelleForm);
+  const [zielwertPaketForm, setZielwertPaketForm] = useState<ZielwertPaketFormState>(initialZielwertPaketForm);
   const [editingZielbereichId, setEditingZielbereichId] = useState<string | null>(null);
   const [umrechnungsregelForm, setUmrechnungsregelForm] =
     useState<ParameterUmrechnungsregelFormState>(initialUmrechnungsregelForm);
@@ -443,6 +476,7 @@ export function ParameterPage() {
       setKlassifikationForm(initialKlassifikationForm);
       setZielbereichForm(initialZielbereichForm);
       setZielbereichQuelleForm(initialZielbereichQuelleForm);
+      setZielwertPaketForm(initialZielwertPaketForm);
       setEditingZielbereichId(null);
       setUmrechnungsregelForm(initialUmrechnungsregelForm);
       setManualMergeForm(initialManualMergeForm);
@@ -569,6 +603,17 @@ export function ParameterPage() {
   const zielbereichQuellenById = useMemo(
     () => new Map((zielbereichQuellenQuery.data ?? []).map((quelle) => [quelle.id, quelle])),
     [zielbereichQuellenQuery.data]
+  );
+
+  const zielwertPaketeQuery = useQuery({
+    queryKey: ["zielwert-pakete"],
+    queryFn: () => apiFetch<ZielwertPaket[]>("/api/zielwert-pakete"),
+    enabled: activePanel === "zielbereich" || expandedRelatedSections.ranges
+  });
+
+  const zielwertPaketeById = useMemo(
+    () => new Map((zielwertPaketeQuery.data ?? []).map((paket) => [paket.id, paket])),
+    [zielwertPaketeQuery.data]
   );
 
   const parameterAliaseQuery = useQuery({
@@ -709,6 +754,53 @@ export function ParameterPage() {
         zielbereich_quelle_id: createdQuelle.id
       }));
       await queryClient.invalidateQueries({ queryKey: ["zielbereich-quellen"] });
+    }
+  });
+
+  const createZielwertPaketMutation = useMutation({
+    mutationFn: () =>
+      apiFetch<ZielwertPaket>("/api/zielwert-pakete", {
+        method: "POST",
+        body: JSON.stringify({
+          paket_schluessel: zielwertPaketForm.paket_schluessel,
+          name: zielwertPaketForm.name,
+          zielbereich_quelle_id: zielbereichForm.zielbereich_quelle_id || null,
+          version: zielwertPaketForm.version || null,
+          jahr: zielwertPaketForm.jahr ? Number(zielwertPaketForm.jahr) : null,
+          beschreibung: zielwertPaketForm.beschreibung || null,
+          bemerkung: zielwertPaketForm.bemerkung || null
+        } satisfies ZielwertPaketCreatePayload)
+      }),
+    onSuccess: async (createdPaket) => {
+      setZielwertPaketForm(initialZielwertPaketForm);
+      setZielbereichForm((current) => ({
+        ...current,
+        zielwert_paket_id: createdPaket.id,
+        zielbereich_quelle_id: createdPaket.zielbereich_quelle_id ?? current.zielbereich_quelle_id
+      }));
+      await queryClient.invalidateQueries({ queryKey: ["zielwert-pakete"] });
+    }
+  });
+
+  const deactivateZielwertPaketMutation = useMutation({
+    mutationFn: (paket: ZielwertPaket) =>
+      apiFetch<ZielwertPaket>(`/api/zielwert-pakete/${paket.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          paket_schluessel: paket.paket_schluessel,
+          name: paket.name,
+          zielbereich_quelle_id: paket.zielbereich_quelle_id ?? null,
+          version: paket.version ?? null,
+          jahr: paket.jahr ?? null,
+          beschreibung: paket.beschreibung ?? null,
+          bemerkung: paket.bemerkung ?? null,
+          aktiv: false
+        } satisfies ZielwertPaketUpdatePayload)
+      }),
+    onSuccess: async () => {
+      setZielbereichForm((current) => ({ ...current, zielwert_paket_id: "" }));
+      await queryClient.invalidateQueries({ queryKey: ["zielwert-pakete"] });
+      await queryClient.invalidateQueries({ queryKey: ["zielbereiche", selectedParameterId] });
     }
   });
 
@@ -1058,6 +1150,7 @@ export function ParameterPage() {
       wert_typ: zielbereich.wert_typ,
       zielbereich_typ: zielbereich.zielbereich_typ,
       zielbereich_quelle_id: zielbereich.zielbereich_quelle_id ?? "",
+      zielwert_paket_id: zielbereich.zielwert_paket_id ?? "",
       untere_grenze_num: zielbereich.untere_grenze_num?.toString() ?? "",
       obere_grenze_num: zielbereich.obere_grenze_num?.toString() ?? "",
       einheit: zielbereich.einheit ?? selectedParameter?.standard_einheit ?? "",
@@ -1800,6 +1893,7 @@ export function ParameterPage() {
 
     if (activePanel === "zielbereich") {
       const isEditMode = Boolean(editingZielbereichId);
+      const selectedZielwertPaket = zielwertPaketeById.get(zielbereichForm.zielwert_paket_id);
       return (
         <article className="card card--soft parameter-action-panel">
           <div className="parameter-panel__header">
@@ -1869,6 +1963,115 @@ export function ParameterPage() {
                 ))}
               </select>
             </label>
+
+            <label className="field field--full">
+              <span>Zielwertpaket</span>
+              <select
+                value={zielbereichForm.zielwert_paket_id}
+                onChange={(event) => {
+                  const paket = zielwertPaketeById.get(event.target.value);
+                  setZielbereichForm((current) => ({
+                    ...current,
+                    zielwert_paket_id: event.target.value,
+                    zielbereich_quelle_id: paket?.zielbereich_quelle_id ?? current.zielbereich_quelle_id
+                  }));
+                }}
+              >
+                <option value="">Kein Paket</option>
+                {zielwertPaketeQuery.data?.map((paket) => (
+                  <option key={paket.id} value={paket.id}>
+                    {formatZielwertPaket(paket)} · {paket.aktive_zielbereiche_anzahl} aktive Zielbereiche
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {selectedZielwertPaket ? (
+              <div className="field field--full inline-info">
+                <span>
+                  Paket `{selectedZielwertPaket.paket_schluessel}` bündelt aktuell{" "}
+                  {selectedZielwertPaket.aktive_zielbereiche_anzahl} aktive Zielbereiche.
+                </span>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  disabled={deactivateZielwertPaketMutation.isPending}
+                  onClick={() => deactivateZielwertPaketMutation.mutate(selectedZielwertPaket)}
+                >
+                  Paket deaktivieren
+                </button>
+                {deactivateZielwertPaketMutation.isError ? (
+                  <p className="form-error">{deactivateZielwertPaketMutation.error.message}</p>
+                ) : null}
+              </div>
+            ) : null}
+
+            <div className="field field--full">
+              <span>Neues Zielwertpaket</span>
+              <div className="form-grid form-grid--compact">
+                <label className="field">
+                  <span>Paketschlüssel</span>
+                  <input
+                    value={zielwertPaketForm.paket_schluessel}
+                    onChange={(event) =>
+                      setZielwertPaketForm((current) => ({ ...current, paket_schluessel: event.target.value }))
+                    }
+                    placeholder="z. B. orfanos_boeckel_ksg_2026"
+                  />
+                </label>
+                <label className="field">
+                  <span>Paketname</span>
+                  <input
+                    value={zielwertPaketForm.name}
+                    onChange={(event) => setZielwertPaketForm((current) => ({ ...current, name: event.target.value }))}
+                    placeholder="z. B. Optimalbereiche nach Orfanos-Boeckel"
+                  />
+                </label>
+                <label className="field">
+                  <span>Version</span>
+                  <input
+                    value={zielwertPaketForm.version}
+                    onChange={(event) =>
+                      setZielwertPaketForm((current) => ({ ...current, version: event.target.value }))
+                    }
+                  />
+                </label>
+                <label className="field">
+                  <span>Jahr</span>
+                  <input
+                    type="number"
+                    value={zielwertPaketForm.jahr}
+                    onChange={(event) => setZielwertPaketForm((current) => ({ ...current, jahr: event.target.value }))}
+                  />
+                </label>
+                <label className="field field--full">
+                  <span>Beschreibung</span>
+                  <input
+                    value={zielwertPaketForm.beschreibung}
+                    onChange={(event) =>
+                      setZielwertPaketForm((current) => ({ ...current, beschreibung: event.target.value }))
+                    }
+                  />
+                </label>
+                <div className="form-actions">
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    disabled={
+                      !zielwertPaketForm.paket_schluessel.trim() ||
+                      !zielwertPaketForm.name.trim() ||
+                      createZielwertPaketMutation.isPending
+                    }
+                    onClick={() => createZielwertPaketMutation.mutate()}
+                  >
+                    {createZielwertPaketMutation.isPending ? "Speichert..." : "Paket anlegen und auswählen"}
+                  </button>
+                  {createZielwertPaketMutation.isError ? (
+                    <p className="form-error">{createZielwertPaketMutation.error.message}</p>
+                  ) : null}
+                </div>
+              </div>
+            </div>
 
             <div className="field field--full">
               <span>Neue Zielwertquelle</span>
@@ -2912,6 +3115,7 @@ export function ParameterPage() {
                               <thead>
                                 <tr>
                                   <th>Zieltyp</th>
+                                  <th>Paket</th>
                                   <th>Quelle</th>
                                   <th>Typ</th>
                                   <th>Bereich</th>
@@ -2924,6 +3128,7 @@ export function ParameterPage() {
                                 {zielbereicheQuery.data?.map((zielbereich) => (
                                   <tr key={zielbereich.id}>
                                     <td>{formatZielbereichTyp(zielbereich.zielbereich_typ)}</td>
+                                    <td>{formatZielwertPaket(zielwertPaketeById.get(zielbereich.zielwert_paket_id ?? ""))}</td>
                                     <td>{formatZielbereichQuelle(zielbereichQuellenById.get(zielbereich.zielbereich_quelle_id ?? ""))}</td>
                                     <td>{formatWertTyp(zielbereich.wert_typ)}</td>
                                     <td>{formatZielbereichValue(zielbereich)}</td>
@@ -2942,7 +3147,7 @@ export function ParameterPage() {
                                 ))}
                                 {!zielbereicheQuery.data?.length ? (
                                   <tr>
-                                    <td colSpan={7}>Noch keine Zielbereiche für diesen Parameter vorhanden.</td>
+                                    <td colSpan={8}>Noch keine Zielbereiche für diesen Parameter vorhanden.</td>
                                   </tr>
                                 ) : null}
                               </tbody>

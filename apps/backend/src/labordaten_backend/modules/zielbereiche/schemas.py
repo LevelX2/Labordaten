@@ -53,10 +53,59 @@ class ZielbereichQuelleRead(BaseModel):
     geaendert_am: datetime
 
 
+class ZielwertPaketCreate(BaseModel):
+    paket_schluessel: str
+    name: str
+    zielbereich_quelle_id: str | None = None
+    version: str | None = None
+    jahr: int | None = None
+    beschreibung: str | None = None
+    bemerkung: str | None = None
+
+    @field_validator("paket_schluessel")
+    @classmethod
+    def validate_paket_schluessel(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Paketschlüssel darf nicht leer sein.")
+        return cleaned
+
+    @field_validator("name")
+    @classmethod
+    def validate_paket_name(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Paketname darf nicht leer sein.")
+        return cleaned
+
+
+class ZielwertPaketUpdate(ZielwertPaketCreate):
+    aktiv: bool = True
+
+
+class ZielwertPaketRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    paket_schluessel: str
+    name: str
+    zielbereich_quelle_id: str | None = None
+    version: str | None = None
+    jahr: int | None = None
+    beschreibung: str | None = None
+    bemerkung: str | None = None
+    aktiv: bool
+    zielbereiche_anzahl: int = 0
+    aktive_zielbereiche_anzahl: int = 0
+    erstellt_am: datetime
+    geaendert_am: datetime
+
+
 class ZielbereichCreate(BaseModel):
     wert_typ: str = "numerisch"
     zielbereich_typ: str = "allgemein"
     zielbereich_quelle_id: str | None = None
+    zielwert_paket_id: str | None = None
     untere_grenze_num: float | None = None
     obere_grenze_num: float | None = None
     einheit: str | None = None
@@ -95,6 +144,7 @@ class ZielbereichCreate(BaseModel):
 class ZielbereichUpdate(BaseModel):
     zielbereich_typ: str = "allgemein"
     zielbereich_quelle_id: str | None = None
+    zielwert_paket_id: str | None = None
     untere_grenze_num: float | None = None
     obere_grenze_num: float | None = None
     einheit: str | None = None
@@ -123,6 +173,7 @@ class ZielbereichRead(BaseModel):
     id: str
     laborparameter_id: str
     zielbereich_quelle_id: str | None = None
+    zielwert_paket_id: str | None = None
     wert_typ: str
     zielbereich_typ: str
     untere_grenze_num: float | None = None

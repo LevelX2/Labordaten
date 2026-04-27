@@ -55,6 +55,7 @@ type ZielbereichPayloadInput = {
   wert_typ: WertTyp;
   zielbereich_typ: ZielbereichTyp;
   zielbereich_quelle_id: string;
+  zielwert_paket_id: string;
   untere_grenze_num: string;
   obere_grenze_num: string;
   einheit: string;
@@ -150,6 +151,7 @@ export function buildZielbereichCreatePayload(
     wert_typ: input.wert_typ,
     zielbereich_typ: input.zielbereich_typ,
     zielbereich_quelle_id: emptyToNull(input.zielbereich_quelle_id),
+    zielwert_paket_id: emptyToNull(input.zielwert_paket_id),
     untere_grenze_num: input.wert_typ === "numerisch" ? stringNumberToNull(input.untere_grenze_num) : null,
     obere_grenze_num: input.wert_typ === "numerisch" ? stringNumberToNull(input.obere_grenze_num) : null,
     einheit: input.wert_typ === "numerisch" ? emptyToNull(input.einheit) ?? fallbackEinheit ?? null : null,
@@ -169,6 +171,7 @@ export function buildZielbereichUpdatePayload(
   return {
     zielbereich_typ: payload.zielbereich_typ,
     zielbereich_quelle_id: payload.zielbereich_quelle_id,
+    zielwert_paket_id: payload.zielwert_paket_id,
     untere_grenze_num: payload.untere_grenze_num,
     obere_grenze_num: payload.obere_grenze_num,
     einheit: payload.einheit,

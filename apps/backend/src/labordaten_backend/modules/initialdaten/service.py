@@ -20,6 +20,7 @@ from labordaten_backend.models.parameter_umrechnungsregel import ParameterUmrech
 from labordaten_backend.models.wissensseite import Wissensseite
 from labordaten_backend.models.zielbereich import Zielbereich
 from labordaten_backend.models.zielbereich_quelle import ZielbereichQuelle
+from labordaten_backend.models.zielwert_paket import ZielwertPaket
 
 INITIALDATEN_SNAPSHOT_RESOURCE = "initialdaten_snapshot.json"
 
@@ -34,6 +35,7 @@ STAMMDATEN_TABELLEN = (
     "parameter_klassifikation",
     "parameter_umrechnungsregel",
     "zielbereich_quelle",
+    "zielwert_paket",
     "zielbereich",
     "parameter_dublettenausschluss",
 )
@@ -101,7 +103,16 @@ def apply_initialdaten(
     _import_parameter_klassifikationen(db, seed, result, aktualisieren, parameter_by_key)
     _import_parameter_umrechnungsregeln(db, seed, result, aktualisieren, parameter_by_key)
     zielbereich_quellen_by_key = _import_zielbereich_quellen(db, seed, result, aktualisieren)
-    _import_zielbereiche(db, seed, result, aktualisieren, parameter_by_key, zielbereich_quellen_by_key)
+    zielwert_pakete_by_key = _import_zielwert_pakete(db, seed, result, aktualisieren, zielbereich_quellen_by_key)
+    _import_zielbereiche(
+        db,
+        seed,
+        result,
+        aktualisieren,
+        parameter_by_key,
+        zielbereich_quellen_by_key,
+        zielwert_pakete_by_key,
+    )
     _import_dublettenausschluesse(db, seed, result, aktualisieren, parameter_by_key)
 
     db.commit()
@@ -407,11 +418,13 @@ def _import_zielbereiche(
     aktualisieren: bool,
     parameter_by_key: dict[str, Laborparameter],
     zielbereich_quellen_by_key: dict[tuple[str, str | None, int | None, str | None], ZielbereichQuelle],
+    zielwert_pakete_by_key: dict[str, ZielwertPaket],
 ) -> None:
     existing = {
         (
             row.laborparameter_id,
             row.zielbereich_quelle_id,
+            row.zielwert_paket_id,
             row.wert_typ,
             row.zielbereich_typ,
             row.geschlecht_code,
@@ -433,9 +446,14 @@ def _import_zielbereiche(
                 row.get("zielbereich_quelle_version"),
             )
         ) if row.get("zielbereich_quelle_name") else None
+        paket = zielwert_pakete_by_key.get(row["zielwert_paket_schluessel"]) if row.get("zielwert_paket_schluessel") else None
+        zielbereich_quelle_id = quelle.id if quelle else None
+        if paket is not None and paket.zielbereich_quelle_id and zielbereich_quelle_id is None:
+            zielbereich_quelle_id = paket.zielbereich_quelle_id
         key = (
             parameter.id,
-            quelle.id if quelle else None,
+            zielbereich_quelle_id,
+            paket.id if paket else None,
             row.get("wert_typ", "numerisch"),
             row.get("zielbereich_typ", "allgemein"),
             row.get("geschlecht_code"),
@@ -444,7 +462,8 @@ def _import_zielbereiche(
         )
         values = {
             "laborparameter_id": parameter.id,
-            "zielbereich_quelle_id": quelle.id if quelle else None,
+            "zielbereich_quelle_id": zielbereich_quelle_id,
+            "zielwert_paket_id": paket.id if paket else None,
             "wert_typ": row.get("wert_typ", "numerisch"),
             "zielbereich_typ": row.get("zielbereich_typ", "allgemein"),
             "untere_grenze_num": row.get("untere_grenze_num"),
@@ -489,6 +508,39 @@ def _import_zielbereich_quellen(
             "aktiv": bool(row.get("aktiv", True)),
         }
         _upsert_simple(db, existing, key, ZielbereichQuelle, values, result, "zielbereich_quellen", aktualisieren)
+    db.flush()
+    return existing
+
+
+def _import_zielwert_pakete(
+    db: Session,
+    snapshot: dict[str, Any],
+    result: dict[str, Any],
+    aktualisieren: bool,
+    zielbereich_quellen_by_key: dict[tuple[str, str | None, int | None, str | None], ZielbereichQuelle],
+) -> dict[str, ZielwertPaket]:
+    existing = {row.paket_schluessel: row for row in db.scalars(select(ZielwertPaket)).all()}
+    for row in snapshot.get("zielwert_pakete", []):
+        quelle = zielbereich_quellen_by_key.get(
+            (
+                row.get("zielbereich_quelle_name"),
+                row.get("zielbereich_quelle_titel"),
+                row.get("zielbereich_quelle_jahr"),
+                row.get("zielbereich_quelle_version"),
+            )
+        ) if row.get("zielbereich_quelle_name") else None
+        key = row["paket_schluessel"]
+        values = {
+            "paket_schluessel": key,
+            "name": row["name"],
+            "zielbereich_quelle_id": quelle.id if quelle else None,
+            "version": row.get("version"),
+            "jahr": row.get("jahr"),
+            "beschreibung": row.get("beschreibung"),
+            "bemerkung": row.get("bemerkung"),
+            "aktiv": bool(row.get("aktiv", True)),
+        }
+        _upsert_simple(db, existing, key, ZielwertPaket, values, result, "zielwert_pakete", aktualisieren)
     db.flush()
     return existing
 

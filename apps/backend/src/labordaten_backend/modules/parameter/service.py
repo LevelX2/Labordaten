@@ -1009,6 +1009,7 @@ def _build_target_range_signature(target_range: Zielbereich) -> str:
             target_range.wert_typ or "",
             target_range.zielbereich_typ or "",
             target_range.zielbereich_quelle_id or "",
+            target_range.zielwert_paket_id or "",
             lower,
             upper,
             normalize_parameter_name(target_range.einheit),

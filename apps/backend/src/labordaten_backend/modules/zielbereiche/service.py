@@ -1,15 +1,18 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from labordaten_backend.models.laborparameter import Laborparameter
 from labordaten_backend.models.zielbereich import Zielbereich
 from labordaten_backend.models.zielbereich_quelle import ZielbereichQuelle
+from labordaten_backend.models.zielwert_paket import ZielwertPaket
 from labordaten_backend.modules.einheiten import service as einheiten_service
 from labordaten_backend.modules.zielbereiche.schemas import (
     ZielbereichCreate,
     ZielbereichQuelleCreate,
     ZielbereichQuelleUpdate,
     ZielbereichUpdate,
+    ZielwertPaketCreate,
+    ZielwertPaketUpdate,
 )
 
 
@@ -46,6 +49,57 @@ def update_zielbereich_quelle(
     return quelle
 
 
+def list_zielwert_pakete(db: Session, include_inactive: bool = False) -> list[ZielwertPaket]:
+    stmt = select(ZielwertPaket)
+    if not include_inactive:
+        stmt = stmt.where(ZielwertPaket.aktiv.is_(True))
+    stmt = stmt.order_by(ZielwertPaket.name, ZielwertPaket.version)
+    pakete = list(db.scalars(stmt))
+    _attach_package_counts(db, pakete)
+    return pakete
+
+
+def create_zielwert_paket(db: Session, payload: ZielwertPaketCreate) -> ZielwertPaket:
+    _require_existing_zielbereich_quelle(db, payload.zielbereich_quelle_id)
+    if db.scalar(select(ZielwertPaket).where(ZielwertPaket.paket_schluessel == payload.paket_schluessel.strip())):
+        raise ValueError("Ein Zielwertpaket mit diesem Schlüssel existiert bereits.")
+    paket = ZielwertPaket(**_clean_package_payload(payload))
+    db.add(paket)
+    db.commit()
+    db.refresh(paket)
+    _attach_package_counts(db, [paket])
+    return paket
+
+
+def update_zielwert_paket(db: Session, zielwert_paket_id: str, payload: ZielwertPaketUpdate) -> ZielwertPaket:
+    paket = db.get(ZielwertPaket, zielwert_paket_id)
+    if paket is None:
+        raise ValueError("Zielwertpaket nicht gefunden.")
+    _require_existing_zielbereich_quelle(db, payload.zielbereich_quelle_id)
+    duplicate = db.scalar(
+        select(ZielwertPaket).where(
+            ZielwertPaket.paket_schluessel == payload.paket_schluessel.strip(),
+            ZielwertPaket.id != zielwert_paket_id,
+        )
+    )
+    if duplicate is not None:
+        raise ValueError("Ein anderes Zielwertpaket mit diesem Schlüssel existiert bereits.")
+
+    for key, value in _clean_package_payload(payload).items():
+        setattr(paket, key, value)
+    paket.aktiv = payload.aktiv
+    if not payload.aktiv:
+        db.query(Zielbereich).filter(Zielbereich.zielwert_paket_id == paket.id).update(
+            {Zielbereich.aktiv: False},
+            synchronize_session=False,
+        )
+    db.add(paket)
+    db.commit()
+    db.refresh(paket)
+    _attach_package_counts(db, [paket])
+    return paket
+
+
 def list_zielbereiche(db: Session, laborparameter_id: str) -> list[Zielbereich]:
     stmt = (
         select(Zielbereich)
@@ -62,7 +116,12 @@ def create_zielbereich(db: Session, laborparameter_id: str, payload: Zielbereich
         raise ValueError("Der zugehörige Parameter existiert nicht.")
 
     zielbereich_data = payload.model_dump()
-    _require_existing_zielbereich_quelle(db, payload.zielbereich_quelle_id)
+    paket = _resolve_zielwert_paket(db, payload.zielwert_paket_id)
+    zielbereich_data["zielbereich_quelle_id"] = _resolve_target_source_id(
+        payload.zielbereich_quelle_id,
+        paket,
+    )
+    _require_existing_zielbereich_quelle(db, zielbereich_data["zielbereich_quelle_id"])
     zielbereich_data["einheit"] = (
         einheiten_service.require_existing_einheit(db, payload.einheit)
         if payload.wert_typ == "numerisch"
@@ -89,9 +148,12 @@ def update_zielbereich(db: Session, zielbereich_id: str, payload: ZielbereichUpd
     if zielbereich.wert_typ == "text" and not payload.soll_text:
         raise ValueError("Text-Zielbereiche brauchen einen Solltext.")
 
-    _require_existing_zielbereich_quelle(db, payload.zielbereich_quelle_id)
+    paket = _resolve_zielwert_paket(db, payload.zielwert_paket_id)
+    zielbereich_quelle_id = _resolve_target_source_id(payload.zielbereich_quelle_id, paket)
+    _require_existing_zielbereich_quelle(db, zielbereich_quelle_id)
     zielbereich.zielbereich_typ = payload.zielbereich_typ
-    zielbereich.zielbereich_quelle_id = payload.zielbereich_quelle_id
+    zielbereich.zielbereich_quelle_id = zielbereich_quelle_id
+    zielbereich.zielwert_paket_id = payload.zielwert_paket_id
     zielbereich.untere_grenze_num = payload.untere_grenze_num if zielbereich.wert_typ == "numerisch" else None
     zielbereich.obere_grenze_num = payload.obere_grenze_num if zielbereich.wert_typ == "numerisch" else None
     zielbereich.einheit = (
@@ -121,6 +183,48 @@ def _require_existing_zielbereich_quelle(db: Session, zielbereich_quelle_id: str
         raise ValueError("Zielwertquelle nicht gefunden oder nicht aktiv.")
 
 
+def _resolve_zielwert_paket(db: Session, zielwert_paket_id: str | None) -> ZielwertPaket | None:
+    if zielwert_paket_id is None:
+        return None
+    paket = db.get(ZielwertPaket, zielwert_paket_id)
+    if paket is None or not paket.aktiv:
+        raise ValueError("Zielwertpaket nicht gefunden oder nicht aktiv.")
+    return paket
+
+
+def _resolve_target_source_id(zielbereich_quelle_id: str | None, paket: ZielwertPaket | None) -> str | None:
+    if paket is None or paket.zielbereich_quelle_id is None:
+        return zielbereich_quelle_id
+    if zielbereich_quelle_id is not None and zielbereich_quelle_id != paket.zielbereich_quelle_id:
+        raise ValueError("Zielwertquelle und Zielwertpaket passen nicht zusammen.")
+    return paket.zielbereich_quelle_id
+
+
+def _attach_package_counts(db: Session, pakete: list[ZielwertPaket]) -> None:
+    if not pakete:
+        return
+    package_ids = [paket.id for paket in pakete]
+    total_counts = {
+        package_id: count
+        for package_id, count in db.execute(
+            select(Zielbereich.zielwert_paket_id, func.count(Zielbereich.id))
+            .where(Zielbereich.zielwert_paket_id.in_(package_ids))
+            .group_by(Zielbereich.zielwert_paket_id)
+        )
+    }
+    active_counts = {
+        package_id: count
+        for package_id, count in db.execute(
+            select(Zielbereich.zielwert_paket_id, func.count(Zielbereich.id))
+            .where(Zielbereich.zielwert_paket_id.in_(package_ids), Zielbereich.aktiv.is_(True))
+            .group_by(Zielbereich.zielwert_paket_id)
+        )
+    }
+    for paket in pakete:
+        paket.zielbereiche_anzahl = int(total_counts.get(paket.id, 0))
+        paket.aktive_zielbereiche_anzahl = int(active_counts.get(paket.id, 0))
+
+
 def _clean_optional(value: str | None) -> str | None:
     if value is None:
         return None
@@ -135,5 +239,17 @@ def _clean_source_payload(payload: ZielbereichQuelleCreate | ZielbereichQuelleUp
         "titel": _clean_optional(payload.titel),
         "jahr": payload.jahr,
         "version": _clean_optional(payload.version),
+        "bemerkung": _clean_optional(payload.bemerkung),
+    }
+
+
+def _clean_package_payload(payload: ZielwertPaketCreate | ZielwertPaketUpdate) -> dict[str, object]:
+    return {
+        "paket_schluessel": payload.paket_schluessel.strip(),
+        "name": payload.name.strip(),
+        "zielbereich_quelle_id": payload.zielbereich_quelle_id,
+        "version": _clean_optional(payload.version),
+        "jahr": payload.jahr,
+        "beschreibung": _clean_optional(payload.beschreibung),
         "bemerkung": _clean_optional(payload.bemerkung),
     }

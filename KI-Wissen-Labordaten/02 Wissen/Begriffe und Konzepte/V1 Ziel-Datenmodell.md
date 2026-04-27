@@ -14,6 +14,7 @@ quellen:
   - ../../../apps/backend/src/labordaten_backend/modules/referenzen/schemas.py
   - ../../../apps/backend/src/labordaten_backend/modules/zielbereiche/schemas.py
   - ../../../apps/backend/src/labordaten_backend/models/zielbereich_quelle.py
+  - ../../../apps/backend/src/labordaten_backend/models/zielwert_paket.py
   - ../../../apps/backend/src/labordaten_backend/modules/befunde/schemas.py
 tags:
   - datenmodell
@@ -39,7 +40,7 @@ Das V1-Datenmodell trennt Stammdaten, Messdaten, Referenzlogik, Zielbereiche, Pl
 ## Domänenübersicht
 - Stammdaten: Person, BasisdatenTyp, Person-Basisdaten-Verlauf, Labor, Laborparameter, Synonyme, Gruppen, Wissensseite
 - Messdaten: Befund, Dokument, Messwert, Messwert-Referenz
-- Ziel- und Planungslogik: Zielwertquelle, Zielbereich allgemein, Zielbereich Person-Überschreibung, Planung zyklisch, Planung einmalig
+- Ziel- und Planungslogik: Zielwertquelle, Zielwertpaket, Zielbereich allgemein, Zielbereich Person-Überschreibung, Planung zyklisch, Planung einmalig
 - Import: Importvorgang, Import-Prüfpunkt, optionale Import-Artefakte
 - Ausgabe und System: Berichtsvorlage, Einstellung, Datenbasis-Sperre
 
@@ -337,10 +338,29 @@ Regel:
 - Mehrere Experten, Bücher, Leitlinien, Laborvorgaben oder eigene Vorgaben dürfen parallel Zielbereiche für denselben Parameter liefern.
 - Die KSG-Tabellenwerte von Dr. med. Helena Orfanos-Boeckel werden als `optimalbereich`-Zielbereiche mit eigener Zielwertquelle modelliert, nicht als allgemeingültige Laborreferenzen.
 
+### ZielwertPaket
+- `id`
+- `paket_schluessel`: stabiler technischer Schlüssel, z. B. `orfanos_boeckel_ksg_2026`
+- `name`: sichtbarer Paketname
+- `zielbereich_quelle_id`: optionale führende Quelle des Pakets
+- `version`: optionale Paket- oder Quellenfassung
+- `jahr`: optionales Bezugsjahr
+- `beschreibung`
+- `bemerkung`
+- `aktiv`
+- `erstellt_am`
+- `geaendert_am`
+
+Regel:
+- Zielwertpakete bündeln optionale Zielbereichssammlungen, die ein Anwender einspielen oder deaktivieren kann, ohne neutrale Parameterstammdaten entfernen zu müssen.
+- Eine Zielwertquelle beschreibt, wer oder welche Quelle empfiehlt; ein Zielwertpaket beschreibt die konkrete installierbare Sammlung dieser Empfehlungen.
+- Wird ein Paket deaktiviert, sollen die zugehörigen Zielbereiche deaktiviert werden. Neutral angelegte Parameter, Einheiten oder Aliase bleiben bestehen, wenn sie unabhängig vom Paket nutzbar sind oder bereits Messwerte tragen.
+
 ### Zielbereich
 - `id`
 - `laborparameter_id`
 - `zielbereich_quelle_id`: optionaler Verweis auf die wiederverwendbare Zielwertquelle
+- `zielwert_paket_id`: optionaler Verweis auf ein installierbares Zielwertpaket
 - `wert_typ`
 - `zielbereich_typ`: `allgemein`, `optimalbereich`, `therapieziel`, `mangelbereich` oder `risikobereich`
 - `untere_grenze_num`
@@ -360,6 +380,7 @@ Regel:
 Regel:
 - Zielbereiche sind allgemeine Vorgaben für einen Parameter.
 - Zielbereiche sind quellenfähig, damit mehrere parallele Empfehlungen nebeneinander gepflegt, angezeigt und später für Berichte selektiert werden können.
+- Zielbereiche können zusätzlich paketfähig sein, damit Empfehlungen nach Quelle, Version oder Anwenderentscheidung als Sammlung ein- und ausgeblendet beziehungsweise deaktiviert werden können.
 - Für qualitative Parameter kann statt Zahlenbereich ein `soll_text` verwendet werden, falls fachlich sinnvoll.
 - Der `zielbereich_typ` unterscheidet neutrale Vorgaben von funktionellen Optimalbereichen, Therapiezielen, Mangelbereichen und Risikobereichen.
 
@@ -490,6 +511,8 @@ Regel:
 - Ein `Laborparameter` ist über `GruppenParameter` mit vielen `ParameterGruppe` verbunden.
 - Ein `Laborparameter` hat null bis viele allgemeine `Zielbereich`.
 - Eine `ZielbereichQuelle` hat null bis viele `Zielbereich`.
+- Eine `ZielbereichQuelle` hat null bis viele `ZielwertPaket`.
+- Ein `ZielwertPaket` hat null bis viele `Zielbereich`.
 - Ein `Zielbereich` hat null bis viele `ZielbereichUeberschreibungPerson`.
 - Eine `Person` hat viele `PlanungZyklisch` und `PlanungEinmalig`.
 - Ein `Importvorgang` hat viele `ImportPruefpunkt` und kann zu `Befund` und `Messwert` zurückverfolgbar bleiben.

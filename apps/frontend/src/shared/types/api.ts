@@ -135,6 +135,7 @@ export type ZielbereichCreatePayload = {
   wert_typ: WertTyp;
   zielbereich_typ: ZielbereichTyp;
   zielbereich_quelle_id?: string | null;
+  zielwert_paket_id?: string | null;
   untere_grenze_num?: number | null;
   obere_grenze_num?: number | null;
   einheit?: string | null;
@@ -159,6 +160,20 @@ export type ZielbereichQuelleCreatePayload = {
 };
 
 export type ZielbereichQuelleUpdatePayload = ZielbereichQuelleCreatePayload & {
+  aktiv: boolean;
+};
+
+export type ZielwertPaketCreatePayload = {
+  paket_schluessel: string;
+  name: string;
+  zielbereich_quelle_id?: string | null;
+  version?: string | null;
+  jahr?: number | null;
+  beschreibung?: string | null;
+  bemerkung?: string | null;
+};
+
+export type ZielwertPaketUpdatePayload = ZielwertPaketCreatePayload & {
   aktiv: boolean;
 };
 
@@ -448,6 +463,7 @@ export type Zielbereich = {
   id: string;
   laborparameter_id: string;
   zielbereich_quelle_id?: string | null;
+  zielwert_paket_id?: string | null;
   wert_typ: WertTyp;
   zielbereich_typ: ZielbereichTyp;
   untere_grenze_num?: number | null;
@@ -474,6 +490,22 @@ export type ZielbereichQuelle = {
   version?: string | null;
   bemerkung?: string | null;
   aktiv: boolean;
+  erstellt_am: string;
+  geaendert_am: string;
+};
+
+export type ZielwertPaket = {
+  id: string;
+  paket_schluessel: string;
+  name: string;
+  zielbereich_quelle_id?: string | null;
+  version?: string | null;
+  jahr?: number | null;
+  beschreibung?: string | null;
+  bemerkung?: string | null;
+  aktiv: boolean;
+  zielbereiche_anzahl: number;
+  aktive_zielbereiche_anzahl: number;
   erstellt_am: string;
   geaendert_am: string;
 };

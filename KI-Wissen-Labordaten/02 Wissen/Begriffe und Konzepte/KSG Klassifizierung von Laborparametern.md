@@ -69,6 +69,8 @@ Zielbereiche erhalten zusätzlich einen `zielbereich_typ`. Dadurch lassen sich a
 
 KSG-Tabellenwerte, die als empfohlene Zielwerte aus den Quellen von Dr. med. Helena Orfanos-Boeckel abgeleitet werden, sollen als `optimalbereich` mit eigener `ZielbereichQuelle` gepflegt werden. Dadurch stehen diese Empfehlungen parallel zu anderen Experten-, Leitlinien-, Labor- oder Eigenvorgaben und müssen nicht redundant in Zielbereichsbemerkungen beschrieben werden.
 
+Die konkrete Sammlung solcher Orfanos-Boeckel-Zielbereiche soll als optionales `ZielwertPaket` modelliert werden. Neutrale Parameter, Einheiten, Aliase und KSG-Klassifikationen können Teil des normalen Stammdatenbestands sein; quellengebundene Optimalbereiche bleiben dagegen paketierbar, damit Anwender sie bewusst einspielen, parallel zu anderen Empfehlungen nutzen oder als Sammlung deaktivieren können.
+
 ## Abgleich Knochen und Gefäße
 Die PDF-Quelle `KSG-Klassifikation.pdf` konkretisiert die Systematik für Knochen und Gefäße. Daraus ergeben sich projektintern wichtige Leitplanken für die Parameter-Einordnung:
 

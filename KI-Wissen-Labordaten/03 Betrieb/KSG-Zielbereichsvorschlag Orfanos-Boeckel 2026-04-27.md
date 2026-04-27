@@ -30,7 +30,7 @@ tags:
 
 Stand: 2026-04-27
 
-Dieser Entwurf leitet aus den lokal transkribierten KSG-Tabellen Zielbereiche ab, die als `optimalbereich` mit der Zielwertquelle `Dr. med. Helena Orfanos-Boeckel / Nährstoff- und Hormontherapie` angelegt werden könnten. Er setzt noch keine Stammdatenänderung um.
+Dieser Entwurf leitet aus den lokal transkribierten KSG-Tabellen Zielbereiche ab, die als `optimalbereich` mit der Zielwertquelle `Dr. med. Helena Orfanos-Boeckel / Nährstoff- und Hormontherapie` angelegt werden könnten. Die Zielbereiche sollen nicht als unvermeidlicher Systemstandard, sondern als optionales `ZielwertPaket` gepflegt werden.
 
 Die Zielbereiche sind keine Laborreferenzen und keine Diagnose- oder Therapieanweisung. Sie sind quellengebundene Orientierungswerte. Bei unklaren, rein textlichen oder stark kontextabhängigen Angaben wird bewusst kein harter numerischer Bereich vorgeschlagen.
 
@@ -38,6 +38,7 @@ Die Zielbereiche sind keine Laborreferenzen und keine Diagnose- oder Therapieanw
 
 - `zielbereich_typ`: immer `optimalbereich`.
 - `zielbereich_quelle`: `Dr. med. Helena Orfanos-Boeckel`.
+- `zielwert_paket`: optionales Paket, z. B. `orfanos_boeckel_ksg_2026`.
 - `quelle_stelle`: jeweilige Tabelle, z. B. `KSG-Klassifikation Tab S03`.
 - `quelle_original_text`: Zielwertspalte aus der Transkription.
 - Numerische Zielbereiche werden nur vorgeschlagen, wenn die KSG-Angabe eine eindeutige Grenze, einen Bereich oder einen Zielpunkt nennt.
@@ -186,4 +187,4 @@ Die Zielbereiche sind keine Laborreferenzen und keine Diagnose- oder Therapieanw
 1. Parameter-Neuanlagen und Alias-Ergänzungen aus der Tabelle prüfen.
 2. Einheitengleichheit prüfen, besonders bei Vitamin A, Vitamin E, Phosphat, Cortisol, HbA1c, Q10, Mangan und Pregnenolon.
 3. Für `negativ`, `so niedrig wie möglich`, Zielpunkte und alters-/geschlechtsabhängige Bereiche entscheiden, ob sie als Textziel oder getrennte numerische Zielbereiche angelegt werden sollen.
-4. Danach kann ein Initialdaten-Patch erzeugt werden, der die Orfanos-Boeckel-Optimalbereiche mit `quelle_stelle` und `quelle_original_text` in `zielbereiche` ergänzt.
+4. Danach kann ein optionaler Paket-Patch erzeugt werden, der die Orfanos-Boeckel-Optimalbereiche mit `zielwert_paket`, `quelle_stelle` und `quelle_original_text` in `zielbereiche` ergänzt.
