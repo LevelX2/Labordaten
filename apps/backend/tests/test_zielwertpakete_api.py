@@ -54,7 +54,8 @@ def test_catalog_lists_orfanos_boeckel_package(monkeypatch, tmp_path: Path) -> N
     assert response.status_code == 200
     packages = response.json()
     assert packages[0]["paket_schluessel"] == "orfanos_boeckel_ksg_2026"
-    assert packages[0]["quelle"]["name"] == "Dr. med. Helena Orfanos-Boeckel"
+    assert packages[0]["quelle"]["name"] == "Nährstoff- und Hormontherapie - Der Präventions-Leitfaden"
+    assert packages[0]["quelle"]["quellen_typ"] == "buch"
     assert packages[0]["eintraege_anzahl"] >= 5
     assert packages[0]["installiert"] is False
 
@@ -74,6 +75,7 @@ def test_package_preview_reports_missing_parameters_and_target_direction(monkeyp
     assert ages["aktion"] == "parameter_fehlt"
     assert ages["zielrichtung"] == "je_niedriger_desto_besser"
     assert ages["obere_grenze_num"] == 50
+    assert ages["quelle_stelle"] == "Laborbezug: IMD Berlin"
 
 
 def test_package_install_creates_source_package_parameters_units_and_is_idempotent(monkeypatch, tmp_path: Path) -> None:
@@ -105,6 +107,31 @@ def test_package_install_creates_source_package_parameters_units_and_is_idempote
         assert package["paket_schluessel"] == "orfanos_boeckel_ksg_2026"
         assert package["aktive_zielbereiche_anzahl"] == install_result["vorschau"]["paket"]["eintraege_anzahl"]
 
+        ages_preview = next(
+            entry
+            for entry in install_result["vorschau"]["eintraege"]
+            if entry["parameter_schluessel"] == "ages_advanced_glycation_endproducts"
+        )
+        ages_targets_response = client.get(f"/api/parameter/{ages_preview['parameter_id']}/zielbereiche")
+        assert ages_targets_response.status_code == 200
+        ages_target = ages_targets_response.json()[0]
+        legacy_patch_response = client.patch(
+            f"/api/zielbereiche/{ages_target['id']}",
+            json={
+                "zielbereich_typ": ages_target["zielbereich_typ"],
+                "zielrichtung": ages_target["zielrichtung"],
+                "zielbereich_quelle_id": ages_target["zielbereich_quelle_id"],
+                "zielwert_paket_id": ages_target["zielwert_paket_id"],
+                "untere_grenze_num": ages_target["untere_grenze_num"],
+                "obere_grenze_num": ages_target["obere_grenze_num"],
+                "einheit": ages_target["einheit"],
+                "quelle_original_text": ages_target["quelle_original_text"],
+                "quelle_stelle": "KSG-Klassifikation, Tabelle S01",
+                "bemerkung": ages_target["bemerkung"],
+            },
+        )
+        assert legacy_patch_response.status_code == 200
+
         deactivate_response = client.patch(
             f"/api/zielwert-pakete/{package['id']}",
             json={
@@ -127,3 +154,8 @@ def test_package_install_creates_source_package_parameters_units_and_is_idempote
         )
         assert reactivate_response.status_code == 201
         assert reactivate_response.json()["reaktivierte_zielbereiche_anzahl"] == install_result["vorschau"]["paket"]["eintraege_anzahl"]
+        updated_ages_targets_response = client.get(f"/api/parameter/{ages_preview['parameter_id']}/zielbereiche")
+        assert updated_ages_targets_response.status_code == 200
+        updated_ages_targets = updated_ages_targets_response.json()
+        assert len(updated_ages_targets) == 1
+        assert updated_ages_targets[0]["quelle_stelle"] == "Laborbezug: IMD Berlin"

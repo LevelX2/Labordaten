@@ -88,11 +88,11 @@ def install_paket(
 
         existing_target = _find_matching_target(db, paket.id, parameter.id, target_definition)
         if existing_target is not None:
+            _sync_target_metadata(existing_target, source.id, target_definition)
             if existing_target.aktiv:
                 uebersprungene_zielbereiche += 1
                 continue
             existing_target.aktiv = True
-            existing_target.zielbereich_quelle_id = source.id
             db.add(existing_target)
             reaktivierte_zielbereiche += 1
             continue
@@ -381,8 +381,14 @@ def _target_matches_definition(target: Zielbereich, target_definition: dict[str,
         and normalize_parameter_name(target.soll_text) == normalize_parameter_name(target_definition.get("soll_text"))
         and normalize_parameter_name(target.quelle_original_text)
         == normalize_parameter_name(target_definition.get("quelle_original_text"))
-        and normalize_parameter_name(target.quelle_stelle) == normalize_parameter_name(target_definition.get("quelle_stelle"))
     )
+
+
+def _sync_target_metadata(target: Zielbereich, source_id: str, target_definition: dict[str, Any]) -> None:
+    target.zielbereich_quelle_id = source_id
+    target.quelle_original_text = _clean_optional(target_definition.get("quelle_original_text"))
+    target.quelle_stelle = _clean_optional(target_definition.get("quelle_stelle"))
+    target.bemerkung = _clean_optional(target_definition.get("bemerkung"))
 
 
 def _unit_exists(db: Session, unit: str) -> bool:

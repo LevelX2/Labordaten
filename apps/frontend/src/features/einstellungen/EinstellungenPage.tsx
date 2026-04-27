@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { apiFetch } from "../../shared/api/client";
 import { EinheitenPflegeCard } from "../../shared/components/EinheitenPflegeCard";
@@ -13,6 +14,7 @@ import {
   type ColorDesignKey
 } from "../../shared/theme/colorDesigns";
 import type { LockStatus, RuntimeSettings, SystemHealth } from "../../shared/types/api";
+import { ZielwertpaketePage } from "../zielwertpakete/ZielwertpaketePage";
 
 type EinstellungenAnsichtKey =
   | "uebersicht"
@@ -20,10 +22,30 @@ type EinstellungenAnsichtKey =
   | "pfade"
   | "standards"
   | "initialdaten"
+  | "datenpakete"
   | "design"
   | "labore"
   | "einheiten"
   | "technik";
+
+const einstellungenAnsichten: EinstellungenAnsichtKey[] = [
+  "uebersicht",
+  "sperre",
+  "pfade",
+  "standards",
+  "initialdaten",
+  "datenpakete",
+  "design",
+  "labore",
+  "einheiten",
+  "technik"
+];
+
+function parseAnsicht(value: string | null): EinstellungenAnsichtKey {
+  return einstellungenAnsichten.includes(value as EinstellungenAnsichtKey)
+    ? (value as EinstellungenAnsichtKey)
+    : "uebersicht";
+}
 
 function formatDate(value?: string | null): string {
   if (!value) {
@@ -76,6 +98,14 @@ function getSectionMeta(section: EinstellungenAnsichtKey): { title: string; desc
       badge: "Messstammdaten"
     };
   }
+  if (section === "datenpakete") {
+    return {
+      title: "Optionale Datenpakete",
+      description:
+        "Hier prüfst und lädst Du zusätzliche fachliche Datenpakete, zum Beispiel kuratierte Zielbereiche aus auswählbaren Quellen.",
+      badge: "Nachladbare Fachdaten"
+    };
+  }
   if (section === "einheiten") {
     return {
       title: "Einheiten",
@@ -106,9 +136,12 @@ function getSectionMeta(section: EinstellungenAnsichtKey): { title: string; desc
 
 export function EinstellungenPage() {
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [form, setForm] = useState<RuntimeSettings | null>(null);
   const [showPageInfo, setShowPageInfo] = useState(false);
-  const [selectedAnsicht, setSelectedAnsicht] = useState<EinstellungenAnsichtKey>("uebersicht");
+  const [selectedAnsicht, setSelectedAnsicht] = useState<EinstellungenAnsichtKey>(() =>
+    parseAnsicht(searchParams.get("ansicht"))
+  );
   const [selectedColorDesign, setSelectedColorDesign] = useState<ColorDesignKey>(() => getStoredColorDesignKey());
   const backendDocsUrl = "/api/docs";
   const backendOpenApiUrl = "/api/openapi.json";
@@ -131,6 +164,13 @@ export function EinstellungenPage() {
       setForm(settingsQuery.data);
     }
   }, [settingsQuery.data]);
+
+  useEffect(() => {
+    const nextAnsicht = parseAnsicht(searchParams.get("ansicht"));
+    if (nextAnsicht !== selectedAnsicht) {
+      setSelectedAnsicht(nextAnsicht);
+    }
+  }, [searchParams, selectedAnsicht]);
 
   const saveMutation = useMutation({
     mutationFn: () =>
@@ -165,6 +205,17 @@ export function EinstellungenPage() {
   const handleColorDesignChange = (key: ColorDesignKey) => {
     setSelectedColorDesign(key);
     storeAndApplyColorDesign(key);
+  };
+
+  const handleAnsichtChange = (ansicht: EinstellungenAnsichtKey) => {
+    setSelectedAnsicht(ansicht);
+    const nextParams = new URLSearchParams(searchParams);
+    if (ansicht === "uebersicht") {
+      nextParams.delete("ansicht");
+    } else {
+      nextParams.set("ansicht", ansicht);
+    }
+    setSearchParams(nextParams, { replace: true });
   };
 
   const renderSection = () => {
@@ -496,6 +547,10 @@ export function EinstellungenPage() {
       );
     }
 
+    if (selectedAnsicht === "datenpakete") {
+      return <ZielwertpaketePage embedded />;
+    }
+
     if (selectedAnsicht === "labore") {
       return <LaborePflegeCard className="card card--soft" />;
     }
@@ -596,63 +651,70 @@ export function EinstellungenPage() {
           <button
             type="button"
             className={`parameter-toolrail__button ${selectedAnsicht === "uebersicht" ? "parameter-toolrail__button--active" : ""}`}
-            onClick={() => setSelectedAnsicht("uebersicht")}
+            onClick={() => handleAnsichtChange("uebersicht")}
           >
             Übersicht
           </button>
           <button
             type="button"
             className={`parameter-toolrail__button ${selectedAnsicht === "sperre" ? "parameter-toolrail__button--active" : ""}`}
-            onClick={() => setSelectedAnsicht("sperre")}
+            onClick={() => handleAnsichtChange("sperre")}
           >
             Sperre
           </button>
           <button
             type="button"
             className={`parameter-toolrail__button ${selectedAnsicht === "pfade" ? "parameter-toolrail__button--active" : ""}`}
-            onClick={() => setSelectedAnsicht("pfade")}
+            onClick={() => handleAnsichtChange("pfade")}
           >
             Pfade
           </button>
           <button
             type="button"
             className={`parameter-toolrail__button ${selectedAnsicht === "standards" ? "parameter-toolrail__button--active" : ""}`}
-            onClick={() => setSelectedAnsicht("standards")}
+            onClick={() => handleAnsichtChange("standards")}
           >
             Standards
           </button>
           <button
             type="button"
             className={`parameter-toolrail__button ${selectedAnsicht === "design" ? "parameter-toolrail__button--active" : ""}`}
-            onClick={() => setSelectedAnsicht("design")}
+            onClick={() => handleAnsichtChange("design")}
           >
             Farbdesign
           </button>
           <button
             type="button"
             className={`parameter-toolrail__button ${selectedAnsicht === "initialdaten" ? "parameter-toolrail__button--active" : ""}`}
-            onClick={() => setSelectedAnsicht("initialdaten")}
+            onClick={() => handleAnsichtChange("initialdaten")}
           >
             Initialdaten
           </button>
           <button
             type="button"
+            className={`parameter-toolrail__button ${selectedAnsicht === "datenpakete" ? "parameter-toolrail__button--active" : ""}`}
+            onClick={() => handleAnsichtChange("datenpakete")}
+          >
+            Optionale Datenpakete
+          </button>
+          <button
+            type="button"
             className={`parameter-toolrail__button ${selectedAnsicht === "einheiten" ? "parameter-toolrail__button--active" : ""}`}
-            onClick={() => setSelectedAnsicht("einheiten")}
+            onClick={() => handleAnsichtChange("einheiten")}
           >
             Einheiten
           </button>
           <button
             type="button"
             className={`parameter-toolrail__button ${selectedAnsicht === "labore" ? "parameter-toolrail__button--active" : ""}`}
-            onClick={() => setSelectedAnsicht("labore")}
+            onClick={() => handleAnsichtChange("labore")}
           >
             Labore
           </button>
           <button
             type="button"
             className={`parameter-toolrail__button ${selectedAnsicht === "technik" ? "parameter-toolrail__button--active" : ""}`}
-            onClick={() => setSelectedAnsicht("technik")}
+            onClick={() => handleAnsichtChange("technik")}
           >
             Technik
           </button>

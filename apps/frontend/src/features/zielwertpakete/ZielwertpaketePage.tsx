@@ -68,7 +68,11 @@ function buildDeactivatePayload(packageRecord: ZielwertPaket): ZielwertPaketUpda
   };
 }
 
-export function ZielwertpaketePage() {
+type ZielwertpaketePageProps = {
+  embedded?: boolean;
+};
+
+export function ZielwertpaketePage({ embedded = false }: ZielwertpaketePageProps) {
   const queryClient = useQueryClient();
   const [selectedPackageKey, setSelectedPackageKey] = useState<string | null>(null);
   const [installOptions, setInstallOptions] = useState<ZielwertPaketInstallationPayload>(defaultInstallOptions);
@@ -152,14 +156,16 @@ export function ZielwertpaketePage() {
     (preview?.pruefung_erforderlich_anzahl ?? 0) > 0;
 
   return (
-    <section className="page zielwertpakete-page">
-      <header className="page__header">
-        <span className="page__kicker">Stammdaten & Wissen</span>
-        <h2>Zielwertpakete</h2>
-        <p>
-          Kuratierte Zielbereiche lassen sich als Paket prüfen, einspielen und später geschlossen deaktivieren.
-        </p>
-      </header>
+    <section className={embedded ? "zielwertpakete-page zielwertpakete-page--embedded" : "page zielwertpakete-page"}>
+      {!embedded ? (
+        <header className="page__header">
+          <span className="page__kicker">Stammdaten & Wissen</span>
+          <h2>Zielwertpakete</h2>
+          <p>
+            Kuratierte Zielbereiche lassen sich als Paket prüfen, einspielen und später geschlossen deaktivieren.
+          </p>
+        </header>
+      ) : null}
 
       <div className="zielwertpakete-workspace">
         <aside className="zielwertpakete-sidebar">
@@ -355,7 +361,7 @@ export function ZielwertpaketePage() {
                             <th>Zieltyp</th>
                             <th>Zielrichtung</th>
                             <th>Aktion</th>
-                            <th>Quelle / Bemerkung</th>
+                            <th>Laborbezug / Bemerkung</th>
                           </tr>
                         </thead>
                         <tbody>

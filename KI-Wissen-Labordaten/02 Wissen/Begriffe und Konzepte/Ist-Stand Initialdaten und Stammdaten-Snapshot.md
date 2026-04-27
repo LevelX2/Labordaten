@@ -1,7 +1,7 @@
 ---
 typ: architektur
 status: aktiv
-letzte_aktualisierung: 2026-04-26
+letzte_aktualisierung: 2026-04-27
 quellen:
   - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Initialdaten Stammdaten-Snapshot.md
   - ../../../apps/backend/scripts/export_initialdaten_snapshot.py
@@ -11,11 +11,14 @@ quellen:
   - ../../../apps/frontend/src/shared/components/InitialdatenStartupDialog.tsx
   - ../../../apps/frontend/src/shared/components/InitialdatenPanel.tsx
   - ../../../apps/frontend/src/features/einstellungen/EinstellungenPage.tsx
+  - ../../../apps/frontend/src/features/zielwertpakete/ZielwertpaketePage.tsx
 tags:
   - initialdaten
   - stammdaten
   - auslieferung
   - snapshot
+  - datenpakete
+  - zielwertpakete
 ---
 
 # Ist-Stand Initialdaten und Stammdaten-Snapshot
@@ -24,6 +27,8 @@ tags:
 Für leere Installationen gibt es einen Initialdaten-Snapshot mit Erststart-Dialog und Einstellungsaktion. Er enthält fachliche Stammdaten, die eine heruntergeladene Anwendung ohne manuelle Vorpflege sofort nutzbar machen sollen.
 
 Der Snapshot ist bewusst kein Nutzerdaten-Backup. Er enthält keine Personen, Befunde, Messwerte, Dokumente, Labore, Planungen oder Importhistorie.
+
+Davon getrennt gibt es optionale Datenpakete. Sie sind nachladbare fachliche Sammlungen, die ein Anwender bewusst prüfen, einspielen und später geschlossen deaktivieren kann. Zielwertpakete wie die Orfanos-Boeckel-KSG-Optimalbereiche gehören in diese Spur und nicht fest in den neutralen Initialdaten-Snapshot.
 
 ## Enthaltene Grunddaten
 Der aktuelle Snapshot `initialdaten_snapshot.json` enthält:
@@ -69,6 +74,8 @@ Diese Tabellen beschreiben konkrete Nutzer-, Verlaufs- oder Arbeitsdaten und dü
 - Wenn der Initialimport empfohlen wird, erscheint ein Dialog `Leere Stammdaten erkannt` mit kurzer Beschreibung des enthaltenen und ausgeschlossenen Datenumfangs.
 - Der Dialog kann die mitgelieferten Messstammdaten direkt laden oder für den laufenden Start geschlossen werden.
 - In `Einstellungen > Initialdaten` gibt es dieselbe Ladefunktion dauerhaft. Wenn bereits Stammdaten vorhanden sind, kann dort zusätzlich eine Aktualisierung anhand des Snapshots gestartet werden.
+- In `Einstellungen > Optionale Datenpakete` werden nachladbare fachliche Pakete wie Zielwertpakete verwaltet. Dort liegt die Paketliste mit Vorschau, Optionen zum Anlegen fehlender Parameter oder Einheiten sowie Aktionen zum Einspielen und Deaktivieren.
+- Die Parameterpflege darf aus dem Zielbereich-Kontext auf `Einstellungen > Optionale Datenpakete` verweisen, bleibt aber nicht der Hauptort für Paketinstallation.
 
 ## Aktualisierung des Snapshots
 Wenn fachliche Grunddaten geändert werden, soll der Snapshot neu erzeugt werden. Dazu wird der aktuelle, fachlich geprüfte Datenbankstand exportiert. Der Snapshot ist dadurch versionierbar und kann mit Tests gegen eine frische Datenbank geprüft werden.

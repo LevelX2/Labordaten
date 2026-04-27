@@ -30,16 +30,16 @@ tags:
 
 Stand: 2026-04-27
 
-Dieser Entwurf leitet aus den lokal transkribierten KSG-Tabellen Zielbereiche ab, die als `optimalbereich` mit der Zielwertquelle `Dr. med. Helena Orfanos-Boeckel / Nährstoff- und Hormontherapie` angelegt werden könnten. Die Zielbereiche sollen nicht als unvermeidlicher Systemstandard, sondern als optionales `ZielwertPaket` gepflegt werden.
+Dieser Entwurf leitet aus den lokal transkribierten KSG-Tabellen Zielbereiche ab, die als `optimalbereich` mit der Zielwertquelle `Nährstoff- und Hormontherapie - Der Präventions-Leitfaden` von Dr. med. Helena Orfanos-Boeckel angelegt werden könnten. Die Zielbereiche sollen nicht als unvermeidlicher Systemstandard, sondern als optionales `ZielwertPaket` gepflegt werden.
 
 Die Zielbereiche sind keine Laborreferenzen und keine Diagnose- oder Therapieanweisung. Sie sind quellengebundene Orientierungswerte. Bei unklaren, rein textlichen oder stark kontextabhängigen Angaben wird bewusst kein harter numerischer Bereich vorgeschlagen.
 
 ## Modellierungsregeln
 
 - `zielbereich_typ`: immer `optimalbereich`.
-- `zielbereich_quelle`: `Dr. med. Helena Orfanos-Boeckel`.
+- `zielbereich_quelle`: `Nährstoff- und Hormontherapie - Der Präventions-Leitfaden` als Buchquelle; Dr. med. Helena Orfanos-Boeckel bleibt als Titel-/Autorinnenangabe an der Quelle.
 - `zielwert_paket`: optionales Paket, z. B. `orfanos_boeckel_ksg_2026`.
-- `quelle_stelle`: jeweilige Tabelle, z. B. `KSG-Klassifikation Tab S03`.
+- `quelle_stelle`: kein Scan- oder Tabellenverweis, sondern der Laborbezug des Zielwertblocks, z. B. `Laborbezug: IMD Berlin` oder `Laborbezug: Labor Augsburg`.
 - `quelle_original_text`: Zielwertspalte aus der Transkription.
 - Numerische Zielbereiche werden nur vorgeschlagen, wenn die KSG-Angabe eine eindeutige Grenze, einen Bereich oder einen Zielpunkt nennt.
 - Angaben wie `so niedrig wie möglich`, `negativ`, `je niedriger desto besser` oder `oberes Drittel der Referenz` werden als Textziel oder als Prüfhinweis vorgeschlagen, sofern keine belastbare numerische Grenze genannt wird.
@@ -48,7 +48,7 @@ Die Zielbereiche sind keine Laborreferenzen und keine Diagnose- oder Therapieanw
 
 ## Zusammenfassung
 
-- Die KSG-Transkriptionen S01 bis S15 enthalten 124 auswertbare Tabellenzeilen.
+- Die KSG-Transkriptionen S01 bis S15 enthalten 124 auswertbare Tabellenzeilen. Für die Paketdaten wird die Scan-Seitenzählung nicht als sichtbare Zielbereichs-Fundstelle genutzt; relevant ist der Laborbezug des jeweiligen Blocks.
 - Für viele Werte existieren bereits passende Parameter im Initialdaten-Snapshot.
 - Mehrere Zielwerte brauchen vor dem produktiven Import neue Parameter oder Alias-Ergänzungen, vor allem bei AGEs, BDNF, DAO, Histamin, I-FABP, Lp-PLA2, rT3, Zonulin, ANA, Apo-B, CCP-AK, Cystatin C, DHT, IgA/IgG/IgM, IGF-1, IGF-BP3, LH, Melatonin, Mikroalbuminurie, NT-proBNP, Östron, Pregnenolon, RBP, Serotonin und SHBG.
 - Einige vorhandene Parameter sind methodisch nah, aber nicht deckungsgleich, z. B. `Oxidiertes LDL` gegenüber `MDA-LDL`, `Nitrotyrosin im Serum` gegenüber `Nitrotyrosin im EDTA-Plasma` oder `Vitamin A` mit anderer Standardeinheit. Diese Fälle sollten vor dem Import fachlich geprüft werden.
@@ -187,4 +187,4 @@ Die Zielbereiche sind keine Laborreferenzen und keine Diagnose- oder Therapieanw
 1. Parameter-Neuanlagen und Alias-Ergänzungen aus der Tabelle prüfen.
 2. Einheitengleichheit prüfen, besonders bei Vitamin A, Vitamin E, Phosphat, Cortisol, HbA1c, Q10, Mangan und Pregnenolon.
 3. Für `negativ`, `so niedrig wie möglich`, Zielpunkte und alters-/geschlechtsabhängige Bereiche entscheiden, ob sie als Textziel oder getrennte numerische Zielbereiche angelegt werden sollen.
-4. Danach kann ein optionaler Paket-Patch erzeugt werden, der die Orfanos-Boeckel-Optimalbereiche mit `zielwert_paket`, `quelle_stelle` und `quelle_original_text` in `zielbereiche` ergänzt.
+4. Danach kann ein optionaler Paket-Patch erzeugt werden, der die Orfanos-Boeckel-Optimalbereiche mit `zielwert_paket`, Laborbezug in `quelle_stelle` und `quelle_original_text` in `zielbereiche` ergänzt.

@@ -344,6 +344,8 @@ Auf breiten Bildschirmen erscheinen diese Gruppen als Abschnitte in der linken N
 - Dokumentenpfad
 - Wissensordner
 - Standardanzeigeeinheiten
+- Initialdaten für mitgelieferte neutrale Messstammdaten
+- Optionale Datenpakete für bewusst nachladbare fachliche Pakete wie Zielwertpakete
 - Labore als zentrale Stammdaten mit Name, Adresse, Bemerkung, Bearbeitung und Löschprüfung
 - Importoptionen
 - Berichtspräferenzen

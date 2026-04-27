@@ -325,7 +325,7 @@ Regeln:
 
 ### ZielbereichQuelle
 - `id`
-- `name`: Name der Quelle oder empfehlenden Person, z. B. `Dr. med. Helena Orfanos-Boeckel`
+- `name`: Name der Quelle, z. B. Buchtitel, Leitlinie, Labor oder empfehlende Person
 - `quellen_typ`: feste Ausprägung wie `experte`, `buch`, `leitlinie`, `labor` oder `eigene_vorgabe`
 - `titel`: optionaler Werktitel oder Quellenname
 - `jahr`: optionales Jahr, falls eine Empfehlung versioniert oder zeitlich eingeordnet werden soll
@@ -338,7 +338,7 @@ Regeln:
 Regel:
 - Fachliche Empfehlungen zu Zielwerten sollen nicht wiederholt in `Zielbereich.bemerkung` geschrieben werden, wenn sie einer wiederverwendbaren Quelle zugeordnet werden können.
 - Mehrere Experten, Bücher, Leitlinien, Laborvorgaben oder eigene Vorgaben dürfen parallel Zielbereiche für denselben Parameter liefern.
-- Die KSG-Tabellenwerte von Dr. med. Helena Orfanos-Boeckel werden als `optimalbereich`-Zielbereiche mit eigener Zielwertquelle modelliert, nicht als allgemeingültige Laborreferenzen.
+- Die KSG-Zielwerte aus `Nährstoff- und Hormontherapie - Der Präventions-Leitfaden` von Dr. med. Helena Orfanos-Boeckel werden als `optimalbereich`-Zielbereiche mit eigener Buchquelle modelliert, nicht als allgemeingültige Laborreferenzen.
 
 ### ZielwertPaket
 - `id`
@@ -376,7 +376,7 @@ Regel:
 - `alter_min_tage`: optional
 - `alter_max_tage`: optional
 - `quelle_original_text`: optionaler Originalwortlaut des Zielwerts aus der Quelle
-- `quelle_stelle`: optionaler Fundstellenhinweis, z. B. Tabelle, Seite oder Abschnitt
+- `quelle_stelle`: optionaler Fundstellen- oder Kontextbezug, z. B. Laborbezug, Tabelle oder Abschnitt
 - `bemerkung`
 - `aktiv`
 - `erstellt_am`

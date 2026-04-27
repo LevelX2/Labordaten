@@ -11,6 +11,39 @@
 
 ## 2026-04
 
+### [2026-04-27] update | Zielwertpaketquelle auf Buch und Laborbezug korrigiert
+- Anlass oder Quelle: Nutzerhinweis, dass der Zielwertpaket-Katalog als Quelle den Buchtitel führen soll und Zielwert-Fundstellen nicht auf Scan-Klassifikation oder Seitenzahlen verweisen sollen.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../02 Wissen/Begriffe und Konzepte/KSG Klassifizierung von Laborparametern.md
+  - ../02 Wissen/Begriffe und Konzepte/V1 Ziel-Datenmodell.md
+  - ../03 Betrieb/KSG-Zielbereichsvorschlag Orfanos-Boeckel 2026-04-27.md
+  - ../../../apps/backend/src/labordaten_backend/modules/zielwertpakete/paket_katalog.json
+  - ../../../apps/backend/src/labordaten_backend/modules/zielwertpakete/service.py
+  - ../../../apps/backend/tests/test_zielwertpakete_api.py
+- Kern der inhaltlichen Anpassung:
+  - Der Katalog führt `Nährstoff- und Hormontherapie - Der Präventions-Leitfaden` als Buchquelle mit Dr. med. Helena Orfanos-Boeckel als Titel-/Autorinnenangabe.
+  - Die Zielwert-Einträge verwenden in `quelle_stelle` nur noch den Laborbezug: `IMD Berlin` für den ersten Block und `Labor Augsburg` für den zweiten Block.
+  - Die Paketinstallation gleicht bestehende Zielbereichs-Metadaten beim erneuten Einspielen nach, damit alte Scan-Fundstellen nicht als Dubletten stehen bleiben.
+
+### [2026-04-27] update | Zielwertpakete unter optionale Datenpakete eingeordnet
+- Anlass oder Quelle: Nutzerentscheidung, Zielwertpakete nicht als prominenten eigenen Hauptbereich und nicht direkt im Initialdatenblock zu führen, sondern als eigenen Einstellungs-Tab `Optionale Datenpakete`.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../02 Wissen/Begriffe und Konzepte/Ist-Stand Initialdaten und Stammdaten-Snapshot.md
+  - ../02 Wissen/Begriffe und Konzepte/V1 Screenplan und Kernworkflows.md
+  - ../../../apps/frontend/src/features/einstellungen/EinstellungenPage.tsx
+  - ../../../apps/frontend/src/features/zielwertpakete/ZielwertpaketePage.tsx
+  - ../../../apps/frontend/src/features/parameter/ParameterPage.tsx
+- Kern der inhaltlichen Anpassung:
+  - `Einstellungen` besitzt jetzt den Tab `Optionale Datenpakete`.
+  - Die Zielwertpaket-Verwaltung wird dort eingebettet und bleibt per direkter URL `?ansicht=datenpakete` erreichbar.
+  - Der Kontextlink aus der Parameter-Zielbereichspflege führt auf diesen neuen Einstellungs-Tab.
+  - Die Wissensbasis unterscheidet jetzt klar zwischen neutralem Initialdaten-Snapshot und bewusst nachladbaren optionalen Datenpaketen.
+  - Verifiziert mit `npm run build`, `npm test` und Browser-Sichtprüfung auf `http://localhost:5173/einstellungen?ansicht=datenpakete`.
+
 ### [2026-04-27] update | Auswertung zeigt Referenz- und Zielbereiche als vertikale Marker
 - Anlass oder Quelle: Nutzerwunsch, Referenz- und Zielwerte am jeweiligen Messpunkt als vertikale Spanne statt als verbundene Linie zu sehen, ähnlich einer Maßlinie.
 - Neu angelegte Seiten:

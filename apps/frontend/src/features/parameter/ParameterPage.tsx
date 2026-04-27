@@ -2011,7 +2011,7 @@ export function ParameterPage() {
               </select>
               <small>
                 Zielbereiche können manuell gepflegt oder als kuratiertes Paket eingespielt werden.{" "}
-                <Link className="text-link" to="/zielwertpakete">
+                <Link className="text-link" to="/einstellungen?ansicht=datenpakete">
                   Zielwertpakete prüfen und einspielen
                 </Link>
               </small>
