@@ -50,7 +50,15 @@ Zu Beginn projektbezogener Arbeit zuerst diese Dateien lesen:
 ## Git-Arbeitsweise
 
 - Vor Dateiänderungen aktuellen Branch prüfen.
-- Wenn der Branch `main` ist, vor der ersten Änderung automatisch einen Arbeitsbranch mit Präfix `codex/` erstellen.
+- Wenn der Branch `main` ist, vor der ersten Änderung automatisch einen datumsbasierten Arbeitsbranch mit Präfix `codex/` erstellen oder auf ihn wechseln.
+- Standardschema für normale Arbeitsphasen: `codex/ab-YYYY-MM-DD`, bezogen auf das lokale Projektdatum.
+- Wenn der passende Datumsbranch bereits existiert, wird er weiterverwendet.
+- Innerhalb eines Datumsbranches dürfen mehrere Themen parallel bearbeitet werden, wenn sie zur aktuellen Arbeitsphase gehören.
+- Commits bleiben trotzdem fachlich sinnvoll getrennt, zum Beispiel UI, Import, Wissenspflege, Datenpakete, Migrationen oder Tests.
+- Ein eigener Themenbranch wird nur angelegt, wenn der Nutzer ihn ausdrücklich verlangt oder wenn eine Änderung besonders riskant, langlaufend oder klar getrennt vom laufenden Arbeitsstand ist.
+- `main` bleibt der stabile Integrationsstand.
+- Merge nach `main` erfolgt erst, wenn der Arbeitsbranch insgesamt prüfbar und grün ist.
+- Wenn am Tagesende nicht alles sauber läuft, bleibt der Datumsbranch offen und wird am nächsten Arbeitstag weitergeführt oder bewusst abgeschlossen.
 - Direkte Änderungen auf `main` sind nur auf ausdrücklichen Nutzerwunsch zulässig.
 - Reine Lese-, Prüf- und Statusbefehle dürfen auf `main` laufen.
 
@@ -143,9 +151,14 @@ Wenn der Nutzer `Finito`, `Finale`, `Endfinale` oder `Ende` schreibt, gelten gru
 
 Wenn diese globale Auflösung in der aktuellen Umgebung nicht verfügbar ist, gilt als lokaler Minimalkontrakt:
 
-- `Finito` oder `Ende`: lokaler Abschluss ohne automatischen Merge nach `main` und ohne automatischen Push; abgeschlossene Änderungen in sinnvolle Commit-Blöcke aufteilen, committen und offene Punkte kompakt benennen.
-- `Finale` oder `Endfinale`: zuerst denselben lokalen Abschluss wie bei `Finito` durchführen; zusätzliche globale Merge-, Push- oder Projektabschluss-Schritte nur ausführen, wenn die globale Definition verfügbar und eindeutig auflösbar ist.
+- `Finito` oder `Ende`: lokaler Abschluss ohne automatischen Merge nach `main` und ohne automatischen Push; alle offenen Änderungen und ungetrackten Dateien prüfen, klar einordenbare und fachlich abgeschlossene Änderungen in sinnvolle Commit-Blöcke aufteilen, committen und verbleibende offene oder unklare Punkte kompakt benennen.
+- `Finale`: zuerst denselben lokalen Abschluss wie bei `Finito` durchführen; danach den aktuellen Arbeitsbranch nach erfolgreichen Checks per Fast-Forward nach `main` übernehmen, Checks auf `main` erneut ausführen und `main` pushen, sofern alles sauber ist.
+- `Endfinale`: wie `Finale`; zusätzlich einen vollständigeren Verify-Lauf, Wissensbasis-/Statuspflege, Logprüfung und kompakten Restpunkte-Check durchführen.
 
 Für dieses Projekt gilt ergänzend:
 - projektspezifische Checks, Wissenspflege und Zusatzschritte dürfen die globale Sequenz erweitern
 - lokale offene Änderungen außerhalb dieses Threads sind kein automatischer Blocker, sollen aber im Abschluss sichtbar benannt werden
+- Abschlusskommandos räumen den aktuellen Arbeitsbranch auf: Alles klar einordenbare und fachlich abgeschlossene wird automatisch in sinnvollen Commit-Blöcken committet, auch wenn es aus früheren Teilaufgaben desselben Branches stammt.
+- Offene Änderungen werden nicht pauschal in einen Sammelcommit geworfen. Der Agent ordnet sie nach fachlichem Zusammenhang, zum Beispiel Backend-Logik, Frontend-UI, Tests, Wissensbasis, Laborwissen-Seiten, Datenpakete, Initialdaten oder Migrationen.
+- Änderungen, die offensichtlich unfertig, widersprüchlich, riskant oder nicht einordenbar sind, werden nicht automatisch committet; sie werden als offene Punkte benannt.
+- Lokale Laufzeitdaten, Datenbanken, Builds, temporäre Dateien und private Overlays bleiben vom automatischen Committen ausgeschlossen.

@@ -88,6 +88,19 @@ Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitp
 - Für Rückmeldungen im Projektalltag ist es hilfreicher, zunächst Datenlage, Codepfad, Filterzustand, API-Antwort oder konkrete Laufzeitlogik zu prüfen als reflexhaft ein manuelles Neuladen zu empfehlen.
 - Diese Leitlinie gilt nicht nur fuer dieses eine Repository, sondern generell fuer vergleichbare lokale Entwicklungsumgebungen mit Reload- oder Hot-Reload-Betrieb.
 
+## Datumsbasierte Arbeitsbranches und Abschluss
+- Normale Arbeitsphasen laufen bevorzugt auf datumsbasierten Arbeitsbranches nach dem Muster `codex/ab-YYYY-MM-DD`.
+- Diese Branches dürfen mehrere Themen enthalten, wenn sie im selben lokalen Arbeitsfluss entstehen und ein eigener Workspace oder Themenbranch mehr Reibung als Nutzen bringen würde.
+- `main` bleibt der stabile Integrationsstand. Nach `main` wird erst übernommen, wenn der Arbeitsbranch insgesamt prüfbar und grün ist.
+- Commits bleiben innerhalb des Datumsbranches fachlich getrennt, zum Beispiel Backend-Logik, Frontend-UI, Tests, Wissensbasis, Laborwissen-Seiten, Datenpakete, Initialdaten oder Migrationen.
+- Abschlusskommandos prüfen automatisch alle offenen Änderungen und ungetrackten Dateien. Klar einordenbare und fachlich abgeschlossene Änderungen werden in sinnvolle Commit-Blöcke aufgeteilt und committet, auch wenn sie aus früheren Teilaufgaben desselben Branches stammen.
+- Offene Änderungen werden nicht pauschal in einen Sammelcommit geworfen.
+- Änderungen, die offensichtlich unfertig, widersprüchlich, riskant oder nicht einordenbar sind, bleiben uncommitted und werden als offene Punkte benannt.
+- Lokale Laufzeitdaten, Datenbanken, Builds, temporäre Dateien und private Overlays bleiben vom automatischen Committen ausgeschlossen.
+- `Finito` bedeutet lokaler Abschluss mit sinnvoller Commit-Aufteilung, aber ohne automatischen Merge nach `main` und ohne Push.
+- `Finale` bedeutet lokaler Abschluss plus Übernahme des grünen Arbeitsbranches nach `main`, erneute Checks auf `main` und Push.
+- `Endfinale` bedeutet `Finale` plus vollständigerer Verify-Lauf, Wissensbasis-/Statuspflege, Logprüfung und kompakter Restpunkte-Check.
+
 ## Lokale Laufzeitartefakte und Analyseausgaben
 - Lokale Laufzeitartefakte wie Datenbankdateien, Laufzeit-Einstellungen, Sperrdateien und dokumentbezogene Ablagen sollen nicht versioniert werden.
 - Dasselbe gilt fuer temporaere Extraktions-, Vorschau-, Scan-, Inventar- und Analyseartefakte wie `tmp_*`-Ordner, JSONL-Inventare oder ad-hoc erzeugte Seitenbilder.

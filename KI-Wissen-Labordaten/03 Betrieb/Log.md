@@ -11,6 +11,22 @@
 
 ## 2026-04
 
+### [2026-04-27] update | Datumsbranches und Abschlusslogik in Projektregeln ergänzt
+- Anlass oder Quelle: Nutzerentscheidung, dass die Arbeitsweise in `Labordaten` besser mit datumsbasierten Arbeitsbranches und automatischer Einordnung offener Änderungen bei Abschlusskommandos zusammenpasst.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../AGENTS.md
+  - Generische Entwicklungsvorgaben.md
+  - Haupt-Vault: `00 Kontext/Projektstart-Standards.md`
+  - Haupt-Vault: `00 Kontext/Abschlusskommandos.md`
+  - Haupt-Vault: `02 Wissen/Entwicklung/Git- und Repo-Arbeitsweise.md`
+- Kern der inhaltlichen Anpassung:
+  - Projektarbeit soll standardmäßig auf datumsbasierten Arbeitsbranches nach `codex/ab-YYYY-MM-DD` laufen, wenn kein eigener Themenbranch sinnvoller ist.
+  - Abschlusskommandos prüfen offene Änderungen und ungetrackte Dateien automatisch und committen klar einordenbare abgeschlossene Änderungen in sinnvollen fachlichen Blöcken.
+  - Unfertige, riskante oder nicht einordenbare Änderungen bleiben uncommitted und werden als offene Punkte benannt.
+  - Im Haupt-Vault ist ergänzt, dass Branch-Strategie und Abschlusslogik in die commitbare Projekt-`AGENTS.md` gehören, falls kein expliziter commitbarer Ersatz definiert ist.
+
 ### [2026-04-27] update | Laborwissen-Link im Parameterdetail sichtbar gemacht
 - Anlass oder Quelle: Nutzerhinweis, dass der Aufruf der Wissensseite nicht nur über `Wissen` beziehungsweise `Pflege Wissen` erreichbar sein soll.
 - Neu angelegte Seiten:
