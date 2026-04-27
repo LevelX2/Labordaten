@@ -91,6 +91,7 @@ apps/backend/
       planung/
       importe/
       berichte/
+      vorlagen/
       wissensbasis/
       einstellungen/
     services/
@@ -171,6 +172,11 @@ apps/backend/
 - Arztbericht Liste
 - Verlaufsbericht Zeitachse
 - Konfigurierbare Berichtsfelder
+
+### `vorlagen`
+- gemeinsame Ansichtsvorlagen für Auswertung und Berichte
+- Speichern, Laden, Umbenennen und Deaktivieren wiederverwendbarer Filter- und Optionskombinationen
+- typabhängige Validierung der JSON-Konfiguration
 
 ### `wissensbasis`
 - Markdown-Seiten lesen
@@ -278,8 +284,14 @@ apps/backend/
 #### Berichte
 - `POST /api/berichte/arztbericht`
 - `POST /api/berichte/verlauf`
-- `GET /api/berichte/vorlagen`
-- `POST /api/berichte/vorlagen`
+
+#### Vorlagen
+- `GET /api/vorlagen`
+- `POST /api/vorlagen`
+- `GET /api/vorlagen/{vorlageId}`
+- `PATCH /api/vorlagen/{vorlageId}`
+- `DELETE /api/vorlagen/{vorlageId}`
+- `POST /api/vorlagen/{vorlageId}/anwenden`
 
 #### Wissensbasis
 - `GET /api/wissensbasis/seiten`

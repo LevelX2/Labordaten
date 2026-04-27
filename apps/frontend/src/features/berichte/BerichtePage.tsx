@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
@@ -6,6 +6,7 @@ import { apiFetch, apiFetchBlob } from "../../shared/api/client";
 import { DateRangeFilterFields, isInvalidDateRange } from "../../shared/components/DateRangeFilterFields";
 import { MesswertDetailCard } from "../../shared/components/MesswertDetailCard";
 import { SelectionChecklist } from "../../shared/components/SelectionChecklist";
+import { ViewTemplateBar } from "../../shared/components/ViewTemplateBar";
 import {
   PARAMETER_KLASSIFIKATION_OPTIONS,
   formatParameterKlassifikation
@@ -14,6 +15,12 @@ import { getDefaultDateRange } from "../../shared/utils/dateRangeDefaults";
 import { formatDisplayDate as formatDate } from "../../shared/utils/dateFormatting";
 import { applySharedFilterSearchParams } from "../../shared/utils/filterNavigation";
 import type {
+  AnsichtVorlage,
+  AnsichtVorlageCreatePayload,
+  AnsichtVorlageDeleteResult,
+  AnsichtVorlageKonfiguration,
+  AnsichtVorlageTyp,
+  AnsichtVorlageUpdatePayload,
   ArztberichtResponse,
   Gruppe,
   Labor,
@@ -55,6 +62,96 @@ const initialForm: BerichtFormState = {
   include_befundbemerkung: true,
   include_messwertbemerkung: true
 };
+
+function readStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+function readKlassifikationen(value: unknown): ParameterKlassifikationCode[] {
+  const validValues = new Set<string>(PARAMETER_KLASSIFIKATION_OPTIONS.map((option) => option.value));
+  return readStringArray(value).filter((item): item is ParameterKlassifikationCode => validValues.has(item));
+}
+
+function readBoolean(value: unknown, fallback: boolean): boolean {
+  return typeof value === "boolean" ? value : fallback;
+}
+
+function viewKeyToTemplateType(viewKey: BerichtAnsichtKey): AnsichtVorlageTyp {
+  return viewKey === "arztbericht" ? "arztbericht_liste" : "verlaufsbericht_zeitachse";
+}
+
+function templateTypeToViewKey(templateType: AnsichtVorlageTyp): BerichtAnsichtKey {
+  return templateType === "verlaufsbericht_zeitachse" ? "verlauf" : "arztbericht";
+}
+
+function buildBerichtVorlageConfig(form: BerichtFormState, viewKey: BerichtAnsichtKey): AnsichtVorlageKonfiguration {
+  return {
+    filter: {
+      person_ids: form.person_ids,
+      laborparameter_ids: form.laborparameter_ids,
+      gruppen_ids: form.gruppen_ids,
+      klassifikationen: form.klassifikationen,
+      labor_ids: form.labor_ids,
+      datum_von: form.datum_von || null,
+      datum_bis: form.datum_bis || null
+    },
+    optionen:
+      viewKey === "arztbericht"
+        ? {
+            include_referenzbereich: form.include_referenzbereich,
+            include_labor: form.include_labor,
+            include_befundbemerkung: form.include_befundbemerkung,
+            include_messwertbemerkung: form.include_messwertbemerkung,
+            einheit_auswahl: {}
+          }
+        : {
+            einheit_auswahl: {}
+          }
+  };
+}
+
+function applyBerichtVorlageConfig(config: AnsichtVorlageKonfiguration): BerichtFormState {
+  const filter = config.filter ?? initialForm;
+  const optionen = config.optionen ?? {};
+
+  return {
+    ...initialForm,
+    person_ids: readStringArray(filter.person_ids),
+    laborparameter_ids: readStringArray(filter.laborparameter_ids),
+    gruppen_ids: readStringArray(filter.gruppen_ids),
+    klassifikationen: readKlassifikationen(filter.klassifikationen),
+    labor_ids: readStringArray(filter.labor_ids),
+    datum_von: typeof filter.datum_von === "string" ? filter.datum_von : filter.datum_von === null ? "" : initialForm.datum_von,
+    datum_bis: typeof filter.datum_bis === "string" ? filter.datum_bis : filter.datum_bis === null ? "" : initialForm.datum_bis,
+    include_referenzbereich: readBoolean(optionen.include_referenzbereich, initialForm.include_referenzbereich),
+    include_labor: readBoolean(optionen.include_labor, initialForm.include_labor),
+    include_befundbemerkung: readBoolean(optionen.include_befundbemerkung, initialForm.include_befundbemerkung),
+    include_messwertbemerkung: readBoolean(optionen.include_messwertbemerkung, initialForm.include_messwertbemerkung)
+  };
+}
+
+function countMissingIds(ids: string[], knownIds: string[]): number {
+  const known = new Set(knownIds);
+  return ids.filter((id) => !known.has(id)).length;
+}
+
+function buildMissingTemplateWarning(
+  form: BerichtFormState,
+  data: {
+    personen: Person[];
+    gruppen: Gruppe[];
+    parameter: Parameter[];
+    labore: Labor[];
+  }
+): string | null {
+  const missingCount =
+    countMissingIds(form.person_ids, data.personen.map((person) => person.id)) +
+    countMissingIds(form.gruppen_ids, data.gruppen.map((gruppe) => gruppe.id)) +
+    countMissingIds(form.laborparameter_ids, data.parameter.map((parameter) => parameter.id)) +
+    countMissingIds(form.labor_ids, data.labore.map((labor) => labor.id));
+
+  return missingCount ? `Diese Vorlage enthält ${missingCount} nicht mehr verfügbare Auswahlwerte.` : null;
+}
 
 function formatCount(value: number, singular: string, plural: string): string {
   return `${value} ${value === 1 ? singular : plural}`;
@@ -143,16 +240,26 @@ function buildDoctorOptionSummary(form: BerichtFormState): string {
 }
 
 export function BerichtePage() {
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const [form, setForm] = useState<BerichtFormState>(() =>
     applySharedFilterSearchParams(initialForm, searchParams)
   );
   const [selectedMesswertId, setSelectedMesswertId] = useState<string | null>(null);
   const [selectedAnsicht, setSelectedAnsicht] = useState<BerichtAnsichtKey>("arztbericht");
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [templateBaseline, setTemplateBaseline] = useState("");
+  const [templateWarning, setTemplateWarning] = useState<string | null>(null);
   const [activePanel, setActivePanel] = useState<BerichtPanelKey | null>(() =>
     form.person_ids.length ? null : "filters"
   );
   const [showPageInfo, setShowPageInfo] = useState(false);
+  const selectedTemplateType = viewKeyToTemplateType(selectedAnsicht);
+  const currentTemplateConfig = useMemo(
+    () => buildBerichtVorlageConfig(form, selectedAnsicht),
+    [form, selectedAnsicht]
+  );
+  const currentTemplateSignature = useMemo(() => JSON.stringify(currentTemplateConfig), [currentTemplateConfig]);
   const isDateRangeInvalid = isInvalidDateRange(form.datum_von, form.datum_bis);
 
   const personenQuery = useQuery({
@@ -170,6 +277,10 @@ export function BerichtePage() {
   const laboreQuery = useQuery({
     queryKey: ["labore"],
     queryFn: () => apiFetch<Labor[]>("/api/labore")
+  });
+  const templatesQuery = useQuery({
+    queryKey: ["vorlagen", "bericht"],
+    queryFn: () => apiFetch<AnsichtVorlage[]>("/api/vorlagen?bereich=bericht")
   });
 
   const doctorPayload = {
@@ -229,6 +340,52 @@ export function BerichtePage() {
         body: JSON.stringify(trendPayload)
       });
       downloadBlob(result.blob, result.filename ?? "verlauf.pdf");
+    }
+  });
+  const createTemplateMutation = useMutation({
+    mutationFn: (payload: AnsichtVorlageCreatePayload) =>
+      apiFetch<AnsichtVorlage>("/api/vorlagen", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      }),
+    onSuccess: (template) => {
+      queryClient.invalidateQueries({ queryKey: ["vorlagen", "bericht"] });
+      setSelectedAnsicht(templateTypeToViewKey(template.vorlage_typ));
+      setSelectedTemplateId(template.id);
+      setTemplateBaseline(JSON.stringify(template.konfiguration_json));
+      setTemplateWarning(null);
+    }
+  });
+  const updateTemplateMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: AnsichtVorlageUpdatePayload }) =>
+      apiFetch<AnsichtVorlage>(`/api/vorlagen/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload)
+      }),
+    onSuccess: (template) => {
+      queryClient.invalidateQueries({ queryKey: ["vorlagen", "bericht"] });
+      setSelectedTemplateId(template.id);
+      setTemplateBaseline(JSON.stringify(template.konfiguration_json));
+      setTemplateWarning(null);
+    }
+  });
+  const applyTemplateMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<AnsichtVorlage>(`/api/vorlagen/${id}/anwenden`, {
+        method: "POST"
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["vorlagen", "bericht"] })
+  });
+  const deleteTemplateMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<AnsichtVorlageDeleteResult>(`/api/vorlagen/${id}`, {
+        method: "DELETE"
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vorlagen", "bericht"] });
+      setSelectedTemplateId("");
+      setTemplateBaseline("");
+      setTemplateWarning(null);
     }
   });
 
@@ -296,6 +453,23 @@ export function BerichtePage() {
   );
 
   const selectedEntry = reportEntries.find((entry) => entry.key === selectedAnsicht) ?? reportEntries[0];
+  const templatesForSelectedType = useMemo(
+    () => (templatesQuery.data ?? []).filter((template) => template.vorlage_typ === selectedTemplateType),
+    [selectedTemplateType, templatesQuery.data]
+  );
+  const selectedTemplate = templatesForSelectedType.find((template) => template.id === selectedTemplateId) ?? null;
+  const templateActionPending =
+    createTemplateMutation.isPending ||
+    updateTemplateMutation.isPending ||
+    applyTemplateMutation.isPending ||
+    deleteTemplateMutation.isPending;
+  const templateError =
+    createTemplateMutation.error ??
+    updateTemplateMutation.error ??
+    applyTemplateMutation.error ??
+    deleteTemplateMutation.error ??
+    null;
+  const hasUnsavedTemplateChanges = Boolean(selectedTemplateId && templateBaseline !== currentTemplateSignature);
 
   useEffect(() => {
     const availableIds = new Set([
@@ -306,6 +480,14 @@ export function BerichtePage() {
       setSelectedMesswertId(null);
     }
   }, [doctorReportMutation.data, selectedMesswertId, trendReportMutation.data]);
+
+  useEffect(() => {
+    if (selectedTemplateId && !templatesForSelectedType.some((template) => template.id === selectedTemplateId)) {
+      setSelectedTemplateId("");
+      setTemplateBaseline("");
+      setTemplateWarning(null);
+    }
+  }, [selectedTemplateId, templatesForSelectedType]);
 
   const handlePreviewLoad = () => {
     if (isDateRangeInvalid || !form.person_ids.length) {
@@ -325,6 +507,76 @@ export function BerichtePage() {
       return;
     }
     trendPdfMutation.mutate();
+  };
+  const handleSelectTemplate = (templateId: string) => {
+    if (!templateId) {
+      setSelectedTemplateId("");
+      setTemplateBaseline("");
+      setTemplateWarning(null);
+      return;
+    }
+
+    const template = (templatesQuery.data ?? []).find((item) => item.id === templateId);
+    if (!template) {
+      return;
+    }
+
+    const nextForm = applyBerichtVorlageConfig(template.konfiguration_json);
+    setSelectedAnsicht(templateTypeToViewKey(template.vorlage_typ));
+    setForm(nextForm);
+    setSelectedTemplateId(template.id);
+    setTemplateBaseline(JSON.stringify(template.konfiguration_json));
+    setTemplateWarning(
+      buildMissingTemplateWarning(nextForm, {
+        personen: personenQuery.data ?? [],
+        gruppen: gruppenQuery.data ?? [],
+        parameter: parameterQuery.data ?? [],
+        labore: laboreQuery.data ?? []
+      })
+    );
+    applyTemplateMutation.mutate(template.id);
+  };
+  const handleSaveTemplate = () => {
+    if (!selectedTemplate) {
+      return;
+    }
+    updateTemplateMutation.mutate({
+      id: selectedTemplate.id,
+      payload: {
+        name: selectedTemplate.name,
+        beschreibung: selectedTemplate.beschreibung,
+        konfiguration_json: currentTemplateConfig,
+        sortierung: selectedTemplate.sortierung
+      }
+    });
+  };
+  const handleSaveTemplateAs = (name: string) => {
+    createTemplateMutation.mutate({
+      name,
+      bereich: "bericht",
+      vorlage_typ: selectedTemplateType,
+      beschreibung: null,
+      konfiguration_json: currentTemplateConfig
+    });
+  };
+  const handleRenameTemplate = (name: string) => {
+    if (!selectedTemplate) {
+      return;
+    }
+    updateTemplateMutation.mutate({
+      id: selectedTemplate.id,
+      payload: {
+        name,
+        beschreibung: selectedTemplate.beschreibung,
+        konfiguration_json: currentTemplateConfig,
+        sortierung: selectedTemplate.sortierung
+      }
+    });
+  };
+  const handleDeleteTemplate = () => {
+    if (selectedTemplateId) {
+      deleteTemplateMutation.mutate(selectedTemplateId);
+    }
   };
 
   const renderSelectedPreview = () => {
@@ -596,6 +848,20 @@ export function BerichtePage() {
               </button>
             </div>
 
+            <ViewTemplateBar
+              templates={templatesForSelectedType}
+              selectedTemplateId={selectedTemplateId}
+              hasUnsavedChanges={hasUnsavedTemplateChanges}
+              isPending={templateActionPending}
+              onSelect={handleSelectTemplate}
+              onSave={handleSaveTemplate}
+              onSaveAs={handleSaveTemplateAs}
+              onRename={handleRenameTemplate}
+              onDelete={handleDeleteTemplate}
+            />
+            {templateWarning ? <p className="form-hint">{templateWarning}</p> : null}
+            {templateError ? <p className="form-error">{templateError.message}</p> : null}
+
             {activePanel === "filters" ? (
               <article className="card card--soft parameter-action-panel">
                 <div className="parameter-panel__header">
@@ -749,7 +1015,15 @@ export function BerichtePage() {
                   </div>
 
                   <div className="form-actions">
-                    <button type="button" onClick={() => setForm(initialForm)}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setForm(initialForm);
+                        setSelectedTemplateId("");
+                        setTemplateBaseline("");
+                        setTemplateWarning(null);
+                      }}
+                    >
                       Filter zurücksetzen
                     </button>
                     <button type="submit" disabled={previewPending || !form.person_ids.length || isDateRangeInvalid}>

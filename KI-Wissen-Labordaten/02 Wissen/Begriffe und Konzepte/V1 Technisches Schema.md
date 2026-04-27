@@ -62,7 +62,7 @@ Das technische V1-Schema setzt das fachliche Ziel-Datenmodell in eine relational
 - `zielbereich_person_override`
 - `planung_zyklisch`
 - `planung_einmalig`
-- `berichtsvorlage`
+- `ansicht_vorlage`
 - `einstellung`
 - `datenbasis_sperre`
 
@@ -527,17 +527,29 @@ Indizes:
 Checks:
 - `status` in `offen`, `naechster_termin`, `erledigt`, `uebersprungen`, `abgebrochen`
 
-### berichtsvorlage
+### ansicht_vorlage
 - `id` PK
 - `name` NOT NULL
-- `bericht_typ` NOT NULL
-- `konfiguration_json`
+- `bereich` NOT NULL
+- `vorlage_typ` NOT NULL
+- `beschreibung`
+- `konfiguration_json` NOT NULL
+- `schema_version` NOT NULL DEFAULT `1`
 - `aktiv` NOT NULL DEFAULT 1
+- `sortierung`
+- `zuletzt_verwendet_am`
 - `erstellt_am` NOT NULL
 - `geaendert_am` NOT NULL
 
 Indizes:
-- Index auf `bericht_typ, aktiv`
+- Index auf `bereich, vorlage_typ`
+- Index auf `aktiv, name`
+
+Checks oder Anwendungsvalidierung:
+- `bereich` in `auswertung`, `bericht`
+- `vorlage_typ` in `auswertung_verlauf`, `arztbericht_liste`, `verlaufsbericht_zeitachse`
+- `vorlage_typ` muss zum `bereich` passen.
+- `konfiguration_json` wird typabhängig validiert und enthält mindestens einen gemeinsamen Filterblock sowie einen Optionsblock.
 
 ### einstellung
 - `id` PK

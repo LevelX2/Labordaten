@@ -42,7 +42,7 @@ Das V1-Datenmodell trennt Stammdaten, Messdaten, Referenzlogik, Zielbereiche, Pl
 - Messdaten: Befund, Dokument, Messwert, Messwert-Referenz
 - Ziel- und Planungslogik: Zielwertquelle, Zielwertpaket, Zielbereich allgemein, Zielbereich Person-Überschreibung, Planung zyklisch, Planung einmalig
 - Import: Importvorgang, Import-Prüfpunkt, optionale Import-Artefakte
-- Ausgabe und System: Berichtsvorlage, Einstellung, Datenbasis-Sperre
+- Ausgabe und System: Ansichtsvorlage für Auswertung und Berichte, Einstellung, Datenbasis-Sperre
 
 ## Zentrale Modellregeln
 - `Messwert` speichert immer einen Rohwert als Text.
@@ -467,17 +467,26 @@ Regel:
 - `bestaetigt_vom_nutzer`
 - `bestaetigt_am`
 
-### Berichtsvorlage
+### AnsichtVorlage
 - `id`
 - `name`
-- `bericht_typ`: `arztbericht_liste`, `verlauf_zeitachse`, später erweiterbar
+- `bereich`: `auswertung` oder `bericht`
+- `vorlage_typ`: `auswertung_verlauf`, `arztbericht_liste`, `verlaufsbericht_zeitachse`, später erweiterbar
+- `beschreibung`
 - `konfiguration_json`
+- `schema_version`
+- `sortierung`
+- `zuletzt_verwendet_am`
 - `aktiv`
 - `erstellt_am`
 - `geaendert_am`
 
 Regel:
-- V1-Berichte sollen relevante Felder standardmäßig aktiv haben und pro Ausgabe abwählbar machen.
+- Auswertungs- und Berichtskonfigurationen werden als gemeinsame Ansichtsvorlagen gespeichert, weil beide Bereiche dieselben Kernfilter nutzen.
+- Die Konfiguration speichert gemeinsame Filter wie Personen, Parameter, Parametergruppen, KSG-Klassifikationen, Labore und Zeitraum sowie typabhängige Anzeige- oder Ausgabeoptionen.
+- Für Berichte werden dadurch nicht nur Filter, sondern auch Berichtsoptionen wie sichtbare Felder oder Einheitenauswahl wiederladbar.
+- Die JSON-Konfiguration bleibt flexibel, muss aber je `vorlage_typ` durch die Anwendung validiert werden.
+- Vorlagen dürfen nicht stillschweigend kaputtgehen, wenn referenzierte Stammdaten später deaktiviert oder gelöscht werden; beim Laden sollen fehlende Auswahlwerte sichtbar gemacht werden.
 
 ### Einstellung
 - `id`
