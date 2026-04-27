@@ -117,7 +117,7 @@ export function StartPage() {
 
   return (
     <section className="page">
-      <header className="hero">
+      <header className="hero hero--overview">
         <div className="hero__content">
           <div>
             <h2>Laborwerte übersichtlich verwalten</h2>

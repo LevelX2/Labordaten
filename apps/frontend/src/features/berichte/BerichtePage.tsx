@@ -47,7 +47,7 @@ type BerichtFormState = {
 };
 
 type BerichtAnsichtKey = "arztbericht" | "verlauf";
-type BerichtPanelKey = "filters";
+type BerichtPanelKey = "filters" | "templates";
 
 const initialForm: BerichtFormState = {
   person_ids: [],
@@ -762,27 +762,6 @@ export function BerichtePage() {
         </div>
       </header>
 
-      <article className="card card--soft view-template-card">
-        <div className="parameter-panel__header">
-          <div>
-            <h3>Berichtsvorlagen</h3>
-          </div>
-        </div>
-        <ViewTemplateBar
-          templates={templatesForSelectedType}
-          selectedTemplateId={selectedTemplateId}
-          hasUnsavedChanges={hasUnsavedTemplateChanges}
-          isPending={templateActionPending}
-          onSelect={handleSelectTemplate}
-          onSave={handleSaveTemplate}
-          onSaveAs={handleSaveTemplateAs}
-          onRename={handleRenameTemplate}
-          onDelete={handleDeleteTemplate}
-        />
-        {templateWarning ? <p className="form-hint">{templateWarning}</p> : null}
-        {templateError ? <p className="form-error">{templateError.message}</p> : null}
-      </article>
-
       <div className="parameter-workspace">
         <aside className="card parameter-sidebar">
           <div className="parameter-sidebar__header">
@@ -810,6 +789,20 @@ export function BerichtePage() {
                 </div>
               </button>
             ))}
+            <button
+              type="button"
+              className={`parameter-list__item ${activePanel === "templates" ? "parameter-list__item--selected" : ""}`}
+              onClick={() => setActivePanel("templates")}
+            >
+              <div className="parameter-list__title-row">
+                <strong>Vorlagen</strong>
+              </div>
+              <p>{selectedTemplate?.name ?? "Keine Vorlage gewählt"}</p>
+              <div className="parameter-list__meta">
+                <span className="parameter-pill">{templatesForSelectedType.length} Vorlagen</span>
+                {hasUnsavedTemplateChanges ? <span className="parameter-pill">Geändert</span> : null}
+              </div>
+            </button>
           </div>
         </aside>
 
@@ -843,6 +836,13 @@ export function BerichtePage() {
               </button>
               <button
                 type="button"
+                className={`parameter-toolrail__button ${activePanel === "templates" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => setActivePanel((current) => (current === "templates" ? null : "templates"))}
+              >
+                Vorlagen
+              </button>
+              <button
+                type="button"
                 className="parameter-toolrail__button"
                 onClick={handlePreviewLoad}
                 disabled={previewPending || !form.person_ids.length || isDateRangeInvalid}
@@ -868,6 +868,39 @@ export function BerichtePage() {
                     : "Verlaufsbericht als PDF"}
               </button>
             </div>
+
+            {activePanel === "templates" ? (
+              <article className="card card--soft parameter-action-panel">
+                <div className="parameter-panel__header">
+                  <div>
+                    <h3>Berichtsvorlagen</h3>
+                    <p>{selectedTemplate?.name ?? "Keine Vorlage gewählt"}</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="icon-button"
+                    onClick={() => setActivePanel(null)}
+                    aria-label="Panel Berichtsvorlagen schließen"
+                    title="Panel Berichtsvorlagen schließen"
+                  >
+                    ×
+                  </button>
+                </div>
+                <ViewTemplateBar
+                  templates={templatesForSelectedType}
+                  selectedTemplateId={selectedTemplateId}
+                  hasUnsavedChanges={hasUnsavedTemplateChanges}
+                  isPending={templateActionPending}
+                  onSelect={handleSelectTemplate}
+                  onSave={handleSaveTemplate}
+                  onSaveAs={handleSaveTemplateAs}
+                  onRename={handleRenameTemplate}
+                  onDelete={handleDeleteTemplate}
+                />
+                {templateWarning ? <p className="form-hint">{templateWarning}</p> : null}
+                {templateError ? <p className="form-error">{templateError.message}</p> : null}
+              </article>
+            ) : null}
 
             {activePanel === "filters" ? (
               <article className="card card--soft parameter-action-panel">

@@ -111,6 +111,19 @@ Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitp
 - Wenn solche abhängigen Daten tabellarisch oder breit werden, ist für arbeitsorientierte Oberflächen eine gestapelte und einklappbare Darstellung oft besser als mehrere nebeneinanderliegende Karten.
 - Werkzeuge zum Bearbeiten und Bereiche zum Anzeigen vorhandener Zuordnungen sollen nicht dieselbe Aktion doppelt an mehreren Stellen anbieten.
 
+## Hauptseiten als Arbeitsbereiche
+- Hauptseiten der Anwendung sollen nach Möglichkeit demselben Arbeitsmuster folgen: kompakter Seitenkopf, linke Auswahl- oder Navigationsspalte und rechter Arbeits- oder Detailbereich.
+- Konfigurationsbereiche wie Filter, Darstellung, Vorlagen oder vergleichbare Werkzeuge sollen nicht als lose Karten über oder neben dem eigentlichen Inhalt stehen, sondern als klar priorisierte Einträge in der linken Auswahl und als geöffnete Werkzeugbereiche im rechten Arbeitsbereich.
+- Wenn Vorlagen fachlich den ersten Arbeitsschritt bilden, sollen sie in Auswahl und Werkzeugleiste vor Filter- oder Darstellungsoptionen stehen.
+- Aktive Auswahlzustände sollen als kompakte Statusfläche mit klar getrennten Werten erscheinen, nicht als lose Textzeile zwischen Werkzeugen und Kennzahlen.
+- Start- und Übersichtsseiten dürfen kompakter und eigenständiger sein, sollen aber dieselbe ruhige Shell, konsistente Kopfzeilen und dieselben semantischen Flächen- und Kontrollstile verwenden.
+
+## Diagrammachsen in Auswertungen
+- Numerische Diagrammachsen sollen ihre Skalen nach gut lesbaren, gleichmäßigen Schritten berechnen.
+- Bevorzugt werden ganze Zahlen; bei engeren Wertebereichen sind saubere Bruchteile wie `0,5`, `0,25` oder vergleichbare Zehner-Teilungen sinnvoll.
+- Krumme Schrittweiten und Achsenlabels aus reiner prozentualer Padding-Logik sollen vermieden werden, weil sie Laborwerte unnötig technisch und schwer vergleichbar wirken lassen.
+- Wenn Referenz- oder Zielbereiche sichtbar sind, muss die Achsendomain diese Grenzen berücksichtigen, damit Marker nicht abgeschnitten werden.
+
 ## Einklappbare Bereiche und grosse Filterbloecke
 - Groessere Filterbloecke und vergleichbare Zusatzbereiche sollten dieselbe Auf- und Zuklapplogik wie andere einklappbare Arbeitsbereiche der Anwendung verwenden.
 - Alles, was fachlich zu einem einklappbaren Block gehoert, soll gemeinsam ein- und ausgeklappt werden.

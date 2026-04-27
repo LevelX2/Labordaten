@@ -30,6 +30,7 @@ import {
   getMappingFilterMode,
   getOpenMappingCount,
   getParameterCandidates,
+  getVisibleImportChecksByMesswertIndex,
   getVisibleImportChecks,
   shouldPreselectNewParameter,
   type GruppenVorschlagAktion,
@@ -196,6 +197,7 @@ export function ImportPage() {
   const [interfaceCopyStatus, setInterfaceCopyStatus] = useState<string | null>(null);
   const [promptExpanded, setPromptExpanded] = useState(false);
   const [importMode, setImportMode] = useState<ImportMode>("ki");
+  const [showPageInfo, setShowPageInfo] = useState(false);
   const [selectedImportId, setSelectedImportId] = useState<string | null>(null);
   const [mappingState, setMappingState] = useState<Record<number, string>>({});
   const [aliasState, setAliasState] = useState<Record<number, boolean>>({});
@@ -483,16 +485,27 @@ export function ImportPage() {
   });
 
   const selectedImport = selectedImportQuery.data;
+  const visibleImportChecks = useMemo(
+    () => getVisibleImportChecks(selectedImport, mappingState, reviewPersonId),
+    [selectedImport, mappingState, reviewPersonId]
+  );
+  const visibleImportChecksByMesswert = useMemo(
+    () => getVisibleImportChecksByMesswertIndex(selectedImport, mappingState, reviewPersonId),
+    [selectedImport, mappingState, reviewPersonId]
+  );
   const visibleMesswerte = useMemo(
     () =>
       (selectedImport?.messwerte ?? []).filter((messwert) => {
         if (mappingFilterMode === "alle") {
           return true;
         }
+        if (mappingFilterMode === "pruefhinweise") {
+          return Boolean(visibleImportChecksByMesswert.get(messwert.messwert_index)?.length);
+        }
         const currentParameterId = mappingState[messwert.messwert_index] ?? messwert.parameter_id ?? undefined;
         return getMappingFilterMode(messwert, currentParameterId) === mappingFilterMode;
       }),
-    [mappingFilterMode, mappingState, selectedImport]
+    [mappingFilterMode, mappingState, selectedImport, visibleImportChecksByMesswert]
   );
   const parameterDialogMesswert = useMemo(
     () =>
@@ -512,10 +525,6 @@ export function ImportPage() {
           })
         : [],
     [parameterDialogMesswert, parameterDialogSearch, parameterDialogFilterMode, parameterQuery.data]
-  );
-  const visibleImportChecks = useMemo(
-    () => getVisibleImportChecks(selectedImport, mappingState, reviewPersonId),
-    [selectedImport, mappingState, reviewPersonId]
   );
   const selectedImportChecks = getImportChecksBySeverity(visibleImportChecks);
   const hasWarnings = selectedImportChecks.warnings > 0;
@@ -618,7 +627,9 @@ export function ImportPage() {
   }
 
   function getImportModeTabClass(mode: ImportMode): string {
-    return importMode === mode ? "import-mode-tab import-mode-tab--active" : "import-mode-tab";
+    return importMode === mode
+      ? "parameter-toolrail__button parameter-toolrail__button--active"
+      : "parameter-toolrail__button";
   }
 
   function setMesswertParameterMapping(messwert: ImportMesswertPreview, nextValue: string): void {
@@ -715,41 +726,53 @@ export function ImportPage() {
 
   return (
     <section className="page">
-      <header className="page__header">
-        <span className="page__kicker">Importprüfung</span>
+      <header className="page__header page__header--compact">
         <h2>Import</h2>
-        <p>
-          Bereite eine KI-Extraktion vor oder importiere ein KI-/JSON-Ergebnis. Angelegte Importe werden anschließend
-          im Tab <strong>Import prüfen</strong> kontrolliert.
-        </p>
+        <div className="page__info">
+          <button
+            type="button"
+            className="icon-button page__info-button"
+            aria-label="Hinweis zur Importseite"
+            aria-expanded={showPageInfo}
+            onClick={() => setShowPageInfo((current) => !current)}
+          >
+            i
+          </button>
+          {showPageInfo ? (
+            <div className="page__info-popover">
+              Bereite eine KI-Extraktion vor oder importiere ein KI-/JSON-Ergebnis. Angelegte Importe werden
+              anschließend unter Import prüfen kontrolliert.
+            </div>
+          ) : null}
+        </div>
       </header>
 
       <article className="card card--wide import-mode-panel" aria-label="Importbereich">
-        <h3>Importbereich</h3>
-        <div className="import-mode-groups">
-          <div className="import-mode-group">
-            <span className="import-mode-group__label">KI und JSON</span>
-            <div className="import-mode-tabs">
-              <button type="button" className={getImportModeTabClass("ki")} onClick={() => setImportMode("ki")}>
-                KI-Prompt
-              </button>
-              <button type="button" className={getImportModeTabClass("json")} onClick={() => setImportMode("json")}>
-                KI-Ergebnis / JSON
-              </button>
-            </div>
+        <div className="parameter-detail__header">
+          <div>
+            <h3 className="parameter-detail__title">Importbereich</h3>
+            <p>Neue Importwege und laufende Prüfungen sind getrennt, bleiben aber in derselben Werkzeugleiste erreichbar.</p>
           </div>
-          <div className="import-mode-group">
-            <span className="import-mode-group__label">Importe bearbeiten</span>
-            <div className="import-mode-tabs">
-              <button type="button" className={getImportModeTabClass("pruefen")} onClick={() => setImportMode("pruefen")}>
-                <span>Import prüfen</span>
-                {openImportCount ? <span className="import-mode-tab__badge">{openImportCount}</span> : null}
-              </button>
-              <button type="button" className={getImportModeTabClass("historie")} onClick={() => setImportMode("historie")}>
-                Historie
-              </button>
-            </div>
+          <div className="parameter-header-controls">
+            <span className="parameter-pill parameter-pill--accent">
+              {openImportCount ? `${openImportCount} offen` : "Keine offenen Entwürfe"}
+            </span>
           </div>
+        </div>
+        <div className="parameter-toolrail import-mode-standardrail">
+          <button type="button" className={getImportModeTabClass("ki")} onClick={() => setImportMode("ki")}>
+            KI-Prompt
+          </button>
+          <button type="button" className={getImportModeTabClass("json")} onClick={() => setImportMode("json")}>
+            KI-Ergebnis / JSON
+          </button>
+          <button type="button" className={getImportModeTabClass("pruefen")} onClick={() => setImportMode("pruefen")}>
+            <span>Import prüfen</span>
+            {openImportCount ? <span className="import-mode-tab__badge">{openImportCount}</span> : null}
+          </button>
+          <button type="button" className={getImportModeTabClass("historie")} onClick={() => setImportMode("historie")}>
+            Historie
+          </button>
         </div>
       </article>
 
@@ -1226,6 +1249,7 @@ export function ImportPage() {
                     <option value="manuell">Manuell angepasst</option>
                     <option value="automatisch">Automatisch durch Stammdaten erkannt</option>
                     <option value="explizit">Aus KI-/JSON-Ergebnis übernommen</option>
+                    <option value="pruefhinweise">Mit offenen Prüfpunkten</option>
                   </select>
                 </label>
                 <span>
@@ -1260,6 +1284,7 @@ export function ImportPage() {
                         parameterId: resolvedParameterId,
                         parameterById
                       });
+                      const messwertChecks = visibleImportChecksByMesswert.get(messwert.messwert_index) ?? [];
                       return (
                       <tr key={messwert.messwert_index}>
                         <td>{messwert.original_parametername}</td>
@@ -1307,6 +1332,18 @@ export function ImportPage() {
                                   ? "Dieser Eintrag wird beim Übernehmen ausgelassen."
                                   : parameterById.get(mappingState[messwert.messwert_index])?.standard_einheit ?? "ohne Standardeinheit"}
                               </small>
+                            ) : null}
+                            {messwertChecks.length ? (
+                              <div className="import-parameter-assignment__hint import-parameter-assignment__hint--check">
+                                <p>
+                                  <strong>Offene Prüfpunkte</strong>
+                                </p>
+                                {messwertChecks.map((item) => (
+                                  <p key={item.id}>
+                                    <strong>{item.status === "fehler" ? "Fehler" : "Hinweis"}:</strong> {item.meldung}
+                                  </p>
+                                ))}
+                              </div>
                             ) : null}
                             {assignedParameter ? (
                               <div className="import-parameter-assignment__hint">

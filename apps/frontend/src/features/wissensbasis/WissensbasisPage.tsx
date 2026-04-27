@@ -360,6 +360,7 @@ export function WissensbasisPage() {
   const [form, setForm] = useState<WissensseiteFormState>(initialForm);
   const [pathEditedManually, setPathEditedManually] = useState(false);
   const [deleteCandidatePath, setDeleteCandidatePath] = useState<string | null>(null);
+  const [showPageInfo, setShowPageInfo] = useState(false);
 
   const seitenQuery = useQuery({
     queryKey: ["wissensbasis", "seiten", query],
@@ -493,14 +494,28 @@ export function WissensbasisPage() {
 
   return (
     <section className="page">
-      <header className="page__header">
-        <span className="page__kicker">Fachwissen</span>
+      <header className="page__header page__header--compact">
         <h2>Laborwissen</h2>
-        <p>Markdown-Seiten aus dem fachlichen Labordaten-Informationspool werden als verlinkte Leseseiten angezeigt.</p>
+        <div className="page__info">
+          <button
+            type="button"
+            className="icon-button page__info-button"
+            aria-label="Hinweis zum Laborwissen"
+            aria-expanded={showPageInfo}
+            onClick={() => setShowPageInfo((current) => !current)}
+          >
+            i
+          </button>
+          {showPageInfo ? (
+            <div className="page__info-popover">
+              Markdown-Seiten aus dem fachlichen Labordaten-Informationspool werden als verlinkte Leseseiten angezeigt.
+            </div>
+          ) : null}
+        </div>
       </header>
 
-      <div className="knowledge-workspace">
-        <aside className="card knowledge-sidebar">
+      <div className="parameter-workspace knowledge-workspace">
+        <aside className="card parameter-sidebar knowledge-sidebar">
           <div className="parameter-sidebar__header">
             <div>
               <h3>Seiten</h3>

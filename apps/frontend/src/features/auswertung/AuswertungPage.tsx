@@ -68,6 +68,8 @@ type AuswertungFormState = {
   messwerttabelle_standard_offen: boolean;
 };
 
+type AuswertungPanelKey = "templates" | "filters" | "display";
+
 const initialForm: AuswertungFormState = {
   person_ids: [],
   laborparameter_ids: [],
@@ -372,6 +374,12 @@ type CustomizedChartProps = {
   };
 };
 
+type YAxisScaleConfig = {
+  domain: [number, number];
+  ticks: number[];
+  step: number;
+};
+
 function buildPersonChartData(points: AuswertungPunkt[]): ChartPerson[] {
   const byPerson = new Map<string, ChartPerson>();
   for (const point of points) {
@@ -570,9 +578,62 @@ function collectYAxisDomainValues(
   return values;
 }
 
+function normalizeChartNumber(value: number): number {
+  const normalized = Number(value.toPrecision(12));
+  return Object.is(normalized, -0) ? 0 : normalized;
+}
+
+function chooseYAxisStep(span: number): number {
+  if (span <= 0 || !Number.isFinite(span)) {
+    return 1;
+  }
+
+  const rawStep = span / 5;
+  const magnitude = 10 ** Math.floor(Math.log10(rawStep));
+  const factors = magnitude >= 1 ? [1, 2, 5, 10] : [1, 2.5, 5, 10];
+  const factor = factors.find((candidate) => candidate * magnitude >= rawStep) ?? 10;
+  return normalizeChartNumber(factor * magnitude);
+}
+
+function buildTicks(domainMin: number, domainMax: number, step: number): number[] {
+  const ticks: number[] = [];
+  const maxIterations = 100;
+
+  for (let index = 0; index < maxIterations; index += 1) {
+    const tick = normalizeChartNumber(domainMin + step * index);
+    if (tick > domainMax + step * 0.25) {
+      break;
+    }
+    ticks.push(tick);
+  }
+
+  return ticks;
+}
+
+function getFractionDigitsForStep(step?: number): number {
+  if (!step || !Number.isFinite(step)) {
+    return 2;
+  }
+
+  const normalizedStep = normalizeChartNumber(step);
+  const [, decimals = ""] = normalizedStep.toFixed(8).replace(/0+$/, "").split(".");
+  return Math.min(decimals.length, 4);
+}
+
+function formatYAxisTick(value: unknown, step?: number): string {
+  const numericValue = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(numericValue)) {
+    return "";
+  }
+
+  return new Intl.NumberFormat("de-DE", {
+    maximumFractionDigits: getFractionDigitsForStep(step)
+  }).format(numericValue);
+}
+
 function padYAxisDomain(minValue: number, maxValue: number, keepZeroBaseline: boolean): [number, number] {
   const span = maxValue - minValue;
-  const padding = span > 0 ? span * 0.08 : Math.max(Math.abs(maxValue || minValue) * 0.1, 1);
+  const padding = span > 0 ? span * 0.05 : Math.max(Math.abs(maxValue || minValue) * 0.05, 1);
 
   if (keepZeroBaseline && minValue >= 0) {
     return [0, maxValue + padding];
@@ -584,12 +645,36 @@ function padYAxisDomain(minValue: number, maxValue: number, keepZeroBaseline: bo
   return [minValue - padding, maxValue + padding];
 }
 
-function buildYAxisDomain(
+function buildNiceYAxisScale(minValue: number, maxValue: number, keepZeroBaseline: boolean): YAxisScaleConfig {
+  const [paddedMin, paddedMax] = padYAxisDomain(minValue, maxValue, keepZeroBaseline);
+  const step = chooseYAxisStep(paddedMax - paddedMin);
+  let domainMin = normalizeChartNumber(Math.floor(paddedMin / step) * step);
+  let domainMax = normalizeChartNumber(Math.ceil(paddedMax / step) * step);
+
+  if (keepZeroBaseline && minValue >= 0) {
+    domainMin = 0;
+  }
+  if (keepZeroBaseline && maxValue <= 0) {
+    domainMax = 0;
+  }
+  if (domainMin === domainMax) {
+    domainMin = normalizeChartNumber(domainMin - step);
+    domainMax = normalizeChartNumber(domainMax + step);
+  }
+
+  return {
+    domain: [domainMin, domainMax],
+    ticks: buildTicks(domainMin, domainMax, step),
+    step
+  };
+}
+
+function buildYAxisScale(
   points: AuswertungPunkt[],
   modus: VertikalachsenModus,
   includeLaborreferenz: boolean,
   includeZielbereich: boolean
-): [number, number] | undefined {
+): YAxisScaleConfig | undefined {
   const values = collectYAxisDomainValues(points, includeLaborreferenz, includeZielbereich);
   if (!values.length) {
     return undefined;
@@ -598,10 +683,10 @@ function buildYAxisDomain(
   const minValue = Math.min(...values);
   const maxValue = Math.max(...values);
   if (modus === "nullbasis") {
-    return padYAxisDomain(Math.min(0, minValue), Math.max(0, maxValue), true);
+    return buildNiceYAxisScale(Math.min(0, minValue), Math.max(0, maxValue), true);
   }
 
-  return padYAxisDomain(minValue, maxValue, false);
+  return buildNiceYAxisScale(minValue, maxValue, false);
 }
 
 function RangeMarkersOverlay({
@@ -805,9 +890,9 @@ function SeriesChart({
   const [hiddenLineGroups, setHiddenLineGroups] = useState<Set<string>>(() => new Set());
   const connectPersonPoints = diagrammDarstellung === "verlauf";
   const showReferenceAreas = diagrammDarstellung !== "punkte";
-  const yAxisDomain = useMemo(
+  const yAxisScale = useMemo(
     () =>
-      buildYAxisDomain(
+      buildYAxisScale(
         serie.punkte,
         vertikalachsenModus,
         includeLaborreferenz && showReferenceAreas,
@@ -850,7 +935,12 @@ function SeriesChart({
             tick={{ fontSize: 12 }}
             tickFormatter={(value) => (typeof value === "number" ? formatTimestamp(value) : "")}
           />
-          <YAxis tick={{ fontSize: 12 }} domain={yAxisDomain} />
+          <YAxis
+            tick={{ fontSize: 12 }}
+            domain={yAxisScale?.domain}
+            ticks={yAxisScale?.ticks}
+            tickFormatter={(value) => formatYAxisTick(value, yAxisScale?.step)}
+          />
           <Tooltip
             labelFormatter={(label) => (typeof label === "number" ? formatTimestamp(label) : String(label))}
             formatter={(value, name, item) => {
@@ -1093,8 +1183,10 @@ export function AuswertungPage() {
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [templateBaseline, setTemplateBaseline] = useState("");
   const [templateWarning, setTemplateWarning] = useState<string | null>(null);
-  const [isTemplatePanelOpen, setIsTemplatePanelOpen] = useState(false);
-  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(() => form.person_ids.length === 0);
+  const [activePanel, setActivePanel] = useState<AuswertungPanelKey | null>(() =>
+    form.person_ids.length === 0 ? "filters" : "templates"
+  );
+  const [showPageInfo, setShowPageInfo] = useState(false);
   const [loadedAuswertungSignature, setLoadedAuswertungSignature] = useState<string | null>(null);
   const previewQueryString = useMemo(() => buildSharedFilterSearchParams(form).toString(), [form]);
   const currentTemplateConfig = useMemo(() => buildAuswertungVorlageConfig(form), [form]);
@@ -1378,397 +1470,525 @@ export function AuswertungPage() {
 
   return (
     <section className="page">
-      <header className="page__header">
+      <header className="page__header page__header--compact">
         <h2>Auswertung</h2>
-        <p>
-          Vergleiche Verläufe über Personen, Parametergruppen, Parameter, Labore und Zeitraum und blende Referenz- oder
-          Zielbereiche bei Bedarf ein.
-        </p>
-      </header>
-
-      <div className="card-grid">
-        {statistikCards.map((card) => (
-          <div className="stat-card" key={card.label}>
-            <span className="stat-card__label">{card.label}</span>
-            <strong>{card.value}</strong>
-            <p className="stat-card__detail">{card.detail}</p>
-          </div>
-        ))}
-      </div>
-      <p className="auswertung-stats-context">
-        Oben stehen die Treffer der aktuellen Filterauswahl für {filterPeriodLabel}; die Gesamtzahlen dienen als
-        Vergleich.
-      </p>
-
-      <article className="card card--soft view-template-card view-template-card--collapsed">
-        <div className="parameter-panel__header">
-          <div>
-            <h3>Auswertungsvorlagen</h3>
-            <p>
-              {selectedTemplateName}
-              {hasUnsavedTemplateChanges ? " • geändert" : ""}
-            </p>
-          </div>
+        <div className="page__info">
           <button
             type="button"
-            className="inline-button"
-            onClick={() => setIsTemplatePanelOpen((current) => !current)}
-            aria-expanded={isTemplatePanelOpen}
+            className="icon-button page__info-button"
+            aria-label="Hinweis zur Auswertungsseite"
+            aria-expanded={showPageInfo}
+            onClick={() => setShowPageInfo((current) => !current)}
           >
-            {isTemplatePanelOpen ? "Vorlagen ausblenden" : "Vorlagen öffnen"}
+            i
           </button>
+          {showPageInfo ? (
+            <div className="page__info-popover">
+              Hier vergleichst Du Verläufe über Personen, Parametergruppen, Parameter, Labore und Zeitraum und blendest
+              Referenz- oder Zielbereiche bei Bedarf ein.
+            </div>
+          ) : null}
         </div>
+      </header>
 
-        {isTemplatePanelOpen ? (
-          <>
-            <ViewTemplateBar
-              templates={templatesQuery.data ?? []}
-              selectedTemplateId={selectedTemplateId}
-              hasUnsavedChanges={hasUnsavedTemplateChanges}
-              isPending={templateActionPending}
-              onSelect={handleSelectTemplate}
-              onSave={handleSaveTemplate}
-              onSaveAs={handleSaveTemplateAs}
-              onRename={handleRenameTemplate}
-              onDelete={handleDeleteTemplate}
-            />
-            {templateWarning ? <p className="form-hint">{templateWarning}</p> : null}
-            {templateError ? <p className="form-error">{templateError.message}</p> : null}
-          </>
-        ) : null}
-      </article>
-
-      <article className="card card--soft parameter-action-panel">
-        <div className="parameter-panel__header">
-          <div>
-            <h3>Auswertungsfilter</h3>
-            <p>Die Auswahl steuert Diagramme, Kennzahlen und qualitative Ereignisse gemeinsam.</p>
-          </div>
-          <div className="auswertung-filter-toolbar auswertung-filter-toolbar--header">
-            {!isFilterPanelOpen ? (
-              <button type="button" className="inline-button" onClick={() => setIsFilterPanelOpen(true)}>
-                Filter öffnen
-              </button>
-            ) : null}
-            <button
-              type="button"
-              className="inline-button"
-              onClick={() => {
-                setForm(initialForm);
-                setSelectedTemplateId("");
-                setTemplateBaseline("");
-                setTemplateWarning(null);
-              }}
-            >
-              Filter zurücksetzen
-            </button>
-            {isFilterPanelOpen ? (
-              <button
-                type="button"
-                className="icon-button"
-                onClick={() => setIsFilterPanelOpen(false)}
-                aria-label="Panel Auswertungsfilter schließen"
-                title="Panel Auswertungsfilter schließen"
-              >
-                ×
-              </button>
-            ) : null}
-          </div>
-        </div>
-
-        {isFilterPanelOpen ? (
-          <form
-            className="form-grid"
-            onSubmit={(event) => {
-              event.preventDefault();
-              handleLoadAuswertung();
-            }}
-          >
-            <SelectionChecklist
-              label="Personen"
-              options={(personenQuery.data ?? []).map((person) => ({
-                id: person.id,
-                label: person.anzeigename
-              }))}
-              selectedIds={form.person_ids}
-              onChange={(person_ids) => setForm((current) => ({ ...current, person_ids }))}
-              emptyText="Noch keine Personen vorhanden."
-              collapsible
-            />
-
-            <SelectionChecklist
-              label="Parametergruppen"
-              options={(gruppenQuery.data ?? []).map((gruppe) => ({
-                id: gruppe.id,
-                label: gruppe.name,
-                meta: gruppe.beschreibung
-              }))}
-              selectedIds={form.gruppen_ids}
-              onChange={(gruppen_ids) => setForm((current) => ({ ...current, gruppen_ids }))}
-              emptyText="Noch keine Parametergruppen vorhanden."
-              collapsible
-              defaultExpanded={false}
-              compactWhenEmptyCollapsed
-            />
-
-            <SelectionChecklist
-              label="Parameter"
-              options={(parameterQuery.data ?? []).map((parameter) => ({
-                id: parameter.id,
-                label: parameter.anzeigename,
-                meta: parameter.standard_einheit
-              }))}
-              selectedIds={form.laborparameter_ids}
-              onChange={(laborparameter_ids) => setForm((current) => ({ ...current, laborparameter_ids }))}
-              emptyText="Noch keine Parameter vorhanden."
-              collapsible
-              defaultExpanded={false}
-              searchable
-              searchPlaceholder="Parameter filtern"
-              showSelectedOnlyToggle
-              selectedOnlyLabel="Nur ausgewählte anzeigen"
-              compactWhenEmptyCollapsed
-            />
-
-            <SelectionChecklist
-              label="KSG-Klassen"
-              options={PARAMETER_KLASSIFIKATION_OPTIONS.map((option) => ({
-                id: option.value,
-                label: option.label
-              }))}
-              selectedIds={form.klassifikationen}
-              onChange={(klassifikationen) =>
-                setForm((current) => ({
-                  ...current,
-                  klassifikationen: klassifikationen as ParameterKlassifikationCode[]
-                }))
-              }
-              emptyText="Keine KSG-Klassen verfügbar."
-              collapsible
-              defaultExpanded={false}
-              compactWhenEmptyCollapsed
-            />
-
-            <SelectionChecklist
-              label="Labore"
-              options={(laboreQuery.data ?? []).map((labor) => ({
-                id: labor.id,
-                label: labor.name
-              }))}
-              selectedIds={form.labor_ids}
-              onChange={(labor_ids) => setForm((current) => ({ ...current, labor_ids }))}
-              emptyText="Noch keine Labore vorhanden."
-              collapsible
-              defaultExpanded={false}
-              compactWhenEmptyCollapsed
-            />
-
-            <DateRangeFilterFields
-              fromValue={form.datum_von}
-              toValue={form.datum_bis}
-              fallbackFromValue={initialForm.datum_von}
-              fallbackToValue={initialForm.datum_bis}
-              onFromChange={(datum_von) => setForm((current) => ({ ...current, datum_von }))}
-              onToChange={(datum_bis) => setForm((current) => ({ ...current, datum_bis }))}
-            />
-          </form>
-        ) : (
-          <div className="inline-actions auswertung-filter-summary">
-            <span className="inline-actions__label">Aktive Auswahl:</span>
-            <span>{filterSummary.join(" • ")}</span>
-          </div>
-        )}
-
-        {isDateRangeInvalid && !isFilterPanelOpen ? (
-          <p className="form-error">Das Bis-Datum darf nicht vor dem Von-Datum liegen.</p>
-        ) : null}
-        {hasTooManyPreviewParameters ? (
-          <p className="form-hint">
-            Diese Auswahl umfasst mehr als {maxAuswertungParameter} Parameter. Beim Laden fragt die Anwendung nach.
-          </p>
-        ) : null}
-        {auswertungPreviewQuery.isError ? <p className="form-error">{auswertungPreviewQuery.error.message}</p> : null}
-
-      </article>
-
-      <article className="card card--soft parameter-action-panel auswertung-display-panel">
-        <div className="parameter-panel__header">
-          <div>
-            <h3>Darstellung</h3>
-            <p>Diese Einstellungen verändern nur die Ansicht der geladenen Auswertung, nicht die Filterauswahl.</p>
-          </div>
-        </div>
-
-        <div className="auswertung-display-grid">
-          <div className="field field--full">
-            <span>Diagrammtyp</span>
-            <div className="auswertung-display-modes" role="group" aria-label="Diagrammtyp auswählen">
-              {diagrammDarstellungOptions.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={`auswertung-display-mode${
-                    form.diagramm_darstellung === option.value ? " auswertung-display-mode--active" : ""
-                  }`}
-                  onClick={() => setForm((current) => ({ ...current, diagramm_darstellung: option.value }))}
-                  aria-pressed={form.diagramm_darstellung === option.value}
-                >
-                  {option.label}
-                </button>
-              ))}
+      <div className="parameter-workspace">
+        <aside className="card parameter-sidebar">
+          <div className="parameter-sidebar__header">
+            <div>
+              <h3>Auswertungsauswahl</h3>
+              <p>{filterSummary.join(" • ")}</p>
             </div>
           </div>
 
-          <label className="field">
-            <span>Zeitraumdarstellung im Diagramm</span>
-            <select
-              value={form.zeitraum_darstellung}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  zeitraum_darstellung: event.target.value as AuswertungFormState["zeitraum_darstellung"]
-                }))
-              }
+          <div className="parameter-list">
+            <button
+              type="button"
+              className={`parameter-list__item ${activePanel === "templates" ? "parameter-list__item--selected" : ""}`}
+              onClick={() => setActivePanel("templates")}
             >
-              <option value="wertezeitraum">Nur Zeitraum mit Werten</option>
-              <option value="selektionszeitraum">Gewählten Selektionszeitraum fest anzeigen</option>
-            </select>
-          </label>
+              <div className="parameter-list__title-row">
+                <strong>Vorlagen</strong>
+              </div>
+              <p>{selectedTemplateName}</p>
+              <div className="parameter-list__meta">
+                <span className="parameter-pill">{templatesQuery.data?.length ?? 0} Vorlagen</span>
+                {hasUnsavedTemplateChanges ? <span className="parameter-pill">Geändert</span> : null}
+              </div>
+            </button>
 
-          <label className="field">
-            <span>Vertikaler Achsenbereich</span>
-            <select
-              value={form.vertikalachsen_modus}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  vertikalachsen_modus: event.target.value as VertikalachsenModus
-                }))
-              }
+            <button
+              type="button"
+              className={`parameter-list__item ${activePanel === "filters" ? "parameter-list__item--selected" : ""}`}
+              onClick={() => setActivePanel("filters")}
             >
-              {vertikalachsenModusOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+              <div className="parameter-list__title-row">
+                <strong>Filter</strong>
+              </div>
+              <p>{filterPeriodLabel}</p>
+              <div className="parameter-list__meta">
+                <span className="parameter-pill">{statistikCards[0].value} Personen</span>
+                <span className="parameter-pill">{statistikCards[2].value} Messwerte</span>
+              </div>
+            </button>
 
-          <label className="field">
-            <span>Laborreferenzen anzeigen</span>
-            <input
-              type="checkbox"
-              checked={form.include_laborreferenz}
-              onChange={(event) => setForm((current) => ({ ...current, include_laborreferenz: event.target.checked }))}
-            />
-          </label>
-
-          <label className="field">
-            <span>Zielbereiche anzeigen</span>
-            <input
-              type="checkbox"
-              checked={form.include_zielbereich}
-              onChange={(event) => setForm((current) => ({ ...current, include_zielbereich: event.target.checked }))}
-            />
-          </label>
-
-          <label className="field">
-            <span>Wertetabellen standardmäßig geöffnet</span>
-            <input
-              type="checkbox"
-              checked={form.messwerttabelle_standard_offen}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  messwerttabelle_standard_offen: event.target.checked
-                }))
-              }
-            />
-          </label>
-        </div>
-      </article>
-
-      <div className="form-actions auswertung-filter-load">
-        <button type="button" onClick={handleLoadAuswertung} disabled={isLoadBlocked}>
-          {auswertungMutation.isPending
-            ? "Lädt..."
-            : isLoadedAuswertungOutdated
-              ? "Auswertung aktualisieren"
-              : "Auswertung laden"}
-        </button>
-        {auswertungMutation.isError ? <p className="form-error">{auswertungMutation.error.message}</p> : null}
-      </div>
-      {isLoadedAuswertungOutdated ? (
-        <p className="form-hint auswertung-update-hint">
-          Die angezeigte Auswertung passt noch zur zuletzt geladenen Auswahl. Lade sie erneut, um die aktuellen Filter
-          und Darstellungsoptionen zu übernehmen.
-        </p>
-      ) : null}
-
-      {auswertungMutation.data && !auswertungMutation.data.serien.length && !qualitativeEvents.length ? (
-        <article className="card">
-          <h3>Keine Ergebnisse</h3>
-          <p>Für die aktuelle Auswahl liegen derzeit keine passenden Verlaufsdaten oder qualitativen Ereignisse vor.</p>
-        </article>
-      ) : null}
-
-      {auswertungMutation.data ? (
-        <div className="workspace-grid">
-          {auswertungMutation.data.serien.map((serie) => (
-            <SeriesResultCard
-              key={serie.laborparameter_id}
-              serie={serie}
-              diagrammDarstellung={form.diagramm_darstellung}
-              zeitraumDarstellung={form.zeitraum_darstellung}
-              vertikalachsenModus={form.vertikalachsen_modus}
-              datumVon={form.datum_von}
-              datumBis={form.datum_bis}
-              includeLaborreferenz={form.include_laborreferenz}
-              includeZielbereich={form.include_zielbereich}
-              defaultTableOpen={form.messwerttabelle_standard_offen}
-            />
-          ))}
-        </div>
-      ) : null}
-
-      {auswertungMutation.data ? (
-        <article className="card">
-          <h3>Qualitative Ereignisse</h3>
-          <div className="table-wrap">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Datum</th>
-                  <th>Person</th>
-                  <th>Parameter</th>
-                  <th>KSG</th>
-                  <th>Wert</th>
-                  <th>Bemerkung</th>
-                  <th>Labor</th>
-                </tr>
-              </thead>
-              <tbody>
-                {qualitativeEvents.map((event) => (
-                  <tr key={event.messwert_id}>
-                    <td>{formatDate(event.datum)}</td>
-                    <td>{event.person_anzeigename}</td>
-                    <td>{event.parameter_anzeigename}</td>
-                    <td>{formatParameterKlassifikation(event.parameter_primaere_klassifikation)}</td>
-                    <td>{[event.wert_anzeige, event.einheit].filter(Boolean).join(" ")}</td>
-                    <td>{event.messwertbemerkung || event.befundbemerkung || "—"}</td>
-                    <td>{event.labor_name || "—"}</td>
-                  </tr>
-                ))}
-                {!qualitativeEvents.length ? (
-                  <tr>
-                    <td colSpan={7}>Noch keine qualitativen Ereignisse für die aktuelle Auswahl.</td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
+            <button
+              type="button"
+              className={`parameter-list__item ${activePanel === "display" ? "parameter-list__item--selected" : ""}`}
+              onClick={() => setActivePanel("display")}
+            >
+              <div className="parameter-list__title-row">
+                <strong>Darstellung</strong>
+              </div>
+              <p>{diagrammDarstellungOptions.find((option) => option.value === form.diagramm_darstellung)?.label}</p>
+              <div className="parameter-list__meta">
+                <span className="parameter-pill">
+                  Y: {vertikalachsenModusOptions.find((option) => option.value === form.vertikalachsen_modus)?.label}
+                </span>
+                <span className="parameter-pill">{form.include_laborreferenz ? "Laborreferenz" : "Ohne Laborreferenz"}</span>
+                <span className="parameter-pill">{form.include_zielbereich ? "Zielbereich" : "Ohne Zielbereich"}</span>
+              </div>
+            </button>
           </div>
-        </article>
-      ) : null}
+        </aside>
+
+        <div className="parameter-main">
+          <article className="card">
+            <div className="parameter-detail__header">
+              <div>
+                <h3 className="parameter-detail__title">Verlaufsauswertung</h3>
+                <p>Filter, Darstellung und Vorlagen werden hier wie auf den übrigen Arbeitsseiten gesteuert.</p>
+              </div>
+              <div className="parameter-header-controls">
+                <span className="parameter-pill parameter-pill--accent">
+                  {auswertungMutation.data
+                    ? isLoadedAuswertungOutdated
+                      ? "Aktualisierung offen"
+                      : "Auswertung geladen"
+                    : "Bereit"}
+                </span>
+              </div>
+            </div>
+
+            <div className="parameter-toolrail">
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "templates" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => setActivePanel((current) => (current === "templates" ? null : "templates"))}
+              >
+                Vorlagen
+              </button>
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "filters" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => setActivePanel((current) => (current === "filters" ? null : "filters"))}
+              >
+                Filter bearbeiten
+              </button>
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "display" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => setActivePanel((current) => (current === "display" ? null : "display"))}
+              >
+                Darstellung
+              </button>
+              <button type="button" className="parameter-toolrail__button" onClick={handleLoadAuswertung} disabled={isLoadBlocked}>
+                {auswertungMutation.isPending
+                  ? "Lädt..."
+                  : isLoadedAuswertungOutdated
+                    ? "Auswertung aktualisieren"
+                    : "Auswertung laden"}
+              </button>
+            </div>
+
+            {activePanel === "templates" ? (
+              <article className="card card--soft parameter-action-panel">
+                <div className="parameter-panel__header">
+                  <div>
+                    <h3>Auswertungsvorlagen</h3>
+                    <p>
+                      {selectedTemplateName}
+                      {hasUnsavedTemplateChanges ? " • geändert" : ""}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="icon-button"
+                    onClick={() => setActivePanel(null)}
+                    aria-label="Panel Auswertungsvorlagen schließen"
+                    title="Panel Auswertungsvorlagen schließen"
+                  >
+                    ×
+                  </button>
+                </div>
+                <ViewTemplateBar
+                  templates={templatesQuery.data ?? []}
+                  selectedTemplateId={selectedTemplateId}
+                  hasUnsavedChanges={hasUnsavedTemplateChanges}
+                  isPending={templateActionPending}
+                  onSelect={handleSelectTemplate}
+                  onSave={handleSaveTemplate}
+                  onSaveAs={handleSaveTemplateAs}
+                  onRename={handleRenameTemplate}
+                  onDelete={handleDeleteTemplate}
+                />
+                {templateWarning ? <p className="form-hint">{templateWarning}</p> : null}
+                {templateError ? <p className="form-error">{templateError.message}</p> : null}
+              </article>
+            ) : null}
+
+            {activePanel === "filters" ? (
+              <article className="card card--soft parameter-action-panel">
+                <div className="parameter-panel__header">
+                  <div>
+                    <h3>Auswertungsfilter</h3>
+                    <p>Die Auswahl steuert Diagramme, Kennzahlen und qualitative Ereignisse gemeinsam.</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="icon-button"
+                    onClick={() => setActivePanel(null)}
+                    aria-label="Panel Auswertungsfilter schließen"
+                    title="Panel Auswertungsfilter schließen"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <form
+                  className="form-grid"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    handleLoadAuswertung();
+                  }}
+                >
+                  <SelectionChecklist
+                    label="Personen"
+                    options={(personenQuery.data ?? []).map((person) => ({
+                      id: person.id,
+                      label: person.anzeigename
+                    }))}
+                    selectedIds={form.person_ids}
+                    onChange={(person_ids) => setForm((current) => ({ ...current, person_ids }))}
+                    emptyText="Noch keine Personen vorhanden."
+                    collapsible
+                  />
+
+                  <SelectionChecklist
+                    label="Parametergruppen"
+                    options={(gruppenQuery.data ?? []).map((gruppe) => ({
+                      id: gruppe.id,
+                      label: gruppe.name,
+                      meta: gruppe.beschreibung
+                    }))}
+                    selectedIds={form.gruppen_ids}
+                    onChange={(gruppen_ids) => setForm((current) => ({ ...current, gruppen_ids }))}
+                    emptyText="Noch keine Parametergruppen vorhanden."
+                    collapsible
+                    defaultExpanded={false}
+                    compactWhenEmptyCollapsed
+                  />
+
+                  <SelectionChecklist
+                    label="Parameter"
+                    options={(parameterQuery.data ?? []).map((parameter) => ({
+                      id: parameter.id,
+                      label: parameter.anzeigename,
+                      meta: parameter.standard_einheit
+                    }))}
+                    selectedIds={form.laborparameter_ids}
+                    onChange={(laborparameter_ids) => setForm((current) => ({ ...current, laborparameter_ids }))}
+                    emptyText="Noch keine Parameter vorhanden."
+                    collapsible
+                    defaultExpanded={false}
+                    searchable
+                    searchPlaceholder="Parameter filtern"
+                    showSelectedOnlyToggle
+                    selectedOnlyLabel="Nur ausgewählte anzeigen"
+                    compactWhenEmptyCollapsed
+                  />
+
+                  <SelectionChecklist
+                    label="KSG-Klassen"
+                    options={PARAMETER_KLASSIFIKATION_OPTIONS.map((option) => ({
+                      id: option.value,
+                      label: option.label
+                    }))}
+                    selectedIds={form.klassifikationen}
+                    onChange={(klassifikationen) =>
+                      setForm((current) => ({
+                        ...current,
+                        klassifikationen: klassifikationen as ParameterKlassifikationCode[]
+                      }))
+                    }
+                    emptyText="Keine KSG-Klassen verfügbar."
+                    collapsible
+                    defaultExpanded={false}
+                    compactWhenEmptyCollapsed
+                  />
+
+                  <SelectionChecklist
+                    label="Labore"
+                    options={(laboreQuery.data ?? []).map((labor) => ({
+                      id: labor.id,
+                      label: labor.name
+                    }))}
+                    selectedIds={form.labor_ids}
+                    onChange={(labor_ids) => setForm((current) => ({ ...current, labor_ids }))}
+                    emptyText="Noch keine Labore vorhanden."
+                    collapsible
+                    defaultExpanded={false}
+                    compactWhenEmptyCollapsed
+                  />
+
+                  <DateRangeFilterFields
+                    fromValue={form.datum_von}
+                    toValue={form.datum_bis}
+                    fallbackFromValue={initialForm.datum_von}
+                    fallbackToValue={initialForm.datum_bis}
+                    onFromChange={(datum_von) => setForm((current) => ({ ...current, datum_von }))}
+                    onToChange={(datum_bis) => setForm((current) => ({ ...current, datum_bis }))}
+                  />
+
+                  <div className="form-actions">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setForm(initialForm);
+                        setSelectedTemplateId("");
+                        setTemplateBaseline("");
+                        setTemplateWarning(null);
+                      }}
+                    >
+                      Filter zurücksetzen
+                    </button>
+                    <button type="submit" disabled={isLoadBlocked}>
+                      {auswertungMutation.isPending ? "Lädt..." : "Auswertung laden"}
+                    </button>
+                  </div>
+                </form>
+              </article>
+            ) : (
+              <div className="selection-summary auswertung-selection-summary" aria-label="Aktive Auswertungsauswahl">
+                <span className="selection-summary__label">Aktive Auswahl</span>
+                <div className="selection-summary__items">
+                  {filterSummary.map((summaryItem) => (
+                    <span className="selection-summary__item" key={summaryItem}>
+                      {summaryItem}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activePanel === "display" ? (
+              <article className="card card--soft parameter-action-panel auswertung-display-panel">
+                <div className="parameter-panel__header">
+                  <div>
+                    <h3>Darstellung</h3>
+                    <p>Diese Einstellungen verändern nur die Ansicht der geladenen Auswertung, nicht die Filterauswahl.</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="icon-button"
+                    onClick={() => setActivePanel(null)}
+                    aria-label="Panel Darstellung schließen"
+                    title="Panel Darstellung schließen"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="auswertung-display-grid">
+                  <div className="field field--full">
+                    <span>Diagrammtyp</span>
+                    <div className="auswertung-display-modes" role="group" aria-label="Diagrammtyp auswählen">
+                      {diagrammDarstellungOptions.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          className={`auswertung-display-mode${
+                            form.diagramm_darstellung === option.value ? " auswertung-display-mode--active" : ""
+                          }`}
+                          onClick={() => setForm((current) => ({ ...current, diagramm_darstellung: option.value }))}
+                          aria-pressed={form.diagramm_darstellung === option.value}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <label className="field">
+                    <span>Zeitraumdarstellung im Diagramm</span>
+                    <select
+                      value={form.zeitraum_darstellung}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          zeitraum_darstellung: event.target.value as AuswertungFormState["zeitraum_darstellung"]
+                        }))
+                      }
+                    >
+                      <option value="wertezeitraum">Nur Zeitraum mit Werten</option>
+                      <option value="selektionszeitraum">Gewählten Selektionszeitraum fest anzeigen</option>
+                    </select>
+                  </label>
+
+                  <label className="field">
+                    <span>Vertikaler Achsenbereich</span>
+                    <select
+                      value={form.vertikalachsen_modus}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          vertikalachsen_modus: event.target.value as VertikalachsenModus
+                        }))
+                      }
+                    >
+                      {vertikalachsenModusOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="field">
+                    <span>Laborreferenzen anzeigen</span>
+                    <input
+                      type="checkbox"
+                      checked={form.include_laborreferenz}
+                      onChange={(event) =>
+                        setForm((current) => ({ ...current, include_laborreferenz: event.target.checked }))
+                      }
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>Zielbereiche anzeigen</span>
+                    <input
+                      type="checkbox"
+                      checked={form.include_zielbereich}
+                      onChange={(event) =>
+                        setForm((current) => ({ ...current, include_zielbereich: event.target.checked }))
+                      }
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>Wertetabellen standardmäßig geöffnet</span>
+                    <input
+                      type="checkbox"
+                      checked={form.messwerttabelle_standard_offen}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          messwerttabelle_standard_offen: event.target.checked
+                        }))
+                      }
+                    />
+                  </label>
+                </div>
+              </article>
+            ) : null}
+
+            <div className="detail-grid detail-grid--metrics">
+              {statistikCards.map((card) => (
+                <div className="detail-grid__item" key={card.label}>
+                  <span>{card.label}</span>
+                  <strong>{card.value}</strong>
+                  <small>{card.detail}</small>
+                </div>
+              ))}
+            </div>
+            <p className="auswertung-stats-context">
+              Treffer der aktuellen Filterauswahl für {filterPeriodLabel}; die Gesamtzahlen dienen als Vergleich.
+            </p>
+
+            {isDateRangeInvalid && activePanel !== "filters" ? (
+              <p className="form-error">Das Bis-Datum darf nicht vor dem Von-Datum liegen.</p>
+            ) : null}
+            {hasTooManyPreviewParameters ? (
+              <p className="form-hint">
+                Diese Auswahl umfasst mehr als {maxAuswertungParameter} Parameter. Beim Laden fragt die Anwendung nach.
+              </p>
+            ) : null}
+            {auswertungPreviewQuery.isError ? <p className="form-error">{auswertungPreviewQuery.error.message}</p> : null}
+            {auswertungMutation.isError ? <p className="form-error">{auswertungMutation.error.message}</p> : null}
+            {isLoadedAuswertungOutdated ? (
+              <p className="form-hint auswertung-update-hint">
+                Die angezeigte Auswertung passt noch zur zuletzt geladenen Auswahl. Lade sie erneut, um die aktuellen
+                Filter und Darstellungsoptionen zu übernehmen.
+              </p>
+            ) : null}
+          </article>
+
+          {auswertungMutation.data && !auswertungMutation.data.serien.length && !qualitativeEvents.length ? (
+            <article className="card">
+              <h3>Keine Ergebnisse</h3>
+              <p>Für die aktuelle Auswahl liegen derzeit keine passenden Verlaufsdaten oder qualitativen Ereignisse vor.</p>
+            </article>
+          ) : null}
+
+          {auswertungMutation.data ? (
+            <div className="workspace-grid">
+              {auswertungMutation.data.serien.map((serie) => (
+                <SeriesResultCard
+                  key={serie.laborparameter_id}
+                  serie={serie}
+                  diagrammDarstellung={form.diagramm_darstellung}
+                  zeitraumDarstellung={form.zeitraum_darstellung}
+                  vertikalachsenModus={form.vertikalachsen_modus}
+                  datumVon={form.datum_von}
+                  datumBis={form.datum_bis}
+                  includeLaborreferenz={form.include_laborreferenz}
+                  includeZielbereich={form.include_zielbereich}
+                  defaultTableOpen={form.messwerttabelle_standard_offen}
+                />
+              ))}
+            </div>
+          ) : null}
+
+          {auswertungMutation.data ? (
+            <article className="card">
+              <h3>Qualitative Ereignisse</h3>
+              <div className="table-wrap">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Datum</th>
+                      <th>Person</th>
+                      <th>Parameter</th>
+                      <th>KSG</th>
+                      <th>Wert</th>
+                      <th>Bemerkung</th>
+                      <th>Labor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {qualitativeEvents.map((event) => (
+                      <tr key={event.messwert_id}>
+                        <td>{formatDate(event.datum)}</td>
+                        <td>{event.person_anzeigename}</td>
+                        <td>{event.parameter_anzeigename}</td>
+                        <td>{formatParameterKlassifikation(event.parameter_primaere_klassifikation)}</td>
+                        <td>{[event.wert_anzeige, event.einheit].filter(Boolean).join(" ")}</td>
+                        <td>{event.messwertbemerkung || event.befundbemerkung || "—"}</td>
+                        <td>{event.labor_name || "—"}</td>
+                      </tr>
+                    ))}
+                    {!qualitativeEvents.length ? (
+                      <tr>
+                        <td colSpan={7}>Noch keine qualitativen Ereignisse für die aktuelle Auswahl.</td>
+                      </tr>
+                    ) : null}
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          ) : null}
+        </div>
+      </div>
     </section>
   );
 }

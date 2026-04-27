@@ -11,6 +11,26 @@
 
 ## 2026-04
 
+### [2026-04-27] update | Hauptseiten-Design und Auswertungsachse vereinheitlicht
+- Anlass oder Quelle: Nutzerauftrag zur Standardisierung der Hauptseiten sowie Hinweise zur aktiven Auswahl und zu krummen Y-Achsenwerten in der Auswertung.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - Generische Entwicklungsvorgaben.md
+  - ../../../apps/frontend/src/features/auswertung/AuswertungPage.tsx
+  - ../../../apps/frontend/src/features/berichte/BerichtePage.tsx
+  - ../../../apps/frontend/src/features/einstellungen/EinstellungenPage.tsx
+  - ../../../apps/frontend/src/features/importe/ImportPage.tsx
+  - ../../../apps/frontend/src/features/wissensbasis/WissensbasisPage.tsx
+  - ../../../apps/frontend/src/shared/components/StartPage.tsx
+  - ../../../apps/frontend/src/styles.css
+- Kern der inhaltlichen Anpassung:
+  - Auswertung, Berichte, Einstellungen, Import, Laborwissen und Startseite wurden optisch stärker auf das gemeinsame Arbeitsmuster aus kompakter Kopfzeile, linker Auswahl und rechtem Arbeitsbereich gebracht.
+  - In der Auswertung stehen Vorlagen nun vor Filter und Darstellung, weil vorhandene Vorlagen fachlich zuerst gewählt werden.
+  - Die aktive Auswertungsauswahl erscheint als kompakte Statusfläche mit einzelnen Werten statt als lose Textzeile.
+  - Die Y-Achse der Auswertungsdiagramme berechnet feste, gleichmäßige und gut lesbare Ticks mit ganzen Zahlen oder sauberen Bruchteilen wie `0,5` und `0,25`.
+  - Verifiziert mit `npm run build`, `git diff --check` und Browserprüfung der Auswertungsseite.
+
 ### [2026-04-27] update | Auswertung bietet vertikale Achsenmodi für Referenzbereiche
 - Anlass oder Quelle: Nutzerhinweis, dass in der Leukozyten-Auswertung die oberen Enden der Laborreferenzmarker nicht sichtbar waren und die vertikale Achsenlogik erklärungsbedürftig ist.
 - Neu angelegte Seiten:

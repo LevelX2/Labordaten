@@ -636,92 +636,54 @@ export function EinstellungenPage() {
         </div>
       </header>
 
-      <article className="card">
-        <div className="parameter-detail__header">
-          <div>
-            <h3 className="parameter-detail__title">{sectionMeta.title}</h3>
-            <p>{sectionMeta.description}</p>
+      <div className="parameter-workspace">
+        <aside className="card parameter-sidebar">
+          <div className="parameter-sidebar__header">
+            <div>
+              <h3>Einstellungsbereiche</h3>
+              <p>{sectionMeta.badge}</p>
+            </div>
           </div>
-          <div className="parameter-header-controls">
-            <span className="parameter-pill parameter-pill--accent">{sectionMeta.badge}</span>
+
+          <div className="parameter-list">
+            {einstellungenAnsichten.map((ansicht) => {
+              const meta = getSectionMeta(ansicht);
+              return (
+                <button
+                  key={ansicht}
+                  type="button"
+                  className={`parameter-list__item ${selectedAnsicht === ansicht ? "parameter-list__item--selected" : ""}`}
+                  onClick={() => handleAnsichtChange(ansicht)}
+                >
+                  <div className="parameter-list__title-row">
+                    <strong>{meta.title}</strong>
+                  </div>
+                  <p>{meta.description}</p>
+                  <div className="parameter-list__meta">
+                    <span className="parameter-pill">{meta.badge}</span>
+                  </div>
+                </button>
+              );
+            })}
           </div>
-        </div>
+        </aside>
 
-        <div className="parameter-toolrail">
-          <button
-            type="button"
-            className={`parameter-toolrail__button ${selectedAnsicht === "uebersicht" ? "parameter-toolrail__button--active" : ""}`}
-            onClick={() => handleAnsichtChange("uebersicht")}
-          >
-            Übersicht
-          </button>
-          <button
-            type="button"
-            className={`parameter-toolrail__button ${selectedAnsicht === "sperre" ? "parameter-toolrail__button--active" : ""}`}
-            onClick={() => handleAnsichtChange("sperre")}
-          >
-            Sperre
-          </button>
-          <button
-            type="button"
-            className={`parameter-toolrail__button ${selectedAnsicht === "pfade" ? "parameter-toolrail__button--active" : ""}`}
-            onClick={() => handleAnsichtChange("pfade")}
-          >
-            Pfade
-          </button>
-          <button
-            type="button"
-            className={`parameter-toolrail__button ${selectedAnsicht === "standards" ? "parameter-toolrail__button--active" : ""}`}
-            onClick={() => handleAnsichtChange("standards")}
-          >
-            Standards
-          </button>
-          <button
-            type="button"
-            className={`parameter-toolrail__button ${selectedAnsicht === "design" ? "parameter-toolrail__button--active" : ""}`}
-            onClick={() => handleAnsichtChange("design")}
-          >
-            Farbdesign
-          </button>
-          <button
-            type="button"
-            className={`parameter-toolrail__button ${selectedAnsicht === "initialdaten" ? "parameter-toolrail__button--active" : ""}`}
-            onClick={() => handleAnsichtChange("initialdaten")}
-          >
-            Initialdaten
-          </button>
-          <button
-            type="button"
-            className={`parameter-toolrail__button ${selectedAnsicht === "datenpakete" ? "parameter-toolrail__button--active" : ""}`}
-            onClick={() => handleAnsichtChange("datenpakete")}
-          >
-            Optionale Datenpakete
-          </button>
-          <button
-            type="button"
-            className={`parameter-toolrail__button ${selectedAnsicht === "einheiten" ? "parameter-toolrail__button--active" : ""}`}
-            onClick={() => handleAnsichtChange("einheiten")}
-          >
-            Einheiten
-          </button>
-          <button
-            type="button"
-            className={`parameter-toolrail__button ${selectedAnsicht === "labore" ? "parameter-toolrail__button--active" : ""}`}
-            onClick={() => handleAnsichtChange("labore")}
-          >
-            Labore
-          </button>
-          <button
-            type="button"
-            className={`parameter-toolrail__button ${selectedAnsicht === "technik" ? "parameter-toolrail__button--active" : ""}`}
-            onClick={() => handleAnsichtChange("technik")}
-          >
-            Technik
-          </button>
-        </div>
+        <div className="parameter-main">
+          <article className="card">
+            <div className="parameter-detail__header">
+              <div>
+                <h3 className="parameter-detail__title">{sectionMeta.title}</h3>
+                <p>{sectionMeta.description}</p>
+              </div>
+              <div className="parameter-header-controls">
+                <span className="parameter-pill parameter-pill--accent">{sectionMeta.badge}</span>
+              </div>
+            </div>
 
-        {renderSection()}
-      </article>
+            {renderSection()}
+          </article>
+        </div>
+      </div>
     </section>
   );
 }
