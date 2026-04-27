@@ -11,6 +11,19 @@
 
 ## 2026-04
 
+### [2026-04-27] config | Externe Rohquellen aus Git-Tracking entfernt
+- Anlass oder Quelle: Nutzerwunsch, `KI-Wissen-Labordaten/01 Rohquellen/externe-quellen/` vorerst komplett von Git und GitHub auszuschließen, nachdem der Ordner bereits einmal nach GitHub übertragen wurde.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../../.gitignore
+  - ../03 Betrieb/Generische Entwicklungsvorgaben.md
+  - ../../../KI-Wissen-Labordaten/01 Rohquellen/externe-quellen/
+- Kern der inhaltlichen Anpassung:
+  - Der Ordner `KI-Wissen-Labordaten/01 Rohquellen/externe-quellen/` wird künftig per `.gitignore` ausgeschlossen.
+  - Die bereits getrackten externen Rohquellen wurden mit `git rm --cached -r` aus dem Git-Index entfernt; die lokalen Dateien bleiben im Arbeitsverzeichnis erhalten.
+  - Die Wissensbasis hält fest, dass `.gitignore` und Enttracking bereits gepushte Git-Historie nicht bereinigen und dafür bei Bedarf eine separate Historienbereinigung oder GitHub-Sichtbarkeitsänderung nötig ist.
+
 ### [2026-04-27] refactor | Alembic-Migrationen zu Initialmigration verdichtet
 - Anlass oder Quelle: Nutzerentscheidung, die nicht mehr benötigte Alembic-Historie zu squashen, weil kein alter produktiver Datenbankstand erhalten werden muss.
 - Neu angelegte Seiten:

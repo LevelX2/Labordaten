@@ -1,7 +1,7 @@
 ---
 typ: betrieb
 status: aktiv
-letzte_aktualisierung: 2026-04-26
+letzte_aktualisierung: 2026-04-27
 quellen:
   - ../../00 Steuerung/Regeldatei KI-Wissenspflege.md
   - ../../02 Wissen/Prozesse/Arbeitsworkflow Wissenspflege und Projektanfragen.md
@@ -15,6 +15,7 @@ quellen:
   - ../../apps/frontend/src/shared/components/SelectionChecklist.tsx
   - ../../apps/frontend/src/shared/components/DateRangeFilterFields.tsx
   - ../../apps/frontend/src/styles.css
+  - ../../.gitignore
 tags:
   - betrieb
   - vorgaben
@@ -93,6 +94,12 @@ Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitp
 - Versioniert werden nur echte Quellartefakte, bewusst gepflegte Rohquellen und dauerhafte Wissensseiten; reproduzierbare Zwischenstaende aus lokalen Arbeitslaeufen gehoeren in `.gitignore`.
 - Bei dateibasierten Fachobjekten ist vor dem Loeschen zu pruefen, ob die aktuelle Laufzeitdatenbank noch auf diese Dateien verweist.
 - Relative Default-Pfade fuer Laufzeitdaten sollten projektweit an einen klaren kanonischen Startkontext gebunden werden, damit nicht unbeabsichtigt mehrere lokale Artefaktinseln entstehen.
+
+## Versionierung externer Rohquellen
+- Externe Rohquellen unter `KI-Wissen-Labordaten/01 Rohquellen/externe-quellen/` bleiben lokal verfügbar, werden aber nicht versioniert und nicht nach GitHub übertragen.
+- Der Ordner ist in `.gitignore` ausgeschlossen, damit neue PDFs, Transkriptionen oder vergleichbare externe Quellen nicht versehentlich wieder in den Git-Index geraten.
+- Abgeleitetes, dauerhaftes Projektwissen aus diesen Quellen darf weiterhin in den fachlich passenden Wissensseiten dokumentiert werden, wenn Lizenz-, Datenschutz- und Quellenlage dies zulassen.
+- Bereits historisch veröffentlichte externe Rohquellen sind durch `.gitignore` und `git rm --cached` nicht automatisch aus der Git-Historie oder aus bereits gepushten GitHub-Objekten entfernt; dafür ist bei Bedarf eine bewusste Historienbereinigung oder Repository-Sichtbarkeitsänderung nötig.
 
 ## Stammdatenseiten als Arbeitsbereich
 - Vergleichbare Stammdatenseiten sollten als klarer Arbeitsbereich aufgebaut sein und nicht als lose Sammlung gleichrangiger Karten oder Formulare.
