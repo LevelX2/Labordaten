@@ -2993,6 +2993,12 @@
       "bemerkung": "Vorbelegte Schreibvariante aus bestehendem Datenbestand"
     },
     {
+      "einheit_kuerzel": "µU/ml",
+      "alias_text": "µE/ml",
+      "alias_normalisiert": "µe/ml",
+      "bemerkung": "Deutschsprachige Schreibvariante für Mikro-Units pro Milliliter bei Insulin."
+    },
+    {
       "einheit_kuerzel": "µg/l",
       "alias_text": "µg/L",
       "alias_normalisiert": "µg/l",
@@ -13668,6 +13674,19 @@
       "aktiv": true
     },
     {
+      "parameter_schluessel": "cortisol_im_serum",
+      "von_einheit": "µg/l",
+      "nach_einheit": "µg/dl",
+      "regel_typ": "faktor",
+      "faktor": 0.1,
+      "offset": null,
+      "formel_text": null,
+      "rundung_stellen": null,
+      "quelle_beschreibung": "SI-Maßstabsumrechnung mit Liter/Deziliter-Umrechnung. [seed_safe_import_conversion_rules_2026_04_27]",
+      "bemerkung": "1 µg/l entspricht 0,1 µg/dl.",
+      "aktiv": true
+    },
+    {
       "parameter_schluessel": "eisen",
       "von_einheit": "mg/l",
       "nach_einheit": "µg/dl",
@@ -13707,6 +13726,19 @@
       "aktiv": true
     },
     {
+      "parameter_schluessel": "folsaure",
+      "von_einheit": "nmol/l",
+      "nach_einheit": "ng/ml",
+      "regel_typ": "faktor",
+      "faktor": 0.441306266548985,
+      "offset": null,
+      "formel_text": null,
+      "rundung_stellen": null,
+      "quelle_beschreibung": "Serum-Folat: 1 ng/ml = 2,266 nmol/l. [seed_safe_import_conversion_rules_2026_04_27]",
+      "bemerkung": "Umrechnung für Folsäure/Folat über den etablierten Folat-Faktor; 1 nmol/l entspricht rund 0,4413 ng/ml.",
+      "aktiv": true
+    },
+    {
       "parameter_schluessel": "ft3",
       "von_einheit": "ng/l",
       "nach_einheit": "pg/ml",
@@ -13743,6 +13775,32 @@
       "rundung_stellen": null,
       "quelle_beschreibung": "Parametergebundene Umrechnung über die relative Atommasse von Kalium. [seed_obvious_parameter_conversion_rules_2026_04_21]",
       "bemerkung": "1 mmol/l Kalium entspricht 39,0983 mg/l.",
+      "aktiv": true
+    },
+    {
+      "parameter_schluessel": "insulin_nuchtern",
+      "von_einheit": "µE/ml",
+      "nach_einheit": "µU/ml",
+      "regel_typ": "faktor",
+      "faktor": 1.0,
+      "offset": null,
+      "formel_text": null,
+      "rundung_stellen": null,
+      "quelle_beschreibung": "Identische deutschsprachige Schreibvariante für Mikro-Units pro Milliliter bei Insulin. [seed_safe_import_conversion_rules_2026_04_27]",
+      "bemerkung": "µE/ml und µU/ml werden für Insulin numerisch gleich behandelt.",
+      "aktiv": true
+    },
+    {
+      "parameter_schluessel": "kupfer",
+      "von_einheit": "µg/l",
+      "nach_einheit": "mg/l",
+      "regel_typ": "faktor",
+      "faktor": 0.001,
+      "offset": null,
+      "formel_text": null,
+      "rundung_stellen": null,
+      "quelle_beschreibung": "SI-Maßstabsumrechnung. [seed_safe_import_conversion_rules_2026_04_27]",
+      "bemerkung": "1 µg/l entspricht 0,001 mg/l.",
       "aktiv": true
     },
     {
@@ -13912,6 +13970,19 @@
       "rundung_stellen": null,
       "quelle_beschreibung": "1 mg/l = 1 µg/ml; Regel für Bioscientia Vitamin E im Serum/Plasma",
       "bemerkung": null,
+      "aktiv": true
+    },
+    {
+      "parameter_schluessel": "zink_im_serum",
+      "von_einheit": "µmol/l",
+      "nach_einheit": "µg/dl",
+      "regel_typ": "faktor",
+      "faktor": 6.538,
+      "offset": null,
+      "formel_text": null,
+      "rundung_stellen": null,
+      "quelle_beschreibung": "Parametergebundene Umrechnung über die relative Atommasse von Zink 65,38 g/mol. [seed_safe_import_conversion_rules_2026_04_27]",
+      "bemerkung": "1 µmol/l Zink entspricht 6,538 µg/dl.",
       "aktiv": true
     },
     {

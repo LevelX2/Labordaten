@@ -11,6 +11,44 @@
 
 ## 2026-04
 
+### [2026-04-27] fix | Sichere Import-Umrechnungen und Beschreibungspflicht im Prompt ergänzt
+- Anlass oder Quelle: Nutzerfrage zu Importwarnungen wegen fehlender sauberer Umrechnung für Cortisol, Folsäure, Zink, Kupfer, Lp(a) und Insulin sowie erneuter Hinweis, dass Parameter-Vorschläge aus dem externen KI-Chat ohne Beschreibung ankamen.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../02 Wissen/Begriffe und Konzepte/Ist-Stand Einheiten, Normeinheiten und Umrechnung.md
+  - ../../../apps/backend/migrations/versions/20260427_0007_safe_import_conversion_rules.py
+  - ../../../apps/backend/src/labordaten_backend/modules/importe/service.py
+  - ../../../apps/backend/src/labordaten_backend/modules/initialdaten/initialdaten_snapshot.json
+  - ../../../apps/backend/tests/test_import_prompt.py
+  - ../../../apps/backend/tests/test_initialdaten.py
+  - ../../../apps/frontend/src/features/importe/ImportPage.tsx
+- Kern der inhaltlichen Anpassung:
+  - Die Initialdaten und die lokale Datenbank enthalten nun sichere Import-Umrechnungen für `Cortisol im Serum` (`µg/l -> µg/dl`), `Folsäure` (`nmol/l -> ng/ml`), `Kupfer` (`µg/l -> mg/l`), `Zink im Serum` (`µmol/l -> µg/dl`) und `Insulin nüchtern` (`µE/ml -> µU/ml`).
+  - `µE/ml` wird zusätzlich als Einheiten-Alias von `µU/ml` gepflegt, damit Insulin-Werte mit deutscher Schreibweise ohne unnötige Umrechnungswarnung übernommen werden können.
+  - Für `Lipoprotein a Lp(a)` wurde bewusst keine Regel von `mg/dl` nach `nmol/l` hinterlegt, weil eine feste Umrechnung fachlich nicht sauber ist.
+  - Der generierte Import-Prompt fordert für jeden Parameter-Vorschlag nun ausdrücklich eine nicht-leere `beschreibungKurz`; wenn keine belastbare Beschreibung möglich ist, soll die KI keinen Parameter-Vorschlag anlegen, sondern den Messwert als prüfbedürftig markieren.
+  - Die lokale SQLite-Datenbank wurde nach Sicherung `labordaten.pre-safe-import-conversions-20260427.db` per Alembic auf `20260427_0007` migriert.
+  - Verifiziert mit vollständigem Backend-Testlauf: 125 Tests bestanden.
+
+### [2026-04-27] update | Optionales Datenpaket für Lithium-Präventionswerte ergänzt
+- Anlass oder Quelle: Nutzerauftrag, aus `Lithium das unterschätzte Spurenelement.pdf` ein kleines optionales Datenpaket mit Präventionswerten und Quellenangabe abzuleiten sowie die Lithium-Laborwissenseiten sinnvoll zu füllen.
+- Neu angelegte Seiten:
+  - ../01 Rohquellen/externe-quellen/Lithium das unterschätzte Spurenelement Auswertung.md
+- Geänderte Seiten:
+  - ../02 Wissen/Begriffe und Konzepte/Ist-Stand Initialdaten und Stammdaten-Snapshot.md
+  - ../../Labordaten-Wissen/02 Parameter/Allgemein/Lithium-Blut.md
+  - ../../Labordaten-Wissen/02 Parameter/Allgemein/Lithium-Serum-Plasma.md
+  - ../../Labordaten-Wissen/90 Quellen und Belege/Quellenuebersicht.md
+  - ../../apps/backend/src/labordaten_backend/modules/zielwertpakete/paket_katalog.json
+  - ../../apps/backend/tests/test_zielwertpakete_api.py
+- Kern der inhaltlichen Anpassung:
+  - Die lokale PDF-Quelle wurde als Rohquelle aufgenommen und wegen fehlender Textextraktion über gerenderte Seitenbilder vollständig ausgewertet.
+  - Der präventivmedizinische Lithium-Zielbereich wird als optionales Paket `lithium_praevention_biovis_2026` für `Lithium (Blut)` modelliert: `25-350 µg/l`, Material Vollblut, Zielrichtung `innerhalb_bereich`.
+  - Die Laborwissenseiten trennen jetzt Vollblut-Status/Prävention von Serum-/Plasma-Therapiespiegelkontrolle und nennen die relevanten Quellenangaben.
+  - Serum-Lithium wird bewusst nicht in das Präventionspaket aufgenommen, weil die Quelle es der medikamentösen Therapiekontrolle zuordnet.
+  - Verifiziert mit vollständigem Backend-Testlauf: 125 Tests bestanden.
+
 ### [2026-04-27] update | Hauptseiten-Design und Auswertungsachse vereinheitlicht
 - Anlass oder Quelle: Nutzerauftrag zur Standardisierung der Hauptseiten sowie Hinweise zur aktiven Auswahl und zu krummen Y-Achsenwerten in der Auswertung.
 - Neu angelegte Seiten:

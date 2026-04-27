@@ -6,10 +6,12 @@ from sqlalchemy.orm import sessionmaker
 
 from labordaten_backend.models.base import Base
 from labordaten_backend.models.einheit import Einheit
+from labordaten_backend.models.einheit_alias import EinheitAlias
 from labordaten_backend.models.gruppen_parameter import GruppenParameter
 from labordaten_backend.models.laborparameter import Laborparameter
 from labordaten_backend.models.laborparameter_alias import LaborparameterAlias
 from labordaten_backend.models.parameter_gruppe import ParameterGruppe
+from labordaten_backend.models.parameter_umrechnungsregel import ParameterUmrechnungsregel
 from labordaten_backend.models.zielbereich import Zielbereich
 from labordaten_backend.models.zielwert_paket import ZielwertPaket
 from labordaten_backend.modules.initialdaten.service import apply_initialdaten, get_initialdaten_status
@@ -177,5 +179,50 @@ def test_initialdaten_apply_updates_existing_rows_when_requested(tmp_path) -> No
         assert parameter is not None
         assert parameter.beschreibung == "Neu"
         assert result["aktualisiert"]["laborparameter"] == 1
+    finally:
+        db.close()
+
+
+def test_initialdaten_snapshot_contains_safe_import_conversion_rules(tmp_path) -> None:
+    db = _make_session(tmp_path)
+    try:
+        apply_initialdaten(db)
+
+        expected_rules = {
+            ("cortisol_im_serum", "µg/l", "µg/dl"): 0.1,
+            ("folsaure", "nmol/l", "ng/ml"): 0.441306266548985,
+            ("insulin_nuchtern", "µE/ml", "µU/ml"): 1.0,
+            ("kupfer", "µg/l", "mg/l"): 0.001,
+            ("zink_im_serum", "µmol/l", "µg/dl"): 6.538,
+        }
+        for (parameter_key, from_unit, to_unit), factor in expected_rules.items():
+            rule = db.execute(
+                select(ParameterUmrechnungsregel, Laborparameter)
+                .join(Laborparameter, ParameterUmrechnungsregel.laborparameter_id == Laborparameter.id)
+                .where(Laborparameter.interner_schluessel == parameter_key)
+                .where(ParameterUmrechnungsregel.von_einheit == from_unit)
+                .where(ParameterUmrechnungsregel.nach_einheit == to_unit)
+                .where(ParameterUmrechnungsregel.aktiv.is_(True))
+            ).first()
+            assert rule is not None
+            assert rule[0].faktor == factor
+
+        lpa_rule = db.execute(
+            select(ParameterUmrechnungsregel, Laborparameter)
+            .join(Laborparameter, ParameterUmrechnungsregel.laborparameter_id == Laborparameter.id)
+            .where(Laborparameter.interner_schluessel == "lipoprotein_a_lpa")
+            .where(ParameterUmrechnungsregel.von_einheit == "mg/dl")
+            .where(ParameterUmrechnungsregel.nach_einheit == "nmol/l")
+            .where(ParameterUmrechnungsregel.aktiv.is_(True))
+        ).first()
+        assert lpa_rule is None
+
+        insulin_alias = db.execute(
+            select(EinheitAlias, Einheit)
+            .join(Einheit, EinheitAlias.einheit_id == Einheit.id)
+            .where(EinheitAlias.alias_normalisiert == "µe/ml")
+        ).first()
+        assert insulin_alias is not None
+        assert insulin_alias[1].kuerzel == "µU/ml"
     finally:
         db.close()

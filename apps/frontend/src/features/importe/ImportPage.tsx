@@ -140,8 +140,8 @@ Regeln:
 - Bei unsicheren Zuordnungen "parameterId" weglassen und "pruefbedarfFlag": true setzen.
 - Originalkommentare aus der Quelle zu einem Messwert gehören in "bemerkungKurz" oder "bemerkungLang".
 - Eigene KI-Anmerkungen, Extraktionszweifel oder Begründungen für Unsicherheit gehören in "kiHinweis".
-- Für neue Parameter-Vorschläge soll "beschreibungKurz" eine allgemeine, berichtsunabhängige Fachbeschreibung sein. Empfehlungen, Einsendehinweise oder patientenbezogene Kommentare aus dem Bericht gehören nicht dort hinein.
-- Wenn keine belastbare allgemeine Parameterbeschreibung ableitbar ist, "beschreibungKurz" weglassen oder null setzen.
+- Für neue Parameter-Vorschläge ist eine nicht-leere "beschreibungKurz" Pflicht. Sie soll eine allgemeine, berichtsunabhängige Fachbeschreibung sein; Empfehlungen, Einsendehinweise oder patientenbezogene Kommentare aus dem Bericht gehören nicht dort hinein.
+- Wenn keine belastbare allgemeine Parameterbeschreibung ableitbar ist, keinen Parameter-Vorschlag anlegen, sondern den Messwert mit "pruefbedarfFlag" und "kiHinweis" markieren.
 - Qualitative Werte wie "positiv", "negativ" oder "nicht nachweisbar" mit "wertTyp": "text" und "wertText" abbilden.
 - Referenzbereiche als Originaltext erhalten; strukturierte Grenzen nur setzen, wenn sie eindeutig sind.
 - "beschreibungKurz" bei Parameter-Vorschlägen darf keine konkrete Befundbewertung enthalten und muss unabhängig vom konkreten Import verständlich sein.

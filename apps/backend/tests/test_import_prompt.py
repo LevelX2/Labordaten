@@ -126,10 +126,10 @@ def test_import_prompt_contains_file_json_and_context_instructions(tmp_path: Pat
         assert 'Eigene KI-Anmerkungen, Extraktionszweifel, Mapping-Hinweise' in text
         assert "vom konkreten Bericht und Import unabhängige Fachbeschreibung" in text
         assert "Empfehlungen, Zusatzuntersuchungen, Einsendehinweise" in text
-        assert 'Bei jedem neuen Parameter-Vorschlag wird eine kurze allgemeine "beschreibungKurz" erwartet' in text
+        assert 'Bei jedem neuen Parameter-Vorschlag ist eine nicht-leere kurze allgemeine "beschreibungKurz" Pflicht' in text
         assert "Recherchiere beziehungsweise nutze allgemeines Laborwissen" in text
-        assert 'Lasse "beschreibungKurz" nur dann weg oder null' in text
-        assert 'markiere den Vorschlag dann mit "unsicherFlag": true' in text
+        assert 'Lege keinen Parameter-Vorschlag ohne belastbare "beschreibungKurz" an' in text
+        assert 'markiere den Messwert mit "pruefbedarfFlag": true' in text
         assert "ausschließlich in \"begruendungAusDokument\"" in text
         assert prompt.schema_version == "1.0"
         assert "Labore: 1" in prompt.kontext_zusammenfassung

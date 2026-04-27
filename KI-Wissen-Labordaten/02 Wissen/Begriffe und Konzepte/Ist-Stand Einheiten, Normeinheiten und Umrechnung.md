@@ -73,6 +73,9 @@ Zusätzlich kann pro numerischem Laborparameter eine führende Normeinheit festg
 - Umrechnungen werden als eigene Regeln pro `Laborparameter` gepflegt.
 - Unterstützt werden aktuell Faktor-, Faktor-plus-Offset- und Formelregeln.
 - Regeln werden auf der Parameterseite gepflegt.
+- Für typische Importwarnungen aus dem Befund 2016-04-22 sind sichere Regeln beziehungsweise Alias-Auflösungen in den Initialdaten hinterlegt: `Cortisol im Serum` von `µg/l` nach `µg/dl` mit Faktor `0,1`, `Folsäure` von `nmol/l` nach `ng/ml` mit Faktor `1 / 2,266`, `Kupfer` von `µg/l` nach `mg/l` mit Faktor `0,001`, `Zink im Serum` von `µmol/l` nach `µg/dl` mit Faktor `6,538` und `Insulin nüchtern` von `µE/ml` nach `µU/ml` mit Faktor `1,0`.
+- `µE/ml` wird bei Insulin primär als Einheiten-Schreibvariante von `µU/ml` behandelt und deshalb als Einheiten-Alias gepflegt; die zusätzliche Faktor-1-Regel dient als Fallback für Datenbanken, in denen `µE/ml` bereits als eigene Einheit vorhanden ist.
+- Für `Lipoprotein a Lp(a)` bleibt `mg/dl` nach `nmol/l` bewusst ohne automatische Umrechnungsregel, weil eine feste Umrechnung zwischen Masse und Partikelkonzentration wegen Apo(a)-Isoformgrößen fachlich nicht belastbar ist.
 
 ### Materialisierte Normierung
 - Jeder Messwert behält seinen Originalwert in `wert_num` und seine Originaleinheit in `einheit_original`.
