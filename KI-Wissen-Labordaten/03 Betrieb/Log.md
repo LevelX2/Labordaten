@@ -11,6 +11,37 @@
 
 ## 2026-04
 
+### [2026-04-27] refactor | Hotspot-First-Refactoring für Backend und Import-Frontend
+- Anlass oder Quelle: Nutzerauftrag, die Codebase wie ein neu eingestiegener Senior Engineer zu verstehen, Hotspots zu refactoren und die Funktionalität unverändert zu lassen.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - Generische Entwicklungsvorgaben.md
+  - ../../../apps/backend/src/labordaten_backend/modules/messwerte/common.py
+  - ../../../apps/backend/src/labordaten_backend/modules/auswertung/service.py
+  - ../../../apps/backend/src/labordaten_backend/modules/berichte/service.py
+  - ../../../apps/backend/src/labordaten_backend/modules/importe/service.py
+  - ../../../apps/backend/src/labordaten_backend/modules/loeschlogik/service.py
+  - ../../../apps/backend/tests/test_measurement_common.py
+  - ../../../apps/frontend/src/features/importe/ImportPage.tsx
+  - ../../../apps/frontend/src/features/importe/importMapping.ts
+  - ../../../apps/frontend/src/features/importe/importMapping.test.ts
+  - ../../../apps/frontend/src/features/parameter/ParameterPage.tsx
+  - ../../../apps/frontend/src/features/parameter/parameterFormatting.ts
+  - ../../../apps/frontend/src/features/parameter/parameterFormatting.test.ts
+  - ../../../apps/frontend/src/shared/api/queryKeys.ts
+  - ../../../apps/frontend/src/shared/utils/dateFormatting.ts
+  - ../../../apps/frontend/src/shared/utils/dateFormatting.test.ts
+  - ../../../apps/frontend/src/styles.css
+  - ../../../apps/frontend/src/styles/features/import.css
+- Kern der inhaltlichen Anpassung:
+  - Gemeinsame Messwert-Helfer für Auswertung und Berichte wurden extrahiert, damit Basisquery, effektives Datum, Personenladung und Wertanzeige nicht weiter in mehreren Services auseinanderlaufen.
+  - Die Importliste lädt Prüfpunkte und Dokumente nun gesammelt; die Importprüfung bereitet bestehende Messwert-Dubletten pro Befundkontext als Menge vor, statt je Messwert einzeln abzufragen.
+  - Die Löschlogik nutzt intern Handler-Registries für Prüfung und Ausführung, während öffentliche API und Verhalten stabil bleiben.
+  - Die Import-Mapping-Logik im Frontend und reine Parameter-Formatierungshelfer wurden aus großen Seiten in testbare Module ausgelagert; Query-Keys und Datumsformatierung wurden weiter zentralisiert.
+  - Ein erster Import-CSS-Block wurde aus der zentralen `styles.css` in eine Feature-CSS-Datei ausgelagert, wobei `styles.css` als Aggregator bestehen bleibt.
+  - Verifiziert mit `pytest` im Backend: 119 Tests bestanden; `npm test` im Frontend: 4 Testdateien und 15 Tests bestanden; `npm run build` erfolgreich.
+
 ### [2026-04-27] update | Zielwertpaketquelle auf Buch und Laborbezug korrigiert
 - Anlass oder Quelle: Nutzerhinweis, dass der Zielwertpaket-Katalog als Quelle den Buchtitel führen soll und Zielwert-Fundstellen nicht auf Scan-Klassifikation oder Seitenzahlen verweisen sollen.
 - Neu angelegte Seiten:

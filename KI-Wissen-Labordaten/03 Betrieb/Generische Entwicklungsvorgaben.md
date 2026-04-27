@@ -180,6 +180,13 @@ Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitp
 - Besonders wichtig ist das bei festen Ausprägungen, optionalen `null`-Feldern, typabhängigen Feldkombinationen und ähnlichen Stellen, an denen Frontend und Backend leicht unbemerkt auseinanderlaufen können.
 - Der zusätzliche Testaufwand lohnt sich vor allem dann, wenn Änderungen an UI, Serialisierung oder API-Schemas sonst erst im laufenden Gebrauch auffallen würden.
 
+## Refactoring großer Hotspots
+- Große Services und Seiten sollten bei funktionsgleichen Qualitätsverbesserungen zuerst über stabile öffentliche Fassaden entkoppelt werden. Routen, API-Payloads und sichtbare UI-Verträge bleiben dabei stabil, während interne Helfer in kleinere, testbare Module wandern.
+- Besonders geeignet für erste Schnitte sind reine Berechnungs-, Formatierungs-, Mapping-, Query-Key- und Bulk-Ladefunktionen, weil sie unabhängig von UI-Rendering oder Datenbanktransaktionen getestet werden können.
+- Performance-Verbesserungen in bestehenden Flows sollen bevorzugt über vorbereitete Mengen, aggregierte Zählungen und Bulk-Maps erfolgen, statt in Nutzungslisten oder Prüfschleifen pro Eintrag zusätzliche Einzelabfragen auszuführen.
+- Wenn CSS aus einer großen zentralen Datei ausgelagert wird, sollte `styles.css` zunächst als Aggregator bestehen bleiben und die Reihenfolge der importierten Blöcke bewusst stabil halten. Gemischte oder querschnittliche Dialogstile sollen erst dann verschoben werden, wenn ihre Wiederverwendung klar abgegrenzt ist.
+- Bei mittelgroßen Refactorings gilt als Mindestabsicherung: bestehende Tests vorher und nachher laufen lassen, reine neue Helfer mit fokussierten Unit-Tests ergänzen und keine Schema-, API- oder sichtbaren Textänderungen nebenbei einführen.
+
 ## Formulare und Lesefelder
 - Nicht bearbeitbare Felder müssen sich optisch klar von bearbeitbaren Feldern unterscheiden.
 - Deaktivierte oder nur lesbare Eingaben sollen nicht denselben visuellen Eindruck erzeugen wie normale Schreibfelder.

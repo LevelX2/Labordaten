@@ -47,6 +47,13 @@ Zu Beginn projektbezogener Arbeit zuerst diese Dateien lesen:
 - Projektübergreifende Regeln werden nach Freigabe in das Haupt-Vault zurückgeführt.
 - Spezifische Erkenntnisse für nur einen Fachfall, eine Seite oder einen einzelnen Ablauf gehören in die fachlich passende Wissensseite und nicht in die generischen Entwicklungsvorgaben.
 
+## Git-Arbeitsweise
+
+- Vor Dateiänderungen aktuellen Branch prüfen.
+- Wenn der Branch `main` ist, vor der ersten Änderung automatisch einen Arbeitsbranch mit Präfix `codex/` erstellen.
+- Direkte Änderungen auf `main` sind nur auf ausdrücklichen Nutzerwunsch zulässig.
+- Reine Lese-, Prüf- und Statusbefehle dürfen auf `main` laufen.
+
 ## Sprachregeln
 
 - Sichtbare UI-Texte sollen echtes Deutsch mit Umlauten und `ß` verwenden.
