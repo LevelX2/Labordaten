@@ -11,6 +11,17 @@
 
 ## 2026-04
 
+### [2026-04-27] update | Auswertungslinien für Referenz- und Zielbereiche je Person getrennt
+- Anlass oder Quelle: Fortsetzung der Auswertungsverbesserungen für lesbarere Verlaufsdiagramme bei mehreren Personen und parallelen Referenz- oder Zielbereichsanzeigen.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../../apps/frontend/src/features/auswertung/AuswertungPage.tsx
+- Kern der inhaltlichen Anpassung:
+  - Laborreferenz- und Zielbereichslinien werden im Diagramm nicht mehr als eine gemeinsame globale Linie gezeichnet, sondern personbezogen aus den Messpunkten aufgebaut.
+  - Die Diagrammlegende schaltet nun Wertlinien, Laborreferenzen und Zielbereiche als eigene Liniengruppen ein und aus.
+  - Die Anzeige bleibt abhängig von den vorhandenen Referenz- und Zielbereichsdaten sowie den Darstellungsschaltern der Auswertung.
+
 ### [2026-04-27] feature | Optionale Zielwertpakete ergänzt
 - Anlass oder Quelle: Nutzerentscheidung, quellengebundene Zielwertsammlungen wie Orfanos-Boeckel-Optimalbereiche nicht fest als Systemstandard einzubauen, sondern als optionale Pakete einspielbar und deaktivierbar zu machen.
 - Neu angelegte Seiten:

@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   CartesianGrid,
@@ -75,6 +75,8 @@ const initialForm: AuswertungFormState = {
 };
 
 const palette = ["#1f5a92", "#1f6a53", "#d77a2f", "#8d4aa5", "#a34848", "#4d6b1f"];
+const laborreferenzPalette = ["#d77a2f", "#b66f00", "#c44f8d", "#7a6f1c", "#c14f42", "#6d6f8f"];
+const zielbereichPalette = ["#1f6a53", "#4d7f2a", "#008097", "#7357a8", "#2b6f92", "#887638"];
 const diagrammDarstellungOptions: Array<{ value: DiagrammDarstellung; label: string }> = [
   { value: "verlauf", label: "Verlauf" },
   { value: "punkte", label: "Punkte" },
@@ -222,8 +224,101 @@ function parseDateToTimestamp(value?: string | null): number | null {
   return Date.UTC(Number(yearText), Number(monthText) - 1, Number(dayText));
 }
 
+type ChartRow = Record<string, string | number | null>;
+
+type ChartPerson = {
+  id: string;
+  name: string;
+  index: number;
+  pointCount: number;
+  laborreferenzCount: number;
+  zielbereichCount: number;
+};
+
+type ChartLineGroup = {
+  id: string;
+  label: string;
+  color: string;
+  kind: "wert" | "laborreferenz" | "zielbereich";
+  count: number;
+};
+
+function buildPersonChartData(points: AuswertungPunkt[]): ChartPerson[] {
+  const byPerson = new Map<string, ChartPerson>();
+  for (const point of points) {
+    if (point.wert_num === null || point.wert_num === undefined || parseDateToTimestamp(point.datum) === null) {
+      continue;
+    }
+
+    const current = byPerson.get(point.person_id) ?? {
+      id: point.person_id,
+      name: point.person_anzeigename,
+      index: byPerson.size,
+      pointCount: 0,
+      laborreferenzCount: 0,
+      zielbereichCount: 0
+    };
+    current.pointCount += 1;
+    if (
+      (point.laborreferenz_untere_num !== null && point.laborreferenz_untere_num !== undefined) ||
+      (point.laborreferenz_obere_num !== null && point.laborreferenz_obere_num !== undefined)
+    ) {
+      current.laborreferenzCount += 1;
+    }
+    if (
+      (point.zielbereich_untere_num !== null && point.zielbereich_untere_num !== undefined) ||
+      (point.zielbereich_obere_num !== null && point.zielbereich_obere_num !== undefined)
+    ) {
+      current.zielbereichCount += 1;
+    }
+    byPerson.set(point.person_id, current);
+  }
+  return Array.from(byPerson.values());
+}
+
+function buildChartLineGroups(
+  people: ChartPerson[],
+  includeLaborreferenz: boolean,
+  includeZielbereich: boolean,
+  showReferenceAreas: boolean
+): ChartLineGroup[] {
+  return people.flatMap((person) => {
+    const groups: ChartLineGroup[] = [
+      {
+        id: `wert__${person.id}`,
+        label: person.name,
+        color: palette[person.index % palette.length],
+        kind: "wert",
+        count: person.pointCount
+      }
+    ];
+
+    if (showReferenceAreas && includeLaborreferenz && person.laborreferenzCount > 0) {
+      groups.push({
+        id: `laborreferenz__${person.id}`,
+        label: `Laborreferenz ${person.name}`,
+        color: laborreferenzPalette[person.index % laborreferenzPalette.length],
+        kind: "laborreferenz",
+        count: person.laborreferenzCount
+      });
+    }
+
+    if (showReferenceAreas && includeZielbereich && person.zielbereichCount > 0) {
+      groups.push({
+        id: `zielbereich__${person.id}`,
+        label: `Zielbereich ${person.name}`,
+        color: zielbereichPalette[person.index % zielbereichPalette.length],
+        kind: "zielbereich",
+        count: person.zielbereichCount
+      });
+    }
+
+    return groups;
+  });
+}
+
 function buildChartData(points: AuswertungPunkt[]) {
-  const byDate = new Map<number, Record<string, string | number | null>>();
+  const byDate = new Map<number, ChartRow>();
   for (const point of points) {
     if (point.wert_num === null || point.wert_num === undefined) {
       continue;
@@ -236,27 +331,16 @@ function buildChartData(points: AuswertungPunkt[]) {
 
     const row = byDate.get(timestamp) ?? {
       timestamp,
-      datumLabel: formatDate(point.datum),
-      laborreferenz_unten: point.laborreferenz_untere_num ?? null,
-      laborreferenz_oben: point.laborreferenz_obere_num ?? null,
-      zielbereich_unten: point.zielbereich_untere_num ?? null,
-      zielbereich_oben: point.zielbereich_obere_num ?? null
+      datumLabel: formatDate(point.datum)
     };
-    row[point.person_anzeigename] = point.wert_num;
-    row[`${point.person_anzeigename}__display`] = point.wert_anzeige;
-    row[`${point.person_anzeigename}__operator`] = point.wert_operator;
-    if (row.laborreferenz_unten === null && point.laborreferenz_untere_num !== null && point.laborreferenz_untere_num !== undefined) {
-      row.laborreferenz_unten = point.laborreferenz_untere_num;
-    }
-    if (row.laborreferenz_oben === null && point.laborreferenz_obere_num !== null && point.laborreferenz_obere_num !== undefined) {
-      row.laborreferenz_oben = point.laborreferenz_obere_num;
-    }
-    if (row.zielbereich_unten === null && point.zielbereich_untere_num !== null && point.zielbereich_untere_num !== undefined) {
-      row.zielbereich_unten = point.zielbereich_untere_num;
-    }
-    if (row.zielbereich_oben === null && point.zielbereich_obere_num !== null && point.zielbereich_obere_num !== undefined) {
-      row.zielbereich_oben = point.zielbereich_obere_num;
-    }
+    const valueKey = `wert__${point.person_id}`;
+    row[valueKey] = point.wert_num;
+    row[`${valueKey}__display`] = point.wert_anzeige;
+    row[`${valueKey}__operator`] = point.wert_operator;
+    row[`laborreferenz_unten__${point.person_id}`] = point.laborreferenz_untere_num ?? null;
+    row[`laborreferenz_oben__${point.person_id}`] = point.laborreferenz_obere_num ?? null;
+    row[`zielbereich_unten__${point.person_id}`] = point.zielbereich_untere_num ?? null;
+    row[`zielbereich_oben__${point.person_id}`] = point.zielbereich_obere_num ?? null;
     byDate.set(timestamp, row);
   }
 
@@ -350,28 +434,15 @@ function SeriesChart({
   includeZielbereich: boolean;
 }) {
   const chartData = useMemo(() => buildChartData(serie.punkte), [serie.punkte]);
-  const numericPointCountsByPerson = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const punkt of serie.punkte) {
-      if (
-        punkt.wert_num === null ||
-        punkt.wert_num === undefined ||
-        parseDateToTimestamp(punkt.datum) === null
-      ) {
-        continue;
-      }
-      counts.set(punkt.person_anzeigename, (counts.get(punkt.person_anzeigename) ?? 0) + 1);
-    }
-    return counts;
-  }, [serie.punkte]);
-  const people = useMemo(
-    () => Array.from(numericPointCountsByPerson.keys()),
-    [numericPointCountsByPerson]
-  );
-  const [hiddenPeople, setHiddenPeople] = useState<Set<string>>(() => new Set());
-  const visiblePeople = people.filter((personName) => !hiddenPeople.has(personName));
+  const people = useMemo(() => buildPersonChartData(serie.punkte), [serie.punkte]);
+  const [hiddenLineGroups, setHiddenLineGroups] = useState<Set<string>>(() => new Set());
   const connectPersonPoints = diagrammDarstellung === "verlauf";
   const showReferenceAreas = diagrammDarstellung !== "punkte";
+  const lineGroups = useMemo(
+    () => buildChartLineGroups(people, includeLaborreferenz, includeZielbereich, showReferenceAreas),
+    [includeLaborreferenz, includeZielbereich, people, showReferenceAreas]
+  );
+  const visibleLineGroups = lineGroups.filter((group) => !hiddenLineGroups.has(group.id));
   const axisDomain =
     zeitraumDarstellung === "wertezeitraum"
       ? (["dataMin", "dataMax"] as [string, string])
@@ -381,8 +452,9 @@ function SeriesChart({
         ] as [number | string, number | string]);
 
   useEffect(() => {
-    setHiddenPeople((current) => new Set([...current].filter((personName) => people.includes(personName))));
-  }, [people]);
+    const availableGroupIds = new Set(lineGroups.map((group) => group.id));
+    setHiddenLineGroups((current) => new Set([...current].filter((groupId) => availableGroupIds.has(groupId))));
+  }, [lineGroups]);
 
   if (!chartData.length) {
     return <p>Für diesen Parameter gibt es aktuell keine numerischen Punkte für ein Diagramm.</p>;
@@ -405,8 +477,9 @@ function SeriesChart({
           <Tooltip
             labelFormatter={(label) => (typeof label === "number" ? formatTimestamp(label) : String(label))}
             formatter={(value, name, item) => {
-              if (typeof name === "string") {
-                const displayValue = item?.payload?.[`${name}__display`];
+              const dataKey = item?.dataKey;
+              if (typeof dataKey === "string") {
+                const displayValue = item?.payload?.[`${dataKey}__display`];
                 if (typeof displayValue === "string") {
                   return [displayValue, name];
                 }
@@ -414,83 +487,90 @@ function SeriesChart({
               return [formatTooltipValue(value), String(name)];
             }}
           />
-          {showReferenceAreas && includeLaborreferenz ? (
-            <>
-              <Line
-                type="monotone"
-                dataKey="laborreferenz_unten"
-                name="Laborreferenz unten"
-                stroke="#d77a2f"
-                dot={false}
-                strokeDasharray="4 4"
-                connectNulls
-              />
-              <Line
-                type="monotone"
-                dataKey="laborreferenz_oben"
-                name="Laborreferenz oben"
-                stroke="#d77a2f"
-                dot={false}
-                strokeDasharray="4 4"
-                connectNulls
-              />
-            </>
-          ) : null}
-          {showReferenceAreas && includeZielbereich ? (
-            <>
-              <Line
-                type="monotone"
-                dataKey="zielbereich_unten"
-                name="Zielbereich unten"
-                stroke="#1f6a53"
-                dot={false}
-                strokeDasharray="2 4"
-                connectNulls
-              />
-              <Line
-                type="monotone"
-                dataKey="zielbereich_oben"
-                name="Zielbereich oben"
-                stroke="#1f6a53"
-                dot={false}
-                strokeDasharray="2 4"
-                connectNulls
-              />
-            </>
-          ) : null}
-          {visiblePeople.map((personName) => {
-            const index = people.indexOf(personName);
-            const color = palette[index % palette.length];
+          {visibleLineGroups.map((group) => {
+            if (group.kind === "laborreferenz") {
+              const personId = group.id.replace("laborreferenz__", "");
+              return (
+                <Fragment key={group.id}>
+                  <Line
+                    type="monotone"
+                    dataKey={`laborreferenz_unten__${personId}`}
+                    name={`${group.label} unten`}
+                    stroke={group.color}
+                    dot={false}
+                    strokeDasharray="4 4"
+                    connectNulls
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey={`laborreferenz_oben__${personId}`}
+                    name={`${group.label} oben`}
+                    stroke={group.color}
+                    dot={false}
+                    strokeDasharray="4 4"
+                    connectNulls
+                  />
+                </Fragment>
+              );
+            }
+
+            if (group.kind === "zielbereich") {
+              const personId = group.id.replace("zielbereich__", "");
+              return (
+                <Fragment key={group.id}>
+                  <Line
+                    type="monotone"
+                    dataKey={`zielbereich_unten__${personId}`}
+                    name={`${group.label} unten`}
+                    stroke={group.color}
+                    dot={false}
+                    strokeDasharray="2 4"
+                    connectNulls
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey={`zielbereich_oben__${personId}`}
+                    name={`${group.label} oben`}
+                    stroke={group.color}
+                    dot={false}
+                    strokeDasharray="2 4"
+                    connectNulls
+                  />
+                </Fragment>
+              );
+            }
+
+            const personId = group.id.replace("wert__", "");
             return (
               <Line
-                key={personName}
+                key={group.id}
                 type="monotone"
-                dataKey={personName}
-                name={personName}
-                stroke={color}
+                dataKey={`wert__${personId}`}
+                name={group.label}
+                stroke={group.color}
                 strokeWidth={connectPersonPoints ? 3 : 0}
                 connectNulls={connectPersonPoints}
-                dot={(props) => renderOperatorDot({ ...props, fill: color })}
+                dot={(props) => renderOperatorDot({ ...props, fill: group.color })}
               />
             );
           })}
         </LineChart>
       </ResponsiveContainer>
-      <div className="trend-legend" aria-label="Personen im Diagramm ein- und ausblenden">
-        {people.map((personName, index) => {
-          const isHidden = hiddenPeople.has(personName);
+      <div className="trend-legend" aria-label="Diagrammlinien ein- und ausblenden">
+        {lineGroups.map((group) => {
+          const isHidden = hiddenLineGroups.has(group.id);
           return (
             <button
               type="button"
-              key={personName}
+              key={group.id}
               className={`trend-legend__item ${isHidden ? "trend-legend__item--muted" : ""}`}
               onClick={() =>
-                setHiddenPeople((current) => {
+                setHiddenLineGroups((current) => {
                   const next = new Set(current);
-                  if (next.has(personName)) {
-                    next.delete(personName);
+                  if (next.has(group.id)) {
+                    next.delete(group.id);
                   } else {
-                    next.add(personName);
+                    next.add(group.id);
                   }
                   return next;
                 })
@@ -498,11 +578,11 @@ function SeriesChart({
               aria-pressed={!isHidden}
             >
               <span
-                className="trend-legend__swatch"
-                style={{ backgroundColor: palette[index % palette.length] }}
+                className={`trend-legend__swatch trend-legend__swatch--${group.kind}`}
+                style={{ backgroundColor: group.color }}
                 aria-hidden="true"
               />
-              {personName} ({numericPointCountsByPerson.get(personName) ?? 0})
+              {group.label} ({group.count})
             </button>
           );
         })}
