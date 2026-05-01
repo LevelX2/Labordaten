@@ -93,13 +93,11 @@ Sie dient nicht dazu, jeden Einzelfall festzuhalten, sondern übertragbare Leitp
 - Diese Branches dürfen mehrere Themen enthalten, wenn sie im selben lokalen Arbeitsfluss entstehen und ein eigener Workspace oder Themenbranch mehr Reibung als Nutzen bringen würde.
 - `main` bleibt der stabile Integrationsstand. Nach `main` wird erst übernommen, wenn der Arbeitsbranch insgesamt prüfbar und grün ist.
 - Commits bleiben innerhalb des Datumsbranches fachlich getrennt, zum Beispiel Backend-Logik, Frontend-UI, Tests, Wissensbasis, Laborwissen-Seiten, Datenpakete, Initialdaten oder Migrationen.
-- Abschlusskommandos prüfen automatisch alle offenen Änderungen und ungetrackten Dateien. Klar einordenbare und fachlich abgeschlossene Änderungen werden in sinnvolle Commit-Blöcke aufgeteilt und committet, auch wenn sie aus früheren Teilaufgaben desselben Branches stammen.
-- Offene Änderungen werden nicht pauschal in einen Sammelcommit geworfen.
-- Änderungen, die offensichtlich unfertig, widersprüchlich, riskant oder nicht einordenbar sind, bleiben uncommitted und werden als offene Punkte benannt.
+- Die globale Detailsequenz für `Finito`, `Ende`, `Finale` und `Endfinale` liegt im Haupt-Vault-Skill `abschlusskommandos`.
+- Für dieses Projekt gilt als lokales Delta: Abschlusskommandos räumen den aktuellen Datumsbranch auf, indem klar einordenbare und fachlich abgeschlossene Änderungen in sinnvolle Commit-Blöcke aufgeteilt und committet werden, auch wenn sie aus früheren Teilaufgaben desselben Branches stammen.
+- Offene Änderungen werden nicht pauschal in einen Sammelcommit geworfen; unfertige, widersprüchliche, riskante oder nicht einordenbare Änderungen bleiben uncommitted und werden als offene Punkte benannt.
 - Lokale Laufzeitdaten, Datenbanken, Builds, temporäre Dateien und private Overlays bleiben vom automatischen Committen ausgeschlossen.
-- `Finito` bedeutet lokaler Abschluss mit sinnvoller Commit-Aufteilung, aber ohne automatischen Merge nach `main` und ohne Push.
-- `Finale` bedeutet lokaler Abschluss plus Übernahme des grünen Arbeitsbranches nach `main`, erneute Checks auf `main` und Push.
-- `Endfinale` bedeutet `Finale` plus vollständigerer Verify-Lauf, Wissensbasis-/Statuspflege, Logprüfung und kompakter Restpunkte-Check.
+- `Finito` und `Ende` bleiben rein lokal; `Finale` integriert erst nach sauberem lokalem Abschluss; `Endfinale` verlangt vor der Integration einen erweiterten Verify-Lauf.
 
 ## Lokale Laufzeitartefakte und Analyseausgaben
 - Lokale Laufzeitartefakte wie Datenbankdateien, Laufzeit-Einstellungen, Sperrdateien und dokumentbezogene Ablagen sollen nicht versioniert werden.
