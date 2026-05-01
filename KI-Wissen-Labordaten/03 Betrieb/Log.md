@@ -9,6 +9,20 @@
 - Geänderte Seiten
 - Kern der inhaltlichen Anpassung
 
+## 2026-05
+
+### [2026-05-01] update | Standardregel für Dokumentimport in AGENTS ergänzt
+- Anlass oder Quelle: Projektregel, dass Dokumentimport-Aufträge in der Labordaten-Anwendung standardmäßig über den vorbereitenden Import-Skill und als prüfbarer Importentwurf behandelt werden sollen.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../AGENTS.md
+  - Log.md
+- Kern der inhaltlichen Anpassung:
+  - `AGENTS.md` enthält nun eine eigene Regelgruppe `Dokumentimport in die Anwendung`.
+  - Sinngemäße Importaufträge sollen den Skill `labordaten-import-vorbereitung` nutzen und zunächst keinen finalen Befund-/Messwertimport auslösen.
+  - Eine finale Übernahme braucht eine ausdrückliche Bestätigung; bei nicht erreichbarer API soll zuerst der Start- oder API-Zustand geklärt werden.
+
 ## 2026-04
 
 ### [2026-04-27] fix | GitHub-Actions-Warnungen zu Node.js 20 beseitigt

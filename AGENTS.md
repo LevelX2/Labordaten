@@ -47,6 +47,13 @@ Zu Beginn projektbezogener Arbeit zuerst diese Dateien lesen:
 - Projektübergreifende Regeln werden nach Freigabe in das Haupt-Vault zurückgeführt.
 - Spezifische Erkenntnisse für nur einen Fachfall, eine Seite oder einen einzelnen Ablauf gehören in die fachlich passende Wissensseite und nicht in die generischen Entwicklungsvorgaben.
 
+## Dokumentimport in die Anwendung
+
+- Wenn der Nutzer sinngemäß schreibt `Importiere Dokument ...`, `Importiere das Dokument ...` oder `Importiere ... in die Labordaten Anwendung`, ist standardmäßig der Skill `labordaten-import-vorbereitung` zu verwenden.
+- Gemeint ist zunächst ein prüfbarer Importentwurf in der Labordaten-Anwendung, nicht die finale Übernahme in Befunde und Messwerte.
+- Eine finale Übernahme erfolgt nur nach ausdrücklicher Bestätigung, zum Beispiel bei Formulierungen wie `komplett importieren`, `direkt übernehmen` oder `final übernehmen`.
+- Wenn die Labordaten-API für den Anwendungsprompt oder die Importanlage nicht erreichbar ist, soll zuerst der API-/Startzustand geklärt werden; der Prompt wird nicht ersatzweise frei rekonstruiert.
+
 ## Git-Arbeitsweise
 
 - Vor Dateiänderungen aktuellen Branch prüfen.
