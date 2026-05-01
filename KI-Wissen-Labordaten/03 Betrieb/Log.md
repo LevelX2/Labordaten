@@ -23,6 +23,18 @@
   - Sinngemäße Importaufträge sollen den Skill `labordaten-import-vorbereitung` nutzen und zunächst keinen finalen Befund-/Messwertimport auslösen.
   - Eine finale Übernahme braucht eine ausdrückliche Bestätigung; bei nicht erreichbarer API soll zuerst der Start- oder API-Zustand geklärt werden.
 
+### [2026-05-01] update | App-Icon für Startverknüpfung und Browser-Favicon ergänzt
+- Anlass oder Quelle: Nutzerwunsch, dass die Desktop-Verknüpfung `Labordaten starten.lnk` nicht mehr das Explorer-Icon zeigt, sondern ein zur Anwendung passendes Labordaten-Bild nutzt.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../apps/frontend/index.html
+  - ../../apps/frontend/public/labordaten.ico
+- Kern der inhaltlichen Anpassung:
+  - Aus der bestehenden Menü- und PDF-Branding-Form wurde eine mehrgrößige Windows-Icon-Datei `labordaten.ico` erzeugt.
+  - Die Desktop-Verknüpfung unter `C:\Users\Lui\OneDrive\Desktop\Labordaten starten.lnk` verwendet dieses Icon und verweist wieder auf den aktuellen Projektpfad `C:\Projekte\Labordaten`.
+  - Das Frontend bindet dieselbe Icon-Datei zusätzlich als Browser-Favicon ein.
+
 ## 2026-04
 
 ### [2026-04-27] fix | GitHub-Actions-Warnungen zu Node.js 20 beseitigt
