@@ -11,6 +11,20 @@
 
 ## 2026-05
 
+### [2026-05-01] update | Führende Quelle für Import-Skill verankert
+- Anlass oder Quelle: Nachprüfung des offenen Qualitätsprüfungs-Hinweises zum lokal installierten Skill `labordaten-import-vorbereitung`.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - Qualitaetspruefung.md
+  - Haupt-Vault: `07 Codex/skills/labordaten-import-vorbereitung/`
+  - Haupt-Vault: `03 Projekte/Labordaten.md`
+- Kern der inhaltlichen Anpassung:
+  - Die lokale Skill-Installation unter `.codex/skills/labordaten-import-vorbereitung/` wurde als führende persönliche Skill-Quelle nach `mein-wissen/07 Codex/skills/labordaten-import-vorbereitung/` übernommen.
+  - Die Haupt-Vault-Projektseite für `Labordaten` wurde um Git-Modell, Remote, Integrationsbranch, Standard-Arbeitsbranches, KI-Wissen-Ort und Konformitätsrelevanz ergänzt.
+  - Der offene Prüfhinweis wurde angepasst: Der Skill ist nun verankert; künftige Änderungen sollen führende Quelle und lokale Installation synchron halten.
+  - Der offene Prüfhinweis zur unvollständigen Haupt-Vault-Projektseite wurde entfernt, weil die Pflegefelder nun nachgezogen sind.
+
 ### [2026-05-01] update | Standardregel für Dokumentimport in AGENTS ergänzt
 - Anlass oder Quelle: Projektregel, dass Dokumentimport-Aufträge in der Labordaten-Anwendung standardmäßig über den vorbereitenden Import-Skill und als prüfbarer Importentwurf behandelt werden sollen.
 - Neu angelegte Seiten:
