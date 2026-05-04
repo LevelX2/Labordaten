@@ -1,6 +1,6 @@
 # Labordaten
 
-Version: `0.2.0`
+Version: `0.7.0`
 
 Labordaten ist eine lokale Webanwendung für persönliche und fachlich nachvollziehbare Laborwerte. Laborberichte können mit Hilfe eines externen KI-Chats in strukturierte Daten umgewandelt, anschließend in der Anwendung geprüft und in den eigenen Datenbestand übernommen werden.
 

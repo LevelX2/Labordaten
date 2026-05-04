@@ -11,6 +11,32 @@
 
 ## 2026-05
 
+### [2026-05-04] release | Erststart-Initialdaten und Version 0.7.0 abgeschlossen
+- Anlass oder Quelle: Nutzerhinweis nach Installation, dass die Möglichkeiten zum Anlegen und Bearbeiten von Personen im installierten Stand fehlten, und Entscheidung, den aktuellen Anwendungsstand als Version `0.7.0` zu führen.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../02 Wissen/Begriffe und Konzepte/Ist-Stand Initialdaten und Stammdaten-Snapshot.md
+  - ../../README.md
+  - ../../apps/backend/pyproject.toml
+  - ../../apps/backend/src/labordaten_backend/main.py
+  - ../../apps/backend/src/labordaten_backend/launcher.py
+  - ../../apps/backend/src/labordaten_backend/modules/initialdaten/service.py
+  - ../../apps/backend/tests/test_initialdaten.py
+  - ../../apps/frontend/package.json
+  - ../../apps/frontend/package-lock.json
+  - ../../apps/frontend/src/shared/components/InitialdatenPanel.tsx
+  - ../../apps/frontend/src/shared/components/InitialdatenStartupDialog.tsx
+  - ../../apps/frontend/src/styles.css
+  - ../../packaging/inno/Labordaten.iss
+  - ../../scripts/build-release.ps1
+- Kern der inhaltlichen Anpassung:
+  - Die App-Version wurde für Frontend, Backend, Installer und README auf `0.7.0` gesetzt.
+  - Der Erststart-Status empfiehlt den Initialdatenimport nun auch dann, wenn nur vorgeladene Einheiten existieren, aber Standardparameter, Gruppen, Klassifikation, Aliase oder Umrechnungen fehlen.
+  - Der Erststart-Dialog spricht von Standardparametern, erklärt den Nutzen des Grundbestands und führt nach erfolgreichem Laden zum Importbereich weiter.
+  - Der Windows-Launcher zeigt Startfehler in einer Dialogmeldung an; der Release-Build nutzt `--noconsole`.
+  - Gezielte Initialdaten-Tests, der Personen-Anlegen/Bearbeiten-API-Test und der Frontend-Build liefen erfolgreich durch.
+
 ### [2026-05-02] update | Berichte-Navigation von Filter und Einstellungen getrennt
 - Anlass oder Quelle: Nutzerhinweise, dass das lokale linke Berichte-Panel ganz entfallen soll, `Vorlagen`, `Filter bearbeiten` und `Einstellungen` oben stehen sollen und Vorschau/PDF-Aktionen in den Vorschau-Bereich gehören.
 - Neu angelegte Seiten:
