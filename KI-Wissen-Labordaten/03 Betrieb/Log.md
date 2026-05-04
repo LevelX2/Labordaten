@@ -11,6 +11,19 @@
 
 ## 2026-05
 
+### [2026-05-04] release | Kleines Setup-Wizard-Bild als Diagrammzeichen überarbeitet
+- Anlass oder Quelle: Nutzerhinweis, dass der goldene Bogen mit Kreis im kleinen Installer-Bild ohne Diagrammkontext missverständlich wirkt.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../packaging/inno/Labordaten.iss
+  - ../../packaging/inno/assets/wizard-small.png
+  - ../../packaging/inno/assets/wizard-small.bmp
+- Kern der inhaltlichen Anpassung:
+  - Das kleine Wizard-Bild wurde auf eine höher aufgelöste PNG-Datei umgestellt.
+  - Die Grafik zeigt nun ein dezentes Diagrammraster mit zackiger Trendlinie, Balkenelement und Laborflasche.
+  - Der missverständliche goldene Kreis wurde entfernt; die alte kleine BMP-Datei wird nicht mehr verwendet.
+
 ### [2026-05-04] release | Deinstallationsabfrage für lokale Nutzdaten ergänzt
 - Anlass oder Quelle: Nutzerhinweis, dass bei Deinstallation und Neuinstallation klar sein muss, ob die lokale Datenbank und weitere Nutzdaten erhalten bleiben oder gelöscht werden.
 - Neu angelegte Seiten:

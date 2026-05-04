@@ -12,7 +12,7 @@
 
 #define AppIconFile "..\..\apps\frontend\public\labordaten.ico"
 #define WizardImageFilePath "assets\wizard-image.bmp"
-#define WizardSmallImageFilePath "assets\wizard-small.bmp"
+#define WizardSmallImageFilePath "assets\wizard-small.png"
 #define InfoBeforeFilePath "assets\installationshinweise.txt"
 
 [Setup]
