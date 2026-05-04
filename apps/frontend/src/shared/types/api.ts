@@ -835,10 +835,15 @@ export type ArztberichtEintrag = {
   wert_normiert_num?: number | null;
   einheit_normiert?: string | null;
   referenzbereich?: string | null;
+  referenz_untere_num?: number | null;
+  referenz_obere_num?: number | null;
+  referenz_einheit?: string | null;
   labor_name?: string | null;
   befundbemerkung?: string | null;
   messwertbemerkung?: string | null;
   gruppen_namen: string[];
+  primaere_berichtsgruppe?: string | null;
+  sortierung_in_gruppe?: number | null;
   ausserhalb_referenzbereich?: boolean | null;
 };
 
@@ -866,6 +871,8 @@ export type VerlaufsberichtPunkt = {
   einheit_normiert?: string | null;
   labor_name?: string | null;
   gruppen_namen: string[];
+  primaere_berichtsgruppe?: string | null;
+  sortierung_in_gruppe?: number | null;
   ausserhalb_referenzbereich?: boolean | null;
 };
 
@@ -876,6 +883,7 @@ export type VerlaufsberichtResponse = {
 
 export type AnsichtVorlageBereich = "auswertung" | "bericht";
 export type AnsichtVorlageTyp = "auswertung_verlauf" | "arztbericht_liste" | "verlaufsbericht_zeitachse";
+export type BerichtSortierung = "person_entnahmezeitpunkt" | "person_berichtsgruppe_sortierung_entnahmezeitpunkt";
 
 export type VorlageFilterConfig = {
   person_ids: string[];

@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import date
 from html import escape
 from io import BytesIO
 from unicodedata import normalize
 
 from reportlab.graphics.charts.linecharts import HorizontalLineChart
-from reportlab.graphics.shapes import Drawing, String
+from reportlab.graphics.shapes import Circle, Drawing, Line, Rect, String
 from reportlab.graphics.widgets.markers import makeMarker
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
@@ -47,6 +48,13 @@ from labordaten_backend.modules.berichte.schemas import (
 from labordaten_backend.modules.messwerte import common as measurement_common
 
 
+@dataclass(frozen=True)
+class _ReportGroupInfo:
+    names: list[str]
+    primary_name: str | None
+    primary_sorting: int | None
+
+
 def build_arztbericht(db: Session, payload: ArztberichtRequest) -> ArztberichtResponse:
     persons = _load_persons_or_raise(db, payload.person_ids)
     rows = list(_execute_measurement_query(db, payload))
@@ -62,15 +70,14 @@ def build_arztbericht(db: Session, payload: ArztberichtRequest) -> ArztberichtRe
             latest_by_key[key] = (messwert, befund, parameter, labor, person)
 
     referenzen = _load_reference_map(db, [messwert.id for messwert, _, _, _, _ in latest_by_key.values()])
-    gruppen_map = _load_group_names(db, [parameter.id for _, _, parameter, _, _ in latest_by_key.values()])
+    gruppen_map = _load_group_info(db, [parameter.id for _, _, parameter, _, _ in latest_by_key.values()], payload.gruppen_ids)
     eintraege: list[ArztberichtEintrag] = []
 
-    for (_, parameter_id), (messwert, befund, parameter, labor, person) in sorted(
-        latest_by_key.items(),
-        key=lambda item: (item[1][4].anzeigename.lower(), item[1][2].anzeigename.lower()),
-    ):
+    for (_, parameter_id), (messwert, befund, parameter, labor, person) in latest_by_key.items():
         referenz = referenzen.get(messwert.id)
         display_value = _resolve_measurement_display(messwert, payload.einheit_auswahl.get(parameter_id))
+        numeric_reference = _resolve_numeric_reference_for_display(referenz, display_value["einheit"])
+        group_info = gruppen_map.get(parameter_id, _empty_group_info())
         eintraege.append(
             ArztberichtEintrag(
                 messwert_id=messwert.id,
@@ -89,14 +96,20 @@ def build_arztbericht(db: Session, payload: ArztberichtRequest) -> ArztberichtRe
                 wert_normiert_num=messwert.wert_normiert_num,
                 einheit_normiert=messwert.einheit_normiert,
                 referenzbereich=_format_reference(referenz, display_value["einheit"]) if payload.include_referenzbereich else None,
+                referenz_untere_num=numeric_reference[0],
+                referenz_obere_num=numeric_reference[1],
+                referenz_einheit=numeric_reference[2],
                 labor_name=labor.name if payload.include_labor and labor is not None else None,
                 befundbemerkung=befund.bemerkung if payload.include_befundbemerkung else None,
                 messwertbemerkung=messwert.bemerkung_kurz if payload.include_messwertbemerkung else None,
-                gruppen_namen=gruppen_map.get(parameter_id, []),
+                gruppen_namen=group_info.names,
+                primaere_berichtsgruppe=group_info.primary_name,
+                sortierung_in_gruppe=group_info.primary_sorting,
                 ausserhalb_referenzbereich=_is_outside_reference(messwert, referenz),
             )
         )
 
+    eintraege.sort(key=lambda item: _report_sort_key(item, payload.sortierung, payload.auffaelligkeiten_zuerst))
     return ArztberichtResponse(person_ids=[person.id for person in persons], eintraege=eintraege)
 
 
@@ -106,12 +119,13 @@ def build_verlaufsbericht(db: Session, payload: VerlaufsberichtRequest) -> Verla
     supported_display_units = _collect_supported_display_units(rows)
     _validate_requested_display_units(rows, payload.einheit_auswahl, supported_display_units)
     referenzen = _load_reference_map(db, [messwert.id for messwert, _, _, _, _ in rows])
-    gruppen_map = _load_group_names(db, [parameter.id for _, _, parameter, _, _ in rows])
+    gruppen_map = _load_group_info(db, [parameter.id for _, _, parameter, _, _ in rows], payload.gruppen_ids)
     punkte: list[VerlaufsberichtPunkt] = []
 
     for messwert, befund, parameter, labor, person in rows:
         referenz = referenzen.get(messwert.id)
         display_value = _resolve_measurement_display(messwert, payload.einheit_auswahl.get(parameter.id))
+        group_info = gruppen_map.get(parameter.id, _empty_group_info())
         punkte.append(
             VerlaufsberichtPunkt(
                 messwert_id=messwert.id,
@@ -131,12 +145,14 @@ def build_verlaufsbericht(db: Session, payload: VerlaufsberichtRequest) -> Verla
                 wert_normiert_num=messwert.wert_normiert_num,
                 einheit_normiert=messwert.einheit_normiert,
                 labor_name=labor.name if labor is not None else None,
-                gruppen_namen=gruppen_map.get(parameter.id, []),
+                gruppen_namen=group_info.names,
+                primaere_berichtsgruppe=group_info.primary_name,
+                sortierung_in_gruppe=group_info.primary_sorting,
                 ausserhalb_referenzbereich=_is_outside_reference(messwert, referenz),
             )
         )
 
-    punkte.sort(key=lambda item: (item.parameter_anzeigename.lower(), item.person_anzeigename.lower(), item.datum or date.min))
+    punkte.sort(key=lambda item: _report_sort_key(item, payload.sortierung, payload.auffaelligkeiten_zuerst))
     return VerlaufsberichtResponse(person_ids=[person.id for person in persons], punkte=punkte)
 
 
@@ -154,34 +170,53 @@ def render_arztbericht_pdf(db: Session, payload: ArztberichtRequest) -> tuple[st
     ]
 
     if bericht.eintraege:
-        header = ["Person", "Parameter", "Datum", "Wert", "Referenz", "Labor"] if include_person_column else ["Parameter", "Datum", "Wert", "Referenz", "Labor"]
+        header = ["Parameter", "Datum", "Wert"]
+        if payload.include_referenzgrafik:
+            header.append("Einordnung")
+        header.append("Referenz")
+        if payload.include_labor:
+            header.append("Labor")
+        if include_person_column:
+            header.insert(0, "Person")
         table_rows: list[list[object]] = [header]
+        full_width_note_rows: list[int] = []
         for eintrag in bericht.eintraege:
             row = [
                 _paragraph(eintrag.parameter_anzeigename, styles["table"]),
                 _paragraph(_format_date(eintrag.datum), styles["table"]),
                 _paragraph(_join_value(eintrag.wert_anzeige, eintrag.einheit), styles["table"]),
-                _paragraph(eintrag.referenzbereich or "—", styles["table"]),
-                _paragraph(eintrag.labor_name or "—", styles["table"]),
             ]
+            if payload.include_referenzgrafik:
+                row.append(_build_reference_marker(eintrag, styles["table"]))
+            row.append(_paragraph(eintrag.referenzbereich or "—", styles["table"]))
+            if payload.include_labor:
+                row.append(_paragraph(eintrag.labor_name or "—", styles["table"]))
             if include_person_column:
                 row.insert(0, _paragraph(eintrag.person_anzeigename, styles["table"]))
             table_rows.append(row)
 
             if payload.include_befundbemerkung and eintrag.befundbemerkung:
-                note_row = [_paragraph("Befundbemerkung", styles["table_label"]), "", _paragraph(eintrag.befundbemerkung, styles["table"]), "", ""]
-                if include_person_column:
-                    note_row.insert(0, "")
+                note_row = [""] * len(header)
+                note_row[0] = _labeled_note_paragraph("Befundbemerkung", eintrag.befundbemerkung, styles["table"])
+                full_width_note_rows.append(len(table_rows))
                 table_rows.append(note_row)
             if payload.include_messwertbemerkung and eintrag.messwertbemerkung:
-                note_row = [_paragraph("Messwertbemerkung", styles["table_label"]), "", _paragraph(eintrag.messwertbemerkung, styles["table"]), "", ""]
-                if include_person_column:
-                    note_row.insert(0, "")
+                note_row = [""] * len(header)
+                note_row[0] = _labeled_note_paragraph("Messwertbemerkung", eintrag.messwertbemerkung, styles["table"])
+                full_width_note_rows.append(len(table_rows))
                 table_rows.append(note_row)
 
-        col_widths = [3.2 * cm, 4.2 * cm, 2.3 * cm, 3.7 * cm, 3.6 * cm, 2.6 * cm] if include_person_column else [4.8 * cm, 2.6 * cm, 4.0 * cm, 4.0 * cm, 3.2 * cm]
+        frame_width, _ = _page_frame_size(A4)
+        col_widths = _arztbericht_col_widths(
+            frame_width,
+            include_person_column=include_person_column,
+            include_labor=payload.include_labor,
+            include_reference_graphic=payload.include_referenzgrafik,
+        )
         table = LongTable(table_rows, colWidths=col_widths, repeatRows=1)
         table.setStyle(_build_table_style())
+        if full_width_note_rows:
+            table.setStyle(_build_full_width_note_style(full_width_note_rows))
         elements.append(table)
     else:
         elements.append(Paragraph("Für die aktuelle Auswahl gibt es noch keine passenden Werte.", styles["body"]))
@@ -215,7 +250,7 @@ def render_verlaufsbericht_pdf(db: Session, payload: VerlaufsberichtRequest) -> 
     if not grouped:
         elements.append(Paragraph("Für die aktuelle Auswahl gibt es noch keinen Verlauf.", styles["body"]))
     else:
-        for parameter_name in sorted(grouped):
+        for parameter_name in _ordered_parameter_names(bericht.punkte):
             points_by_person: dict[str, list[VerlaufsberichtPunkt]] = defaultdict(list)
             for punkt in grouped[parameter_name]:
                 points_by_person[punkt.person_anzeigename].append(punkt)
@@ -312,21 +347,76 @@ def _load_reference_map(db: Session, messwert_ids: list[str]) -> dict[str, Messw
     return {messwert_id: referenzen[0] for messwert_id, referenzen in grouped.items()}
 
 
-def _load_group_names(db: Session, laborparameter_ids: list[str]) -> dict[str, list[str]]:
+def _empty_group_info() -> _ReportGroupInfo:
+    return _ReportGroupInfo(names=[], primary_name=None, primary_sorting=None)
+
+
+def _load_group_info(db: Session, laborparameter_ids: list[str], selected_group_ids: list[str] | None = None) -> dict[str, _ReportGroupInfo]:
     if not laborparameter_ids:
         return {}
 
     stmt = (
-        select(GruppenParameter.laborparameter_id, ParameterGruppe.name)
+        select(GruppenParameter.laborparameter_id, ParameterGruppe.id, ParameterGruppe.name, GruppenParameter.sortierung)
         .join(ParameterGruppe, GruppenParameter.parameter_gruppe_id == ParameterGruppe.id)
         .where(GruppenParameter.laborparameter_id.in_(laborparameter_ids))
         .where(ParameterGruppe.aktiv.is_(True))
         .order_by(ParameterGruppe.name.asc())
     )
-    grouped: dict[str, list[str]] = defaultdict(list)
-    for laborparameter_id, gruppen_name in db.execute(stmt):
-        grouped[laborparameter_id].append(gruppen_name)
-    return grouped
+    selected_order = {group_id: index for index, group_id in enumerate(selected_group_ids or [])}
+    grouped: dict[str, list[tuple[str, str, int | None]]] = defaultdict(list)
+    for laborparameter_id, gruppen_id, gruppen_name, sortierung in db.execute(stmt):
+        grouped[laborparameter_id].append((gruppen_id, gruppen_name, sortierung))
+
+    result: dict[str, _ReportGroupInfo] = {}
+    for laborparameter_id, assignments in grouped.items():
+        ordered = sorted(
+            assignments,
+            key=lambda item: (
+                0 if item[0] in selected_order else 1,
+                selected_order.get(item[0], 999_999),
+                item[1].lower(),
+                item[2] is None,
+                item[2] or 0,
+            ),
+        )
+        primary = ordered[0]
+        result[laborparameter_id] = _ReportGroupInfo(
+            names=[name for _, name, _ in ordered],
+            primary_name=primary[1],
+            primary_sorting=primary[2],
+        )
+    return result
+
+
+def _report_sort_key(item: ArztberichtEintrag | VerlaufsberichtPunkt, sortierung: str, auffaelligkeiten_zuerst: bool):
+    auffaelligkeit_key = 0 if auffaelligkeiten_zuerst and item.ausserhalb_referenzbereich is True else 1
+    person_key = item.person_anzeigename.lower()
+    date_key = item.datum or date.min
+    parameter_key = item.parameter_anzeigename.lower()
+
+    if sortierung == "person_berichtsgruppe_sortierung_entnahmezeitpunkt":
+        return (
+            auffaelligkeit_key,
+            person_key,
+            item.primaere_berichtsgruppe is None,
+            (item.primaere_berichtsgruppe or "").lower(),
+            item.sortierung_in_gruppe is None,
+            item.sortierung_in_gruppe or 0,
+            parameter_key,
+            date_key,
+        )
+
+    return (auffaelligkeit_key, person_key, date_key, parameter_key)
+
+
+def _ordered_parameter_names(points: list[VerlaufsberichtPunkt]) -> list[str]:
+    names: list[str] = []
+    seen: set[str] = set()
+    for point in points:
+        if point.parameter_anzeigename not in seen:
+            names.append(point.parameter_anzeigename)
+            seen.add(point.parameter_anzeigename)
+    return names
 
 
 def _format_measurement_value(messwert: Messwert) -> str:
@@ -360,6 +450,17 @@ def _format_reference(referenz: MesswertReferenz | None, display_unit: str | Non
             return f"{prefix}{range_text} ({referenz.referenz_text_original})"
         return f"{prefix}{referenz.referenz_text_original}"
     return f"{prefix}{range_text}" if range_text else None
+
+
+def _resolve_numeric_reference_for_display(
+    referenz: MesswertReferenz | None,
+    display_unit: str | None,
+) -> tuple[float | None, float | None, str | None]:
+    if referenz is None or referenz.wert_typ != "numerisch":
+        return None, None, None
+    if display_unit and referenz.einheit and referenz.einheit != display_unit:
+        return None, None, referenz.einheit
+    return referenz.untere_grenze_num, referenz.obere_grenze_num, referenz.einheit
 
 
 def _is_outside_reference(messwert: Messwert, referenz: MesswertReferenz | None) -> bool | None:
@@ -465,6 +566,88 @@ def _build_table_style() -> TableStyle:
             ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
         ]
     )
+
+
+def _build_full_width_note_style(row_indices: list[int]) -> TableStyle:
+    commands: list[tuple[object, ...]] = []
+    for row_index in row_indices:
+        commands.extend(
+            [
+                ("SPAN", (0, row_index), (-1, row_index)),
+                ("BACKGROUND", (0, row_index), (-1, row_index), colors.HexColor("#f3f7fb")),
+            ]
+        )
+    return TableStyle(commands)
+
+
+def _arztbericht_col_widths(
+    frame_width: float,
+    *,
+    include_person_column: bool,
+    include_labor: bool,
+    include_reference_graphic: bool,
+) -> list[float]:
+    weights: list[float] = []
+    if include_person_column:
+        weights.append(2.7)
+    weights.extend([4.0, 2.1, 2.7])
+    if include_reference_graphic:
+        weights.append(3.2)
+    weights.append(4.2)
+    if include_labor:
+        weights.append(2.8)
+
+    total_weight = sum(weights)
+    return [frame_width * weight / total_weight for weight in weights]
+
+
+def _build_reference_marker(eintrag: ArztberichtEintrag, fallback_style: ParagraphStyle) -> Drawing | Paragraph:
+    value = eintrag.wert_num
+    lower = eintrag.referenz_untere_num
+    upper = eintrag.referenz_obere_num
+    if value is None or (lower is None and upper is None):
+        return _paragraph("—", fallback_style)
+
+    width = 86
+    height = 16
+    left = 8
+    right = width - 8
+    mid_y = 8
+    if lower is not None and upper is not None and lower < upper:
+        reference_min = lower
+        reference_max = upper
+        reference_span = upper - lower
+        scale_min = lower - reference_span * 0.5
+        scale_max = upper + reference_span * 0.5
+    elif upper is not None:
+        reference_min = min(value, upper) - max(abs(upper) * 0.5, 1.0)
+        reference_max = upper
+        scale_min = reference_min
+        scale_max = max(value, upper) + max(abs(upper) * 0.25, 1.0)
+    else:
+        reference_min = lower
+        reference_max = max(value, lower) + max(abs(lower or 0) * 0.5, 1.0)
+        scale_min = min(value, lower) - max(abs(lower or 0) * 0.25, 1.0)
+        scale_max = reference_max
+
+    if reference_min is None or reference_max is None or scale_min >= scale_max:
+        return _paragraph("—", fallback_style)
+
+    def x_for(number: float) -> float:
+        ratio = (number - scale_min) / (scale_max - scale_min)
+        clamped = min(max(ratio, 0), 1)
+        return left + clamped * (right - left)
+
+    lower_x = x_for(reference_min)
+    upper_x = x_for(reference_max)
+    value_x = x_for(value)
+    point_color = colors.HexColor("#b42318") if eintrag.ausserhalb_referenzbereich else colors.HexColor("#0f766e")
+
+    drawing = Drawing(width, height)
+    drawing.add(Line(left, mid_y, right, mid_y, strokeColor=colors.HexColor("#c9d3df"), strokeWidth=1))
+    drawing.add(Rect(lower_x, mid_y - 3, max(upper_x - lower_x, 2), 6, fillColor=colors.HexColor("#cde7df"), strokeColor=colors.HexColor("#5f9f8b"), strokeWidth=0.6))
+    drawing.add(Circle(value_x, mid_y, 3.2, fillColor=point_color, strokeColor=colors.white, strokeWidth=0.6))
+    return drawing
 
 
 def _build_numeric_chart(title: str, points: list[VerlaufsberichtPunkt]) -> Drawing | None:
@@ -607,6 +790,10 @@ def _join_value(value: str, unit: str | None) -> str:
 
 def _paragraph(text: str, style: ParagraphStyle) -> Paragraph:
     return Paragraph(escape(text), style)
+
+
+def _labeled_note_paragraph(label: str, text: str, style: ParagraphStyle) -> Paragraph:
+    return Paragraph(f"<b>{escape(label)}:</b> {escape(text)}", style)
 
 
 def _build_report_filename(prefix: str, persons: list[Person]) -> str:

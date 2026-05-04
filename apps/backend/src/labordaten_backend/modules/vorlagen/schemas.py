@@ -9,6 +9,7 @@ from labordaten_backend.core.field_options import PARAMETER_KLASSIFIKATIONEN, va
 
 AnsichtVorlageBereich = Literal["auswertung", "bericht"]
 AnsichtVorlageTyp = Literal["auswertung_verlauf", "arztbericht_liste", "verlaufsbericht_zeitachse"]
+BerichtSortierung = Literal["person_entnahmezeitpunkt", "person_berichtsgruppe_sortierung_entnahmezeitpunkt"]
 
 VORLAGE_TYPEN_PRO_BEREICH: dict[str, tuple[str, ...]] = {
     "auswertung": ("auswertung_verlauf",),
@@ -48,10 +49,14 @@ class ArztberichtVorlageOptionen(BaseModel):
     include_befundbemerkung: bool = True
     include_messwertbemerkung: bool = True
     einheit_auswahl: dict[str, str] = Field(default_factory=dict)
+    sortierung: BerichtSortierung = "person_entnahmezeitpunkt"
+    auffaelligkeiten_zuerst: bool = False
 
 
 class VerlaufsberichtVorlageOptionen(BaseModel):
     einheit_auswahl: dict[str, str] = Field(default_factory=dict)
+    sortierung: BerichtSortierung = "person_entnahmezeitpunkt"
+    auffaelligkeiten_zuerst: bool = False
 
 
 class AuswertungVorlageKonfiguration(BaseModel):

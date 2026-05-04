@@ -163,7 +163,8 @@ export function AuswertungChart({
   datumVon,
   datumBis,
   includeLaborreferenz,
-  includeZielbereich
+  includeZielbereich,
+  height = 300
 }: {
   serie: AuswertungsSerie;
   diagrammDarstellung: DiagrammDarstellung;
@@ -173,6 +174,7 @@ export function AuswertungChart({
   datumBis: string;
   includeLaborreferenz: boolean;
   includeZielbereich: boolean;
+  height?: number;
 }) {
   const chartData = useMemo(() => buildChartData(serie.punkte), [serie.punkte]);
   const people = useMemo(() => buildPersonChartData(serie.punkte), [serie.punkte]);
@@ -208,7 +210,7 @@ export function AuswertungChart({
 
   return (
     <div className="trend-chart">
-      <ResponsiveContainer width="100%" height={300}>
+      <ResponsiveContainer width="100%" height={height}>
         <LineChart data={chartData} margin={{ top: 16, right: 12, left: 0, bottom: 8 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#d7ccb9" />
           <XAxis

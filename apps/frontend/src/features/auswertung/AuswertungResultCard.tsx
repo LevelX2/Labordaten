@@ -30,6 +30,7 @@ export function AuswertungResultCard({
 }) {
   const [isTableOpen, setIsTableOpen] = useState(defaultTableOpen);
   const [isDescriptionOpen, setIsDescriptionOpen] = useState(false);
+  const [isFocusOpen, setIsFocusOpen] = useState(false);
   const parameterDescription = serie.parameter_beschreibung?.trim() ?? "";
 
   useEffect(() => {
@@ -38,7 +39,23 @@ export function AuswertungResultCard({
 
   useEffect(() => {
     setIsDescriptionOpen(false);
+    setIsFocusOpen(false);
   }, [serie.laborparameter_id]);
+
+  useEffect(() => {
+    if (!isFocusOpen) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsFocusOpen(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isFocusOpen]);
 
   return (
     <article className="card card--wide">
@@ -70,6 +87,15 @@ export function AuswertungResultCard({
           <span className="trend-badge">Messungen: {serie.statistik.anzahl_messungen}</span>
           <span className="trend-badge">Personen: {serie.statistik.personen_anzahl}</span>
           <span className="trend-badge">Trend: {formatTrend(serie.statistik.trendrichtung)}</span>
+          <button
+            type="button"
+            className="trend-focus-button"
+            onClick={() => setIsFocusOpen(true)}
+            aria-label={`${serie.parameter_anzeigename} in Fokusansicht vergrößern`}
+            title="Diagramm vergrößern"
+          >
+            Vergrößern
+          </button>
         </div>
       </div>
 
@@ -92,6 +118,62 @@ export function AuswertungResultCard({
         includeLaborreferenz={includeLaborreferenz}
         includeZielbereich={includeZielbereich}
       />
+
+      {isFocusOpen ? (
+        <div className="dialog-backdrop auswertung-focus-backdrop" role="presentation">
+          <section
+            className="dialog-panel auswertung-focus-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={`auswertung-focus-title-${serie.laborparameter_id}`}
+          >
+            <header className="dialog-panel__header auswertung-focus-dialog__header">
+              <div>
+                <span className="auswertung-focus-dialog__eyebrow">Fokusansicht</span>
+                <h3 id={`auswertung-focus-title-${serie.laborparameter_id}`}>{serie.parameter_anzeigename}</h3>
+                <p>
+                  {serie.standard_einheit ? `Standardeinheit: ${serie.standard_einheit}` : "Ohne definierte Standardeinheit"}
+                  {" · "}
+                  {formatParameterKlassifikation(serie.parameter_primaere_klassifikation)}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="dialog-panel__close"
+                onClick={() => setIsFocusOpen(false)}
+                aria-label="Fokusansicht schließen"
+              >
+                Zurück
+              </button>
+            </header>
+
+            <div className="auswertung-focus-dialog__body">
+              <div className="trend-meta auswertung-focus-dialog__meta">
+                <span>
+                  Zeitraum: {formatDate(serie.statistik.zeitraum_von)} bis {formatDate(serie.statistik.zeitraum_bis)}
+                </span>
+                <span>Minimum: {formatNumber(serie.statistik.minimum_num)}</span>
+                <span>Maximum: {formatNumber(serie.statistik.maximum_num)}</span>
+                <span>Letzter Wert: {serie.statistik.letzter_wert_anzeige ?? "—"}</span>
+                <span>Messungen: {serie.statistik.anzahl_messungen}</span>
+                <span>Personen: {serie.statistik.personen_anzahl}</span>
+              </div>
+
+              <AuswertungChart
+                serie={serie}
+                diagrammDarstellung={diagrammDarstellung}
+                zeitraumDarstellung={zeitraumDarstellung}
+                vertikalachsenModus={vertikalachsenModus}
+                datumVon={datumVon}
+                datumBis={datumBis}
+                includeLaborreferenz={includeLaborreferenz}
+                includeZielbereich={includeZielbereich}
+                height={560}
+              />
+            </div>
+          </section>
+        </div>
+      ) : null}
 
       <div className="trend-table-panel">
         <div className="trend-table-panel__header">

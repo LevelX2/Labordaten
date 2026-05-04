@@ -22,6 +22,7 @@ import type {
   AnsichtVorlageTyp,
   AnsichtVorlageUpdatePayload,
   ArztberichtResponse,
+  BerichtSortierung,
   Gruppe,
   Labor,
   Parameter,
@@ -41,13 +42,24 @@ type BerichtFormState = {
   datum_von: string;
   datum_bis: string;
   include_referenzbereich: boolean;
+  include_referenzgrafik: boolean;
   include_labor: boolean;
   include_befundbemerkung: boolean;
   include_messwertbemerkung: boolean;
+  sortierung: BerichtSortierung;
+  auffaelligkeiten_zuerst: boolean;
 };
 
 type BerichtAnsichtKey = "arztbericht" | "verlauf";
-type BerichtPanelKey = "filters" | "templates";
+type BerichtPanelKey = "filters" | "templates" | "settings";
+type BerichtPreviewItem = {
+  person_anzeigename: string;
+  parameter_anzeigename: string;
+  datum?: string | null;
+  primaere_berichtsgruppe?: string | null;
+  sortierung_in_gruppe?: number | null;
+  ausserhalb_referenzbereich?: boolean | null;
+};
 
 const initialForm: BerichtFormState = {
   person_ids: [],
@@ -58,10 +70,34 @@ const initialForm: BerichtFormState = {
   datum_von: defaultDateRange.datum_von,
   datum_bis: defaultDateRange.datum_bis,
   include_referenzbereich: true,
+  include_referenzgrafik: false,
   include_labor: true,
   include_befundbemerkung: true,
-  include_messwertbemerkung: true
+  include_messwertbemerkung: true,
+  sortierung: "person_entnahmezeitpunkt",
+  auffaelligkeiten_zuerst: false
 };
+
+const REPORT_SORT_OPTIONS: Array<{ value: BerichtSortierung; label: string }> = [
+  { value: "person_entnahmezeitpunkt", label: "Person alphabetisch, Entnahmezeitpunkt" },
+  {
+    value: "person_berichtsgruppe_sortierung_entnahmezeitpunkt",
+    label: "Person, primäre Berichtsgruppe, Gruppensortierung, Entnahmezeitpunkt"
+  }
+];
+
+const REPORT_VIEW_OPTIONS: Array<{ key: BerichtAnsichtKey; title: string; description: string }> = [
+  {
+    key: "arztbericht",
+    title: "Arztbericht Liste",
+    description: "Übersicht der passenden Messwerte und ausgewählten Zusatzangaben für den Arztbericht."
+  },
+  {
+    key: "verlauf",
+    title: "Verlaufsbericht Zeitachse",
+    description: "Zeitliche Übersicht der ausgewählten Parameter mit den aktuellen Berichtsfiltern."
+  }
+];
 
 function readStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
@@ -74,6 +110,12 @@ function readKlassifikationen(value: unknown): ParameterKlassifikationCode[] {
 
 function readBoolean(value: unknown, fallback: boolean): boolean {
   return typeof value === "boolean" ? value : fallback;
+}
+
+function readBerichtSortierung(value: unknown): BerichtSortierung {
+  return REPORT_SORT_OPTIONS.some((option) => option.value === value)
+    ? (value as BerichtSortierung)
+    : initialForm.sortierung;
 }
 
 function viewKeyToTemplateType(viewKey: BerichtAnsichtKey): AnsichtVorlageTyp {
@@ -99,12 +141,17 @@ function buildBerichtVorlageConfig(form: BerichtFormState, viewKey: BerichtAnsic
       viewKey === "arztbericht"
         ? {
             include_referenzbereich: form.include_referenzbereich,
+            include_referenzgrafik: form.include_referenzgrafik,
             include_labor: form.include_labor,
             include_befundbemerkung: form.include_befundbemerkung,
             include_messwertbemerkung: form.include_messwertbemerkung,
+            sortierung: form.sortierung,
+            auffaelligkeiten_zuerst: form.auffaelligkeiten_zuerst,
             einheit_auswahl: {}
           }
         : {
+            sortierung: form.sortierung,
+            auffaelligkeiten_zuerst: form.auffaelligkeiten_zuerst,
             einheit_auswahl: {}
           }
   };
@@ -124,9 +171,12 @@ function applyBerichtVorlageConfig(config: AnsichtVorlageKonfiguration): Bericht
     datum_von: typeof filter.datum_von === "string" ? filter.datum_von : filter.datum_von === null ? "" : initialForm.datum_von,
     datum_bis: typeof filter.datum_bis === "string" ? filter.datum_bis : filter.datum_bis === null ? "" : initialForm.datum_bis,
     include_referenzbereich: readBoolean(optionen.include_referenzbereich, initialForm.include_referenzbereich),
+    include_referenzgrafik: readBoolean(optionen.include_referenzgrafik, initialForm.include_referenzgrafik),
     include_labor: readBoolean(optionen.include_labor, initialForm.include_labor),
     include_befundbemerkung: readBoolean(optionen.include_befundbemerkung, initialForm.include_befundbemerkung),
-    include_messwertbemerkung: readBoolean(optionen.include_messwertbemerkung, initialForm.include_messwertbemerkung)
+    include_messwertbemerkung: readBoolean(optionen.include_messwertbemerkung, initialForm.include_messwertbemerkung),
+    sortierung: readBerichtSortierung(optionen.sortierung),
+    auffaelligkeiten_zuerst: readBoolean(optionen.auffaelligkeiten_zuerst, initialForm.auffaelligkeiten_zuerst)
   };
 }
 
@@ -157,15 +207,51 @@ function formatCount(value: number, singular: string, plural: string): string {
   return `${value} ${value === 1 ? singular : plural}`;
 }
 
-function downloadBlob(blob: Blob, filename: string) {
-  const url = window.URL.createObjectURL(blob);
+function formatSelectionSummary<TItem>(
+  selectedIds: string[],
+  items: TItem[],
+  getId: (item: TItem) => string,
+  getLabel: (item: TItem) => string,
+  emptyLabel: string,
+  fallbackSingular: string,
+  fallbackPlural: string
+): string {
+  if (!selectedIds.length) {
+    return emptyLabel;
+  }
+
+  const labelsById = new Map(items.map((item) => [getId(item), getLabel(item)]));
+  const labels = selectedIds.map((id) => labelsById.get(id)).filter((label): label is string => Boolean(label));
+  if (!labels.length) {
+    return formatCount(selectedIds.length, fallbackSingular, fallbackPlural);
+  }
+
+  const visibleLabels = labels.slice(0, 3);
+  const remainingCount = selectedIds.length - visibleLabels.length;
+  return remainingCount > 0 ? `${visibleLabels.join(", ")} + ${remainingCount} weitere` : visibleLabels.join(", ");
+}
+
+function formatTemplateSummary(selectedTemplate: AnsichtVorlage | null, templates: AnsichtVorlage[]): string {
+  if (selectedTemplate) {
+    return selectedTemplate.name;
+  }
+  if (!templates.length) {
+    return "Keine Vorlage vorhanden";
+  }
+
+  const names = templates.slice(0, 2).map((template) => template.name);
+  const remainingCount = templates.length - names.length;
+  const suffix = remainingCount > 0 ? ` + ${remainingCount} weitere` : "";
+  return `${names.join(", ")}${suffix}`;
+}
+
+function downloadUrl(url: string, filename: string) {
   const link = document.createElement("a");
   link.href = url;
   link.download = filename;
   document.body.appendChild(link);
   link.click();
   link.remove();
-  window.URL.revokeObjectURL(url);
 }
 
 function buildReportDescription(
@@ -197,46 +283,157 @@ function buildReportDescription(
   }.`;
 }
 
-function buildFilterSummary(form: BerichtFormState): string[] {
-  const summary: string[] = [];
-
-  summary.push(
-    form.person_ids.length
-      ? `${formatCount(form.person_ids.length, "Person", "Personen")} ausgewählt`
-      : "Noch keine Person ausgewählt"
-  );
-
-  if (form.gruppen_ids.length) {
-    summary.push(formatCount(form.gruppen_ids.length, "Parametergruppe", "Parametergruppen"));
-  }
-  if (form.laborparameter_ids.length) {
-    summary.push(formatCount(form.laborparameter_ids.length, "Parameter", "Parameter"));
-  }
-  if (form.klassifikationen.length) {
-    summary.push(formatCount(form.klassifikationen.length, "KSG-Klasse", "KSG-Klassen"));
-  }
-  if (form.labor_ids.length) {
-    summary.push(formatCount(form.labor_ids.length, "Labor", "Labore"));
-  }
-
-  if (form.datum_von || form.datum_bis) {
-    summary.push(
-      `Zeitraum ${form.datum_von ? formatDate(form.datum_von) : "offen"} bis ${form.datum_bis ? formatDate(form.datum_bis) : "offen"}`
-    );
-  }
-
-  return summary;
-}
-
 function buildDoctorOptionSummary(form: BerichtFormState): string {
   const options = [
     form.include_referenzbereich ? "Referenzbereich" : null,
+    form.include_referenzgrafik ? "Referenzgrafik" : null,
     form.include_labor ? "Labor" : null,
     form.include_befundbemerkung ? "Befundbemerkung" : null,
     form.include_messwertbemerkung ? "Messwertbemerkung" : null
   ].filter(Boolean);
 
   return options.length ? options.join(" • ") : "Nur Pflichtfelder";
+}
+
+function renderReferenceGraphic(item: ArztberichtResponse["eintraege"][number]) {
+  const lower = item.referenz_untere_num;
+  const upper = item.referenz_obere_num;
+  const value = item.wert_num;
+  if (
+    value === null ||
+    value === undefined ||
+    ((lower === null || lower === undefined) && (upper === null || upper === undefined))
+  ) {
+    return <span className="reference-graphic reference-graphic--empty">—</span>;
+  }
+
+  let referenceMin: number | null | undefined;
+  let referenceMax: number | null | undefined;
+  let scaleMin: number;
+  let scaleMax: number;
+  if (lower !== null && lower !== undefined && upper !== null && upper !== undefined && lower < upper) {
+    const referenceSpan = upper - lower;
+    referenceMin = lower;
+    referenceMax = upper;
+    scaleMin = lower - referenceSpan * 0.5;
+    scaleMax = upper + referenceSpan * 0.5;
+  } else if (upper !== null && upper !== undefined) {
+    referenceMin = Math.min(value, upper) - Math.max(Math.abs(upper) * 0.5, 1);
+    referenceMax = upper;
+    scaleMin = referenceMin;
+    scaleMax = Math.max(value, upper) + Math.max(Math.abs(upper) * 0.25, 1);
+  } else if (lower !== null && lower !== undefined) {
+    referenceMin = lower;
+    referenceMax = Math.max(value, lower) + Math.max(Math.abs(lower) * 0.5, 1);
+    scaleMin = Math.min(value, lower) - Math.max(Math.abs(lower) * 0.25, 1);
+    scaleMax = referenceMax;
+  } else {
+    return <span className="reference-graphic reference-graphic--empty">—</span>;
+  }
+
+  if (referenceMin === null || referenceMin === undefined || referenceMax === null || referenceMax === undefined || scaleMin >= scaleMax) {
+    return <span className="reference-graphic reference-graphic--empty">—</span>;
+  }
+
+  const toPercent = (number: number) => Math.min(Math.max(((number - scaleMin) / (scaleMax - scaleMin)) * 100, 0), 100);
+  const rangeLeft = toPercent(referenceMin);
+  const rangeRight = toPercent(referenceMax);
+  const pointLeft = toPercent(value);
+
+  return (
+    <span
+      className={`reference-graphic ${item.ausserhalb_referenzbereich ? "reference-graphic--outside" : ""}`}
+      aria-label={`Messwert ${item.wert_anzeige} im Verhältnis zum Referenzbereich ${lower} bis ${upper}`}
+    >
+      <span className="reference-graphic__track" />
+      <span
+        className="reference-graphic__range"
+        style={{ left: `${rangeLeft}%`, width: `${Math.max(rangeRight - rangeLeft, 2)}%` }}
+      />
+      <span className="reference-graphic__point" style={{ left: `${pointLeft}%` }} />
+    </span>
+  );
+}
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => resolve(String(reader.result)));
+    reader.addEventListener("error", () => reject(reader.error ?? new Error("PDF-Vorschau konnte nicht gelesen werden.")));
+    reader.readAsDataURL(blob);
+  });
+}
+
+function compareText(left: string, right: string): number {
+  return left.localeCompare(right, "de", { sensitivity: "base" });
+}
+
+function compareReportPreviewItems(
+  left: BerichtPreviewItem,
+  right: BerichtPreviewItem,
+  sortierung: BerichtSortierung,
+  auffaelligkeiten_zuerst: boolean
+): number {
+  const leftIsAbnormal = left.ausserhalb_referenzbereich === true;
+  const rightIsAbnormal = right.ausserhalb_referenzbereich === true;
+  if (auffaelligkeiten_zuerst && leftIsAbnormal !== rightIsAbnormal) {
+    return leftIsAbnormal ? -1 : 1;
+  }
+
+  const personCompare = compareText(left.person_anzeigename, right.person_anzeigename);
+  if (personCompare) {
+    return personCompare;
+  }
+
+  if (sortierung === "person_berichtsgruppe_sortierung_entnahmezeitpunkt") {
+    const leftHasNoGroup = left.primaere_berichtsgruppe ? 0 : 1;
+    const rightHasNoGroup = right.primaere_berichtsgruppe ? 0 : 1;
+    if (leftHasNoGroup !== rightHasNoGroup) {
+      return leftHasNoGroup - rightHasNoGroup;
+    }
+
+    const groupCompare = compareText(left.primaere_berichtsgruppe ?? "", right.primaere_berichtsgruppe ?? "");
+    if (groupCompare) {
+      return groupCompare;
+    }
+
+    const leftHasNoGroupSort = left.sortierung_in_gruppe === null || left.sortierung_in_gruppe === undefined ? 1 : 0;
+    const rightHasNoGroupSort = right.sortierung_in_gruppe === null || right.sortierung_in_gruppe === undefined ? 1 : 0;
+    if (leftHasNoGroupSort !== rightHasNoGroupSort) {
+      return leftHasNoGroupSort - rightHasNoGroupSort;
+    }
+
+    const groupSortCompare = (left.sortierung_in_gruppe ?? 0) - (right.sortierung_in_gruppe ?? 0);
+    if (groupSortCompare) {
+      return groupSortCompare;
+    }
+
+    const parameterCompare = compareText(left.parameter_anzeigename, right.parameter_anzeigename);
+    if (parameterCompare) {
+      return parameterCompare;
+    }
+
+    return (left.datum ?? "").localeCompare(right.datum ?? "");
+  }
+
+  const dateCompare = (left.datum ?? "").localeCompare(right.datum ?? "");
+  if (dateCompare) {
+    return dateCompare;
+  }
+
+  return compareText(left.parameter_anzeigename, right.parameter_anzeigename);
+}
+
+function sortReportPreviewItems<TItem extends BerichtPreviewItem>(
+  items: TItem[],
+  sortierung: BerichtSortierung,
+  auffaelligkeiten_zuerst: boolean
+): TItem[] {
+  return [...items].sort((left, right) => compareReportPreviewItems(left, right, sortierung, auffaelligkeiten_zuerst));
+}
+
+function formatReportSortLabel(sortierung: BerichtSortierung): string {
+  return REPORT_SORT_OPTIONS.find((option) => option.value === sortierung)?.label ?? REPORT_SORT_OPTIONS[0].label;
 }
 
 export function BerichtePage() {
@@ -254,6 +451,7 @@ export function BerichtePage() {
     form.person_ids.length ? null : "filters"
   );
   const [showPageInfo, setShowPageInfo] = useState(false);
+  const [pdfPreview, setPdfPreview] = useState<{ url: string; filename: string } | null>(null);
   const selectedTemplateType = viewKeyToTemplateType(selectedAnsicht);
   const currentTemplateConfig = useMemo(
     () => buildBerichtVorlageConfig(form, selectedAnsicht),
@@ -292,9 +490,12 @@ export function BerichtePage() {
     datum_von: form.datum_von || null,
     datum_bis: form.datum_bis || null,
     include_referenzbereich: form.include_referenzbereich,
+    include_referenzgrafik: form.include_referenzgrafik,
     include_labor: form.include_labor,
     include_befundbemerkung: form.include_befundbemerkung,
-    include_messwertbemerkung: form.include_messwertbemerkung
+    include_messwertbemerkung: form.include_messwertbemerkung,
+    sortierung: form.sortierung,
+    auffaelligkeiten_zuerst: form.auffaelligkeiten_zuerst
   };
 
   const trendPayload = {
@@ -304,7 +505,9 @@ export function BerichtePage() {
     klassifikationen: form.klassifikationen,
     labor_ids: form.labor_ids,
     datum_von: form.datum_von || null,
-    datum_bis: form.datum_bis || null
+    datum_bis: form.datum_bis || null,
+    sortierung: form.sortierung,
+    auffaelligkeiten_zuerst: form.auffaelligkeiten_zuerst
   };
 
   const doctorReportMutation = useMutation({
@@ -329,7 +532,9 @@ export function BerichtePage() {
         method: "POST",
         body: JSON.stringify(doctorPayload)
       });
-      downloadBlob(result.blob, result.filename ?? "arztbericht.pdf");
+      const filename = result.filename ?? "arztbericht.pdf";
+      const url = await blobToDataUrl(result.blob);
+      setPdfPreview({ url, filename });
     }
   });
 
@@ -339,7 +544,9 @@ export function BerichtePage() {
         method: "POST",
         body: JSON.stringify(trendPayload)
       });
-      downloadBlob(result.blob, result.filename ?? "verlauf.pdf");
+      const filename = result.filename ?? "verlauf.pdf";
+      const url = await blobToDataUrl(result.blob);
+      setPdfPreview({ url, filename });
     }
   });
   const createTemplateMutation = useMutation({
@@ -390,8 +597,26 @@ export function BerichtePage() {
   });
 
   const previewPending = doctorReportMutation.isPending || trendReportMutation.isPending;
+  const sortedDoctorEntries = useMemo(
+    () =>
+      sortReportPreviewItems(
+        doctorReportMutation.data?.eintraege ?? [],
+        form.sortierung,
+        form.auffaelligkeiten_zuerst
+      ),
+    [doctorReportMutation.data, form.auffaelligkeiten_zuerst, form.sortierung]
+  );
+  const sortedTrendPoints = useMemo(
+    () =>
+      sortReportPreviewItems(
+        trendReportMutation.data?.punkte ?? [],
+        form.sortierung,
+        form.auffaelligkeiten_zuerst
+      ),
+    [form.auffaelligkeiten_zuerst, form.sortierung, trendReportMutation.data]
+  );
   const doctorSummary = useMemo(() => {
-    const items = doctorReportMutation.data?.eintraege ?? [];
+    const items = sortedDoctorEntries;
     const outsideCount = items.filter((item) => item.ausserhalb_referenzbereich).length;
     const assessableCount = items.filter(
       (item) => item.ausserhalb_referenzbereich !== null && item.ausserhalb_referenzbereich !== undefined
@@ -404,9 +629,9 @@ export function BerichtePage() {
       parameterCount,
       description: buildReportDescription(items, items.length)
     };
-  }, [doctorReportMutation.data]);
+  }, [sortedDoctorEntries]);
   const trendSummary = useMemo(() => {
-    const items = trendReportMutation.data?.punkte ?? [];
+    const items = sortedTrendPoints;
     const outsideCount = items.filter((item) => item.ausserhalb_referenzbereich).length;
     const assessableCount = items.filter(
       (item) => item.ausserhalb_referenzbereich !== null && item.ausserhalb_referenzbereich !== undefined
@@ -419,45 +644,79 @@ export function BerichtePage() {
       parameterCount,
       description: buildReportDescription(items, items.length)
     };
-  }, [trendReportMutation.data]);
+  }, [sortedTrendPoints]);
 
-  const filterSummary = useMemo(() => buildFilterSummary(form), [form]);
   const doctorOptionSummary = useMemo(() => buildDoctorOptionSummary(form), [form]);
 
-  const reportEntries = useMemo(
-    () => [
-      {
-        key: "arztbericht" as const,
-        title: "Arztbericht Liste",
-        description: "Kompakte Berichtssicht mit den neuesten passenden Werten und auswählbaren Zusatzfeldern.",
-        previewLabel: doctorReportMutation.data
-          ? formatCount(doctorSummary.totalValues, "Wert", "Werte")
-          : "Noch keine Vorschau",
-        metaLabel: doctorReportMutation.data
-          ? formatCount(doctorSummary.parameterCount, "Parameter", "Parameter")
-          : "PDF und Vorschau verfügbar"
-      },
-      {
-        key: "verlauf" as const,
-        title: "Verlaufsbericht Zeitachse",
-        description: "Alle passenden Verlaufspunkte für Zeitachsen, PDF-Ausgabe und Detailprüfung in einer Sicht.",
-        previewLabel: trendReportMutation.data
-          ? formatCount(trendSummary.totalValues, "Punkt", "Punkte")
-          : "Noch keine Vorschau",
-        metaLabel: trendReportMutation.data
-          ? formatCount(trendSummary.parameterCount, "Parameter", "Parameter")
-          : "Verlaufs-PDF verfügbar"
-      }
-    ],
-    [doctorReportMutation.data, doctorSummary, trendReportMutation.data, trendSummary]
+  const selectedEntry = REPORT_VIEW_OPTIONS.find((entry) => entry.key === selectedAnsicht) ?? REPORT_VIEW_OPTIONS[0];
+  const personSummary = useMemo(
+    () =>
+      formatSelectionSummary(
+        form.person_ids,
+        personenQuery.data ?? [],
+        (person) => person.id,
+        (person) => person.anzeigename,
+        "Keine Person ausgewählt",
+        "Person",
+        "Personen"
+      ),
+    [form.person_ids, personenQuery.data]
   );
-
-  const selectedEntry = reportEntries.find((entry) => entry.key === selectedAnsicht) ?? reportEntries[0];
+  const groupSummary = useMemo(
+    () =>
+      formatSelectionSummary(
+        form.gruppen_ids,
+        gruppenQuery.data ?? [],
+        (gruppe) => gruppe.id,
+        (gruppe) => gruppe.name,
+        "Alle Gruppen",
+        "Parametergruppe",
+        "Parametergruppen"
+      ),
+    [form.gruppen_ids, gruppenQuery.data]
+  );
+  const parameterSummary = useMemo(
+    () =>
+      formatSelectionSummary(
+        form.laborparameter_ids,
+        parameterQuery.data ?? [],
+        (parameter) => parameter.id,
+        (parameter) => parameter.anzeigename,
+        "Alle Parameter",
+        "Parameter",
+        "Parameter"
+      ),
+    [form.laborparameter_ids, parameterQuery.data]
+  );
+  const klassifikationSummary = useMemo(
+    () =>
+      form.klassifikationen.length
+        ? form.klassifikationen.map((klassifikation) => formatParameterKlassifikation(klassifikation)).join(", ")
+        : "Alle KSG-Klassen",
+    [form.klassifikationen]
+  );
+  const laborSummary = useMemo(
+    () =>
+      formatSelectionSummary(
+        form.labor_ids,
+        laboreQuery.data ?? [],
+        (labor) => labor.id,
+        (labor) => labor.name,
+        "Alle Labore",
+        "Labor",
+        "Labore"
+      ),
+    [form.labor_ids, laboreQuery.data]
+  );
   const templatesForSelectedType = useMemo(
     () => (templatesQuery.data ?? []).filter((template) => template.vorlage_typ === selectedTemplateType),
     [selectedTemplateType, templatesQuery.data]
   );
   const selectedTemplate = templatesForSelectedType.find((template) => template.id === selectedTemplateId) ?? null;
+  const templateSummary = useMemo(
+    () => formatTemplateSummary(selectedTemplate, templatesForSelectedType),
+    [selectedTemplate, templatesForSelectedType]
+  );
   const templateActionPending =
     createTemplateMutation.isPending ||
     updateTemplateMutation.isPending ||
@@ -489,6 +748,19 @@ export function BerichtePage() {
     }
   }, [selectedTemplateId, templatesForSelectedType]);
 
+  useEffect(
+    () => () => {
+      if (pdfPreview && pdfPreview.url.startsWith("blob:")) {
+        window.URL.revokeObjectURL(pdfPreview.url);
+      }
+    },
+    [pdfPreview]
+  );
+
+  const closePdfPreview = () => {
+    setPdfPreview(null);
+  };
+
   const handlePreviewLoad = () => {
     if (isDateRangeInvalid || !form.person_ids.length) {
       return;
@@ -503,10 +775,14 @@ export function BerichtePage() {
       return;
     }
     if (selectedAnsicht === "arztbericht") {
+      doctorReportMutation.mutate();
       doctorPdfMutation.mutate();
+      setActivePanel(null);
       return;
     }
+    trendReportMutation.mutate();
     trendPdfMutation.mutate();
+    setActivePanel(null);
   };
   const handleSelectTemplate = (templateId: string) => {
     if (!templateId) {
@@ -579,6 +855,35 @@ export function BerichtePage() {
     }
   };
 
+  const renderPreviewActions = () => (
+    <div className="report-preview-actions">
+      <button
+        type="button"
+        onClick={handlePreviewLoad}
+        disabled={previewPending || !form.person_ids.length || isDateRangeInvalid}
+      >
+        {previewPending ? "Lädt..." : "Vorschau laden"}
+      </button>
+      <button
+        type="button"
+        onClick={handlePdfExport}
+        disabled={
+          selectedAnsicht === "arztbericht"
+            ? doctorPdfMutation.isPending || !form.person_ids.length || isDateRangeInvalid
+            : trendPdfMutation.isPending || !form.person_ids.length || isDateRangeInvalid
+        }
+      >
+        {selectedAnsicht === "arztbericht"
+          ? doctorPdfMutation.isPending
+            ? "PDF wird erstellt..."
+            : "Arztbericht als PDF"
+          : trendPdfMutation.isPending
+            ? "PDF wird erstellt..."
+            : "Verlaufsbericht als PDF"}
+      </button>
+    </div>
+  );
+
   const renderSelectedPreview = () => {
     if (selectedAnsicht === "arztbericht") {
       if (doctorReportMutation.isError) {
@@ -587,10 +892,13 @@ export function BerichtePage() {
 
       if (!doctorReportMutation.data) {
         return (
-          <p>
-            Lade zuerst eine Vorschau, damit Du die aktuellen Berichtsinhalte, Kennzahlen und auswählbaren Messwerte
-            prüfen kannst.
-          </p>
+          <div className="report-empty-preview">
+            <p>
+              Lade zuerst eine Vorschau, damit Du die aktuellen Berichtsinhalte, Kennzahlen und auswählbaren Messwerte
+              prüfen kannst.
+            </p>
+            {renderPreviewActions()}
+          </div>
         );
       }
 
@@ -619,38 +927,46 @@ export function BerichtePage() {
             </article>
           </div>
 
+          {renderPreviewActions()}
+
           <div className="table-wrap">
             <table className="data-table">
               <thead>
                 <tr>
                   <th>Person</th>
+                  <th>Gruppe</th>
                   <th>Parameter</th>
                   <th>KSG</th>
                   <th>Datum</th>
                   <th>Wert</th>
+                  {form.include_referenzgrafik ? <th>Einordnung</th> : null}
                   <th>Referenz</th>
-                  <th>Labor</th>
+                  {form.include_labor ? <th>Labor</th> : null}
                 </tr>
               </thead>
               <tbody>
-                {doctorReportMutation.data.eintraege.map((item) => (
+                {sortedDoctorEntries.map((item) => (
                   <tr
                     key={item.messwert_id}
                     onClick={() => setSelectedMesswertId(item.messwert_id)}
                     className={item.messwert_id === selectedMesswertId ? "row-selected" : undefined}
                   >
                     <td>{item.person_anzeigename}</td>
+                    <td>{item.primaere_berichtsgruppe || "Ohne Gruppe"}</td>
                     <td>{item.parameter_anzeigename}</td>
                     <td>{formatParameterKlassifikation(item.parameter_primaere_klassifikation)}</td>
                     <td>{formatDate(item.datum)}</td>
                     <td>{[item.wert_anzeige, item.einheit].filter(Boolean).join(" ")}</td>
+                    {form.include_referenzgrafik ? <td>{renderReferenceGraphic(item)}</td> : null}
                     <td>{item.referenzbereich || "—"}</td>
-                    <td>{item.labor_name || "—"}</td>
+                    {form.include_labor ? <td>{item.labor_name || "—"}</td> : null}
                   </tr>
                 ))}
-                {!doctorReportMutation.data.eintraege.length ? (
+                {!sortedDoctorEntries.length ? (
                   <tr>
-                    <td colSpan={7}>Für die aktuelle Auswahl gibt es noch keine passenden Werte.</td>
+                    <td colSpan={7 + (form.include_referenzgrafik ? 1 : 0) + (form.include_labor ? 1 : 0)}>
+                      Für die aktuelle Auswahl gibt es noch keine passenden Werte.
+                    </td>
                   </tr>
                 ) : null}
               </tbody>
@@ -666,10 +982,13 @@ export function BerichtePage() {
 
     if (!trendReportMutation.data) {
       return (
-        <p>
-          Lade zuerst eine Vorschau, damit Du die Verlaufspunkte, die spätere PDF-Ausgabe und die Messwertdetails
-          entlang der aktuellen Auswahl prüfen kannst.
-        </p>
+        <div className="report-empty-preview">
+          <p>
+            Lade zuerst eine Vorschau, damit Du die Verlaufspunkte, die spätere PDF-Ausgabe und die Messwertdetails
+            entlang der aktuellen Auswahl prüfen kannst.
+          </p>
+          {renderPreviewActions()}
+        </div>
       );
     }
 
@@ -698,11 +1017,14 @@ export function BerichtePage() {
           </article>
         </div>
 
+        {renderPreviewActions()}
+
         <div className="table-wrap">
           <table className="data-table">
             <thead>
               <tr>
                 <th>Person</th>
+                <th>Gruppe</th>
                 <th>Parameter</th>
                 <th>KSG</th>
                 <th>Datum</th>
@@ -712,13 +1034,14 @@ export function BerichtePage() {
               </tr>
             </thead>
             <tbody>
-              {trendReportMutation.data.punkte.map((punkt) => (
+              {sortedTrendPoints.map((punkt) => (
                 <tr
                   key={punkt.messwert_id}
                   onClick={() => setSelectedMesswertId(punkt.messwert_id)}
                   className={punkt.messwert_id === selectedMesswertId ? "row-selected" : undefined}
                 >
                   <td>{punkt.person_anzeigename}</td>
+                  <td>{punkt.primaere_berichtsgruppe || "Ohne Gruppe"}</td>
                   <td>{punkt.parameter_anzeigename}</td>
                   <td>{formatParameterKlassifikation(punkt.parameter_primaere_klassifikation)}</td>
                   <td>{formatDate(punkt.datum)}</td>
@@ -727,9 +1050,9 @@ export function BerichtePage() {
                   <td>{punkt.labor_name || "—"}</td>
                 </tr>
               ))}
-              {!trendReportMutation.data.punkte.length ? (
+              {!sortedTrendPoints.length ? (
                 <tr>
-                  <td colSpan={7}>Für die aktuelle Auswahl gibt es noch keinen Verlauf.</td>
+                  <td colSpan={8}>Für die aktuelle Auswahl gibt es noch keinen Verlauf.</td>
                 </tr>
               ) : null}
             </tbody>
@@ -762,50 +1085,7 @@ export function BerichtePage() {
         </div>
       </header>
 
-      <div className="parameter-workspace">
-        <aside className="card parameter-sidebar">
-          <div className="parameter-sidebar__header">
-            <div>
-              <h3>Berichtsansichten</h3>
-              <p>{filterSummary.join(" • ")}</p>
-            </div>
-          </div>
-
-          <div className="parameter-list">
-            {reportEntries.map((entry) => (
-              <button
-                key={entry.key}
-                type="button"
-                className={`parameter-list__item ${selectedAnsicht === entry.key ? "parameter-list__item--selected" : ""}`}
-                onClick={() => setSelectedAnsicht(entry.key)}
-              >
-                <div className="parameter-list__title-row">
-                  <strong>{entry.title}</strong>
-                </div>
-                <p>{entry.description}</p>
-                <div className="parameter-list__meta">
-                  <span className="parameter-pill">{entry.previewLabel}</span>
-                  <span className="parameter-pill">{entry.metaLabel}</span>
-                </div>
-              </button>
-            ))}
-            <button
-              type="button"
-              className={`parameter-list__item ${activePanel === "templates" ? "parameter-list__item--selected" : ""}`}
-              onClick={() => setActivePanel("templates")}
-            >
-              <div className="parameter-list__title-row">
-                <strong>Vorlagen</strong>
-              </div>
-              <p>{selectedTemplate?.name ?? "Keine Vorlage gewählt"}</p>
-              <div className="parameter-list__meta">
-                <span className="parameter-pill">{templatesForSelectedType.length} Vorlagen</span>
-                {hasUnsavedTemplateChanges ? <span className="parameter-pill">Geändert</span> : null}
-              </div>
-            </button>
-          </div>
-        </aside>
-
+      <div className="parameter-workspace parameter-workspace--single">
         <div className="parameter-main">
           <article className="card">
             <div className="parameter-detail__header">
@@ -813,20 +1093,16 @@ export function BerichtePage() {
                 <h3 className="parameter-detail__title">{selectedEntry.title}</h3>
                 <p>{selectedEntry.description}</p>
               </div>
-              <div className="parameter-header-controls">
-                <span className="parameter-pill parameter-pill--accent">
-                  {selectedAnsicht === "arztbericht"
-                    ? doctorReportMutation.data
-                      ? "Arztbericht geladen"
-                      : "Arztbericht bereit"
-                    : trendReportMutation.data
-                      ? "Verlauf geladen"
-                      : "Verlauf bereit"}
-                </span>
-              </div>
             </div>
 
             <div className="parameter-toolrail">
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "templates" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => setActivePanel((current) => (current === "templates" ? null : "templates"))}
+              >
+                Vorlagen <span className="parameter-count-badge">{templatesForSelectedType.length}</span>
+              </button>
               <button
                 type="button"
                 className={`parameter-toolrail__button ${activePanel === "filters" ? "parameter-toolrail__button--active" : ""}`}
@@ -836,36 +1112,10 @@ export function BerichtePage() {
               </button>
               <button
                 type="button"
-                className={`parameter-toolrail__button ${activePanel === "templates" ? "parameter-toolrail__button--active" : ""}`}
-                onClick={() => setActivePanel((current) => (current === "templates" ? null : "templates"))}
+                className={`parameter-toolrail__button ${activePanel === "settings" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => setActivePanel((current) => (current === "settings" ? null : "settings"))}
               >
-                Vorlagen
-              </button>
-              <button
-                type="button"
-                className="parameter-toolrail__button"
-                onClick={handlePreviewLoad}
-                disabled={previewPending || !form.person_ids.length || isDateRangeInvalid}
-              >
-                {previewPending ? "Lädt..." : "Vorschau laden"}
-              </button>
-              <button
-                type="button"
-                className="parameter-toolrail__button"
-                onClick={handlePdfExport}
-                disabled={
-                  selectedAnsicht === "arztbericht"
-                    ? doctorPdfMutation.isPending || !form.person_ids.length || isDateRangeInvalid
-                    : trendPdfMutation.isPending || !form.person_ids.length || isDateRangeInvalid
-                }
-              >
-                {selectedAnsicht === "arztbericht"
-                  ? doctorPdfMutation.isPending
-                    ? "PDF wird erstellt..."
-                    : "Arztbericht als PDF"
-                  : trendPdfMutation.isPending
-                    ? "PDF wird erstellt..."
-                    : "Verlaufsbericht als PDF"}
+                Einstellungen
               </button>
             </div>
 
@@ -899,6 +1149,140 @@ export function BerichtePage() {
                 />
                 {templateWarning ? <p className="form-hint">{templateWarning}</p> : null}
                 {templateError ? <p className="form-error">{templateError.message}</p> : null}
+              </article>
+            ) : null}
+
+            {activePanel === "settings" ? (
+              <article className="card card--soft parameter-action-panel">
+                <div className="parameter-panel__header">
+                  <div>
+                    <h3>Berichtseinstellungen</h3>
+                    <p>Diese Optionen steuern Ansicht, Sortierung und Ausgabe, ohne die Messwertauswahl zu filtern.</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="icon-button"
+                    onClick={() => setActivePanel(null)}
+                    aria-label="Panel Berichtseinstellungen schließen"
+                    title="Panel Berichtseinstellungen schließen"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <form
+                  className="form-grid"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    handlePreviewLoad();
+                  }}
+                >
+                  <div className="field field--full">
+                    <label>
+                      <span>Berichtstyp</span>
+                      <select
+                        value={selectedAnsicht}
+                        onChange={(event) => setSelectedAnsicht(event.target.value as BerichtAnsichtKey)}
+                      >
+                        {REPORT_VIEW_OPTIONS.map((option) => (
+                          <option value={option.key} key={option.key}>
+                            {option.title}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+
+                  <div className="field field--full">
+                    <label>
+                      <span>Berichtssortierung</span>
+                      <select
+                        value={form.sortierung}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            sortierung: event.target.value as BerichtSortierung
+                          }))
+                        }
+                      >
+                        {REPORT_SORT_OPTIONS.map((option) => (
+                          <option value={option.value} key={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <div className="checkbox-grid">
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={form.auffaelligkeiten_zuerst}
+                          onChange={(event) =>
+                            setForm((current) => ({ ...current, auffaelligkeiten_zuerst: event.target.checked }))
+                          }
+                        />
+                        <span>Auffälligkeiten zuerst</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="field field--full">
+                    <span>Arztbericht-Inhalte</span>
+                    <div className="checkbox-grid">
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={form.include_referenzbereich}
+                          onChange={(event) =>
+                            setForm((current) => ({ ...current, include_referenzbereich: event.target.checked }))
+                          }
+                        />
+                        <span>Referenzbereich</span>
+                      </label>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={form.include_referenzgrafik}
+                          onChange={(event) =>
+                            setForm((current) => ({ ...current, include_referenzgrafik: event.target.checked }))
+                          }
+                        />
+                        <span>Referenzgrafik</span>
+                      </label>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={form.include_labor}
+                          onChange={(event) =>
+                            setForm((current) => ({ ...current, include_labor: event.target.checked }))
+                          }
+                        />
+                        <span>Labor</span>
+                      </label>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={form.include_befundbemerkung}
+                          onChange={(event) =>
+                            setForm((current) => ({ ...current, include_befundbemerkung: event.target.checked }))
+                          }
+                        />
+                        <span>Befundbemerkung</span>
+                      </label>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={form.include_messwertbemerkung}
+                          onChange={(event) =>
+                            setForm((current) => ({ ...current, include_messwertbemerkung: event.target.checked }))
+                          }
+                        />
+                        <span>Messwertbemerkung</span>
+                      </label>
+                    </div>
+                    <p className="form-hint">Diese Optionen wirken auf den Arztbericht und dessen PDF-Ausgabe.</p>
+                  </div>
+                </form>
               </article>
             ) : null}
 
@@ -1007,53 +1391,6 @@ export function BerichtePage() {
                     onToChange={(datum_bis) => setForm((current) => ({ ...current, datum_bis }))}
                   />
 
-                  <div className="field field--full">
-                    <span>Arztbericht-Inhalte</span>
-                    <div className="checkbox-grid">
-                      <label>
-                        <input
-                          type="checkbox"
-                          checked={form.include_referenzbereich}
-                          onChange={(event) =>
-                            setForm((current) => ({ ...current, include_referenzbereich: event.target.checked }))
-                          }
-                        />
-                        <span>Referenzbereich</span>
-                      </label>
-                      <label>
-                        <input
-                          type="checkbox"
-                          checked={form.include_labor}
-                          onChange={(event) =>
-                            setForm((current) => ({ ...current, include_labor: event.target.checked }))
-                          }
-                        />
-                        <span>Labor</span>
-                      </label>
-                      <label>
-                        <input
-                          type="checkbox"
-                          checked={form.include_befundbemerkung}
-                          onChange={(event) =>
-                            setForm((current) => ({ ...current, include_befundbemerkung: event.target.checked }))
-                          }
-                        />
-                        <span>Befundbemerkung</span>
-                      </label>
-                      <label>
-                        <input
-                          type="checkbox"
-                          checked={form.include_messwertbemerkung}
-                          onChange={(event) =>
-                            setForm((current) => ({ ...current, include_messwertbemerkung: event.target.checked }))
-                          }
-                        />
-                        <span>Messwertbemerkung</span>
-                      </label>
-                    </div>
-                    <p className="form-hint">Diese Optionen wirken auf den Arztbericht und dessen PDF-Ausgabe.</p>
-                  </div>
-
                   <div className="form-actions">
                     <button
                       type="button"
@@ -1066,9 +1403,6 @@ export function BerichtePage() {
                     >
                       Filter zurücksetzen
                     </button>
-                    <button type="submit" disabled={previewPending || !form.person_ids.length || isDateRangeInvalid}>
-                      {previewPending ? "Lädt..." : "Vorschau laden"}
-                    </button>
                   </div>
                 </form>
               </article>
@@ -1076,22 +1410,33 @@ export function BerichtePage() {
 
             <div className="detail-grid">
               <div className="detail-grid__item">
-                <span>Personen</span>
-                <strong>{formatCount(form.person_ids.length, "Person", "Personen")}</strong>
+                <span>Vorlage</span>
+                <strong>
+                  {templateSummary} •{" "}
+                  {formatCount(templatesForSelectedType.length, "Vorlage", "Vorlagen")}
+                  {hasUnsavedTemplateChanges ? " • geändert" : ""}
+                </strong>
               </div>
               <div className="detail-grid__item">
-                <span>Parametergruppen und Parameter</span>
-                <strong>
-                  {formatCount(form.gruppen_ids.length, "Parametergruppe", "Parametergruppen")} •{" "}
-                  {formatCount(form.laborparameter_ids.length, "Parameter", "Parameter")} •{" "}
-                  {formatCount(form.klassifikationen.length, "KSG-Klasse", "KSG-Klassen")}
-                </strong>
+                <span>Personen</span>
+                <strong>{personSummary}</strong>
+              </div>
+              <div className="detail-grid__item">
+                <span>Parametergruppen</span>
+                <strong>{groupSummary}</strong>
+              </div>
+              <div className="detail-grid__item">
+                <span>Parameter</span>
+                <strong>{parameterSummary}</strong>
+              </div>
+              <div className="detail-grid__item">
+                <span>KSG-Klassen</span>
+                <strong>{klassifikationSummary}</strong>
               </div>
               <div className="detail-grid__item">
                 <span>Labore und Zeitraum</span>
                 <strong>
-                  {formatCount(form.labor_ids.length, "Labor", "Labore")} • {formatDate(form.datum_von)} bis{" "}
-                  {formatDate(form.datum_bis)}
+                  {laborSummary} • {formatDate(form.datum_von)} bis {formatDate(form.datum_bis)}
                 </strong>
               </div>
               <div className="detail-grid__item">
@@ -1100,6 +1445,13 @@ export function BerichtePage() {
                   {selectedAnsicht === "arztbericht"
                     ? doctorOptionSummary
                     : "Verlaufspunkte mit Messwerttyp, Datum und Labor"}
+                </strong>
+              </div>
+              <div className="detail-grid__item">
+                <span>Sortierung</span>
+                <strong>
+                  {formatReportSortLabel(form.sortierung)}
+                  {form.auffaelligkeiten_zuerst ? " • Auffälligkeiten zuerst" : ""}
                 </strong>
               </div>
             </div>
@@ -1117,13 +1469,45 @@ export function BerichtePage() {
             {renderSelectedPreview()}
           </article>
 
-          <MesswertDetailCard
-            messwertId={selectedMesswertId}
-            title="Ausgewählter Messwert mit Referenzen"
-            emptyText="Bitte in einer Berichtsvorschau einen Messwert auswählen."
-          />
+          {selectedMesswertId ? (
+            <MesswertDetailCard messwertId={selectedMesswertId} title="Ausgewählter Messwert mit Referenzen" />
+          ) : null}
         </div>
       </div>
+
+      {pdfPreview ? (
+        <div className="dialog-backdrop report-pdf-preview-backdrop" role="presentation">
+          <section
+            className="dialog-panel report-pdf-preview-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="report-pdf-preview-title"
+          >
+            <header className="dialog-panel__header report-pdf-preview-dialog__header">
+              <div>
+                <span className="report-pdf-preview-dialog__eyebrow">PDF-Vorschau</span>
+                <h3 id="report-pdf-preview-title">{pdfPreview.filename}</h3>
+              </div>
+              <button
+                type="button"
+                className="dialog-panel__close"
+                onClick={closePdfPreview}
+                aria-label="PDF-Vorschau schließen"
+              >
+                Schließen
+              </button>
+            </header>
+            <div className="report-pdf-preview-dialog__body">
+              <embed title={pdfPreview.filename} src={pdfPreview.url} type="application/pdf" />
+            </div>
+            <footer className="dialog-panel__footer">
+              <button type="button" className="button--secondary" onClick={() => downloadUrl(pdfPreview.url, pdfPreview.filename)}>
+                PDF herunterladen
+              </button>
+            </footer>
+          </section>
+        </div>
+      ) : null}
     </section>
   );
 }
