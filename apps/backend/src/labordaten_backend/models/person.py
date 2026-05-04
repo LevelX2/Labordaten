@@ -15,9 +15,8 @@ class Person(Base, TimestampMixin, ActiveMixin):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     anzeigename: Mapped[str] = mapped_column(String(200), nullable=False)
     vollname: Mapped[str | None] = mapped_column(String(200))
-    geburtsdatum: Mapped[date] = mapped_column(Date, nullable=False)
+    geburtsdatum: Mapped[date | None] = mapped_column(Date, nullable=True)
     geschlecht_code: Mapped[str | None] = mapped_column(String(40))
     blutgruppe: Mapped[str | None] = mapped_column(String(20))
     rhesusfaktor: Mapped[str | None] = mapped_column(String(10))
     hinweise_allgemein: Mapped[str | None] = mapped_column(Text)
-

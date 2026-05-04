@@ -1,7 +1,7 @@
 ---
 typ: datenmodell
 status: entwurf
-letzte_aktualisierung: 2026-04-27
+letzte_aktualisierung: 2026-05-05
 quellen:
   - ../../01 Rohquellen/fachkonzepte/2026-04-20 Erste Konzeptvorgabe Laboranwendung.md
   - ../../01 Rohquellen/fachkonzepte/2026-04-20 Konzeptklaerungen V1 aus Rueckfragen.md
@@ -80,7 +80,7 @@ Das V1-Datenmodell trennt Stammdaten, Messdaten, Referenzlogik, Zielbereiche, Pl
 - `id`: technische Primär-ID
 - `anzeigename`: Pflichtfeld für UI und Listen
 - `vollname`: optionaler Vollname
-- `geburtsdatum`: Pflichtfeld für Auswertung, Planung und Referenzlogik
+- `geburtsdatum`: optionales Geburtsdatum für altersabhängige Auswertung und Referenzlogik
 - `geschlecht_code`: Referenzkategorie für mögliche geschlechtsabhängige Referenzen
 - `blutgruppe`: optional
 - `rhesusfaktor`: optional
@@ -92,6 +92,7 @@ Das V1-Datenmodell trennt Stammdaten, Messdaten, Referenzlogik, Zielbereiche, Pl
 Regel:
 - `geschlecht_code` soll nicht als Freitext geführt werden, sondern als feste kleine Auswahlliste oder klar definierte Referenzkategorie.
 - Für den aktuellen Projektstand ist eine schlanke Codierung wie `w`, `m`, `d` plus leer beziehungsweise unbekannt als praktikable V1-Lösung ausreichend.
+- Das Geburtsdatum bleibt freiwillig. Ohne Geburtsdatum kann die Anwendung die Person speichern und nutzen; altersabhängige Referenz- oder Zielbereiche werden dann nicht gezielt ausgewählt.
 - `blutgruppe` und `rhesusfaktor` sind ebenfalls keine Freitexte, sondern feste optionale Personen-Stammdatenwerte. V1 nutzt für die Blutgruppe `0`, `A`, `B`, `AB` und für den Rhesusfaktor `positiv`, `negativ`.
 
 ### BasisdatenTyp

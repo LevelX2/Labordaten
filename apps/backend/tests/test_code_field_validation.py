@@ -32,6 +32,12 @@ def test_person_create_accepts_fixed_gender_codes_and_empty_value() -> None:
     )
 
 
+def test_person_create_accepts_missing_birthdate() -> None:
+    person = PersonCreate(anzeigename="Ludwig", geschlecht_code="m")
+
+    assert person.geburtsdatum is None
+
+
 def test_person_create_rejects_free_text_gender() -> None:
     with pytest.raises(ValidationError):
         PersonCreate(

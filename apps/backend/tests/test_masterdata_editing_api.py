@@ -85,6 +85,24 @@ def test_person_master_data_can_be_updated(monkeypatch, tmp_path: Path) -> None:
         assert updated["hinweise_allgemein"] == "Nüchternwerte bevorzugen"
 
 
+def test_person_can_be_created_without_birthdate(monkeypatch, tmp_path: Path) -> None:
+    client = _make_client(monkeypatch, tmp_path)
+    with client:
+        create_response = client.post(
+            "/api/personen",
+            json={
+                "anzeigename": "Ludwig",
+                "vollname": "Ludwig Ohne Datum",
+                "geschlecht_code": "m",
+            },
+        )
+
+        assert create_response.status_code == 201
+        created = create_response.json()
+        assert created["anzeigename"] == "Ludwig"
+        assert created["geburtsdatum"] is None
+
+
 def test_labor_master_data_can_be_updated(monkeypatch, tmp_path: Path) -> None:
     client = _make_client(monkeypatch, tmp_path)
     with client:

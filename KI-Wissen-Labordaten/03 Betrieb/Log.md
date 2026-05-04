@@ -11,6 +11,26 @@
 
 ## 2026-05
 
+### [2026-05-05] update | Geburtsdatum in Personenstammdaten optional gemacht
+- Anlass oder Quelle: Nutzerhinweis, dass das Geburtsdatum beim Anlegen von Personen nicht zwingend sein soll, auch wenn altersabhängige Auswertungen dann fachlich eingeschränkt sind.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../02 Wissen/Begriffe und Konzepte/V1 Ziel-Datenmodell.md
+  - ../02 Wissen/Begriffe und Konzepte/V1 Technisches Schema.md
+  - ../02 Wissen/Begriffe und Konzepte/Ist-Stand Stammdaten-Bearbeitbarkeit.md
+  - ../../apps/backend/src/labordaten_backend/models/person.py
+  - ../../apps/backend/src/labordaten_backend/modules/personen/schemas.py
+  - ../../apps/backend/src/labordaten_backend/modules/auswertung/service.py
+  - ../../apps/backend/migrations/versions/20260505_0008_optional_person_birthdate.py
+  - ../../apps/frontend/src/features/personen/PersonenPage.tsx
+  - ../../apps/frontend/src/shared/api/payloadBuilders.ts
+  - ../../apps/frontend/src/shared/types/api.ts
+- Kern der inhaltlichen Anpassung:
+  - Personen können ohne Geburtsdatum angelegt und bearbeitet werden.
+  - Die Datenbankmigration macht `person.geburtsdatum` nullable.
+  - Die Auswertung wählt ohne Geburtsdatum keine altersabhängigen Referenz- oder Zielbereichsregeln gezielt aus, nutzt aber weiterhin allgemeine Regeln.
+
 ### [2026-05-05] ui | Erststart-Hilfetext zu Grunddaten präzisiert
 - Anlass oder Quelle: Nutzerhinweis, dass der Hilfetext nach dem Laden der Startdaten fachlich zu ungenau von Standardparametern, Einheitenerkennung und vielen manuellen Anlagen sprach.
 - Neu angelegte Seiten:

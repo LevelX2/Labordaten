@@ -1,7 +1,7 @@
 ---
 typ: technisches-schema
 status: entwurf
-letzte_aktualisierung: 2026-04-27
+letzte_aktualisierung: 2026-05-05
 quellen:
   - V1 Ziel-Datenmodell.md
   - Planung Erstarchitektur und Umsetzungsphasen.md
@@ -74,7 +74,7 @@ Das technische V1-Schema setzt das fachliche Ziel-Datenmodell in eine relational
 - `id` PK
 - `anzeigename` NOT NULL
 - `vollname`
-- `geburtsdatum` NOT NULL
+- `geburtsdatum`
 - `geschlecht_code`
 - `blutgruppe`
 - `rhesusfaktor`

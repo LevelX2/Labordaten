@@ -92,7 +92,7 @@ export function buildPersonCreatePayload(input: PersonPayloadInput): PersonCreat
   return {
     anzeigename: input.anzeigename,
     vollname: emptyToNull(input.vollname),
-    geburtsdatum: input.geburtsdatum,
+    geburtsdatum: emptyToNull(input.geburtsdatum),
     geschlecht_code: emptyToOptionalGeschlechtCode(input.geschlecht_code),
     blutgruppe: emptyToOptionalBlutgruppeCode(input.blutgruppe),
     rhesusfaktor: emptyToOptionalRhesusfaktorCode(input.rhesusfaktor),

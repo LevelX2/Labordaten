@@ -244,6 +244,8 @@ def _matches_context(
         return False
     if current_date is None:
         return True
+    if person.geburtsdatum is None:
+        return alter_min_tage is None and alter_max_tage is None
 
     age_in_days = (current_date - person.geburtsdatum).days
     if alter_min_tage is not None and age_in_days < alter_min_tage:

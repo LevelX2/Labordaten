@@ -15,7 +15,7 @@ from labordaten_backend.core.field_options import (
 class PersonCreate(BaseModel):
     anzeigename: str
     vollname: str | None = None
-    geburtsdatum: date
+    geburtsdatum: date | None = None
     geschlecht_code: str | None = None
     blutgruppe: str | None = None
     rhesusfaktor: str | None = None
@@ -40,7 +40,7 @@ class PersonCreate(BaseModel):
 class PersonUpdate(BaseModel):
     anzeigename: str
     vollname: str | None = None
-    geburtsdatum: date
+    geburtsdatum: date | None = None
     geschlecht_code: str | None = None
     blutgruppe: str | None = None
     rhesusfaktor: str | None = None
@@ -76,7 +76,7 @@ class PersonRead(BaseModel):
     id: str
     anzeigename: str
     vollname: str | None = None
-    geburtsdatum: date
+    geburtsdatum: date | None = None
     geschlecht_code: str | None = None
     blutgruppe: str | None = None
     rhesusfaktor: str | None = None

@@ -25,7 +25,7 @@ export type ZielbereichQuelleTyp = "experte" | "buch" | "leitlinie" | "labor" | 
 export type PersonCreatePayload = {
   anzeigename: string;
   vollname?: string | null;
-  geburtsdatum: string;
+  geburtsdatum?: string | null;
   geschlecht_code?: GeschlechtCode | null;
   blutgruppe?: BlutgruppeCode | null;
   rhesusfaktor?: RhesusfaktorCode | null;
@@ -183,7 +183,7 @@ export type Person = {
   id: string;
   anzeigename: string;
   vollname?: string | null;
-  geburtsdatum: string;
+  geburtsdatum?: string | null;
   geschlecht_code?: GeschlechtCode | null;
   blutgruppe?: BlutgruppeCode | null;
   rhesusfaktor?: RhesusfaktorCode | null;

@@ -31,6 +31,14 @@ def _make_session(tmp_path: Path) -> Session:
     return Session(engine)
 
 
+def test_context_matching_without_birthdate_skips_age_specific_ranges() -> None:
+    person = Person(anzeigename="Ohne Geburtsdatum", geschlecht_code="m")
+
+    assert auswertung_service._matches_context(person, date(2026, 5, 5), "m", None, None) is True
+    assert auswertung_service._matches_context(person, date(2026, 5, 5), "m", 365, None) is False
+    assert auswertung_service._matches_context(person, date(2026, 5, 5), "m", None, 36500) is False
+
+
 def test_report_marks_strict_lower_reference_boundaries_as_outside(tmp_path: Path) -> None:
     with _make_session(tmp_path) as db:
         person = Person(anzeigename="Ludwig", geburtsdatum=date(1964, 1, 12), geschlecht_code="m")

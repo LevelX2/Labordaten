@@ -28,6 +28,18 @@ describe("payloadBuilders", () => {
     });
   });
 
+  it("maps an empty person birthdate to null", () => {
+    expect(
+      buildPersonCreatePayload({
+        anzeigename: "Ludwig",
+        vollname: "",
+        geburtsdatum: "",
+        geschlecht_code: "",
+        hinweise_allgemein: "",
+      }).geburtsdatum,
+    ).toBeNull();
+  });
+
   it("keeps fixed blood group and rhesus codes in person payloads", () => {
     expect(
       buildPersonCreatePayload({

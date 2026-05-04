@@ -287,7 +287,7 @@ export function PersonenPage() {
       setForm({
         anzeigename: selectedPerson.anzeigename,
         vollname: selectedPerson.vollname ?? "",
-        geburtsdatum: selectedPerson.geburtsdatum,
+        geburtsdatum: selectedPerson.geburtsdatum ?? "",
         geschlecht_code: selectedPerson.geschlecht_code ?? "",
         blutgruppe: selectedPerson.blutgruppe ?? "",
         rhesusfaktor: selectedPerson.rhesusfaktor ?? "",
@@ -358,9 +358,8 @@ export function PersonenPage() {
             </label>
 
             <label className="field">
-              <span>Geburtsdatum</span>
+              <span>Geburtsdatum (optional)</span>
               <input
-                required
                 type="date"
                 value={form.geburtsdatum}
                 onChange={(event) => setForm((current) => ({ ...current, geburtsdatum: event.target.value }))}
