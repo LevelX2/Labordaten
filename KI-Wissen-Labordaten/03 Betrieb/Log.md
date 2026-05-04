@@ -11,6 +11,15 @@
 
 ## 2026-05
 
+### [2026-05-04] release | Hinweis zu später nachladbaren Zielwertpaketen ergänzt
+- Anlass oder Quelle: Nutzerhinweis, dass auf der Startdaten-Auswahlseite klar sein soll, dass optionale Datenpakete auch später in der Anwendung nachgeladen werden können.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../packaging/inno/Labordaten.iss
+- Kern der inhaltlichen Anpassung:
+  - Die Startdaten-Auswahl im Installer weist nun darauf hin, dass optionale Zielwertpakete später auch in der Anwendung nachgeladen werden können.
+
 ### [2026-05-04] release | Kleines Setup-Wizard-Bild als Diagrammzeichen überarbeitet
 - Anlass oder Quelle: Nutzerhinweis, dass der goldene Bogen mit Kreis im kleinen Installer-Bild ohne Diagrammkontext missverständlich wirkt.
 - Neu angelegte Seiten:

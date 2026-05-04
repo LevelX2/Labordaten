@@ -87,7 +87,8 @@ begin
     wpSelectTasks,
     'Startdaten auswählen',
     'Welche Daten soll Labordaten beim ersten Start vorbereiten?',
-    'Die eigentliche Datenanlage erfolgt beim ersten Start in der Anwendung. Bestehende Personen, Messwerte, Befunde und Dokumente werden dabei nicht überschrieben.',
+    'Die eigentliche Datenanlage erfolgt beim ersten Start in der Anwendung. Bestehende Personen, Messwerte, Befunde und Dokumente werden dabei nicht überschrieben. ' +
+    'Optionale Zielwertpakete kannst Du später auch in der Anwendung nachladen.',
     False,
     False
   );
