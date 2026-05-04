@@ -1,6 +1,7 @@
 param(
     [string]$Version,
     [switch]$BuildInstaller,
+    [switch]$BuildPortableZip,
     [switch]$SkipFrontendBuild
 )
 
@@ -144,12 +145,14 @@ Copy-Item -LiteralPath (Join-Path $repoRoot "README.md") -Destination (Join-Path
 Copy-Item -LiteralPath (Join-Path $repoRoot "LICENSE") -Destination (Join-Path $appReleaseDir "LICENSE")
 
 $zipPath = Join-Path $releaseRoot "Labordaten-$Version-portable.zip"
-Compress-Archive -Path (Join-Path $appReleaseDir "*") -DestinationPath $zipPath -Force
+if ($BuildPortableZip) {
+    Compress-Archive -Path (Join-Path $appReleaseDir "*") -DestinationPath $zipPath -Force
+}
 
 if ($BuildInstaller) {
     $iscc = Resolve-InnoCompiler
     if (-not $iscc) {
-        Write-Warning "Inno Setup Compiler (ISCC.exe) wurde nicht gefunden. Portable ZIP wurde trotzdem gebaut."
+        Write-Warning "Inno Setup Compiler (ISCC.exe) wurde nicht gefunden. Es wurde kein Installer gebaut."
     } elseif (-not (Test-Path -LiteralPath $innoScript)) {
         Write-Warning "Inno-Setup-Skript wurde nicht gefunden: $innoScript"
     } else {
@@ -159,7 +162,9 @@ if ($BuildInstaller) {
 }
 
 Write-Host "Release-Ausgabe: $appReleaseDir"
-Write-Host "Portable ZIP:    $zipPath"
+if ($BuildPortableZip) {
+    Write-Host "Portable ZIP:    $zipPath"
+}
 if ($BuildInstaller -and (Test-Path -LiteralPath (Join-Path $installerOutputDir "Labordaten-Setup-$Version.exe"))) {
     Write-Host "Installer-Ausgabe: $installerOutputDir"
 }

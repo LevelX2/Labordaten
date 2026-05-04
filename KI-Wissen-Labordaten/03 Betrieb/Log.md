@@ -11,6 +11,17 @@
 
 ## 2026-05
 
+### [2026-05-04] release | Portable ZIP im Iterationsbuild deaktiviert
+- Anlass oder Quelle: Nutzerentscheidung, während der aktuellen Installer-Iterationen auf die portable ZIP zu verzichten, da sie für den Testablauf nicht genutzt wird.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../scripts/build-release.ps1
+- Kern der inhaltlichen Anpassung:
+  - Der Release-Build erzeugt die portable ZIP nicht mehr standardmäßig.
+  - Eine portable ZIP kann bei Bedarf weiterhin explizit mit `-BuildPortableZip` gebaut werden.
+  - Für den aktuellen Testablauf bleibt der Installer das relevante Artefakt.
+
 ### [2026-05-04] release | Installer-Startdaten und Erststart-Verarbeitung ergänzt
 - Anlass oder Quelle: Nutzerentscheidung, die Grunddaten- und Zielwertpaket-Auswahl bereits im Installer anzubieten, die eigentliche Datenanlage aber updatefähig und sicher beim ersten App-Start auszuführen.
 - Neu angelegte Seiten:
