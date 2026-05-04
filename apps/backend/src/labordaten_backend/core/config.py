@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     database_url: str = "sqlite:///./labordaten.db"
     frontend_origin: str = "http://localhost:5173"
+    frontend_static_dir: str | None = None
     documents_dir: str = "./documents"
     runtime_settings_file: str = "./labordaten.runtime.json"
     knowledge_dir: str = "../../Labordaten-Wissen"

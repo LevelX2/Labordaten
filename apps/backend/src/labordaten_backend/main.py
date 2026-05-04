@@ -1,8 +1,10 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from labordaten_backend.api.router import api_router
 from labordaten_backend.core.config import get_settings
@@ -58,7 +60,31 @@ def create_app() -> FastAPI:
         return response
 
     app.include_router(api_router, prefix="/api")
+    _mount_frontend(app, settings.frontend_static_dir)
     return app
+
+
+def _mount_frontend(app: FastAPI, frontend_static_dir: str | None) -> None:
+    if not frontend_static_dir:
+        return
+
+    static_root = Path(frontend_static_dir).expanduser().resolve()
+    index_file = static_root / "index.html"
+    if not index_file.exists():
+        return
+
+    assets_dir = static_root / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="frontend-assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_frontend(full_path: str) -> FileResponse:
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="API-Endpunkt nicht gefunden.")
+        requested = (static_root / full_path).resolve()
+        if requested.is_file() and requested.is_relative_to(static_root):
+            return FileResponse(requested)
+        return FileResponse(index_file)
 
 
 app = create_app()

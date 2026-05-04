@@ -176,6 +176,22 @@ cd .\apps\frontend
 npm run build
 ```
 
+## Auslieferung bauen
+
+Ein erster Windows-Release-Prototyp kann als portable Ausgabe gebaut werden:
+
+```pwsh
+pwsh -File .\scripts\build-release.ps1
+```
+
+Das erzeugt `build/release/Labordaten/` und `build/release/Labordaten-<Version>-portable.zip`. Die enthaltene `Labordaten.exe` startet das Backend im Produktionsmodus, führt Datenbankmigrationen aus, nutzt einen stabilen Datenordner unter `%LOCALAPPDATA%\Labordaten` und öffnet die Anwendung im Browser.
+
+Wenn Inno Setup mit `ISCC.exe` installiert ist, kann zusätzlich ein Windows-Installer gebaut werden:
+
+```pwsh
+pwsh -File .\scripts\build-release.ps1 -BuildInstaller
+```
+
 ## Betriebsnotizen
 
 - Die Datenbank ist lokal und standardmäßig SQLite-basiert.
