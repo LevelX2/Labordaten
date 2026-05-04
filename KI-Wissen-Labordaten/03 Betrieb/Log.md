@@ -11,6 +11,56 @@
 
 ## 2026-05
 
+### [2026-05-02] update | Berichte-Navigation von Filter und Einstellungen getrennt
+- Anlass oder Quelle: Nutzerhinweise, dass das lokale linke Berichte-Panel ganz entfallen soll, `Vorlagen`, `Filter bearbeiten` und `Einstellungen` oben stehen sollen und Vorschau/PDF-Aktionen in den Vorschau-Bereich gehören.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../02 Wissen/Begriffe und Konzepte/V1 Screenplan und Kernworkflows.md
+  - ../../apps/frontend/src/features/berichte/BerichtePage.tsx
+- Kern der inhaltlichen Anpassung:
+  - Die Berichte-Seite nutzt kein eigenes linkes Unterpanel mehr.
+  - Die obere Aktionsleiste enthält nun nur noch `Vorlagen`, `Filter bearbeiten` und `Einstellungen`.
+  - `Vorschau laden` und der passende PDF-Export stehen als breite Aktionsknöpfe im Vorschau-Bereich.
+  - Wenn die Laboranzeige im Arztbericht abgewählt ist, entfällt die Labor-Spalte in Vorschau und PDF vollständig statt Platzhalterstriche zu zeigen.
+  - Berichtstyp, Berichtssortierung, Auffälligkeiten-Voranstellung und Arztbericht-Inhalte liegen im neuen Einstellungsbereich und nicht mehr im Filterformular.
+  - Eine bereits geladene Vorschau wird in der Oberfläche nach der aktuell aktiven Berichtssortierung und Auffälligkeiten-Einstellung angezeigt.
+  - Frontend-Build und gezielter Berichtssortierungstest liefen erfolgreich durch.
+
+### [2026-05-02] update | Berichtssortierung und optionale Auffälligkeiten-Voranstellung ergänzt
+- Anlass oder Quelle: Nutzerentscheidung, Berichte zunächst mit zwei auswählbaren Sortiermodi und optionaler Voranstellung referenzauffälliger Werte aufzubauen.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../02 Wissen/Begriffe und Konzepte/V1 Screenplan und Kernworkflows.md
+  - ../../apps/backend/src/labordaten_backend/modules/berichte/schemas.py
+  - ../../apps/backend/src/labordaten_backend/modules/berichte/service.py
+  - ../../apps/backend/src/labordaten_backend/modules/vorlagen/schemas.py
+  - ../../apps/backend/tests/test_report_sorting.py
+  - ../../apps/frontend/src/features/berichte/BerichtePage.tsx
+  - ../../apps/frontend/src/shared/types/api.ts
+- Kern der inhaltlichen Anpassung:
+  - Arztbericht und Verlaufsbericht akzeptieren nun die Sortiermodi `Person alphabetisch, Entnahmezeitpunkt` und `Person, primäre Berichtsgruppe, Gruppensortierung, Entnahmezeitpunkt`.
+  - Referenzauffällige Werte können per Option vor die übrigen Berichtswerte sortiert werden.
+  - Die Berichtsvorschau zeigt die primäre Berichtsgruppe und speichert Sortierung sowie Auffälligkeiten-Option in Berichtsvorlagen.
+  - Solange keine eigene primäre Berichtsgruppe modelliert ist, wird die erste aktive passende Parametergruppe verwendet; ein aktiver Gruppenfilter hat dabei Vorrang.
+  - Gezielte Berichtstests und der Frontend-Build liefen erfolgreich durch.
+
+### [2026-05-02] update | Fokusansicht für Auswertungsdiagramme umgesetzt
+- Anlass oder Quelle: Nutzerentscheidung, Auswertungsdiagramme per Vergrößerungsbutton aus dem normalen Seitenkontext heraus fokussiert betrachten zu können.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../02 Wissen/Begriffe und Konzepte/V1 Screenplan und Kernworkflows.md
+  - ../../apps/frontend/src/features/auswertung/AuswertungChart.tsx
+  - ../../apps/frontend/src/features/auswertung/AuswertungResultCard.tsx
+  - ../../apps/frontend/src/styles.css
+- Kern der inhaltlichen Anpassung:
+  - Jede Auswertungs-Ergebniskarte bietet nun einen Button `Vergrößern`, der das jeweilige Diagramm in einer bildschirmfüllenden Fokusansicht öffnet.
+  - Die Fokusansicht übernimmt Parameterkontext, Zeitraum, Kennzahlen, Referenz- und Zielbereichsdarstellung sowie die interaktive Legende und kann über `Zurück` oder Escape geschlossen werden.
+  - Die gemeinsame Diagrammkomponente akzeptiert dafür eine variable Höhe, während die normale Auswertungskarte unverändert kompakt bleibt.
+  - Frontend-Build und die Auswertungstests liefen erfolgreich durch.
+
 ### [2026-05-01] update | Führende Quelle für Import-Skill verankert
 - Anlass oder Quelle: Nachprüfung des offenen Qualitätsprüfungs-Hinweises zum lokal installierten Skill `labordaten-import-vorbereitung`.
 - Neu angelegte Seiten:

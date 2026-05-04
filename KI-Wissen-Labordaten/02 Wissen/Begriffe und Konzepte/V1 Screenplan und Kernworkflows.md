@@ -1,7 +1,7 @@
 ---
 typ: screenplan
 status: entwurf
-letzte_aktualisierung: 2026-04-27
+letzte_aktualisierung: 2026-05-02
 quellen:
   - V1 Ziel-Datenmodell.md
   - V1 Technisches Schema.md
@@ -21,6 +21,11 @@ quellen:
   - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckfrage Gruppen Bearbeitung.md
   - ../../../apps/frontend/src/app/layout/AppLayout.tsx
   - ../../../apps/frontend/src/features/auswertung/AuswertungPage.tsx
+  - ../../../apps/frontend/src/features/auswertung/AuswertungResultCard.tsx
+  - ../../../apps/frontend/src/features/auswertung/AuswertungChart.tsx
+  - ../../../apps/frontend/src/features/berichte/BerichtePage.tsx
+  - ../../../apps/backend/src/labordaten_backend/modules/berichte/service.py
+  - ../../../apps/backend/src/labordaten_backend/modules/berichte/schemas.py
 tags:
   - screenplan
   - ui
@@ -261,6 +266,7 @@ Auf breiten Bildschirmen erscheinen diese Gruppen als Abschnitte in der linken N
 - Mehrparameter-Verlauf
 - Tabellenübersicht mit Kennzahlen
 - Qualitative Ereignisliste unter oder neben dem Diagramm
+- Auswertungsdiagramme sollen aus dem normalen Seitenkontext heraus in eine Fokusansicht vergrößerbar sein. Die Fokusansicht zeigt das Diagramm mit den wichtigsten Kontextdaten bildschirmfüllend und lässt sich wieder in den normalen Auswertungskontext zurückführen.
 - In Mehrpersonen-Diagrammen müssen Messwerte, Laborreferenzen und effektive Zielbereiche personengebunden dargestellt werden. Eine gemeinsame Referenz- oder Zielbereichslinie pro Parameter ist fachlich irreführend, wenn Referenzen nach Person, Geschlecht, Alter, Labor oder konkretem Befund abweichen.
 - Die Legende soll nicht nur Messwertlinien, sondern auch personengebundene Laborreferenz- und Zielbereichslinien separat ein- und ausschaltbar machen.
 
@@ -279,6 +285,12 @@ Auf breiten Bildschirmen erscheinen diese Gruppen als Abschnitte in der linken N
 - später erweiterbar
 - Berichtsfilter und berichtsspezifische Ausgabeoptionen sollen über dieselbe Vorlagenlogik wie die Auswertung speicherbar und wiederladbar sein.
 - Die gemeinsame Vorlagenlogik speichert den Berichtstyp mit, damit Arztbericht- und Verlaufsbericht-Vorlagen nicht vermischt werden.
+- In der Berichte-Oberfläche soll es kein eigenes linkes Unterpanel für Berichtsauswahl oder Berichtsbereiche geben. Die Arbeitsbereiche `Vorlagen`, `Filter bearbeiten` und `Einstellungen` werden stattdessen in der oberen Aktionsleiste angeboten; `Vorschau laden` und der passende PDF-Export gehören als breite Aktionsknöpfe in den Vorschau-Bereich.
+- Berichtstyp, Sortierung, optionale Voranstellung referenzauffälliger Werte und berichtsspezifische Inhaltsoptionen sind Einstellungen und kein Bestandteil des Filterbereichs.
+- Arztbericht und Verlaufsbericht sollen eine gemeinsame Sortieroption anbieten. V1 unterstützt zunächst `Person alphabetisch, Entnahmezeitpunkt` sowie `Person, primäre Berichtsgruppe, Gruppensortierung, Entnahmezeitpunkt`.
+- Die sichtbare Vorschau und der erzeugte Bericht sollen dieselbe aktive Berichtssortierung verwenden. Eine bereits geladene Vorschau wird deshalb in der Oberfläche entsprechend der aktuellen Sortier- und Auffälligkeiten-Einstellung angezeigt.
+- Referenzauffällige Werte können optional vor die übrigen Berichtswerte sortiert werden. Diese Voranstellung ist eine Darstellungsoption und ersetzt keine medizinische Bewertung.
+- Solange es kein eigenes Feld für eine primäre Berichtsgruppe gibt, wird für die Sortierung die erste aktive passende Parametergruppe verwendet. Bei aktivem Gruppenfilter haben ausgewählte Gruppen Vorrang; innerhalb der Gruppe zählt die gepflegte `GruppenParameter.sortierung`.
 
 ### Arztbericht Liste
 - Filter: Person, Parametergruppe, Parameter, Zeitraum, Labor
@@ -293,6 +305,7 @@ Auf breiten Bildschirmen erscheinen diese Gruppen als Abschnitte in der linken N
   - Befundbemerkung
   - Messwertbemerkung
 - Felder einzeln abwählbar
+- Abgewählte optionale Spalten entfallen in Vorschau und PDF vollständig; `Labor` wird dann nicht als leere Spalte mit Platzhalter angezeigt.
 - Vorschau enthält zusätzlich Kennzahlen wie Anzahl enthaltener Werte und Anzahl referenzauffälliger Werte
 - Vorschau enthält eine kurze Charakterisierung des Berichtsinhalts, bevorzugt aus Parametergruppen oder Schwerpunkten abgeleitet
 - Ausgabe als sachlicher PDF-Bericht
