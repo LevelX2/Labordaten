@@ -66,7 +66,7 @@ export function InitialdatenStartupDialog() {
           <div>
             <span className="eyebrow">{step === "grunddaten" ? "Erster Start" : "Nächster Schritt"}</span>
             <h3 id="initialdaten-dialog-title">
-              {step === "grunddaten" ? "Standardparameter für diese Installation laden" : "Laborbericht importieren"}
+              {step === "grunddaten" ? "Grunddaten für diese Installation laden" : "Laborbericht importieren"}
             </h3>
           </div>
           <button type="button" className="dialog-panel__close" onClick={closeDialog}>
@@ -100,8 +100,10 @@ export function InitialdatenStartupDialog() {
             </ol>
 
             <p className="form-hint">
-              Die Standardparameter helfen dabei, Berichtswerte automatisch zuzuordnen, Einheiten zu erkennen und
-              bekannte Umrechnungen vorzubereiten. Ohne diese Grunddaten müsstest Du vieles manuell anlegen.
+              Die mitgelieferten Grunddaten enthalten gängige Laborparameter, Parametergruppen, Aliase und vor allem
+              bekannte Umrechnungsregeln. Dadurch kann Labordaten Laborwerte aus unterschiedlichen Berichten häufiger
+              demselben Parameter zuordnen und vorhandene Umrechnungen direkt anwenden. Ohne diesen Grundbestand
+              müsstest Du vor allem Umrechnungen und einzelne Zuordnungen später manuell ergänzen.
             </p>
 
             <div className="form-actions initialdaten-panel__actions">

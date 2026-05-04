@@ -58,7 +58,7 @@ export function InitialdatenPanel({ mode = "settings", onApplied, onSkip }: Init
   const status = statusQuery.data;
   const isStartup = mode === "startup";
   const canApply = Boolean(status?.snapshot_verfuegbar);
-  const title = isStartup ? "Mitgelieferte Standardparameter laden" : "Mitgelieferte Messstammdaten";
+  const title = isStartup ? "Mitgelieferte Grunddaten laden" : "Mitgelieferte Messstammdaten";
 
   return (
     <div className={isStartup ? "initialdaten-panel initialdaten-panel--startup" : "initialdaten-panel"}>
@@ -75,9 +75,9 @@ export function InitialdatenPanel({ mode = "settings", onApplied, onSkip }: Init
             <details className="initialdaten-panel__details">
               <summary>Warum wird das empfohlen?</summary>
               <p>
-                Ohne diesen Grundbestand müsstest Du Parameter, Einheiten und Umrechnungen einzeln manuell anlegen.
-                Das ist für den schnellen Start unpraktisch und würde den Import von Laborberichten deutlich
-                erschweren.
+                Der Grundbestand bringt vor allem gängige Parameter, Aliase und Umrechnungsregeln mit. Das ist für den
+                schnellen Start praktisch und macht spätere Laborbericht-Importe stabiler, ohne Personen, Befunde oder
+                Messwerte vorzugeben.
               </p>
             </details>
           ) : null}
@@ -98,7 +98,7 @@ export function InitialdatenPanel({ mode = "settings", onApplied, onSkip }: Init
               <strong>{status.snapshot_verfuegbar ? "Ja" : "Nein"}</strong>
             </div>
             <div className="detail-grid__item">
-              <span>Standardparameter</span>
+              <span>Parameter</span>
               <strong>{(status.tabellen.laborparameter ?? 0) > 0 ? "Vorhanden" : "Fehlen"}</strong>
             </div>
             <div className="detail-grid__item">
@@ -127,7 +127,7 @@ export function InitialdatenPanel({ mode = "settings", onApplied, onSkip }: Init
 
       <div className="form-actions initialdaten-panel__actions">
         <button type="button" disabled={!canApply || applyMutation.isPending} onClick={() => applyMutation.mutate(false)}>
-          {applyMutation.isPending ? "Lädt..." : isStartup ? "Standardparameter jetzt laden" : "Messstammdaten laden"}
+          {applyMutation.isPending ? "Lädt..." : isStartup ? "Grunddaten jetzt laden" : "Messstammdaten laden"}
         </button>
         {!isStartup && status?.stammdaten_vorhanden ? (
           <button

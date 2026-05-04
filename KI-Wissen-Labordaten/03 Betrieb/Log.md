@@ -11,6 +11,21 @@
 
 ## 2026-05
 
+### [2026-05-05] ui | Erststart-Hilfetext zu Grunddaten präzisiert
+- Anlass oder Quelle: Nutzerhinweis, dass der Hilfetext nach dem Laden der Startdaten fachlich zu ungenau von Standardparametern, Einheitenerkennung und vielen manuellen Anlagen sprach.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../02 Wissen/Begriffe und Konzepte/Ist-Stand Initialdaten und Stammdaten-Snapshot.md
+  - ../../apps/frontend/src/shared/components/InitialdatenPanel.tsx
+  - ../../apps/frontend/src/shared/components/InitialdatenStartupDialog.tsx
+  - ../../packaging/inno/Labordaten.iss
+- Kern der inhaltlichen Anpassung:
+  - Der Erststart spricht nun von mitgelieferten Grunddaten statt nur von Standardparametern.
+  - Der Hilfetext benennt Laborparameter, Parametergruppen, Aliase und vor allem Umrechnungsregeln als Nutzen.
+  - Die Formulierung zu automatisch erkannten Einheiten wurde entfernt, weil die Einheitenerkennung primär im Import und nicht durch den geladenen Grundbestand entsteht.
+  - Die Installer-Auswahl spricht nun ebenfalls vom Grunddatenpaket und benennt Laborparameter, Gruppen, Aliase und Umrechnungsregeln.
+
 ### [2026-05-04] release | Hinweis zu später nachladbaren Zielwertpaketen ergänzt
 - Anlass oder Quelle: Nutzerhinweis, dass auf der Startdaten-Auswahlseite klar sein soll, dass optionale Datenpakete auch später in der Anwendung nachgeladen werden können.
 - Neu angelegte Seiten:

@@ -94,9 +94,9 @@ begin
   );
 
   if ExistingDatabase then begin
-    StartdatenPage.Add('Fehlende Grunddaten ergänzen (Standardparameter, Einheiten, Umrechnungen und Gruppen)');
+    StartdatenPage.Add('Fehlendes Grunddatenpaket ergänzen (Laborparameter, Gruppen, Aliase und Umrechnungsregeln)');
   end else begin
-    StartdatenPage.Add('Empfohlen: Grunddaten laden (Standardparameter, Einheiten, Umrechnungen und Gruppen)');
+    StartdatenPage.Add('Empfohlen: Grunddatenpaket laden (Laborparameter, Gruppen, Aliase und Umrechnungsregeln)');
   end;
   StartdatenPage.Add('Optional: KSG-Optimalbereiche aus Nährstoff- und Hormontherapie laden');
   StartdatenPage.Add('Optional: Präventionswerte Lithium laden');
