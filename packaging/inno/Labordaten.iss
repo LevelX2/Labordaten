@@ -63,6 +63,7 @@ Filename: "{app}\Labordaten.exe"; Description: "Labordaten jetzt starten"; Flags
 var
   StartdatenPage: TInputOptionWizardPage;
   ExistingDatabase: Boolean;
+  DeleteUserDataOnUninstall: Boolean;
 
 function LabordatenDataDir(): String;
 begin
@@ -87,7 +88,7 @@ begin
     'Startdaten auswählen',
     'Welche Daten soll Labordaten beim ersten Start vorbereiten?',
     'Die eigentliche Datenanlage erfolgt beim ersten Start in der Anwendung. Bestehende Personen, Messwerte, Befunde und Dokumente werden dabei nicht überschrieben.',
-    True,
+    False,
     False
   );
 
@@ -100,7 +101,7 @@ begin
   StartdatenPage.Add('Optional: Präventionswerte Lithium laden');
   StartdatenPage.Add('Nach dem ersten Start kurze Import-Hilfe anzeigen');
 
-  StartdatenPage.Values[0] := not ExistingDatabase;
+  StartdatenPage.Values[0] := True;
   StartdatenPage.Values[1] := False;
   StartdatenPage.Values[2] := False;
   StartdatenPage.Values[3] := True;
@@ -173,5 +174,50 @@ procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssPostInstall then begin
     WritePendingInstallOptions();
+  end;
+end;
+
+function InitializeUninstall(): Boolean;
+var
+  Answer: Integer;
+  DataDir: String;
+begin
+  Result := True;
+  DeleteUserDataOnUninstall := False;
+  DataDir := LabordatenDataDir();
+
+  if not DirExists(DataDir) then begin
+    Exit;
+  end;
+
+  Answer := MsgBox(
+    'Labordaten speichert Daten getrennt von den Programmdateien.' + #13#10 + #13#10 +
+    'Datenordner:' + #13#10 +
+    DataDir + #13#10 + #13#10 +
+    'Dort können Datenbank, Dokumente, Einstellungen und Backups liegen.' + #13#10 + #13#10 +
+    'Ja: Daten behalten (empfohlen für spätere Neuinstallation oder Updates)' + #13#10 +
+    'Nein: lokalen Datenordner endgültig löschen' + #13#10 +
+    'Abbrechen: Deinstallation abbrechen' + #13#10 + #13#10 +
+    'Möchtest Du die lokalen Labordaten behalten?',
+    mbConfirmation,
+    MB_YESNOCANCEL or MB_DEFBUTTON1
+  );
+
+  if Answer = IDCANCEL then begin
+    Result := False;
+  end else begin
+    DeleteUserDataOnUninstall := Answer = IDNO;
+  end;
+end;
+
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  DataDir: String;
+begin
+  if (CurUninstallStep = usPostUninstall) and DeleteUserDataOnUninstall then begin
+    DataDir := LabordatenDataDir();
+    if DirExists(DataDir) then begin
+      DelTree(DataDir, True, True, True);
+    end;
   end;
 end;

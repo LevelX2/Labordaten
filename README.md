@@ -184,13 +184,17 @@ Ein erster Windows-Release-Prototyp kann als portable Ausgabe gebaut werden:
 pwsh -File .\scripts\build-release.ps1
 ```
 
-Das erzeugt `build/release/Labordaten/` und `build/release/Labordaten-<Version>-portable.zip`. Die enthaltene `Labordaten.exe` startet das Backend im Produktionsmodus, führt Datenbankmigrationen aus, nutzt einen stabilen Datenordner unter `%LOCALAPPDATA%\Labordaten` und öffnet die Anwendung im Browser.
+Das erzeugt `build/release/Labordaten/`. Die enthaltene `Labordaten.exe` startet das Backend im Produktionsmodus, führt Datenbankmigrationen aus, nutzt einen stabilen Datenordner unter `%LOCALAPPDATA%\Labordaten` und öffnet die Anwendung im Browser.
+
+Eine portable ZIP kann bei Bedarf zusätzlich mit `-BuildPortableZip` erzeugt werden.
 
 Wenn Inno Setup mit `ISCC.exe` installiert ist, kann zusätzlich ein Windows-Installer gebaut werden:
 
 ```pwsh
 pwsh -File .\scripts\build-release.ps1 -BuildInstaller
 ```
+
+Der Installer legt Programmdateien getrennt von den lokalen Nutzdaten ab. Bei der Deinstallation fragt Labordaten, ob der Datenordner unter `%LOCALAPPDATA%\Labordaten` mit Datenbank, Dokumenten, Einstellungen und Backups behalten oder bewusst gelöscht werden soll.
 
 ## Betriebsnotizen
 

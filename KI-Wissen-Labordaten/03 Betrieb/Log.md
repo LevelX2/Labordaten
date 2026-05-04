@@ -11,6 +11,20 @@
 
 ## 2026-05
 
+### [2026-05-04] release | Deinstallationsabfrage für lokale Nutzdaten ergänzt
+- Anlass oder Quelle: Nutzerhinweis, dass bei Deinstallation und Neuinstallation klar sein muss, ob die lokale Datenbank und weitere Nutzdaten erhalten bleiben oder gelöscht werden.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../README.md
+  - ../../packaging/inno/Labordaten.iss
+  - ../../packaging/README.md
+- Kern der inhaltlichen Anpassung:
+  - Der Uninstaller fragt bei vorhandenem Datenordner unter `%LOCALAPPDATA%\Labordaten`, ob lokale Labordaten behalten werden sollen.
+  - Die sichere Voreinstellung ist das Behalten der Daten, damit Updates und Neuinstallationen vorhandene Daten nicht versehentlich verlieren.
+  - Erst bei bewusster Auswahl von `Nein` wird der lokale Datenordner mit Datenbank, Dokumenten, Einstellungen und Backups gelöscht.
+  - Die Startdaten-Auswahl im Installer nutzt nun unabhängige Häkchen statt einer exklusiven Optionsgruppe; Grunddaten und Import-Hilfe sind vorausgewählt, optionale Zielwertpakete bleiben abgewählt.
+
 ### [2026-05-04] release | Kleines Setup-Wizard-Icon freigestellt
 - Anlass oder Quelle: Nutzerhinweis, dass das kleine Bild rechts oben im Installer nicht wie ein ausgeschnittener Icon-Kasten wirken soll, sondern als freigestelltes App-Zeichen.
 - Neu angelegte Seiten:
