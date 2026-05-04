@@ -1,7 +1,7 @@
 ---
 typ: architektur
 status: aktiv
-letzte_aktualisierung: 2026-04-27
+letzte_aktualisierung: 2026-05-05
 quellen:
   - ../../../apps/backend/src/labordaten_backend/models/einheit.py
   - ../../../apps/backend/src/labordaten_backend/models/einheit_alias.py
@@ -68,6 +68,7 @@ Zusätzlich kann pro numerischem Laborparameter eine führende Normeinheit festg
 - Vor der Neuanlage einer Einheit wird geprüft, ob bereits eine kanonische Einheit oder ein Alias dazu existiert.
 - Reine Schreibvarianten sollen dadurch nicht als eigene Einheiten enden.
 - Die Alias-Pflege ist Teil der Einheitenverwaltung und erfolgt in der UI im Kontext der ausgewählten kanonischen Einheit, damit keine separate Zieleinheit im Alias-Formular gesucht werden muss.
+- Beim Normalisieren von Einheiten werden reine Fußnoten- oder Tabellenmarker am Ende entfernt, zum Beispiel `µmol/l*`, `µmol/l [1]` oder `µmol/l (1)` zu `µmol/l`. Solche Marker sind kein fachlicher Teil der Einheit und sollen weder neue Einheiten noch fehlende Umrechnungswarnungen auslösen.
 
 ### Parameterbezogene Umrechnungsregeln
 - Umrechnungen werden als eigene Regeln pro `Laborparameter` gepflegt.

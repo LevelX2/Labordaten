@@ -131,3 +131,52 @@ def test_import_does_not_warn_when_original_unit_matches_standard_unit(tmp_path:
 
         assert detail.fehler_anzahl == 0
         assert detail.warnung_anzahl == 0
+
+
+def test_import_does_not_warn_when_unit_has_trailing_footnote_marker(tmp_path: Path) -> None:
+    with _make_session(tmp_path) as db:
+        person = Person(anzeigename="Ludwig", geburtsdatum=date(1964, 1, 12))
+        db.add(person)
+        db.commit()
+        db.refresh(person)
+
+        einheiten_service.create_einheit(db, einheiten_schemas.EinheitCreate(kuerzel="µmol/l"))
+
+        parameter = parameter_service.create_parameter(
+            db,
+            parameter_schemas.ParameterCreate(
+                anzeigename="Homocystein",
+                standard_einheit="µmol/l",
+                wert_typ_standard="numerisch",
+            ),
+        )
+
+        detail = import_service.create_import_entwurf(
+            db,
+            import_schemas.ImportEntwurfCreate(
+                payload_json=json.dumps(
+                    {
+                        "schemaVersion": "1.0",
+                        "quelleTyp": "ki_json",
+                        "befund": {
+                            "personId": person.id,
+                            "entnahmedatum": "2026-05-05",
+                        },
+                        "messwerte": [
+                            {
+                                "parameterId": parameter.id,
+                                "originalParametername": "Homocysteina",
+                                "wertTyp": "numerisch",
+                                "wertRohText": "8,5",
+                                "wertNum": 8.5,
+                                "einheitOriginal": "µmol/l*",
+                                "referenzEinheit": "µmol/l*",
+                            }
+                        ],
+                    }
+                )
+            ),
+        )
+
+        assert detail.fehler_anzahl == 0
+        assert detail.warnung_anzahl == 0

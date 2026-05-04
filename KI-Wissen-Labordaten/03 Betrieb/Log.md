@@ -11,6 +11,24 @@
 
 ## 2026-05
 
+### [2026-05-05] fix | Fußnotenmarker an Import-Einheiten ignorieren
+- Anlass oder Quelle: Nutzerbeobachtung aus einem polnischen Laborbericht, bei dem `µmol/l*` als eigene Einheit übernommen wurde und dadurch eine unnötige Warnung zur fehlenden Umrechnung von `µmol/l*` nach `µmol/l` entstand.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../02 Wissen/Begriffe und Konzepte/Ist-Stand Einheiten, Normeinheiten und Umrechnung.md
+  - ../02 Wissen/Begriffe und Konzepte/Zielbild Dreiwege-Import und KI-Extraktion.md
+  - ../02 Wissen/Begriffe und Konzepte/Ist-Stand Importstrecke und PDF-Grenzen.md
+  - ../../apps/backend/src/labordaten_backend/modules/einheiten/service.py
+  - ../../apps/backend/src/labordaten_backend/modules/importe/service.py
+  - ../../apps/backend/tests/test_units.py
+  - ../../apps/backend/tests/test_import_parameter_normalization_warning.py
+  - ../../apps/backend/tests/test_import_prompt.py
+- Kern der inhaltlichen Anpassung:
+  - Der Import-Prompt weist die KI an, bei Einheiten die Kerneinheit zu verwenden und Fußnotenmarker wie `*` am Einheitenende nicht in `einheitOriginal` oder `referenzEinheit` zu übernehmen.
+  - Die Einheiten-Normalisierung entfernt solche reinen Endmarker defensiv, sodass `µmol/l*`, `µmol/l [1]` und ähnliche Schreibweisen auf die kanonische Einheit `µmol/l` auflösbar sind.
+  - Dadurch sollen reine Fußnotenartefakte keine neuen Einheiten und keine falschen Warnungen zu fehlenden Umrechnungen auslösen.
+
 ### [2026-05-05] fix | Prompt-Regel für fremdsprachige Laborberichte ergänzt
 - Anlass oder Quelle: Nutzerhinweis zu einem polnischen Laborbericht und der daraus folgenden Anforderung, fremdsprachige Berichte für den aktuell deutschsprachigen Importkontext übersetzt zu verarbeiten.
 - Neu angelegte Seiten:

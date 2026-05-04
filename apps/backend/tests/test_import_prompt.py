@@ -120,6 +120,8 @@ def test_import_prompt_contains_file_json_and_context_instructions(tmp_path: Pat
         assert '"Ferritin i.S."' in text
         assert "bereits in den bekannten \"aliase\" eines Parameters steht" in text
         assert 'setze "aliasUebernehmen" nicht oder auf false' in text
+        assert "Bei Einheiten zählt die Kerneinheit" in text
+        assert '"µmol/l*" wird als "µmol/l"' in text
         assert "bereits als Alias eines vorhandenen Parameters enthalten" in text
         assert '"kuerzel": "ng/ml"' in text
         assert '"ng/mL"' in text

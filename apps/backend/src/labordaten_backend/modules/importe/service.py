@@ -1071,6 +1071,7 @@ Parameter und Werte:
 - Bei qualitativen Werten wie "positiv", "negativ", "++", "nicht nachweisbar" nutze "wertTyp": "text" und fülle "wertText".
 - Markiere unleserliche, widersprüchliche oder geschätzte Werte mit "unsicherFlag": true oder "pruefbedarfFlag": true und erkläre den Grund in "kiHinweis".
 - Wenn ein Originalname offensichtlich nur eine neue alternative Schreibweise eines sicher gematchten Parameters ist, darf "aliasUebernehmen": true vorgeschlagen werden. Das gilt nicht für Namen, die im Stammdatenkontext bereits als Alias eines vorhandenen Parameters enthalten sind.
+- Bei Einheiten zählt die Kerneinheit. Entferne Fußnotenmarker, Tabellenmarker oder Verweiszeichen wie "*" am Ende einer Einheit, wenn sie erkennbar nicht Teil der Einheit sind. Beispiel: "µmol/l*" wird als "µmol/l" in "einheitOriginal" und "referenzEinheit" ausgegeben; die Fußnote selbst gehört bei Relevanz in "bemerkungKurz", "bemerkungLang" oder "kiHinweis".
 
 Parameter-Vorschläge:
 - Wenn ein Messwert nicht eindeutig zu einem bekannten Parameter passt, darfst Du ergänzend "parameterVorschlaege" anlegen.

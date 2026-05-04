@@ -1,3 +1,4 @@
+import re
 from collections import defaultdict
 
 from sqlalchemy import func, select
@@ -11,6 +12,8 @@ from labordaten_backend.modules.einheiten.schemas import (
     EinheitCreate,
     EinheitRead,
 )
+
+_TRAILING_UNIT_MARKER_PATTERN = re.compile(r"(?:\s*(?:[*†‡]+|\[\d+\]|\(\d+\)))+$")
 
 
 def list_einheiten(db: Session) -> list[EinheitRead]:
@@ -153,6 +156,7 @@ def normalize_einheit(kuerzel: str | None) -> str | None:
     if kuerzel is None:
         return None
     cleaned = kuerzel.strip()
+    cleaned = _TRAILING_UNIT_MARKER_PATTERN.sub("", cleaned).strip()
     return cleaned or None
 
 

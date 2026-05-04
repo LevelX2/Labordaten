@@ -217,6 +217,15 @@ def test_unit_alias_resolves_to_canonical_unit(tmp_path: Path) -> None:
         assert gespeicherter_alias.einheit_id == einheit.id
 
 
+def test_trailing_unit_footnote_marker_resolves_to_canonical_unit(tmp_path: Path) -> None:
+    with _make_session(tmp_path) as db:
+        einheiten_service.create_einheit(db, einheiten_schemas.EinheitCreate(kuerzel="µmol/l"))
+
+        assert einheiten_service.normalize_einheit("µmol/l*") == "µmol/l"
+        assert einheiten_service.normalize_einheit("µmol/l [1]") == "µmol/l"
+        assert einheiten_service.require_existing_einheit(db, "µmol/l*") == "µmol/l"
+
+
 def test_import_takeover_uses_canonical_unit_when_alias_exists(tmp_path: Path) -> None:
     with _make_session(tmp_path) as db:
         person = Person(
