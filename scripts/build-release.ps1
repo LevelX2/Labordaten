@@ -113,6 +113,7 @@ $pyinstallerArgs = @(
     "--noconfirm",
     "--clean",
     "--onedir",
+    "--noconsole",
     "--name", "Labordaten",
     "--paths", (Join-Path $backendDir "src"),
     "--collect-submodules", "labordaten_backend",

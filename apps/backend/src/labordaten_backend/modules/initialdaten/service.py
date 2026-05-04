@@ -40,6 +40,15 @@ STAMMDATEN_TABELLEN = (
     "parameter_dublettenausschluss",
 )
 
+INITIALDATEN_GRUNDBESTAND_TABELLEN = (
+    "laborparameter",
+    "laborparameter_alias",
+    "parameter_gruppe",
+    "gruppen_parameter",
+    "parameter_klassifikation",
+    "parameter_umrechnungsregel",
+)
+
 NUTZERDATEN_TABELLEN = (
     "person",
     "labor",
@@ -70,12 +79,13 @@ def get_initialdaten_status(db: Session) -> dict[str, Any]:
     counts = {table_name: _table_count(db, table_name) for table_name in STATUS_TABELLEN}
     stammdaten_vorhanden = any(counts[table_name] > 0 for table_name in STAMMDATEN_TABELLEN)
     nutzerdaten_vorhanden = any(counts[table_name] > 0 for table_name in NUTZERDATEN_TABELLEN)
+    grundbestand_vorhanden = all(counts[table_name] > 0 for table_name in INITIALDATEN_GRUNDBESTAND_TABELLEN)
     return {
         "snapshot_verfuegbar": bool(snapshot),
         "snapshot_version": snapshot.get("metadata", {}).get("version") if snapshot else None,
         "stammdaten_vorhanden": stammdaten_vorhanden,
         "nutzerdaten_vorhanden": nutzerdaten_vorhanden,
-        "initialimport_empfohlen": bool(snapshot) and not stammdaten_vorhanden,
+        "initialimport_empfohlen": bool(snapshot) and not grundbestand_vorhanden,
         "tabellen": counts,
     }
 

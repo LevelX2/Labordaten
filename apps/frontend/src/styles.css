@@ -3314,6 +3314,25 @@ a {
   line-height: 1.5;
 }
 
+.initialdaten-panel__details {
+  max-width: 760px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+}
+
+.initialdaten-panel__details summary {
+  cursor: pointer;
+  color: var(--text);
+  font-weight: 800;
+}
+
+.initialdaten-panel__details p {
+  margin-top: 10px;
+}
+
 .initialdaten-panel__status {
   margin: 0;
 }
@@ -3345,6 +3364,40 @@ a {
 
 .initialdaten-panel__actions {
   align-items: center;
+}
+
+.initialdaten-next-step {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  overflow: auto;
+}
+
+.initialdaten-next-step__intro h3,
+.initialdaten-next-step__intro p {
+  margin: 0;
+}
+
+.initialdaten-next-step__intro {
+  display: grid;
+  gap: 8px;
+}
+
+.initialdaten-next-step__intro p,
+.initialdaten-next-step .form-hint {
+  max-width: 760px;
+  line-height: 1.5;
+}
+
+.initialdaten-next-step__steps {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 22px;
+}
+
+.initialdaten-next-step__steps li {
+  padding-left: 4px;
 }
 
 .import-parameter-dialog {

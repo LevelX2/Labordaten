@@ -58,7 +58,7 @@ export function InitialdatenPanel({ mode = "settings", onApplied, onSkip }: Init
   const status = statusQuery.data;
   const isStartup = mode === "startup";
   const canApply = Boolean(status?.snapshot_verfuegbar);
-  const title = isStartup ? "Mitgelieferte Messstammdaten laden" : "Mitgelieferte Messstammdaten";
+  const title = isStartup ? "Mitgelieferte Standardparameter laden" : "Mitgelieferte Messstammdaten";
 
   return (
     <div className={isStartup ? "initialdaten-panel initialdaten-panel--startup" : "initialdaten-panel"}>
@@ -66,10 +66,21 @@ export function InitialdatenPanel({ mode = "settings", onApplied, onSkip }: Init
         <div>
           <h3>{title}</h3>
           <p>
-            Die Vorgaben enthalten Parameter, Parametergruppen, Aliase, Einheiten, Umrechnungsregeln,
-            Zielbereiche, KSG-Einordnungen und Verweise auf Laborwissen-Seiten. Personen, Befunde,
-            Messwerte, Dokumente, Planung und Importhistorie werden nicht übernommen.
+            Diese Grunddaten machen eine neue Installation direkt nutzbar: gängige Laborparameter,
+            Parametergruppen, Aliase, Einheiten, Umrechnungsregeln, Zielbereiche, KSG-Einordnungen und
+            Verweise auf Laborwissen-Seiten. Personen, Befunde, Messwerte, Dokumente, Planung und
+            Importhistorie werden nicht übernommen.
           </p>
+          {isStartup ? (
+            <details className="initialdaten-panel__details">
+              <summary>Warum wird das empfohlen?</summary>
+              <p>
+                Ohne diesen Grundbestand müsstest Du Parameter, Einheiten und Umrechnungen einzeln manuell anlegen.
+                Das ist für den schnellen Start unpraktisch und würde den Import von Laborberichten deutlich
+                erschweren.
+              </p>
+            </details>
+          ) : null}
         </div>
         {status?.snapshot_version ? (
           <span className="parameter-pill parameter-pill--accent">Stand {status.snapshot_version}</span>
@@ -87,12 +98,12 @@ export function InitialdatenPanel({ mode = "settings", onApplied, onSkip }: Init
               <strong>{status.snapshot_verfuegbar ? "Ja" : "Nein"}</strong>
             </div>
             <div className="detail-grid__item">
-              <span>Stammdaten vorhanden</span>
-              <strong>{status.stammdaten_vorhanden ? "Ja" : "Nein"}</strong>
+              <span>Standardparameter</span>
+              <strong>{(status.tabellen.laborparameter ?? 0) > 0 ? "Vorhanden" : "Fehlen"}</strong>
             </div>
             <div className="detail-grid__item">
-              <span>Nutzerdaten vorhanden</span>
-              <strong>{status.nutzerdaten_vorhanden ? "Ja" : "Nein"}</strong>
+              <span>Umrechnungen</span>
+              <strong>{(status.tabellen.parameter_umrechnungsregel ?? 0) > 0 ? "Vorhanden" : "Fehlen"}</strong>
             </div>
             <div className="detail-grid__item">
               <span>Empfehlung</span>
@@ -116,7 +127,7 @@ export function InitialdatenPanel({ mode = "settings", onApplied, onSkip }: Init
 
       <div className="form-actions initialdaten-panel__actions">
         <button type="button" disabled={!canApply || applyMutation.isPending} onClick={() => applyMutation.mutate(false)}>
-          {applyMutation.isPending ? "Lädt..." : "Messstammdaten laden"}
+          {applyMutation.isPending ? "Lädt..." : isStartup ? "Standardparameter jetzt laden" : "Messstammdaten laden"}
         </button>
         {!isStartup && status?.stammdaten_vorhanden ? (
           <button
@@ -130,7 +141,7 @@ export function InitialdatenPanel({ mode = "settings", onApplied, onSkip }: Init
         ) : null}
         {isStartup && onSkip ? (
           <button type="button" className="button--secondary" onClick={onSkip} disabled={applyMutation.isPending}>
-            Später
+            Ohne Grunddaten fortfahren
           </button>
         ) : null}
       </div>

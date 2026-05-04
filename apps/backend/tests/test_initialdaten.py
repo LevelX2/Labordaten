@@ -36,6 +36,22 @@ def test_initialdaten_status_recommends_import_for_empty_masterdata(tmp_path) ->
     assert status["initialimport_empfohlen"] is True
 
 
+def test_initialdaten_status_recommends_import_when_only_seeded_units_exist(tmp_path) -> None:
+    db = _make_session(tmp_path)
+    try:
+        db.add(Einheit(kuerzel="mg/dl", aktiv=True))
+        db.add(Einheit(kuerzel="µg/l", aktiv=True))
+        db.commit()
+
+        status = get_initialdaten_status(db)
+    finally:
+        db.close()
+
+    assert status["stammdaten_vorhanden"] is True
+    assert status["tabellen"]["laborparameter"] == 0
+    assert status["initialimport_empfohlen"] is True
+
+
 def test_initialdaten_apply_imports_masterdata_and_is_idempotent(tmp_path) -> None:
     db = _make_session(tmp_path)
     snapshot = {

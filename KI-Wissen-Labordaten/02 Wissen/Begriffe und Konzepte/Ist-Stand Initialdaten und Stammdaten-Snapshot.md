@@ -1,7 +1,7 @@
 ---
 typ: architektur
 status: aktiv
-letzte_aktualisierung: 2026-04-27
+letzte_aktualisierung: 2026-05-04
 quellen:
   - ../../01 Rohquellen/fachkonzepte/2026-04-26 Rueckmeldung Initialdaten Stammdaten-Snapshot.md
   - ../../../apps/backend/scripts/export_initialdaten_snapshot.py
@@ -66,13 +66,13 @@ Diese Tabellen beschreiben konkrete Nutzer-, Verlaufs- oder Arbeitsdaten und dü
 - `apps/backend/scripts/export_initialdaten_snapshot.py` erzeugt den Snapshot aus einer bestehenden SQLite-Datenbank.
 - `apps/backend/scripts/import_initialdaten_snapshot.py` lädt den Paket-Snapshot oder eine explizit angegebene JSON-Datei in die konfigurierte Datenbank.
 - `labordaten_backend.modules.initialdaten.service` enthält die wiederverwendbare Importlogik.
-- `GET /api/system/initialdaten/status` meldet, ob ein Snapshot verfügbar ist, ob Stammdaten vorhanden sind und ob ein Initialimport empfohlen wird.
+- `GET /api/system/initialdaten/status` meldet, ob ein Snapshot verfügbar ist, ob Stammdaten oder Nutzerdaten vorhanden sind und ob ein Initialimport empfohlen wird. Für die Empfehlung zählt nicht irgendeine vorhandene Stammdatentabelle, sondern der fachliche Grundbestand aus Standardparametern, Parametergruppen, Gruppen-Zuordnungen, KSG-Klassifikation, Aliasen und Umrechnungsregeln. Bereits vorhandene Einheiten allein unterdrücken den Erststart-Import deshalb nicht mehr.
 - `POST /api/system/initialdaten/anwenden` lädt die Vorgaben. Standardmäßig werden bestehende Datensätze nicht überschrieben; mit `aktualisieren=true` können bestehende Grunddaten anhand des Snapshots aktualisiert werden.
 
 ## Oberfläche
-- Beim App-Start prüft `InitialdatenStartupDialog`, ob ein Snapshot verfügbar ist und noch keine Stammdaten vorhanden sind.
-- Wenn der Initialimport empfohlen wird, erscheint ein Dialog `Leere Stammdaten erkannt` mit kurzer Beschreibung des enthaltenen und ausgeschlossenen Datenumfangs.
-- Der Dialog kann die mitgelieferten Messstammdaten direkt laden oder für den laufenden Start geschlossen werden.
+- Beim App-Start prüft `InitialdatenStartupDialog`, ob ein Snapshot verfügbar ist und der fachliche Grundbestand fehlt.
+- Wenn der Initialimport empfohlen wird, erscheint ein Dialog `Standardparameter für diese Installation laden` mit kurzer Beschreibung des enthaltenen und ausgeschlossenen Datenumfangs.
+- Der Dialog kann die mitgelieferten Standardparameter direkt laden oder bewusst ohne Grunddaten fortgesetzt werden. Nach erfolgreichem Laden zeigt er als nächsten Schritt den Importweg für Laborberichte und kann direkt zum Importbereich führen.
 - In `Einstellungen > Initialdaten` gibt es dieselbe Ladefunktion dauerhaft. Wenn bereits Stammdaten vorhanden sind, kann dort zusätzlich eine Aktualisierung anhand des Snapshots gestartet werden.
 - In `Einstellungen > Optionale Datenpakete` werden nachladbare fachliche Pakete wie Zielwertpakete verwaltet. Dort liegt die Paketliste mit Vorschau, Optionen zum Anlegen fehlender Parameter oder Einheiten sowie Aktionen zum Einspielen und Deaktivieren. Beispiele sind quellengebundene Orfanos-Boeckel-KSG-Optimalbereiche und der präventivmedizinische Lithium-Vollblutbereich aus der biovis-/OM-&-Ernährung-Quelle.
 - Die Parameterpflege darf aus dem Zielbereich-Kontext auf `Einstellungen > Optionale Datenpakete` verweisen, bleibt aber nicht der Hauptort für Paketinstallation.

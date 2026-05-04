@@ -6,6 +6,7 @@ import socket
 import sys
 import threading
 import time
+import traceback
 import urllib.error
 import urllib.request
 import webbrowser
@@ -169,6 +170,8 @@ def _start_server(base_url: str, port: int) -> None:
         host="127.0.0.1",
         port=port,
         log_level="info",
+        log_config=None,
+        access_log=False,
         reload=False,
     )
     server = uvicorn.Server(config)
@@ -204,5 +207,37 @@ def _open_browser(url: str) -> None:
     webbrowser.open(url)
 
 
+def _show_startup_error(exc: Exception) -> None:
+    _write_startup_error_log(exc)
+    message = (
+        "Labordaten konnte nicht gestartet werden.\n\n"
+        f"{exc}\n\n"
+        "Bitte starte die Anwendung erneut oder prüfe, ob bereits eine Labordaten-Instanz läuft."
+    )
+    try:
+        import ctypes
+
+        ctypes.windll.user32.MessageBoxW(None, message, "Labordaten Startfehler", 0x10)
+    except Exception:  # noqa: BLE001
+        print(message, file=sys.stderr)
+
+
+def _write_startup_error_log(exc: Exception) -> None:
+    try:
+        data_root = Path(os.environ.get("LABORDATEN_DATA_DIR") or _default_data_root())
+        data_root.mkdir(parents=True, exist_ok=True)
+        log_path = data_root / "labordaten-startfehler.log"
+        log_path.write_text(
+            "Labordaten Startfehler\n\n" + "".join(traceback.format_exception(type(exc), exc, exc.__traceback__)),
+            encoding="utf-8",
+        )
+    except Exception:  # noqa: BLE001
+        return
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except Exception as exc:  # noqa: BLE001
+        _show_startup_error(exc)
+        raise SystemExit(1) from exc
