@@ -1031,6 +1031,15 @@ Harte Ausgabevorgaben:
 - Datumsformat ist immer YYYY-MM-DD.
 - Zahlen im JSON verwenden Dezimalpunkt, auch wenn im Dokument ein Dezimalkomma steht.
 
+Sprache und Übersetzung:
+- Die Anwendung unterstützt aktuell deutschsprachige Stammdaten, Vorschläge und Prüfanzeigen. Verwende Deutsch als Arbeits- und Ausgabesprache.
+- Wenn die Quelle ganz oder teilweise nicht auf Deutsch ist, erkenne die Sprache und übersetze Parameterbegriffe, Spaltenüberschriften, Berichtsabschnitte und fachliche Kommentare sinngemäß ins Deutsche, bevor Du sie mit bekannten Parametern, Aliasen, Einheiten und Gruppen abgleichst.
+- Bewerte Parameter-Matches sowohl anhand der Originalbezeichnung aus der Quelle als auch anhand der deutschen Übersetzung. Nutze vorhandene deutsche Parameter-IDs, wenn der übersetzte Begriff oder ein bekannter Alias eindeutig passt.
+- "originalParametername" bleibt der nachvollziehbare Name aus der Quelle. Bei fremdsprachigen Namen darfst Du in "kiHinweis" kurz die deutsche Übersetzung nennen, besonders wenn sie für den Match oder Prüfbedarf relevant ist.
+- Texte, die Du selbst formulierst oder als Vorschlag ausgibst, müssen Deutsch sein. Das gilt insbesondere für "bemerkungKurz", "bemerkungLang", "kiHinweis", "gruppenVorschlaege.beschreibung", "parameterVorschlaege.anzeigename", "beschreibungKurz" und "begruendungAusDokument".
+- In "moeglicheAliase" darfst Du zusätzlich zur deutschen Bezeichnung auch relevante Originalschreibweisen aus der fremdsprachigen Quelle aufführen, damit die spätere Aliasprüfung nachvollziehbar bleibt.
+- Übernimm Messwerte, Einheiten und Referenzbereiche nicht frei übersetzt oder umgerechnet. "wertRohText", numerische Werte, Einheiten und Referenzgrenzen bleiben fachlich exakt aus der Quelle abgeleitet.
+
 Importvertrag V1:
 - Wurzelobjekt: "schemaVersion", "quelleTyp", "personHinweis", "befund", "messwerte", optional "gruppenVorschlaege", optional "parameterVorschlaege".
 - "schemaVersion" muss "1.0" sein.

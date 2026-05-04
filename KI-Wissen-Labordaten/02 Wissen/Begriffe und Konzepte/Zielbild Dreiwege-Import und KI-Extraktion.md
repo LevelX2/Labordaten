@@ -1,7 +1,7 @@
 ---
 typ: konzept
 status: entwurf
-letzte_aktualisierung: 2026-04-25
+letzte_aktualisierung: 2026-05-05
 quellen:
   - ../../01 Rohquellen/fachkonzepte/2026-04-24 Dreiwege-Importkonzept und KI-Prompt.md
   - Ist-Stand Importstrecke und PDF-Grenzen.md
@@ -57,6 +57,7 @@ Alle drei Wege sollen aus einem Laborbericht mindestens diese Informationen erke
 - Gruppen oder Berichtsblöcke: falls ein Bericht erkennbare Abschnitte wie `Blutbild`, `Schilddrüse`, `Mineralstoffe` enthält, daraus optionale `gruppenVorschlaege` ableiten.
 - Parameter-Vorschläge: wenn ein Messwert nicht sicher zu einem vorhandenen Parameter passt, kann die KI optional einen geprüften Vorschlag mit Anzeigename, kurzer Beschreibung, Einheit, Werttyp, Alias-Hinweisen und Bezug auf Messwert-Indizes liefern.
 - Die Kurzbeschreibung eines Parameter-Vorschlags soll eine allgemeine, vom konkreten Bericht und Import unabhängige Fachbeschreibung sein: Was misst der Parameter oder wofür steht er typischerweise als Laborparameter? Berichtsbezogene Hinweise wie Abschnitt, Methode, Einheit aus dem Dokument oder Ableitungsgrund gehören stattdessen in `begruendungAusDokument`.
+- Fremdsprachige Laborberichte sollen von der KI zunächst sprachlich erkannt und fachlich ins Deutsche übertragen werden, weil die aktuelle Anwendung mit deutschsprachigen Stammdaten, Vorschlägen und Prüfanzeigen arbeitet. Für das Matching sollen sowohl die Originalbezeichnung aus dem Bericht als auch die deutsche Übersetzung gegen bekannte Parameter, Aliasse, Einheiten und Gruppen abgeglichen werden. Messwerte, Einheiten und Referenzbereiche bleiben dabei fachlich exakt aus der Quelle abgeleitet; selbst formulierte Hinweise, Gruppenvorschläge, Parameter-Vorschläge und übersetzte Berichtskommentare sollen deutsch ausgegeben werden. Alias-Vorschläge dürfen zusätzlich relevante Originalschreibweisen aus der fremdsprachigen Quelle enthalten, damit die spätere Aliasprüfung nachvollziehbar bleibt.
 
 ## Weg 1: Dokument-Upload mit OCR
 Dieser Weg ist der produktinterne technische Extraktionsweg ohne externe KI-Verarbeitung.
@@ -237,6 +238,7 @@ Die KI oder OCR-Stufe soll konservativ matchen:
 - Bei unsicherem Parametermatch `parameterId` weglassen, `originalParametername` exakt aus dem Bericht übernehmen und `pruefbedarfFlag` setzen.
 - Wenn ein Parameter nicht sicher bekannt ist, kann zusätzlich `parameterVorschlaege` gefüllt werden. Der Vorschlag soll den späteren Prüfschritt erleichtern, ersetzt aber keine sichere Zuordnung.
 - In `parameterVorschlaege` ist `beschreibungKurz` strikt berichtsunabhängig zu halten. Hinweise wie „Der Befund nennt...“, konkrete Methoden-, Abschnitts-, Einheits- oder Referenzbezüge aus dem analysierten Bericht gehören in `begruendungAusDokument`, nicht in die spätere Parameterbeschreibung.
+- Bei fremdsprachigen Originalnamen soll der Abgleich nicht nur literal auf den Fremdsprachentext erfolgen. Die KI soll eine deutsche fachliche Übersetzung als Matching-Hilfe verwenden und bei eindeutigem Treffer die vorhandene deutschsprachige Parameter-ID nutzen. `originalParametername` bleibt der nachvollziehbare Name aus der Quelle; die deutsche Übersetzung kann bei Bedarf in `kiHinweis` erklärt werden.
 - Aliasse nicht automatisch als Stammdaten ändern. Wenn ein erkannter Originalname offensichtlich eine alternative Schreibweise eines vorhandenen Parameters ist, kann im Importpayload `aliasUebernehmen: true` vorgeschlagen werden; die finale Entscheidung bleibt in der Prüfansicht.
 - Einheiten nie stillschweigend umrechnen, außer eine sichere, im System bekannte Umrechnungsregel wird gezielt angewendet. Für die Extraktion reicht meistens `einheitOriginal`.
 - Widersprüchliche Angaben, unleserliche Stellen oder geschätzte Tabellenzuordnungen müssen als Prüfbedarf sichtbar bleiben.
@@ -263,9 +265,10 @@ Der von der Anwendung erzeugte Prompt soll aus diesen Teilen bestehen:
 4. Extraktionsregeln: Labor, Befunddaten, Messwerte, Referenzen, qualitative Werte, Kommentare.
 5. Matching-Regeln: vorhandene IDs nur bei sicherem Match verwenden, sonst Originaltext und Prüfbedarf.
 6. Unsicherheitsregeln: nichts erfinden, unlesbare oder mehrdeutige Angaben markieren.
-7. Optionaler Stammdatenkontext: bekannte Labore, Parameter, Aliasse, Einheiten und Gruppen.
-8. Dokumentanweisung: Das angehängte Dokument vollständig auswerten, inklusive Tabellen, Fußnoten und Kommentaren.
-9. Rückgabeformat: erst Extraktionsüberblick, dann kopierbarer `json`-Codeblock nach `schemaVersion: "1.0"`.
+7. Sprach- und Übersetzungsregeln: nicht deutschsprachige Quellen erkennen, Begriffe für Matching und Vorschläge ins Deutsche übertragen, Rohwerte und Einheiten aber nicht frei verändern.
+8. Optionaler Stammdatenkontext: bekannte Labore, Parameter, Aliasse, Einheiten und Gruppen.
+9. Dokumentanweisung: Das angehängte Dokument vollständig auswerten, inklusive Tabellen, Fußnoten und Kommentaren.
+10. Rückgabeformat: erst Extraktionsüberblick, dann kopierbarer `json`-Codeblock nach `schemaVersion: "1.0"`.
 
 ## Prompt-Vorlage
 Diese Vorlage kann als Ausgangspunkt für die spätere Prompt-Erzeugung dienen:
@@ -402,6 +405,7 @@ Weg 3 ist als erste konkrete Produktstrecke umgesetzt:
 - Das Import-V1-JSON erlaubt nun optionale `parameterVorschlaege`. Der Prompt weist die externe KI an, solche Vorschläge nur bei nicht sicher gematchten Parametern und nur mit belastbarer Kurzbeschreibung zu liefern.
 - `beschreibungKurz` in `parameterVorschlaege` ist inzwischen ausdrücklich als allgemeine, berichtsunabhängige Fachbeschreibung definiert und soll bei neuen Parameter-Vorschlägen aktiv mitgeliefert werden. Der KI-Prompt fordert dafür kurze Recherche beziehungsweise allgemeines Laborwissen an; berichts- oder importbezogene KI-Anmerkungen werden über `begruendungAusDokument` getrennt.
 - Der Prompt-Kontext enthält vorhandene Parameter-Aliasse inklusive Parameter-Standardeinheit. Die KI wird angewiesen, einen bereits bekannten Alias als Match auf den vorhandenen Parameter zu behandeln und dann keine erneute Alias-Anlage vorzuschlagen. Die Anwendung löst gleiche Aliasnamen einheitenbewusst auf: Wenn mehrere Parameter denselben Alias tragen, darf nur ein zur Import-Einheit passender eindeutiger Treffer automatisch mappen.
+- Der Prompt enthält eine Sprachregel für fremdsprachige Quellen: Die KI soll die Dokumentsprache erkennen, Parameterbegriffe, Abschnittsüberschriften und fachliche Kommentare deutschsprachig verarbeiten, Matching sowohl mit Originalbezeichnung als auch deutscher Übersetzung versuchen und eigene Vorschlags- oder Hinweistexte auf Deutsch ausgeben. `originalParametername`, Rohwerte, Einheiten und Referenzen bleiben nachvollziehbar aus der Quelle abgeleitet.
 - Die Prüfansicht zeigt Parameter-Vorschläge direkt am betroffenen Messwert. Bei bestätigter Neuanlage kann der Vorschlag Name, Beschreibung, Werttyp und Standardeinheit des neuen Parameters vorbefüllen; ohne bewusste Auswahl entsteht kein neuer Parameter.
 - Beim Einfügen des KI-Ergebnisses kann die analysierte Dokumentdatei mit hochgeladen werden. Wenn kein Dokumentname angegeben wird, schlägt das Backend einen Namen aus Entnahmedatum, Person, Labor und `Laborbericht` vor.
 - Ein noch nicht übernommener Importversuch kann entweder dokumentiert verworfen oder komplett entfernt werden. Die UI fragt dafür `Was soll mit dem Importversuch passieren?`; beim kompletten Entfernen können Importversuch, Prüfpunkte und optional das verknüpfte Dokument gelöscht werden.

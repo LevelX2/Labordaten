@@ -109,6 +109,12 @@ def test_import_prompt_contains_file_json_and_context_instructions(tmp_path: Pat
         assert '"quelleTyp" muss "ki_json" sein' in text
         assert '"befund" braucht mindestens "entnahmedatum"' in text
         assert '"befund.personId" soll weggelassen werden' in text
+        assert "Verwende Deutsch als Arbeits- und Ausgabesprache" in text
+        assert "erkenne die Sprache und übersetze Parameterbegriffe" in text
+        assert "sowohl anhand der Originalbezeichnung aus der Quelle als auch anhand der deutschen Übersetzung" in text
+        assert '"originalParametername" bleibt der nachvollziehbare Name aus der Quelle' in text
+        assert "Texte, die Du selbst formulierst oder als Vorschlag ausgibst, müssen Deutsch sein" in text
+        assert 'In "moeglicheAliase" darfst Du zusätzlich zur deutschen Bezeichnung auch relevante Originalschreibweisen' in text
         assert '"name": "Bioscientia"' in text
         assert '"anzeigename": "Ferritin"' in text
         assert '"Ferritin i.S."' in text

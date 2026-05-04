@@ -11,6 +11,20 @@
 
 ## 2026-05
 
+### [2026-05-05] fix | Prompt-Regel für fremdsprachige Laborberichte ergänzt
+- Anlass oder Quelle: Nutzerhinweis zu einem polnischen Laborbericht und der daraus folgenden Anforderung, fremdsprachige Berichte für den aktuell deutschsprachigen Importkontext übersetzt zu verarbeiten.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../02 Wissen/Begriffe und Konzepte/Zielbild Dreiwege-Import und KI-Extraktion.md
+  - ../02 Wissen/Begriffe und Konzepte/Ist-Stand Importstrecke und PDF-Grenzen.md
+  - ../../apps/backend/src/labordaten_backend/modules/importe/service.py
+  - ../../apps/backend/tests/test_import_prompt.py
+- Kern der inhaltlichen Anpassung:
+  - Der generierte KI-Import-Prompt fordert Deutsch als Arbeits- und Ausgabesprache.
+  - Bei fremdsprachigen Quellen soll die KI die Sprache erkennen, Parameterbegriffe, Abschnittsüberschriften und fachliche Kommentare ins Deutsche übertragen und das Matching sowohl mit Originalbezeichnung als auch deutscher Übersetzung versuchen.
+  - Rohwerte, Einheiten und Referenzbereiche bleiben fachlich exakt aus der Quelle abgeleitet; selbst formulierte Vorschläge und Hinweise sollen deutsch sein. Alias-Vorschläge dürfen weiterhin relevante Originalschreibweisen aus der fremdsprachigen Quelle enthalten.
+
 ### [2026-05-05] update | Geburtsdatum in Personenstammdaten optional gemacht
 - Anlass oder Quelle: Nutzerhinweis, dass das Geburtsdatum beim Anlegen von Personen nicht zwingend sein soll, auch wenn altersabhängige Auswertungen dann fachlich eingeschränkt sind.
 - Neu angelegte Seiten:

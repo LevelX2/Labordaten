@@ -1,7 +1,7 @@
 ---
 typ: architektur
 status: aktiv
-letzte_aktualisierung: 2026-04-26
+letzte_aktualisierung: 2026-05-05
 quellen:
   - ../00 Uebersichten/Aktueller Projektstatus.md
   - ../../01 Rohquellen/fachkonzepte/2026-04-24 Dreiwege-Importkonzept und KI-Prompt.md
@@ -29,6 +29,7 @@ Der aktuelle Stand vom 2026-04-24 unterstützt eine echte Importprüfung und bew
 - Importentwürfe können im Frontend als JSON eingegeben und an `/api/importe/entwurf` gesendet werden.
 - Für externe KI-Chats kann über `POST /api/importe/prompt` ein Prompt erzeugt werden, der `personId`, optionale Dokumenthinweise, bekannte Labore, Parameteraliase, Einheitenaliase und Gruppen enthält.
 - Der Prompt-Weg gibt der externen KI klare Regeln vor: vollständige Dokumentauswertung, ausschließlich valides Import-V1-JSON, `quelleTyp: "ki_json"`, keine Zusatzfelder und sichtbarer Prüfbedarf über bestehende Importfelder.
+- Der Prompt-Weg gibt der externen KI außerdem Deutsch als Arbeits- und Ausgabesprache vor. Bei fremdsprachigen Laborberichten soll die KI die Sprache erkennen, Parameterbegriffe, Abschnittsüberschriften und fachliche Kommentare ins Deutsche übertragen, das Matching mit Originalbezeichnung und deutscher Übersetzung versuchen und eigene Vorschlags- oder Hinweistexte deutsch ausgeben. Rohwerte, Einheiten und Referenzbereiche bleiben fachlich exakt aus der Quelle abgeleitet; Alias-Vorschläge dürfen zusätzlich relevante Originalschreibweisen aus der fremdsprachigen Quelle enthalten.
 - Importentwürfe können zusätzlich aus hochgeladenen `csv`- und `excel`-Dateien erzeugt werden.
 - Das Backend prüft das JSON gegen das erwartete Importschema und erzeugt Prüfpunkte, Warnungen und Fehler.
 - Im externen KI-/Skript-JSON-Weg wird die Person nicht aus dem JSON übernommen. Die Person wird beim Einfügen des KI-Ergebnisses in der Anwendung aus vorhandenen Personen ausgewählt und kann im Prüfschritt `Befund prüfen` noch geändert werden. Ohne zugeordnete Person bleibt die Übernahme gesperrt.
