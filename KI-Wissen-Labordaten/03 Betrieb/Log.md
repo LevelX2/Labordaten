@@ -11,6 +11,16 @@
 
 ## 2026-05
 
+### [2026-05-04] release | Kleines Setup-Wizard-Icon freigestellt
+- Anlass oder Quelle: Nutzerhinweis, dass das kleine Bild rechts oben im Installer nicht wie ein ausgeschnittener Icon-Kasten wirken soll, sondern als freigestelltes App-Zeichen.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../packaging/inno/assets/wizard-small.bmp
+- Kern der inhaltlichen Anpassung:
+  - Das kleine Inno-Setup-Wizard-Bild wurde auf eine freigestellte Variante der Labordaten-Motive reduziert.
+  - Die bisher sichtbare helle Icon-Kachel entfällt, damit das Bild im Installer-Kopf ruhiger und stärker wie Branding wirkt.
+
 ### [2026-05-04] release | Portable ZIP im Iterationsbuild deaktiviert
 - Anlass oder Quelle: Nutzerentscheidung, während der aktuellen Installer-Iterationen auf die portable ZIP zu verzichten, da sie für den Testablauf nicht genutzt wird.
 - Neu angelegte Seiten:
