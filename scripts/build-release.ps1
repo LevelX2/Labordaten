@@ -47,6 +47,26 @@ function Reset-Directory {
     New-Item -ItemType Directory -Path $Path | Out-Null
 }
 
+function Resolve-InnoCompiler {
+    $command = Get-Command ISCC.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($command) {
+        return $command.Source
+    }
+
+    $candidates = @(
+        "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe",
+        "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+        "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
+    )
+    foreach ($candidate in $candidates) {
+        if (Test-Path -LiteralPath $candidate) {
+            return $candidate
+        }
+    }
+
+    return $null
+}
+
 if (-not $Version) {
     $Version = Get-FrontendVersion
 }
@@ -126,14 +146,14 @@ $zipPath = Join-Path $releaseRoot "Labordaten-$Version-portable.zip"
 Compress-Archive -Path (Join-Path $appReleaseDir "*") -DestinationPath $zipPath -Force
 
 if ($BuildInstaller) {
-    $iscc = Get-Command ISCC.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+    $iscc = Resolve-InnoCompiler
     if (-not $iscc) {
         Write-Warning "Inno Setup Compiler (ISCC.exe) wurde nicht gefunden. Portable ZIP wurde trotzdem gebaut."
     } elseif (-not (Test-Path -LiteralPath $innoScript)) {
         Write-Warning "Inno-Setup-Skript wurde nicht gefunden: $innoScript"
     } else {
         Ensure-Directory -Path $installerOutputDir
-        & $iscc.Source "/DAppVersion=$Version" "/DSourceDir=$appReleaseDir" "/DOutputDir=$installerOutputDir" $innoScript
+        & $iscc "/DAppVersion=$Version" "/DSourceDir=$appReleaseDir" "/DOutputDir=$installerOutputDir" $innoScript
     }
 }
 
