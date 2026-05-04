@@ -24,6 +24,7 @@
   - Die sichere Voreinstellung ist das Behalten der Daten, damit Updates und Neuinstallationen vorhandene Daten nicht versehentlich verlieren.
   - Erst bei bewusster Auswahl von `Nein` wird der lokale Datenordner mit Datenbank, Dokumenten, Einstellungen und Backups gelöscht.
   - Die Startdaten-Auswahl im Installer nutzt nun unabhängige Häkchen statt einer exklusiven Optionsgruppe; Grunddaten und Import-Hilfe sind vorausgewählt, optionale Zielwertpakete bleiben abgewählt.
+  - Der Uninstaller prüft nun vor der Deinstallation, ob `Labordaten.exe` noch läuft, und bietet bei gesperrtem Datenordner einen erneuten Löschversuch oder transparentes Beibehalten der Restdaten an.
 
 ### [2026-05-04] release | Kleines Setup-Wizard-Icon freigestellt
 - Anlass oder Quelle: Nutzerhinweis, dass das kleine Bild rechts oben im Installer nicht wie ein ausgeschnittener Icon-Kasten wirken soll, sondern als freigestelltes App-Zeichen.

@@ -130,6 +130,76 @@ begin
   end;
 end;
 
+function LabordatenProcessRunning(): Boolean;
+var
+  ResultCode: Integer;
+begin
+  Exec(
+    ExpandConstant('{cmd}'),
+    '/C tasklist /FI "IMAGENAME eq Labordaten.exe" | find /I "Labordaten.exe" >NUL',
+    '',
+    SW_HIDE,
+    ewWaitUntilTerminated,
+    ResultCode
+  );
+  Result := ResultCode = 0;
+end;
+
+function ConfirmLabordatenClosedForUninstall(): Boolean;
+var
+  Answer: Integer;
+begin
+  Result := True;
+  while LabordatenProcessRunning() do begin
+    Answer := MsgBox(
+      'Labordaten läuft noch.' + #13#10 + #13#10 +
+      'Solange die Anwendung geöffnet ist, können Programmdateien oder lokale Daten gesperrt sein. ' +
+      'Bitte schließe Labordaten vollständig. Falls das Fenster nicht mehr sichtbar ist, prüfe den Task-Manager auf "Labordaten.exe".' + #13#10 + #13#10 +
+      'Klicke danach auf "Wiederholen".',
+      mbError,
+      MB_RETRYCANCEL
+    );
+
+    if Answer <> IDRETRY then begin
+      Result := False;
+      Exit;
+    end;
+  end;
+end;
+
+procedure DeleteUserDataDirWithRetry(DataDir: String);
+var
+  Answer: Integer;
+begin
+  while DirExists(DataDir) do begin
+    if DelTree(DataDir, True, True, True) and not DirExists(DataDir) then begin
+      Exit;
+    end;
+
+    Answer := MsgBox(
+      'Der lokale Labordaten-Datenordner konnte nicht vollständig gelöscht werden.' + #13#10 + #13#10 +
+      'Datenordner:' + #13#10 +
+      DataDir + #13#10 + #13#10 +
+      'Wahrscheinlich ist noch eine Datei geöffnet oder ein Labordaten-Prozess läuft noch im Hintergrund. ' +
+      'Bitte schließe Labordaten vollständig oder beende "Labordaten.exe" im Task-Manager und klicke danach auf "Wiederholen".' + #13#10 + #13#10 +
+      'Wenn Du abbrichst, bleibt der Datenordner erhalten.',
+      mbError,
+      MB_RETRYCANCEL
+    );
+
+    if Answer <> IDRETRY then begin
+      MsgBox(
+        'Die Deinstallation wurde beendet, aber der lokale Datenordner wurde nicht vollständig gelöscht.' + #13#10 + #13#10 +
+        'Du kannst ihn später manuell löschen:' + #13#10 +
+        DataDir,
+        mbInformation,
+        MB_OK
+      );
+      Exit;
+    end;
+  end;
+end;
+
 procedure WritePendingInstallOptions;
 var
   Packages: String;
@@ -184,6 +254,12 @@ var
 begin
   Result := True;
   DeleteUserDataOnUninstall := False;
+
+  if not ConfirmLabordatenClosedForUninstall() then begin
+    Result := False;
+    Exit;
+  end;
+
   DataDir := LabordatenDataDir();
 
   if not DirExists(DataDir) then begin
@@ -217,7 +293,7 @@ begin
   if (CurUninstallStep = usPostUninstall) and DeleteUserDataOnUninstall then begin
     DataDir := LabordatenDataDir();
     if DirExists(DataDir) then begin
-      DelTree(DataDir, True, True, True);
+      DeleteUserDataDirWithRetry(DataDir);
     end;
   end;
 end;

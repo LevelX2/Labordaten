@@ -194,7 +194,7 @@ Wenn Inno Setup mit `ISCC.exe` installiert ist, kann zusätzlich ein Windows-Ins
 pwsh -File .\scripts\build-release.ps1 -BuildInstaller
 ```
 
-Der Installer legt Programmdateien getrennt von den lokalen Nutzdaten ab. Bei der Deinstallation fragt Labordaten, ob der Datenordner unter `%LOCALAPPDATA%\Labordaten` mit Datenbank, Dokumenten, Einstellungen und Backups behalten oder bewusst gelöscht werden soll.
+Der Installer legt Programmdateien getrennt von den lokalen Nutzdaten ab. Bei der Deinstallation fragt Labordaten, ob der Datenordner unter `%LOCALAPPDATA%\Labordaten` mit Datenbank, Dokumenten, Einstellungen und Backups behalten oder bewusst gelöscht werden soll. Wenn Labordaten noch läuft oder Dateien gesperrt sind, zeigt der Uninstaller eine Meldung und bietet einen erneuten Versuch an.
 
 ## Betriebsnotizen
 

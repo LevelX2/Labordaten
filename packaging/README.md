@@ -10,6 +10,7 @@ Dieser Ordner enthält die ersten Release-Bausteine für eine lokale Windows-Aus
 - Der Installer kopiert nur Programmdateien und legt Verknüpfungen an.
 - Datenbank, Dokumente, Einstellungen und lokales Laborwissen bleiben bei Updates erhalten.
 - Bei der Deinstallation fragt der Uninstaller, ob die lokalen Nutzdaten behalten oder bewusst gelöscht werden sollen.
+- Falls `Labordaten.exe` noch läuft oder der Datenordner gesperrt ist, zeigt der Uninstaller eine verständliche Meldung und bietet Wiederholen oder Abbrechen an.
 
 ## Release bauen
 
