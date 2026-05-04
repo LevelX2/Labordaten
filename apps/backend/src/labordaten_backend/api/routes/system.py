@@ -7,6 +7,8 @@ from labordaten_backend.core.config import get_settings
 from labordaten_backend.core.runtime_settings import RuntimeSettingsModel
 from labordaten_backend.modules.initialdaten import schemas as initialdaten_schemas
 from labordaten_backend.modules.initialdaten import service as initialdaten_service
+from labordaten_backend.modules.installationsoptionen import schemas as installationsoptionen_schemas
+from labordaten_backend.modules.installationsoptionen import service as installationsoptionen_service
 
 router = APIRouter()
 
@@ -69,3 +71,13 @@ def apply_initialdaten(
         return initialdaten_service.apply_initialdaten(db, aktualisieren=payload.aktualisieren)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post(
+    "/system/installationsoptionen/verarbeiten",
+    response_model=installationsoptionen_schemas.InstallationOptionsProcessResult,
+)
+def process_installation_options(
+    db: Session = Depends(get_db),
+) -> installationsoptionen_schemas.InstallationOptionsProcessResult:
+    return installationsoptionen_service.process_pending_installation_options(db)

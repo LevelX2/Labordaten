@@ -11,6 +11,51 @@
 
 ## 2026-05
 
+### [2026-05-04] release | Installer-Startdaten und Erststart-Verarbeitung ergänzt
+- Anlass oder Quelle: Nutzerentscheidung, die Grunddaten- und Zielwertpaket-Auswahl bereits im Installer anzubieten, die eigentliche Datenanlage aber updatefähig und sicher beim ersten App-Start auszuführen.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../apps/backend/src/labordaten_backend/api/routes/system.py
+  - ../../apps/backend/src/labordaten_backend/core/config.py
+  - ../../apps/backend/src/labordaten_backend/launcher.py
+  - ../../apps/backend/src/labordaten_backend/modules/installationsoptionen/__init__.py
+  - ../../apps/backend/src/labordaten_backend/modules/installationsoptionen/schemas.py
+  - ../../apps/backend/src/labordaten_backend/modules/installationsoptionen/service.py
+  - ../../apps/backend/tests/test_installationsoptionen.py
+  - ../../apps/frontend/src/shared/components/InitialdatenStartupDialog.tsx
+  - ../../apps/frontend/src/shared/types/api.ts
+  - ../../packaging/inno/Labordaten.iss
+- Kern der inhaltlichen Anpassung:
+  - Der Installer bietet eine neue Startdaten-Auswahlseite für Grunddaten und optionale Zielwertpakete an.
+  - Bei Neuinstallationen sind Grunddaten standardmäßig vorausgewählt; bei vorhandener Datenbank wird die Option vorsichtiger als Ergänzung angeboten.
+  - Der Installer schreibt nur eine ausstehende Optionsdatei in den lokalen Labordaten-Datenordner; die App verarbeitet diese Datei beim ersten Start über die vorhandenen Backend-Services.
+  - Nach verarbeiteten Installationsoptionen zeigt der Startdialog direkt die nächsten Schritte für den Laborbericht-Import.
+  - Backend-Tests, Frontend-Tests, Frontend-Build und Release-/Installer-Build liefen erfolgreich durch.
+
+### [2026-05-04] release | Installer-Branding und leere Arbeitsbereiche verbessert
+- Anlass oder Quelle: Nutzerhinweise aus dem Installationstest, dass der Installer mehr Branding und knappe Installationsinformationen zeigen soll, die Desktop-Verknüpfung standardmäßig sinnvoll ist und in einer leeren Installation der Button zum Anlegen der ersten Person fehlt; anschließender Querschnitt zu vergleichbaren Leerzuständen.
+- Neu angelegte Seiten:
+  - keine
+- Geänderte Seiten:
+  - ../../apps/frontend/src/features/personen/PersonenPage.tsx
+  - ../../apps/frontend/src/features/personen/PersonenPage.test.tsx
+  - ../../apps/frontend/src/features/LeereWerkzeugleisten.test.tsx
+  - ../../apps/frontend/src/features/gruppen/GruppenPage.tsx
+  - ../../apps/frontend/src/features/parameter/ParameterPage.tsx
+  - ../../apps/frontend/src/features/planung/PlanungPage.tsx
+  - ../../packaging/inno/Labordaten.iss
+  - ../../packaging/inno/assets/installationshinweise.txt
+  - ../../packaging/inno/assets/wizard-image.bmp
+  - ../../packaging/inno/assets/wizard-small.bmp
+- Kern der inhaltlichen Anpassung:
+  - Der Installer nutzt nun das Labordaten-Icon als Setup-Icon sowie eigene Wizard-Grafiken.
+  - Die Desktop-Verknüpfung ist im Installer standardmäßig vorausgewählt.
+  - Vor der Installation wird eine knappe lokale Betriebsbeschreibung angezeigt: Browser-Oberfläche, lokaler Server, lokale Datenspeicherung und Speicherort der Datenbank.
+  - Die Werkzeugleisten für Personen, Parameter, Parametergruppen und Planung werden auch ohne vorhandenen Datensatz angezeigt; abhängige Werkzeuge bleiben ohne Auswahl deaktiviert.
+  - Gezielte Frontend-Tests sichern ab, dass die Anlagebuttons in leeren Arbeitsbereichen sichtbar bleiben.
+  - Frontend-Tests, Frontend-Build und Release-/Installer-Build liefen erfolgreich durch.
+
 ### [2026-05-04] release | Erststart-Initialdaten und Version 0.7.0 abgeschlossen
 - Anlass oder Quelle: Nutzerhinweis nach Installation, dass die Möglichkeiten zum Anlegen und Bearbeiten von Personen im installierten Stand fehlten, und Entscheidung, den aktuellen Anwendungsstand als Version `0.7.0` zu führen.
 - Neu angelegte Seiten:

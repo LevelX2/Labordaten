@@ -10,6 +10,11 @@
 #define OutputDir "..\..\build\release\installer"
 #endif
 
+#define AppIconFile "..\..\apps\frontend\public\labordaten.ico"
+#define WizardImageFilePath "assets\wizard-image.bmp"
+#define WizardSmallImageFilePath "assets\wizard-small.bmp"
+#define InfoBeforeFilePath "assets\installationshinweise.txt"
+
 [Setup]
 AppId={{F6BC38D3-4182-4F7E-9F7B-0B6525D78B52}
 AppName=Labordaten
@@ -25,12 +30,24 @@ SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=lowest
 UninstallDisplayIcon={app}\Labordaten.exe
+SetupIconFile={#AppIconFile}
+WizardImageFile={#WizardImageFilePath}
+WizardSmallImageFile={#WizardSmallImageFilePath}
+InfoBeforeFile={#InfoBeforeFilePath}
+VersionInfoCompany=Labordaten
+VersionInfoDescription=Labordaten Setup
+VersionInfoProductName=Labordaten
+VersionInfoProductVersion={#AppVersion}
 
 [Languages]
 Name: "german"; MessagesFile: "compiler:Languages\German.isl"
 
+[Messages]
+WelcomeLabel1=Willkommen bei Labordaten
+WelcomeLabel2=Labordaten installiert eine lokale Anwendung für Laborwerte. Die Oberfläche läuft im Browser, verbindet sich aber nur mit einem lokalen Server auf diesem Computer. Datenbank, Dokumente und Einstellungen bleiben lokal gespeichert.
+
 [Tasks]
-Name: "desktopicon"; Description: "Desktop-Verknüpfung erstellen"; GroupDescription: "Zusätzliche Verknüpfungen:"; Flags: unchecked
+Name: "desktopicon"; Description: "Desktop-Verknüpfung erstellen"; GroupDescription: "Zusätzliche Verknüpfungen:"
 
 [Files]
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -41,3 +58,120 @@ Name: "{autodesktop}\Labordaten"; Filename: "{app}\Labordaten.exe"; WorkingDir: 
 
 [Run]
 Filename: "{app}\Labordaten.exe"; Description: "Labordaten jetzt starten"; Flags: nowait postinstall skipifsilent
+
+[Code]
+var
+  StartdatenPage: TInputOptionWizardPage;
+  ExistingDatabase: Boolean;
+
+function LabordatenDataDir(): String;
+begin
+  Result := ExpandConstant('{localappdata}\Labordaten');
+end;
+
+function PendingOptionsFile(): String;
+begin
+  Result := LabordatenDataDir() + '\pending-install-options.json';
+end;
+
+function ExistingDatabaseFound(): Boolean;
+begin
+  Result := FileExists(LabordatenDataDir() + '\labordaten.db');
+end;
+
+procedure InitializeWizard;
+begin
+  ExistingDatabase := ExistingDatabaseFound();
+  StartdatenPage := CreateInputOptionPage(
+    wpSelectTasks,
+    'Startdaten auswählen',
+    'Welche Daten soll Labordaten beim ersten Start vorbereiten?',
+    'Die eigentliche Datenanlage erfolgt beim ersten Start in der Anwendung. Bestehende Personen, Messwerte, Befunde und Dokumente werden dabei nicht überschrieben.',
+    True,
+    False
+  );
+
+  if ExistingDatabase then begin
+    StartdatenPage.Add('Fehlende Grunddaten ergänzen (Standardparameter, Einheiten, Umrechnungen und Gruppen)');
+  end else begin
+    StartdatenPage.Add('Empfohlen: Grunddaten laden (Standardparameter, Einheiten, Umrechnungen und Gruppen)');
+  end;
+  StartdatenPage.Add('Optional: KSG-Optimalbereiche aus Nährstoff- und Hormontherapie laden');
+  StartdatenPage.Add('Optional: Präventionswerte Lithium laden');
+  StartdatenPage.Add('Nach dem ersten Start kurze Import-Hilfe anzeigen');
+
+  StartdatenPage.Values[0] := not ExistingDatabase;
+  StartdatenPage.Values[1] := False;
+  StartdatenPage.Values[2] := False;
+  StartdatenPage.Values[3] := True;
+end;
+
+procedure AddPackageJson(var Packages: String; PackageKey: String);
+begin
+  if Packages <> '' then begin
+    Packages := Packages + ',' + #13#10;
+  end;
+  Packages := Packages +
+    '    {' + #13#10 +
+    '      "paket_schluessel": "' + PackageKey + '",' + #13#10 +
+    '      "fehlende_parameter_anlegen": true,' + #13#10 +
+    '      "fehlende_einheiten_anlegen": true,' + #13#10 +
+    '      "prueffaelle_anlegen": false' + #13#10 +
+    '    }';
+end;
+
+function JsonBool(Value: Boolean): String;
+begin
+  if Value then begin
+    Result := 'true';
+  end else begin
+    Result := 'false';
+  end;
+end;
+
+procedure WritePendingInstallOptions;
+var
+  Packages: String;
+  Json: String;
+  InstallationType: String;
+begin
+  if not (StartdatenPage.Values[0] or StartdatenPage.Values[1] or StartdatenPage.Values[2] or StartdatenPage.Values[3]) then begin
+    Exit;
+  end;
+
+  Packages := '';
+  if StartdatenPage.Values[1] then begin
+    AddPackageJson(Packages, 'orfanos_boeckel_ksg_2026');
+  end;
+  if StartdatenPage.Values[2] then begin
+    AddPackageJson(Packages, 'lithium_praevention_biovis_2026');
+  end;
+
+  if ExistingDatabase then begin
+    InstallationType := 'update';
+  end else begin
+    InstallationType := 'neuinstallation';
+  end;
+
+  ForceDirectories(LabordatenDataDir());
+  Json :=
+    '{' + #13#10 +
+    '  "version": 1,' + #13#10 +
+    '  "quelle": "installer",' + #13#10 +
+    '  "installationstyp": "' + InstallationType + '",' + #13#10 +
+    '  "standarddaten_laden": ' + JsonBool(StartdatenPage.Values[0]) + ',' + #13#10 +
+    '  "standarddaten_aktualisieren": false,' + #13#10 +
+    '  "naechste_schritte_anzeigen": ' + JsonBool(StartdatenPage.Values[3]) + ',' + #13#10 +
+    '  "zielwertpakete": [' + #13#10 +
+    Packages + #13#10 +
+    '  ]' + #13#10 +
+    '}';
+  SaveStringToFile(PendingOptionsFile(), Json, False);
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssPostInstall then begin
+    WritePendingInstallOptions();
+  end;
+end;

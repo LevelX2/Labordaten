@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { apiFetch } from "../api/client";
-import type { InitialdatenStatus } from "../types/api";
+import type { InitialdatenStatus, InstallationOptionsProcessResult } from "../types/api";
 import { InitialdatenPanel } from "./InitialdatenPanel";
 
 type StartupStep = "grunddaten" | "naechste-schritte";
@@ -12,17 +12,37 @@ export function InitialdatenStartupDialog() {
   const navigate = useNavigate();
   const [dismissed, setDismissed] = useState(false);
   const [step, setStep] = useState<StartupStep>("grunddaten");
+  const installationsoptionenQuery = useQuery({
+    queryKey: ["system", "installationsoptionen", "verarbeiten"],
+    queryFn: () =>
+      apiFetch<InstallationOptionsProcessResult>("/api/system/installationsoptionen/verarbeiten", {
+        method: "POST"
+      }),
+    staleTime: Infinity,
+    retry: false
+  });
   const statusQuery = useQuery({
     queryKey: ["system", "initialdaten", "status"],
-    queryFn: () => apiFetch<InitialdatenStatus>("/api/system/initialdaten/status")
+    queryFn: () => apiFetch<InitialdatenStatus>("/api/system/initialdaten/status"),
+    enabled: installationsoptionenQuery.isSuccess || installationsoptionenQuery.isError
   });
+  const shouldShowNextStepsFromInstaller = Boolean(installationsoptionenQuery.data?.naechste_schritte_anzeigen);
 
   useEffect(() => {
+    if (shouldShowNextStepsFromInstaller) {
+      setDismissed(false);
+      setStep("naechste-schritte");
+      return;
+    }
     if (!statusQuery.data?.initialimport_empfohlen) {
       setDismissed(false);
       setStep("grunddaten");
     }
-  }, [statusQuery.data?.initialimport_empfohlen]);
+  }, [shouldShowNextStepsFromInstaller, statusQuery.data?.initialimport_empfohlen]);
+
+  if (installationsoptionenQuery.isLoading || statusQuery.isLoading) {
+    return null;
+  }
 
   if ((!statusQuery.data?.initialimport_empfohlen && step !== "naechste-schritte") || dismissed) {
     return null;
@@ -58,13 +78,20 @@ export function InitialdatenStartupDialog() {
         ) : (
           <div className="initialdaten-next-step">
             <div className="initialdaten-next-step__intro">
-              <h3>Die Grunddaten sind geladen.</h3>
+              <h3>{shouldShowNextStepsFromInstaller ? "Labordaten ist vorbereitet." : "Die Grunddaten sind geladen."}</h3>
               <p>
                 Als Nächstes kannst Du einen Laborbericht importieren. Dafür erzeugst Du in der Anwendung einen
                 Import-Prompt, gibst diesen Prompt zusammen mit dem Laborbericht in einen KI-Chat und übernimmst das
                 strukturierte Ergebnis anschließend wieder in Labordaten.
               </p>
             </div>
+
+            {installationsoptionenQuery.data?.fehler.length ? (
+              <div className="form-error">
+                Einige ausgewählte Startdaten konnten nicht automatisch geladen werden. Du kannst sie später in den
+                Einstellungen erneut prüfen.
+              </div>
+            ) : null}
 
             <ol className="initialdaten-next-step__steps">
               <li>Im Bereich Import den Weg KI-Chat öffnen und den Prompt erzeugen.</li>

@@ -2683,92 +2683,102 @@ export function ParameterPage() {
 
         <div className="parameter-main">
           <article className="card">
+            <div className="parameter-toolrail">
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "create" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => handleOpenPanel("create")}
+              >
+                Neuer Parameter
+              </button>
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "standardUnit" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => handleOpenPanel("standardUnit")}
+                disabled={!selectedParameter}
+              >
+                Normeinheit
+              </button>
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "classification" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => handleOpenPanel("classification")}
+                disabled={!selectedParameter}
+              >
+                KSG-Klasse
+              </button>
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "knowledge" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => handleOpenPanel("knowledge")}
+                disabled={!selectedParameter}
+              >
+                Wissen
+              </button>
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "rename" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => handleOpenPanel("rename")}
+                disabled={!selectedParameter}
+              >
+                Umbenennen
+              </button>
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "alias" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => handleOpenPanel("alias")}
+                disabled={!selectedParameter}
+              >
+                Alias pflegen
+              </button>
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "conversion" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => handleOpenPanel("conversion")}
+                disabled={!selectedParameter}
+              >
+                Umrechnung
+              </button>
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "zielbereich" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => handleOpenPanel("zielbereich")}
+                disabled={!selectedParameter}
+              >
+                Zielbereich
+              </button>
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "aliasSuggestions" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => handleOpenPanel("aliasSuggestions")}
+                disabled={!selectedParameter}
+              >
+                Vorschläge
+              </button>
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "duplicates" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => handleOpenPanel("duplicates")}
+                disabled={!selectedParameter}
+              >
+                Dubletten
+              </button>
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "delete" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => handleOpenPanel("delete")}
+                disabled={!selectedParameter}
+              >
+                Löschprüfung
+              </button>
+            </div>
+
+            {renderActionPanel()}
+
             {!selectedParameter ? (
-              <p>Noch keine Parameter vorhanden. Lege über die Werkzeugleiste den ersten Parameter an.</p>
+              <p>Noch keine Parameter vorhanden. Lege über „Neuer Parameter“ den ersten Parameter an.</p>
             ) : (
               <>
-                <div className="parameter-toolrail">
-                    <button
-                      type="button"
-                      className={`parameter-toolrail__button ${activePanel === "create" ? "parameter-toolrail__button--active" : ""}`}
-                      onClick={() => handleOpenPanel("create")}
-                    >
-                      Neuer Parameter
-                    </button>
-                    <button
-                      type="button"
-                      className={`parameter-toolrail__button ${activePanel === "standardUnit" ? "parameter-toolrail__button--active" : ""}`}
-                      onClick={() => handleOpenPanel("standardUnit")}
-                    >
-                      Normeinheit
-                    </button>
-                    <button
-                      type="button"
-                      className={`parameter-toolrail__button ${activePanel === "classification" ? "parameter-toolrail__button--active" : ""}`}
-                      onClick={() => handleOpenPanel("classification")}
-                    >
-                      KSG-Klasse
-                    </button>
-                    <button
-                      type="button"
-                      className={`parameter-toolrail__button ${activePanel === "knowledge" ? "parameter-toolrail__button--active" : ""}`}
-                      onClick={() => handleOpenPanel("knowledge")}
-                    >
-                      Wissen
-                    </button>
-                    <button
-                      type="button"
-                      className={`parameter-toolrail__button ${activePanel === "rename" ? "parameter-toolrail__button--active" : ""}`}
-                      onClick={() => handleOpenPanel("rename")}
-                    >
-                      Umbenennen
-                    </button>
-                    <button
-                      type="button"
-                      className={`parameter-toolrail__button ${activePanel === "alias" ? "parameter-toolrail__button--active" : ""}`}
-                      onClick={() => handleOpenPanel("alias")}
-                    >
-                      Alias pflegen
-                    </button>
-                    <button
-                      type="button"
-                      className={`parameter-toolrail__button ${activePanel === "conversion" ? "parameter-toolrail__button--active" : ""}`}
-                      onClick={() => handleOpenPanel("conversion")}
-                    >
-                      Umrechnung
-                    </button>
-                    <button
-                      type="button"
-                      className={`parameter-toolrail__button ${activePanel === "zielbereich" ? "parameter-toolrail__button--active" : ""}`}
-                      onClick={() => handleOpenPanel("zielbereich")}
-                    >
-                      Zielbereich
-                    </button>
-                    <button
-                      type="button"
-                      className={`parameter-toolrail__button ${activePanel === "aliasSuggestions" ? "parameter-toolrail__button--active" : ""}`}
-                      onClick={() => handleOpenPanel("aliasSuggestions")}
-                    >
-                      Vorschläge
-                    </button>
-                    <button
-                      type="button"
-                      className={`parameter-toolrail__button ${activePanel === "duplicates" ? "parameter-toolrail__button--active" : ""}`}
-                      onClick={() => handleOpenPanel("duplicates")}
-                    >
-                      Dubletten
-                    </button>
-                    <button
-                      type="button"
-                      className={`parameter-toolrail__button ${activePanel === "delete" ? "parameter-toolrail__button--active" : ""}`}
-                      onClick={() => handleOpenPanel("delete")}
-                    >
-                      Löschprüfung
-                    </button>
-                </div>
-
-                {renderActionPanel()}
-
                 <div className="parameter-detail__header">
                   <div>
                     <h3 className="parameter-detail__title">{selectedParameter.anzeigename}</h3>

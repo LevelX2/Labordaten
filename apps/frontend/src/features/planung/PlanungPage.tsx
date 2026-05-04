@@ -1103,8 +1103,36 @@ export function PlanungPage() {
 
         <div className="parameter-main">
           <article className="card">
+            <div className="parameter-toolrail">
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "zyklisch-create" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => setActivePanel((current) => (current === "zyklisch-create" ? null : "zyklisch-create"))}
+              >
+                Zyklisch anlegen
+              </button>
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "einmalig-create" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => setActivePanel((current) => (current === "einmalig-create" ? null : "einmalig-create"))}
+              >
+                Einmalig anlegen
+              </button>
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "delete" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => setActivePanel((current) => (current === "delete" ? null : "delete"))}
+                disabled={!selectedPlan}
+              >
+                Löschprüfung
+              </button>
+              {renderPrimaryAction()}
+            </div>
+
+            {renderActionPanel()}
+
             {!selectedPlan ? (
-              <p>Noch keine Planungen vorhanden. Lege über die Werkzeugleiste die erste Planung an.</p>
+              <p>Noch keine Planungen vorhanden. Lege über „Zyklisch anlegen“ oder „Einmalig anlegen“ die erste Planung an.</p>
             ) : (
               <>
                 <div className="parameter-detail__header">
@@ -1139,33 +1167,6 @@ export function PlanungPage() {
                     </button>
                   </div>
                 </div>
-
-                <div className="parameter-toolrail">
-                  <button
-                    type="button"
-                    className={`parameter-toolrail__button ${activePanel === "zyklisch-create" ? "parameter-toolrail__button--active" : ""}`}
-                    onClick={() => setActivePanel((current) => (current === "zyklisch-create" ? null : "zyklisch-create"))}
-                  >
-                    Zyklisch anlegen
-                  </button>
-                  <button
-                    type="button"
-                    className={`parameter-toolrail__button ${activePanel === "einmalig-create" ? "parameter-toolrail__button--active" : ""}`}
-                    onClick={() => setActivePanel((current) => (current === "einmalig-create" ? null : "einmalig-create"))}
-                  >
-                    Einmalig anlegen
-                  </button>
-                  <button
-                    type="button"
-                    className={`parameter-toolrail__button ${activePanel === "delete" ? "parameter-toolrail__button--active" : ""}`}
-                    onClick={() => setActivePanel((current) => (current === "delete" ? null : "delete"))}
-                  >
-                    Löschprüfung
-                  </button>
-                  {renderPrimaryAction()}
-                </div>
-
-                {renderActionPanel()}
 
                 <div className="detail-grid">
                   <div className="detail-grid__item">

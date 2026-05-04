@@ -587,6 +587,27 @@ export type ZielwertPaketInstallationResult = {
   vorschau: ZielwertPaketVorschau;
 };
 
+export type InstalliertesZielwertPaket = {
+  paket_schluessel: string;
+  angelegte_parameter_anzahl: number;
+  angelegte_einheiten_anzahl: number;
+  angelegte_zielbereiche_anzahl: number;
+  reaktivierte_zielbereiche_anzahl: number;
+  uebersprungene_zielbereiche_anzahl: number;
+};
+
+export type InstallationOptionsProcessResult = {
+  options_file: string;
+  pending_vorhanden: boolean;
+  verarbeitet: boolean;
+  installationstyp?: string | null;
+  standarddaten_angewendet: boolean;
+  initialdaten_result?: Record<string, unknown> | null;
+  zielwertpakete_installiert: InstalliertesZielwertPaket[];
+  fehler: string[];
+  naechste_schritte_anzeigen: boolean;
+};
+
 export type ZielbereichOverride = {
   id: string;
   person_id: string;

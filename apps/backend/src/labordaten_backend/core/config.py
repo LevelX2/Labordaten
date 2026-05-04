@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     documents_dir: str = "./documents"
     runtime_settings_file: str = "./labordaten.runtime.json"
     knowledge_dir: str = "../../Labordaten-Wissen"
+    install_options_file: str = "./pending-install-options.json"
 
     model_config = SettingsConfigDict(
         env_prefix="LABORDATEN_",

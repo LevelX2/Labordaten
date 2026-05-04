@@ -276,6 +276,10 @@ export function PersonenPage() {
   });
 
   const handleOpenPanel = (panel: PersonenPanelKey) => {
+    if (panel !== "create" && !selectedPerson) {
+      return;
+    }
+
     if (panel === "create") {
       setForm(initialForm);
     }
@@ -703,43 +707,46 @@ export function PersonenPage() {
 
         <div className="parameter-main">
           <article className="card">
+            <div className="parameter-toolrail">
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "create" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => handleOpenPanel("create")}
+              >
+                Neue Person
+              </button>
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "edit" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => handleOpenPanel("edit")}
+                disabled={!selectedPerson}
+              >
+                Bearbeiten
+              </button>
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "override" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => handleOpenPanel("override")}
+                disabled={!selectedPerson}
+              >
+                Zielbereich pflegen
+              </button>
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "delete" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => handleOpenPanel("delete")}
+                disabled={!selectedPerson}
+              >
+                Löschprüfung
+              </button>
+            </div>
+
+            {renderActionPanel()}
+
             {!selectedPerson ? (
-              <p>Noch keine Personen vorhanden. Lege über die Werkzeugleiste die erste Person an.</p>
+              <p>Noch keine Personen vorhanden. Lege über „Neue Person“ die erste Person an.</p>
             ) : (
               <>
-                <div className="parameter-toolrail">
-                  <button
-                    type="button"
-                    className={`parameter-toolrail__button ${activePanel === "create" ? "parameter-toolrail__button--active" : ""}`}
-                    onClick={() => handleOpenPanel("create")}
-                  >
-                    Neue Person
-                  </button>
-                  <button
-                    type="button"
-                    className={`parameter-toolrail__button ${activePanel === "edit" ? "parameter-toolrail__button--active" : ""}`}
-                    onClick={() => handleOpenPanel("edit")}
-                  >
-                    Bearbeiten
-                  </button>
-                  <button
-                    type="button"
-                    className={`parameter-toolrail__button ${activePanel === "override" ? "parameter-toolrail__button--active" : ""}`}
-                    onClick={() => handleOpenPanel("override")}
-                  >
-                    Zielbereich pflegen
-                  </button>
-                  <button
-                    type="button"
-                    className={`parameter-toolrail__button ${activePanel === "delete" ? "parameter-toolrail__button--active" : ""}`}
-                    onClick={() => handleOpenPanel("delete")}
-                  >
-                    Löschprüfung
-                  </button>
-                </div>
-
-                {renderActionPanel()}
-
                 <div className="parameter-detail__header">
                   <div>
                     <h3 className="parameter-detail__title">{selectedPerson.anzeigename}</h3>

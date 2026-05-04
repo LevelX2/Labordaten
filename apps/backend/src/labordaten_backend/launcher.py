@@ -46,6 +46,7 @@ class ReleasePaths:
         self.documents_root = data_root / "documents"
         self.knowledge_root = data_root / "Labordaten-Wissen"
         self.runtime_settings_file = data_root / "labordaten.runtime.json"
+        self.install_options_file = data_root / "pending-install-options.json"
         self.frontend_root = _first_existing(resource_root / "frontend", app_root / "apps" / "frontend" / "dist")
         self.alembic_ini = _first_existing(resource_root / "alembic.ini", app_root / "apps" / "backend" / "alembic.ini")
         self.migrations_root = _first_existing(resource_root / "migrations", app_root / "apps" / "backend" / "migrations")
@@ -92,6 +93,7 @@ def _configure_environment(paths: ReleasePaths, port: int) -> None:
     os.environ["LABORDATEN_DOCUMENTS_DIR"] = str(paths.documents_root)
     os.environ["LABORDATEN_RUNTIME_SETTINGS_FILE"] = str(paths.runtime_settings_file)
     os.environ["LABORDATEN_KNOWLEDGE_DIR"] = str(paths.knowledge_root)
+    os.environ["LABORDATEN_INSTALL_OPTIONS_FILE"] = str(paths.install_options_file)
     os.environ["LABORDATEN_FRONTEND_ORIGIN"] = f"http://127.0.0.1:{port}"
     if paths.frontend_root.exists():
         os.environ["LABORDATEN_FRONTEND_STATIC_DIR"] = str(paths.frontend_root)

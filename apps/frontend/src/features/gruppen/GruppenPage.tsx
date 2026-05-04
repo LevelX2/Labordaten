@@ -261,6 +261,10 @@ export function GruppenPage() {
   });
 
   const handleOpenPanel = (panel: GruppenPanelKey) => {
+    if (panel !== "create" && !selectedGroup) {
+      return;
+    }
+
     if (panel === "edit" && selectedGroup) {
       setEditForm({
         name: selectedGroup.name,
@@ -615,43 +619,46 @@ export function GruppenPage() {
 
         <div className="parameter-main">
           <article className="card">
+            <div className="parameter-toolrail">
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "create" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => handleOpenPanel("create")}
+              >
+                Neue Parametergruppe
+              </button>
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "edit" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => handleOpenPanel("edit")}
+                disabled={!selectedGroup}
+              >
+                Parametergruppe bearbeiten
+              </button>
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "assignments" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => handleOpenPanel("assignments")}
+                disabled={!selectedGroup}
+              >
+                Parameter zuordnen
+              </button>
+              <button
+                type="button"
+                className={`parameter-toolrail__button ${activePanel === "delete" ? "parameter-toolrail__button--active" : ""}`}
+                onClick={() => handleOpenPanel("delete")}
+                disabled={!selectedGroup}
+              >
+                Löschprüfung
+              </button>
+            </div>
+
+            {renderActionPanel()}
+
             {!selectedGroup ? (
-              <p>Noch keine Parametergruppen vorhanden. Lege über die Werkzeugleiste die erste Parametergruppe an.</p>
+              <p>Noch keine Parametergruppen vorhanden. Lege über „Neue Parametergruppe“ die erste Parametergruppe an.</p>
             ) : (
               <>
-                <div className="parameter-toolrail">
-                  <button
-                    type="button"
-                    className={`parameter-toolrail__button ${activePanel === "create" ? "parameter-toolrail__button--active" : ""}`}
-                    onClick={() => handleOpenPanel("create")}
-                  >
-                    Neue Parametergruppe
-                  </button>
-                  <button
-                    type="button"
-                    className={`parameter-toolrail__button ${activePanel === "edit" ? "parameter-toolrail__button--active" : ""}`}
-                    onClick={() => handleOpenPanel("edit")}
-                  >
-                    Parametergruppe bearbeiten
-                  </button>
-                  <button
-                    type="button"
-                    className={`parameter-toolrail__button ${activePanel === "assignments" ? "parameter-toolrail__button--active" : ""}`}
-                    onClick={() => handleOpenPanel("assignments")}
-                  >
-                    Parameter zuordnen
-                  </button>
-                  <button
-                    type="button"
-                    className={`parameter-toolrail__button ${activePanel === "delete" ? "parameter-toolrail__button--active" : ""}`}
-                    onClick={() => handleOpenPanel("delete")}
-                  >
-                    Löschprüfung
-                  </button>
-                </div>
-
-                {renderActionPanel()}
-
                 <div className="parameter-detail__header">
                   <div>
                     <h3 className="parameter-detail__title">{selectedGroup.name}</h3>

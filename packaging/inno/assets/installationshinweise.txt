@@ -1,0 +1,28 @@
+Labordaten kurz erklärt
+
+Labordaten ist eine lokale Anwendung zur strukturierten Verwaltung von Laborwerten. Du kannst Personen, Befunde, Messwerte, Laborparameter, Zielbereiche, Planung, Auswertungen, Berichte und Laborwissen in einer Oberfläche pflegen.
+
+Wie die Anwendung technisch läuft
+
+- Beim Start wird ein lokaler Labordaten-Server auf diesem Computer gestartet, falls er noch nicht läuft.
+- Die Oberfläche öffnet sich im normalen Browser.
+- Der Browser spricht nur mit dem lokalen Server auf diesem Computer.
+- Python, Node.js oder Entwicklungswerkzeuge müssen nicht separat installiert werden.
+
+Daten und Datenschutz
+
+- Die Datenbank liegt standardmäßig unter: %LOCALAPPDATA%\Labordaten\labordaten.db
+- Dokumente, Laborwissen, Einstellungen und Backups liegen ebenfalls unter: %LOCALAPPDATA%\Labordaten
+- Die Anwendung selbst sendet keine Gesundheitsdaten ins Internet.
+- Wenn Du später bewusst einen externen KI-Chat für den Import nutzt, geschieht das außerhalb der lokalen App und nur durch Deine eigene Übergabe.
+
+Was installiert wird
+
+- Programmdateien werden in den gewählten Installationsordner kopiert.
+- Auf Wunsch wird eine Desktop-Verknüpfung angelegt.
+- Nutzerdaten bleiben außerhalb des Installationsordners im lokalen Datenordner.
+- Bei späteren Updates sollen Programmdateien ersetzt werden, ohne Deine lokale Datenbank zu überschreiben.
+
+Hinweis zur Windows-Warnung
+
+Windows kann bei nicht signierten Installern eine Warnung zur unbekannten Quelle anzeigen. Diese Warnung lässt sich seriös erst durch eine Codesignatur mit Zertifikat und aufgebauter Vertrauenswürdigkeit reduzieren. Sie bedeutet nicht automatisch, dass der Installer schädlich ist, sondern dass Windows den Herausgeber noch nicht verifizieren kann.
